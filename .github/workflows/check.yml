@@ -1,0 +1,175 @@
+# Tests and lints. Deliberately NOT folded into publish-packages.yml: a release
+# run must not be gated on a demo build, and a pull request needs these checks
+# before merge, where the publish workflow only runs on push to main.
+name: Check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - uses: extractions/setup-just@v3
+
+      # Pinned to the version this repo is developed against, and the one all
+      # four manifests declare as their `compiler` floor (0.15.0). Installed
+      # from the release tarball rather than a third-party action: one pinned URL
+      # is easier to audit than an action's own moving parts.
+      - name: Install Typst 0.15.1
+        run: |
+          set -euo pipefail
+          curl -fsSL -o typst.tar.xz \
+            https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz
+          tar -xJf typst.tar.xz
+          echo "$PWD/typst-x86_64-unknown-linux-musl" >> "$GITHUB_PATH"
+
+      # Pinned to the OLDEST rheo the four manifests declare as their floor, NOT
+      # to the newest rheo: the point is that the DECLARED floor is the floor
+      # actually tested, so a package that reaches for a newer surface fails
+      # here instead of on a user's machine. Nothing in rheo reads `min_version`
+      # yet, so this step is the only thing enforcing it.
+      #
+      # `core` declares `[tool.rheo] min_version = "0.6.0"` because it REQUIRES
+      # a 0.6.0 surface: `_resolve-dest` (`core/0.1.0/src/urls.typ`) emits a
+      # reserved `rheo-page:<handle>` link dest, and only rheo 0.6.0 rewrites it
+      # into a depth-correct href. Under 0.5.2 the dest passes straight through
+      # and every page ships a literal `href="rheo-page:ideas:<slug>"`, which is
+      # what `core/0.1.0/demo/rheo/check.sh` catches.
+      #
+      # Pinned URL AND pinned digest, for the same auditability reason the
+      # Typst step gives: a re-uploaded asset fails this step rather than
+      # silently changing what CI tested.
+      - name: Install rheo 0.6.0 (the declared min_version floor)
+        run: |
+          set -euo pipefail
+          # Digest of the v0.6.0 rheo-x86_64-unknown-linux-gnu.zip asset, published
+          # 2026-08-24. Read back with:
+          #   gh release view v0.6.0 --repo freecomputinglab/rheo --json assets
+          # BUMP THIS IN THE SAME EDIT AS THE URL BELOW: the `sha256sum -c` is what
+          # makes a re-uploaded or wrong-version asset fail here rather than silently
+          # changing what CI tested.
+          sha256="05c40231acaaf58fd0e3cba0b40e1c1d1a939bfe6bea8e775868dbf6f9c79d7f"
+          curl -fsSL -o rheo.zip \
+            https://github.com/freecomputinglab/rheo/releases/download/v0.6.0/rheo-x86_64-unknown-linux-gnu.zip
+          echo "$sha256  rheo.zip" | sha256sum -c -
+          unzip -q rheo.zip -d rheo-bin
+          chmod +x rheo-bin/rheo
+          echo "$PWD/rheo-bin" >> "$GITHUB_PATH"
+          rheo-bin/rheo --version   # must print: rheo 0.6.0
+
+      # First, because it is the cheapest failure in the repo and the one that
+      # silently ships a broken release: a version directory cut by copying and
+      # bumping only the manifest leaves `.marrow.typ` importing its predecessor.
+      - name: Package specs agree with their manifests
+        run: just check-versions
+
+      - name: core unit fixture
+        run: cd core/0.1.0 && just test
+
+      # `@rookery` IS A CUSTOM NAMESPACE, NOT A TYPST-UNIVERSE ONE, so there is
+      # no registry to download it from: it resolves only where the package
+      # cache already holds it. `search/0.1.0/src/lib.typ` imports
+      # `@rookery/core:0.1.0` for `ideas` and `note-href`, and `just parity`
+      # compiles that file through `typst eval` — so without this the next step
+      # dies with `error: package not found (searched for @rookery/core:0.1.0)`.
+      #
+      # THE WHOLE NAMESPACE, not one package, and this is the same one-line
+      # setup CLAUDE.md prescribes for a developer's machine. Linking a single
+      # package in is the documented mistake: under a namespace link the target
+      # resolves back into the repo, where `<pkg>/` already exists, and
+      # `ln -sfn TARGET DIR` then writes the link INSIDE it, leaving a
+      # self-referential `<pkg>/<pkg>`.
+      #
+      # Only `search` needs it by spec. `core`'s own fixture imports
+      # `/src/lib.typ` and `demo/pure` imports `../../src/lib.typ`, both by
+      # path — which is why those two steps have always passed while this one
+      # could not.
+      - name: Resolve the @rookery namespace from this checkout
+        run: |
+          set -euo pipefail
+          cache="${XDG_CACHE_HOME:-$HOME/.cache}/typst/packages"
+          mkdir -p "$cache"
+          ln -s "$PWD" "$cache/rookery"
+          # Fail HERE with something legible rather than inside a typst error later.
+          test -f "$cache/rookery/search/0.1.0/typst.toml"
+
+      # AFTER the namespace-symlink step: @rookery/timeline binds `#dated-idea`
+      # from `@rookery/core:0.1.0` — one line, and enough to need the cache.
+      # Still buildless, like core itself, so no vite step.
+      #
+      # `just test` here runs TWO fixtures: `test/units.typ` asserts values, and
+      # `test/view.typ` + `test/check.sh` assert the markup `#timeline-view`
+      # produces, which a paged compile cannot see.
+      - name: timeline unit and view fixtures
+        run: cd timeline/0.1.0 && just test
+
+      # `just parity` is the only thing keeping the Typst and JavaScript copies
+      # of the ranking rule from drifting — two leaf scorers and the tiering rule
+      # above them. `just build` first: parity imports `src/`, but a build failure
+      # is worth catching here too, since publish-packages.yml only builds on main.
+      - name: search build and parity
+        run: cd search/0.1.0 && just build && just parity
+
+      # This repo's definition of "lint" is that a package's demo compiles
+      # (CLAUDE.md, "Build"). `demo/pure` is plain `typst compile`, so it runs
+      # anywhere. `just build`, not a hand-copied subset of its `typst compile`
+      # lines, so a new root added to the Justfile is gated in CI automatically.
+      - name: core pure demo compiles and checks, HTML and PDF
+        run: cd core/0.1.0/demo/pure && just build
+
+      # The rheo half of core's coverage, and the only thing that proves
+      # package-`.marrow.typ` still mints: `check.sh` asserts on the OUTPUT —
+      # minted note pages, backlinks, depth-relative hrefs, and the generated
+      # `@layer rookery-tags` rules — none of which `demo/pure` can reach.
+      #
+      # AFTER the namespace-symlink step above, not before: the demo's
+      # `.marrow.typ` needs `@rookery/core:0.1.0` to resolve from the cache.
+      - name: core rheo demo compiles and asserts, under the declared floor
+        run: cd core/0.1.0/demo/rheo && just check
+
+      # search's own rheo fixture. Its `check.sh` asserts what neither the
+      # `node --test` suite nor the parity harness can see: that rheo copied
+      # `dist/lib.js` and `dist/search.css` into the output, that BOTH are
+      # linked from every page at the right depth-relative prefix
+      # (`rookery/...` at the root, `../rookery/...` one level down), that the
+      # JSON island parses with one row per note, and that every href in it
+      # resolves to a file on disk.
+      #
+      # AFTER the namespace-symlink step, like core's own — and after the
+      # `search build and parity` step above, because `dist/` is gitignored and
+      # rheo cannot resolve the package until vite has written it.
+      - name: search rheo demo compiles and asserts
+        run: cd search/0.1.0/demo/rheo && just check
+
+      # @rookery/todos needs three things in this order, which is why it sits
+      # here rather than beside the unit fixtures above:
+      #   - it is a BUILT package (its release ships `dist/lib.js`, gitignored),
+      #     so vite has to run before rheo can resolve the release path;
+      #   - it hard-imports BOTH `@rookery/core:0.1.0` and
+      #     `@rookery/timeline:0.1.0`, so it must follow the namespace symlink;
+      #   - `just test-js` covers the graph layout, which is the half of this
+      #     package the Typst fixture cannot reach.
+      - name: todos build, unit fixture and graph tests
+        run: cd todos/0.1.0 && just build && just test && just test-js
+
+      # `just check` builds the demo and then asserts on its OUTPUT. The one
+      # assertion it exists for is the `.todo-search-row[hidden]` CSS rule:
+      # without it `#todos-search` sets `hidden` on every non-matching row and
+      # the stylesheet un-hides all of them, so the filter reorders the list and
+      # removes nothing. That compiles clean, passes the unit and JS suites, and
+      # looks correct in the markup — it is only wrong on screen.
+      - name: todos rheo demo compiles and asserts
+        run: cd todos/0.1.0 && just check
