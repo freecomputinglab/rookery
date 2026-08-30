@@ -1,0 +1,33 @@
+[package]
+name = "todos"
+version = "0.1.0"
+compiler = "0.15.0"
+entrypoint = "src/lib.typ"
+authors = ["The Free Computing Lab <https://freecomputinglab.ohrg.org>"]
+license = "MIT"
+description = "Todos, epics and a dependency DAG over @rookery/core notes"
+repository = "https://github.com/freecomputinglab/rookery"
+
+# Matches the floor @rookery/core 0.6.0 declares. This package hard-imports
+# rookery (and @rookery/timeline), so a project using it is already on a rheo
+# that can build rookery — the floor is inherited rather than independently
+# owned.
+[tool.rheo]
+min_version = "0.6.0"
+
+# BUILT: this package ships JavaScript for the dependency graph view, so a
+# release still bundles it into `dist/lib.js`. `entrypoint` and
+# `css_stylesheet` point at `src/` regardless — vite only copies those files
+# into `dist/` byte-identically — and `[tool.rheo.source.html]` above lists
+# the unbundled scripts a git-ref build serves instead. `@rookery/core` and
+# `@rookery/timeline` are buildless outright, and only because they ship no
+# JS at all.
+[tool.rheo.html]
+js_scripts = "dist/lib.js"
+css_stylesheet = "src/todos.css"
+
+[tool.rheo.source.html]
+# Dependency-first: `src/todos.js` imports both, and rheo's asset copy acts
+# on exactly this list rather than scanning import statements.
+js_scripts = ["src/layout.js", "src/todo-search.js", "src/todos.js"]
+js_module = true

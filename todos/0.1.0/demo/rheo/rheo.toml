@@ -1,0 +1,8 @@
+version = "0.6.0"
+title = "@rookery/todos demo"
+
+# `lib.typ` is shared setup applied by the vertebra, not a page of its own.
+# Without this it compiles to its own empty `lib.html` — the same exclusion
+# @rookery/core's demo carries for the same reason.
+[spine]
+exclude = ["lib.typ"]
