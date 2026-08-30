@@ -10,12 +10,20 @@ repository = "https://github.com/freecomputinglab/rookery"
 
 # THE RHEO FLOOR, not a rookery version. It was `0.5.2` and that was wrong rather
 # than merely stale: this package hard-imports `@rookery/core` (`src/lib.typ`,
-# `src/lookup.typ`), whose own manifest declares `min_version = "0.6.0"` — so a
-# project on rheo 0.5.2 satisfied what this said, then failed on the rookery it pulled
-# in. The other three packages in the family already said 0.6.0; this was the odd one
+# `src/lookup.typ`), whose own manifest declares the same floor — so a project on
+# rheo 0.5.2 satisfied what this said, then failed on the rookery it pulled in.
+# The other three packages in the family already said 0.6.0; this was the odd one
 # out. Its own readme states the dependency in prose too.
+#
+# 0.6.1 raises it, and not because the Typst surface moved: it is where rheo
+# learned to resolve a namespace it does not ship, via the `[packages.<ns>]`
+# table a project needs to say where `@rookery` comes from at all. Without it
+# these packages cannot be consumed under their own namespace, and
+# `[tool.rheo.source.html]` below is a 0.6.1 manifest key an older rheo reads
+# straight past. The floor turns "package not found" into a message naming the
+# version.
 [tool.rheo]
-min_version = "0.6.0"
+min_version = "0.6.1"
 
 [tool.rheo.html]
 js_scripts = "dist/lib.js"

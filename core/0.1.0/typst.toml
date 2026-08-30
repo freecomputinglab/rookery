@@ -9,12 +9,19 @@ description = "Atomic, interlinked, transcludable notes for Typst - Zettelkasten
 repository = "https://github.com/freecomputinglab/rookery"
 
 [tool.rheo]
-# 0.6.0 is where rheo rewrites the reserved `rheo-page:<handle>` link dest that
-# `_resolve-dest` (src/urls.typ) now emits for every note link. An older rheo
-# passes that dest through untouched and the page ships a literal
-# `href="rheo-page:ideas:<slug>"` — a silent, site-wide dead-link failure, which is
-# precisely what a floor exists to turn into a build error.
-min_version = "0.6.0"
+# 0.6.0 was the first floor: rheo rewrites the reserved `rheo-page:<handle>` link
+# dest that `_resolve-dest` (src/urls.typ) emits for every note link, and an
+# older rheo passes it through untouched, shipping a literal
+# `href="rheo-page:ideas:<slug>"` — a silent, site-wide dead-link failure.
+#
+# 0.6.1 raises it, and not because the Typst surface moved: it is where rheo
+# learned to resolve a namespace it does not ship, via the `[packages.<ns>]`
+# table a project needs to say where `@rookery` comes from at all. Without it
+# these packages cannot be consumed under their own namespace, and
+# `[tool.rheo.source.html]` below is a 0.6.1 manifest key an older rheo reads
+# straight past. The floor turns "package not found" into a message naming the
+# version.
+min_version = "0.6.1"
 
 [tool.rheo.html]
 css_stylesheet = "src/core.css"

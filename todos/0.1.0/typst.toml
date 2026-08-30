@@ -13,7 +13,14 @@ repository = "https://github.com/freecomputinglab/rookery"
 # that can build rookery — the floor is inherited rather than independently
 # owned.
 [tool.rheo]
-min_version = "0.6.0"
+# 0.6.1 is where rheo learned to resolve a namespace it does not ship — the
+# `[packages.<ns>]` table a project needs to say where `@rookery` comes from at
+# all. The Typst surface these packages use has not moved since 0.6.0; what
+# changed is that consuming them under their own namespace is impossible before
+# 0.6.1, and `[tool.rheo.source.html]` below is a 0.6.1 manifest key an older
+# rheo reads straight past. Declaring the floor turns "package not found" into a
+# message naming the version, which is the whole point of a floor.
+min_version = "0.6.1"
 
 # BUILT: this package ships JavaScript for the dependency graph view, so a
 # release still bundles it into `dist/lib.js`. `entrypoint` and
