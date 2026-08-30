@@ -30,7 +30,15 @@ repository = "https://github.com/freecomputinglab/rookery"
 # 0.6.1, and `[tool.rheo.source.html]` below is a 0.6.1 manifest key an older
 # rheo reads straight past. Declaring the floor turns "package not found" into a
 # message naming the version, which is the whole point of a floor.
-min_version = "0.6.1"
+#
+# 0.6.2 raises it again, and this one is the sharpest reason yet: 0.6.1 located
+# packages by probing Typst's directory layout in the two places that read a
+# package's `.marrow.typ`, and a package fetched from a ref lives at a path keyed
+# by its resolved commit, which no probe matches. Every page THIS FAMILY MINTS
+# FROM MARROW therefore went missing — on a build that succeeded and warned about
+# nothing. Declaring 0.6.2 is what turns that silence into an error naming the
+# version.
+min_version = "0.6.2"
 
 [tool.rheo.html]
 css_stylesheet = "src/timeline.css"

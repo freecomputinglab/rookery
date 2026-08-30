@@ -43,41 +43,50 @@ jobs:
       # refuses a package above the running version, so this step and that check
       # have to agree — if they drift, one of them is testing a fiction.
       #
-      # All four declare `min_version = "0.6.1"`, and NOT because the Typst
-      # surface moved. 0.6.1 is where rheo learned to resolve a namespace it does
-      # not ship, via the `[packages.<ns>]` table a project needs to say where
-      # `@rookery` comes from at all — so no older rheo can consume this family
-      # under its own namespace, whatever its Typst surface supports. The 0.6.0
-      # requirement it replaces still holds underneath: `_resolve-dest`
-      # (`core/0.1.0/src/urls.typ`) emits a reserved `rheo-page:<handle>` link
-      # dest that only 0.6.0 and later rewrite into a depth-correct href, and
-      # `core/0.1.0/demo/rheo/check.sh` catches the literal that an older one
-      # ships instead.
+      # All four declare `min_version = "0.6.2"`, and NOT because the Typst
+      # surface moved — it has not since 0.6.0. Three requirements stack up.
+      #
+      # 0.6.0: `_resolve-dest` (`core/0.1.0/src/urls.typ`) emits a reserved
+      # `rheo-page:<handle>` link dest that only 0.6.0 and later rewrite into a
+      # depth-correct href; `core/0.1.0/demo/rheo/check.sh` catches the literal an
+      # older rheo ships instead.
+      #
+      # 0.6.1: where rheo learned to resolve a namespace it does not ship, via the
+      # `[packages.<ns>]` table a project needs to say where `@rookery` comes from
+      # at all — so no older rheo can consume this family under its own namespace.
+      #
+      # 0.6.2: 0.6.1 still located packages by probing Typst's directory layout in
+      # the two places that read a package's `.marrow.typ`, and a package fetched
+      # from a ref lives at a path keyed by its resolved commit, which no probe
+      # matches. Every page this family mints from marrow went missing, on a build
+      # that succeeded and warned about nothing. Since every consumer currently
+      # tracks the `0.1.0` branch rather than a release, that is the ordinary case
+      # here, not an edge one.
       #
       # Pinned URL AND pinned digest, for the same auditability reason the
       # Typst step gives: a re-uploaded asset fails this step rather than
       # silently changing what CI tested.
-      - name: Install rheo 0.6.1 (the declared min_version floor)
+      - name: Install rheo 0.6.2 (the declared min_version floor)
         run: |
           set -euo pipefail
-          # Digest of the v0.6.1 rheo-x86_64-unknown-linux-gnu.zip asset, published
+          # Digest of the v0.6.2 rheo-x86_64-unknown-linux-gnu.zip asset, published
           # 2026-08-30. Read it back with (note the exact asset name: matching on
           # "linux-gnu.zip" also catches the aarch64 build, and `digest` comes back
           # "sha256:"-prefixed, which `sha256sum -c` will not accept):
-          #   gh release view v0.6.1 --repo freecomputinglab/rheo --json assets \
+          #   gh release view v0.6.2 --repo freecomputinglab/rheo --json assets \
           #     --jq '.assets[] | select(.name == "rheo-x86_64-unknown-linux-gnu.zip") | .digest' \
           #     | cut -d: -f2
           # BUMP THIS IN THE SAME EDIT AS THE URL BELOW: the `sha256sum -c` is what
           # makes a re-uploaded or wrong-version asset fail here rather than silently
           # changing what CI tested.
-          sha256="e728e0e245b5d0488c7fd2426f5291ed968edd21e2ffca366ede8b04b9a918d6"
+          sha256="ab71c5e4fea2ff05381f19e9ff11003e311e03974dcfd663a52b05569eceaa71"
           curl -fsSL -o rheo.zip \
-            https://github.com/freecomputinglab/rheo/releases/download/v0.6.1/rheo-x86_64-unknown-linux-gnu.zip
+            https://github.com/freecomputinglab/rheo/releases/download/v0.6.2/rheo-x86_64-unknown-linux-gnu.zip
           echo "$sha256  rheo.zip" | sha256sum -c -
           unzip -q rheo.zip -d rheo-bin
           chmod +x rheo-bin/rheo
           echo "$PWD/rheo-bin" >> "$GITHUB_PATH"
-          rheo-bin/rheo --version   # must print: rheo 0.6.1
+          rheo-bin/rheo --version   # must print: rheo 0.6.2
 
       # First, because it is the cheapest failure in the repo and the one that
       # silently ships a broken release: a version directory cut by copying and
