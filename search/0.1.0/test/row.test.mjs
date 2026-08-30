@@ -36,7 +36,12 @@ test("the wbr adds no text, so the row reads as title then id", () => {
   assert.equal(row.textContent, "Amanda Holmes and Adrian Johnston[idea:amanda-holmes]");
 });
 
-test("an untitled note falls back to its name", () => {
+// There is deliberately NO `|| hit.name` fallback in `renderRow`: `text` is
+// rookery's derived label and is never empty, so a fallback would be dead code
+// that also hid a real bug if the island ever shipped `""`. This pins the
+// absence — restoring the fallback turns the row back into `amanda-holmes[...`
+// and fails here.
+test("an empty title is rendered as empty, not filled in from the name", () => {
   const row = renderRow({ ...hit, text: "" }, []);
-  assert.match(row.textContent, /^amanda-holmes\[/);
+  assert.equal(row.textContent, "[idea:amanda-holmes]");
 });

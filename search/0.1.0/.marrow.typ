@@ -1,8 +1,8 @@
 // Compresses the rookery's corpus ONCE per build, at the bundle root.
 //
 // rheo inlines this file verbatim at the bundle root when a project imports
-// `@rheo/rookery-search`, so it runs once for the whole build with the finished
-// note registry in scope — the same place `@rheo/rookery`'s own `.marrow.typ`
+// `@rookery/search`, so it runs once for the whole build with the finished
+// note registry in scope — the same place `@rookery/core`'s own `.marrow.typ`
 // mints note pages from. Everything it publishes is read back through
 // `_corpus-cache` by `#search-index`, which runs once per emitted page; see that
 // state's comment in `src/lib.typ` for the measurements that make this worth
@@ -13,8 +13,8 @@
 // its `(:)` default and `#search-index` compresses inline as it always did.
 // Nothing here is required for correctness — it is a cache, and a miss is only
 // slower, never different.
-#import "@rheo/rookery-search:0.1.0": _compress-corpus, _corpus-cache, _corpus-key
-#import "@rheo/rookery:0.1.0": ideas
+#import "@rookery/search:0.1.0": _compress-corpus, _corpus-cache, _corpus-key
+#import "@rookery/core:0.1.0": ideas
 
 #context {
   // `page`, not `href`: `#note-path` is the site-root-relative output path and

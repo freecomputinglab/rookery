@@ -72,7 +72,7 @@
 // `#show:` chrome — no site header, no nav. `#show: rookery.with(
 // idea-page-template: ...)` is how a project hands one over; this file applies
 // applied. `none` (the default) mints the bare page this always produced.
-// Every name here is INTERNAL to `@rheo/rookery` and load-bearing for this
+// Every name here is INTERNAL to `@rookery/core` and load-bearing for this
 // file. lib.typ carries the matching "CONSUMED BY .marrow.typ" banner; renaming
 // or re-signing any of them means changing both files in the same commit.
 // SYNDICATION BEACON. Opt-in via `#show: rookery.with(syndicate: true)`
@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rheo/rookery:0.1.0": _registry, _note-page, _pfx, _IDEA-DIR, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _plain, _visible-tags, window
+#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _IDEA-DIR, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _plain, _visible-tags, window
 
 #context {
   let registry = _registry.final()
@@ -227,7 +227,7 @@
       // else's prose. `created`, the one date core resolves as of 0.6.0 — it
       // falls back to the document's own date, so a note that names none still
       // shows something rather than nothing. There was an `updated` beside it
-      // until 0.6.0; a note's lifecycle is @rheo/rookery-timeline' dated log now,
+      // until 0.6.0; a note's lifecycle is @rookery/timeline' dated log now,
       // and a project wanting last-touched on this page reads it from there
       // through its own `idea-page-template`.
       #_head(
@@ -468,7 +468,7 @@
           published: rec.created,
           // BOTH from `created`, because a note has one date in core as of
           // 0.6.0 and Atom requires `<updated>`. A project tracking a real
-          // lifecycle through @rheo/rookery-timeline' log emits its own beacon
+          // lifecycle through @rookery/timeline' log emits its own beacon
           // with the derived date rather than relying on this default.
           updated: rec.created,
           categories: rec.at("tags", default: (:)).keys(),
