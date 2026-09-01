@@ -32,8 +32,8 @@ import { wire, wireModal } from "./wire.js";
 import { initPanels, wirePanel } from "./panel.js";
 
 export { fold, clusters } from "./text.js";
-export { parseTagQuery, evalTagQuery, positiveAtoms } from "./tagquery.js";
-export { splitQuery, score, bodyScore, search } from "./score.js";
+export { TAG_PREFIX, splitQuery, parseTagQuery, evalTagQuery, positiveAtoms } from "./tagquery.js";
+export { score, bodyScore, search } from "./score.js";
 export { readIndex } from "./island.js";
 export { initPanels, wirePanel } from "./panel.js";
 

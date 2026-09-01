@@ -35,6 +35,12 @@
 // checks and not only `just test`.
 #import "base.typ": *
 #import "tagquery.typ": *
+// AFTER `tagquery.typ` AND BEFORE `rank.typ`, which is the dependency order the
+// paragraph above demands rather than tidy alphabetical accident: `rank.typ`'s
+// `_rank` calls `fuzzy-score` and `body-score`, which now live here. Put this line
+// below `rank.typ` and the package still builds while a real site fails with
+// `unknown variable: fuzzy-score` — the exact failure that paragraph records.
+#import "score.typ": *
 #import "rank.typ": *
 #import "lookup.typ": *
 #import "corpus.typ": *

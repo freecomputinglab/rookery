@@ -3,11 +3,11 @@
 
 import { readIndex } from "./island.js";
 import { renderRow } from "./row.js";
-import { search, splitQuery } from "./score.js";
+import { search } from "./score.js";
 import { selection } from "./selection.js";
 import { extractNote, fetchNote, previewCache } from "./preview.js";
 import { KEYWORD_LIMIT, appendMarked, markTermsInNode, matchRanges } from "./marks.js";
-import { parseTagQuery, positiveAtoms } from "./tagquery.js";
+import { parseTagQuery, positiveAtoms, splitQuery } from "./tagquery.js";
 import { fold } from "./text.js";
 
 // The `limit` attribute, which is a NUMBER, the string "none", or absent.

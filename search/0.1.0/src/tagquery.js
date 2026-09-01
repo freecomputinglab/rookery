@@ -1,5 +1,13 @@
-// The `tags:` query language, ported from `src/tagquery.typ`: shunting-yard to
-// RPN, an evaluator, and the atom extractor the UI marks pills with.
+// The `tags:` query language, ported from `src/tagquery.typ`: the prefix that
+// opens an expression, shunting-yard to RPN, an evaluator, and the atom extractor
+// the UI marks pills with.
+//
+// THE WHOLE LANGUAGE AND NOTHING ELSE. `splitQuery` — the entry point, and the only
+// place the `tags:` prefix is recognised — used to sit in `score.js`, a module
+// otherwise about ranking; and on the Typst side the scorer sat in `tagquery.typ`,
+// a differently-drawn split of the same two subjects. So refining the syntax meant
+// editing two files per language and knowing which half of each owned what. Now
+// each language has one module for the language and one for the scorer.
 //
 // Every rule here has a Typst twin and `test/parity.mjs` pins the two together
 // case for case.
@@ -11,6 +19,11 @@ import { clusters, fold } from "./text.js";
 // reads as an accident rather than a rule, so it is named here.
 export const OPS = { "!": 3, "&": 2, "|": 1 };
 export const RIGHT = { "!": true };
+// THE ONE PREFIX THAT OPENS A TAG EXPRESSION. Named rather than spelled inline,
+// because it was a literal in one place and a `slice(5)` — the same string,
+// hand-counted — in the next, so the two could drift by a character with nothing
+// to catch it.
+export const TAG_PREFIX = "tags:";
 // Port of `parse-tag-query` in src/lib.typ. Shunting-yard to RPN, iterative
 // (no recursion), tokens as 2-slot objects. NEVER throws: every malformed
 // form repairs, because a live search box types every prefix of a valid
@@ -79,6 +92,21 @@ export const parseTagQuery = (src) => {
     else out.push({ t: "op", v: top });
   }
   return { rpn: out, residual: residual.trim(), repaired };
+};
+// Port of `split-query`. THE ENTRY POINT: only a LEADING `tags:` is recognised, so
+// a note body containing "tags:" can never be mistaken for a filter, and the
+// non-tags branch returns `q` UNTOUCHED rather than trimmed — the scorers fold and
+// split their own query, so trimming here would only be a second place for the two
+// languages to disagree about whitespace.
+//
+// `TAG_PREFIX.length` rather than a literal `5`, which is what the Typst twin's own
+// comment has to justify ("`slice(5)` is safe on byte offsets because `tags:` is
+// five ASCII bytes"). It is still true; it no longer has to be remembered.
+export const splitQuery = (q) => {
+  const s = q.replace(/^\s+/, "");
+  if (!s.toLowerCase().startsWith(TAG_PREFIX)) return { rpn: [], text: q, repaired: [] };
+  const { rpn, residual, repaired } = parseTagQuery(s.slice(TAG_PREFIX.length));
+  return { rpn, text: residual, repaired };
 };
 // Port of `eval-tag-query`. `tags` must already be folded. An empty RPN is
 // NO FILTER (true), and a binary op with too few operands is skipped — that

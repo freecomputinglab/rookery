@@ -6,7 +6,18 @@
 // `just parity` will say so.
 
 #import "base.typ": *
+// BOTH HALVES OF A QUERY, from the two modules that own them: `tagquery.typ` for
+// `split-query`/`eval-tag-query`, `score.typ` for `fuzzy-score`/`body-score`. That
+// is the whole of what `_rank` does — extract the tag expression, filter by it,
+// rank the residual — and it is the one file that needs both.
+//
+// TWO IMPORTS RATHER THAN ONE, since the scorer moved out of `tagquery.typ`. This
+// file was the only Typst caller of it, and MEASURED: without this line `just
+// parity` fails with `unknown variable: fuzzy-score` at `rank.typ:91`. The
+// manifest order in `lib.typ` does not cover it — a module resolves its own
+// imports, not the manifest's.
 #import "tagquery.typ": *
+#import "score.typ": *
 
 // ---- _rank — the tiering rule, over rows GIVEN rather than read ------------
 //

@@ -4,16 +4,13 @@
 // The other half of the parity contract with the Typst side.
 
 import { clusters, clustersCached, fold } from "./text.js";
-import { evalTagQuery, parseTagQuery, positiveAtoms } from "./tagquery.js";
-
-// Port of `split-query`. Only a LEADING `tags:` is recognised, so a note
-// body containing "tags:" can never be mistaken for a filter.
-export const splitQuery = (q) => {
-  const s = q.replace(/^\s+/, "");
-  if (!s.toLowerCase().startsWith("tags:")) return { rpn: [], text: q, repaired: [] };
-  const { rpn, residual, repaired } = parseTagQuery(s.slice(5));
-  return { rpn, text: residual, repaired };
-};
+// `splitQuery` IS THE LANGUAGE'S OWN, and it used to be defined right here — which
+// meant refining the `tags:` syntax touched a module about ranking. It moved to
+// `tagquery.js` beside the parser it calls; this file only uses it.
+//
+// `parseTagQuery` and `positiveAtoms` went with it: the first was only ever called
+// by `splitQuery`, and the second was an import this file never used at all.
+import { evalTagQuery, splitQuery } from "./tagquery.js";
 // Port of `fuzzy-score`. `null` (Typst `none`) when the query's characters do
 // not all appear in `hay` in order; otherwise an integer, higher better.
 export const score = (hay, query) => {
