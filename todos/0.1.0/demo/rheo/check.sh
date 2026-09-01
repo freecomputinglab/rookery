@@ -77,4 +77,52 @@ if "idea:parse" not in seg:
 print("  skin: closed todo hidden by default, shown with closed: true, open one unaffected")
 SKIN
 
+# `#filter-panel`'s FOUR PILL GROUPS, and the `tag` one in particular. Asserted on
+#    the output because the whole claim is about markup nothing declared: the tag
+#    pills are the union of what the listed todos carry, so a pill that is missing
+#    is a filter the reader never sees and a pill too many is one that matches
+#    nothing. Neither is visible from a Typst fixture, and neither would fail the
+#    build.
+python3 - "$H/index.html" <<'PANEL' || fail=1
+import re, sys
+h = open(sys.argv[1]).read()
+i = h.index("Filter them in groups")
+seg = h[i:h.index("The dependency graph", i)]
+
+bad = 0
+def note(m):
+    global bad
+    print("FAIL: " + m); bad = 1
+
+groups = re.findall(r'data-panel-group="([^"]*)"', seg)
+if groups != ["epic", "tag", "state", "priority"]:
+    note(f"the panel's pill groups are {groups}, wanted epic/tag/state/priority")
+
+# The script cannot infer which attributes hold a SET — a padded " a b " and a
+# scalar are the same string — so the Typst side must say. Without this the tag
+# pills would test equality against the whole token list and match nothing.
+if 'data-panel-multi="tag"' not in seg:
+    note("the panel does not declare data-panel-multi=\"tag\"; the tag pills would match nothing")
+
+tags = re.findall(r'data-panel-facet="tag" data-panel-value="([^"]*)"', seg)
+if tags != ["frontend", "phd"]:
+    note(f"the tag pills are {tags}, wanted frontend/phd — the union of the plain tags"
+         f" the listed todos carry, with `launch` dropped as the epic group's own")
+
+# PADDED AT BOTH ENDS, per row, which is what keeps a token from half-matching one
+# that is another's prefix. `ship` carries two; most carry none.
+attrs = re.findall(r'data-tag="([^"]*)"', seg)
+if not attrs:
+    note("no row carries a data-tag attribute")
+for a in attrs:
+    if a and not (a.startswith(" ") and a.endswith(" ")):
+        note(f"data-tag={a!r} is not space-padded at both ends")
+if " frontend phd " not in attrs:
+    note("no row carries two tags; the intersection test is unexercised")
+
+if not bad:
+    print(f"  filter-panel: 4 groups, tag pills {tags}, {len(attrs)} rows padded")
+sys.exit(bad)
+PANEL
+
 if [ "$fail" -eq 0 ]; then echo "demo/rheo OK"; else echo "demo/rheo FAILED"; exit 1; fi

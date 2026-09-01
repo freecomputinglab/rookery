@@ -31,6 +31,13 @@
 // container waiting to be filled. The projection's scalar guarantee is exactly
 // what makes that generic instead of hand-written per widget.
 //
+// ONE FACET MAY HOLD A SET rather than a value — `multi: ("tag",)` — and that is the
+// one departure from the scalar rule, made where the rule was costing a whole kind of
+// pill. A note's tags are not a scalar, and the only pill row that could offer them
+// was `#filter-panel`'s tag mode, which has no groups at all. Such a field rides as a
+// space-padded token list and its group ORs like any other, so a tag group composes
+// with the scalar ones instead of replacing them. Everything else still asserts.
+//
 // PANELS TAKE AN INDEX, THEY NEVER BUILD ONE. A page builds one projection and
 // passes the projected rows to everything on it. A self-building panel would put
 // back the per-view walk of the value store that `tag-index` exists to remove.
@@ -56,13 +63,58 @@
   if type(value) == bool { if value { "true" } else { "false" } } else { str(value) }
 }
 
+// A MULTI-VALUED FACET'S ATTRIBUTE — the values joined and PADDED WITH A SPACE AT
+// BOTH ENDS, which is the shape `#filter-panel`'s own `data-panel-tags` has taken
+// since it shipped. Same shape, so `panel.js` tokenizes both with one line and the
+// padding keeps a substring test from half-matching a value that is another's prefix.
+//
+// A VALUE MAY NOT CONTAIN WHITESPACE, asserted rather than escaped: a space would
+// split one value into two tokens, and the pill for the half neither matches anything
+// nor says why. A tag or a projected key never has one; a label might, and the caller
+// wanting labels as pills wants a slug beside them.
+//
+// EMPTY IS `""` rather than a lone space, so a row carrying none of the facet's values
+// emits the same empty attribute a scalar facet does.
+#let _multi-attr(field, values) = {
+  if values == none { return "" }
+  assert(
+    type(values) == array,
+    message: "@rookery/search: panel field `"
+      + field
+      + "` is declared in `multi:`, so it must hold an ARRAY of scalars — got "
+      + repr(type(values))
+      + ". A single-valued facet does not belong in `multi:`.",
+  )
+  if values.len() == 0 { return "" }
+  let out = values.map(v => _attr(field, v))
+  for v in out {
+    assert(
+      v.split(" ").len() == 1 and v.split("\n").len() == 1 and v.split("\t").len() == 1,
+      message: "@rookery/search: panel field `"
+        + field
+        + "` is multi-valued, so its values ride in ONE space-separated attribute — "
+        + "and " + repr(v) + " carries whitespace, which would split it into two "
+        + "tokens the pills cannot match. Project a slug instead.",
+    )
+  }
+  " " + out.join(" ") + " "
+}
+
 // One pill per value ANY LISTED ROW ACTUALLY HAS, never per value the vocabulary
 // permits: a pill for a value nothing carries is a filter that could only ever
 // return nothing. Values are sorted so the pill row is stable across builds —
 // `ideas()` is ordered by id, but the set of values a facet takes is not.
-#let _facet-values(rows, field) = {
-  rows
-    .map(r => r.at(field, default: none))
+//
+// A MULTI-VALUED FIELD IS FLATTENED FIRST, so the group offers the UNION of what the
+// listed rows carry — which is the whole point of such a facet: a value nothing
+// carries has no pill, and a value one new row introduces gets one with no vocabulary
+// declared anywhere.
+#let _facet-values(rows, field, multi: false) = {
+  let vals = rows.map(r => r.at(field, default: none))
+  let vals = if multi {
+    vals.map(v => if v == none { () } else { v }).flatten()
+  } else { vals }
+  vals
     .filter(v => v != none and v != "")
     .map(v => _attr(field, v))
     .dedup()
@@ -74,6 +126,21 @@
   // Projected field names to offer as pill groups, in the order given. Each
   // becomes one group of `aria-pressed` buttons.
   facets: (),
+  // WHICH OF THOSE FACETS HOLD A SET RATHER THAN A VALUE. A field named here is
+  // projected as an ARRAY of scalars, gets one pill per distinct value ANY listed row
+  // carries, and a row survives the group if it carries ANY pressed value.
+  //
+  // WHY IT IS A SEPARATE LIST rather than inferred from the projected type: a facet
+  // whose rows happen to be single-element arrays would silently switch predicates,
+  // and the JS half has to be told which attributes to tokenize before it reads the
+  // first row. Declared once, both halves agree.
+  //
+  // WHAT IT BUYS. A scalar facet can only ask "which one is it" — one epic, one sort,
+  // one state. A note's TAGS are not that shape, and `#filter-panel`'s tag mode, which
+  // is, has a single undifferentiated pill row and no groups. This is the missing
+  // third case: a tag group that composes with the scalar ones under the same
+  // OR-within, AND-across rule.
+  multi: (),
   // HOW THE GROUPS ARE LAID OUT, and nothing else — which facets exist is still
   // `facets:` alone. `none` is one row holding every group, which is what this
   // function has always emitted. Otherwise an array of
@@ -157,6 +224,32 @@
     }
   }
 
+  // SAME TYPO, THE THIRD WAY ROUND. A `multi:` entry that no facet matches would
+  // tokenize an attribute nothing emits, which is silent in the output exactly like
+  // the `facet-rows:` mismatch above.
+  for f in multi {
+    assert(
+      facets.contains(f),
+      message: "@rookery/search: #panel's `multi:` names `" + f + "`, which is not in "
+        + "`facets:` — nothing projects it, so it has neither pills nor an attribute.",
+    )
+  }
+
+  // A SET CANNOT BE AN ORDER. `sort:` is compared as one padded string per row, so a
+  // multi-valued field there would sort by its first value and read as arbitrary.
+  //
+  // `repr`, NOT `str`: an `assert` message is evaluated whether or not the condition
+  // holds, and `str(none)` PANICS — "expected integer, float, .. found none", with no
+  // mention of this assertion or of `sort:`. The default `sort: none` would have hit it
+  // on every panel that orders by nothing, which is most of them. Same trap the
+  // `visible:` comment below records a caller falling into.
+  assert(
+    sort == none or not multi.contains(sort),
+    message: "@rookery/search: #panel's `sort:` is " + repr(sort) + ", which is also "
+      + "in `multi:` — a field holding a SET has no single value to order rows by. "
+      + "Project a scalar to sort on.",
+  )
+
   let hay = if haystack != none { haystack } else {
     r => (
       r.at("label", default: ""),
@@ -214,6 +307,11 @@
       // widget degrades: with no JavaScript the chrome that would do nothing
       // never appears, and what is left is an ordinary complete list.
       "data-panel-ready": "false",
+      // WHICH ATTRIBUTES HOLD A SET, for the script — the one thing it cannot read off
+      // the markup, a padded `" a b "` and a scalar `"a b"` being indistinguishable
+      // once written. Absent when no facet is multi-valued, so an older page's markup
+      // reads exactly as it always did.
+      ..if multi.len() == 0 { (:) } else { ("data-panel-multi": multi.join(" ")) },
       // The visible height goes to CSS as a custom property rather than as a
       // rule, so the number lives once, here, in the call that sets it.
       ..if visible == none { (:) } else { (style: "--panel-rows: " + str(visible)) },
@@ -230,7 +328,7 @@
         ),
       )
       let group(f) = {
-        let vals = _facet-values(rows, f)
+        let vals = _facet-values(rows, f, multi: multi.contains(f))
         html.elem(
           "span",
           attrs: (class: "panel-pill-group", "data-panel-group": f),
@@ -287,8 +385,16 @@
                 "data-panel-text": lower(hay(r)),
               )
                 // One `data-<field>` per faceted field, on the row carrying it.
-                // No JSON island: the payload IS the markup.
-                + facets.map(f => ("data-" + f, _attr(f, r.at(f, default: none)))).to-dict()
+                // No JSON island: the payload IS the markup. A multi-valued field
+                // rides as its padded token list rather than as one value.
+                + facets
+                  .map(f => (
+                    "data-" + f,
+                    if multi.contains(f) {
+                      _multi-attr(f, r.at(f, default: ()))
+                    } else { _attr(f, r.at(f, default: none)) },
+                  ))
+                  .to-dict()
             ),
             render(r),
           ))

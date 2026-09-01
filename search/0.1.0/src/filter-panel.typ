@@ -45,12 +45,83 @@
   if type(t) == dictionary { t.keys() } else { t }
 }
 
+// THE FLAT ONES ONLY, for `pills: auto`. rookery's three tag surfaces (see
+// @rookery/todos' `tags.typ`, which names them) split on exactly this: a FLAT tag
+// carries no value because the key IS the fact, and that is the surface that "renders
+// as a pill"; a VALUED tag's value is a date, a URL, an id or a bag of metadata, and
+// rookery's own convention is that it renders none. So `timeline-log`, `cfp-venue` and
+// `submission-work` are things to filter BY KEY, not names a pill can wear — and a
+// derived pill row that offered them would be reading a note's data as its vocabulary.
+//
+// MEASURED on a site with 47 auto-derived pills: six of them were valued keys, and each
+// one is a button reading like a namespace.
+//
+// AN AUTHORED `pills:` LIST IS UNAFFECTED. A caller naming a valued key means it —
+// presence-filtering by such a key is legitimate and `#panel`'s tag query does it — so
+// this narrows the DERIVATION and nothing else.
+//
+// WITH NO `tags-dict` there are no values to test, which is a row handed in through
+// `rows:` from a plain `ideas()`. Every key is offered, because "flat" is unanswerable
+// rather than false, and a caller in that position has `tag-filter:`.
+#let _flat-tags-of(r) = {
+  let d = r.at("tags-dict", default: none)
+  if d == none { return _tags-of(r) }
+  d.keys().filter(k => d.at(k) == none)
+}
+
 #let filter-panel(
   // Only ideas carrying this tag become rows. `none` means every idea.
   tag: none,
   // Tag names, in order. Each becomes one pill AND, where a row carries it, one chip.
-  // AUTHORED rather than derived, which is the difference from `#panel`'s facets.
+  // AUTHORED rather than derived, which WAS the difference from `#panel`'s facets.
+  //
+  // `auto` DERIVES THEM: every FLAT tag any listed row carries, sorted — so the pill order
+  // is stable across builds, `ideas()` being ordered by id while the set of tags it
+  // turns up is not. That is the mode for a panel whose pills should not need
+  // maintaining: a tag written on one note today has a pill tomorrow, and nothing
+  // anywhere declares the list. Narrow it with `tag-filter:` below, which is how a
+  // whole namespaced family stays out.
+  //
+  // AN AUTHORED LIST IS STILL RIGHT where the pills are a VOCABULARY rather than an
+  // inventory — the kinds a note can be, in an order a reader expects, with the
+  // subjects left to the text box. Both modes drop a tag no listed row carries.
   pills: (),
+  // WHICH TAGS EARN A PILL, as a predicate over the tag name — `t => bool`, `none` for
+  // all of them. It NARROWS and cannot widen: a tag no row carries has no pill either
+  // way.
+  //
+  //   tag-filter: t => not t.starts-with("venue-")
+  //
+  // WHY A PREDICATE AND NOT A LIST OF NAMES TO EXCLUDE. With `pills: auto` the whole
+  // value of the row is that nothing declares it, and a list of exclusions is that same
+  // maintenance burden back again — one entry per tag instead of one per pill. What a
+  // caller wants to drop is a FAMILY, and its families are its own: a namespacing
+  // prefix here, some other scheme on the next site. A predicate says it in one line
+  // and needs no vocabulary from this package.
+  //
+  // IT APPLIES TO AN AUTHORED LIST TOO, so a blacklist beats a pill written by hand:
+  // one question, one answer, whichever way the list arrived.
+  //
+  // THE SAME ARGUMENT NAME @rookery/todos' `#filter-panel` takes for its own `tag`
+  // group. Two panels and two derivations — that one also drops the todo namespace and
+  // the epics — but one word for "which tags earn a pill", so a site can hold the
+  // predicate in one `let` and hand it to both.
+  tag-filter: none,
+  // WHICH TAGS BECOME CHIPS on the rows, if not the pills. `auto` is the pill list when
+  // that list is authored, and NOTHING when it is derived.
+  //
+  // THAT ASYMMETRY IS ABOUT THE GRID rather than about tags. `#idea-row` is
+  // `<gutter> 1fr auto auto` and the chip strip is the last `auto`, so a chip per tag
+  // makes the strip as wide as the widest row's whole tag list and squeezes every title
+  // on the page to pay for it. An authored list is short by construction and was always
+  // safe there; a derived one is however long the corpus is. @rookery/todos' panel
+  // leaves its derived `tag` group off its badge strip for exactly this reason.
+  //
+  // SO A PANEL CAN HAVE BOTH: `pills: auto` for a filter that needs no maintaining, and
+  // `chips: ("todo", "meeting", ..)` for the few tags worth reading off a row. A row
+  // wears every tag it has as an `idea-tag-<tag>` class either way, so theming is
+  // untouched by anything decided here.
+  chips: auto,
   // HOW TWO PRESSED PILLS COMPOSE. `"any"` (the default) keeps a row carrying EITHER,
   // so a second pill widens; `"all"` keeps only a row carrying BOTH, so it narrows.
   //
@@ -133,6 +204,20 @@
       + "recent date first) or \"soonest\" (the earliest first) — got "
       + repr(order),
   )
+  // `auto` OR AN ARRAY, and worth saying because the two modes read so differently that
+  // a `pills: "todo"` typo would otherwise derive nothing and drop every pill silently.
+  assert(
+    pills == auto or type(pills) == array,
+    message: "@rookery/search: #filter-panel's `pills` must be an array of tag names or "
+      + "`auto` (every tag the listed rows carry) — got "
+      + repr(pills),
+  )
+  assert(
+    chips == auto or type(chips) == array,
+    message: "@rookery/search: #filter-panel's `chips` must be an array of tag names or "
+      + "`auto` (the authored `pills`, or none when those are derived) — got "
+      + repr(chips),
+  )
   assert(
     pill-match in ("any", "all"),
     message: "@rookery/search: #filter-panel's `pill-match` must be \"any\" (a row "
@@ -163,22 +248,44 @@
   let undated = rows.filter(r => stamp(r) == none)
   let rows = dated + undated
 
-  // A PILL WITH NO ROWS IS A BUTTON THAT CAN ONLY EVER RETURN NOTHING, and unlike
-  // `#panel`'s derived facet values this list is authored, so a typo or a tag nothing
-  // carries yet would ship as dead chrome. Dropped, in the caller's own order.
-  let carried = pills.filter(t => rows.any(r => _tags-of(r).contains(t)))
+  // DERIVED OR AUTHORED, and after this line the rest of the function cannot tell:
+  // `auto` is the sorted union of what the listed rows carry (sorted for build
+  // stability — see the argument), and an authored list keeps the caller's own order.
+  let named = if pills == auto {
+    rows.map(_flat-tags-of).flatten().dedup().sorted()
+  } else { pills }
+
+  // THE CALLER'S OWN NARROWING, applied to both modes so one predicate answers one
+  // question however the list arrived.
+  let named = if tag-filter == none { named } else { named.filter(tag-filter) }
+
+  // A PILL WITH NO ROWS IS A BUTTON THAT CAN ONLY EVER RETURN NOTHING, and an authored
+  // list can name a tag by typo or one nothing carries yet, which would ship as dead
+  // chrome. A no-op on the derived path — it came from the rows — and kept as one line
+  // rather than two so both modes leave here having been asked the same question.
+  let carried = named.filter(t => rows.any(r => _tags-of(r).contains(t)))
+
+  // THE CHIP VOCABULARY, which is the pill list only by default and only when that list
+  // was authored: see `chips:` for why a derived list must not reach the badge strip.
+  let chips = if chips != auto { chips } else if pills == auto { () } else { carried }
 
   let draw = if render != none { render } else {
     r => {
       let d = when(r)
-      let mine = carried.filter(t => _tags-of(r).contains(t))
+      // TWO LISTS PER ROW, and they were one until `chips:` could differ from `pills:`.
+      // `pressable` is what the SCRIPT matches on and must be the PILL set: a pill whose
+      // tag never reaches `data-panel-tags` is a button that hides every row. `shown` is
+      // what the reader SEES. Collapsing them again is how a derived pill row would
+      // silently start printing the whole corpus's tags onto every row.
+      let pressable = carried.filter(t => _tags-of(r).contains(t))
+      let shown = chips.filter(t => _tags-of(r).contains(t))
       idea-row(
         when: if d == none { none } else { _fmt-day(d) },
         iso: if d == none { none } else { _iso(d) },
         title: r.at("label", default: r.at("name", default: "")),
         href: r.at("href", default: none),
         tags: _tags-of(r),
-        badges: mine.map(t => (text: tag-display(t), tag: t)),
+        badges: shown.map(t => (text: tag-display(t), tag: t)),
         // The panel's own row hook, kept so the script and the stylesheet reach these
         // rows exactly as they reach `#panel`'s.
         extra: ("panel-row",),
@@ -187,7 +294,7 @@
           // SPACE-PADDED AT BOTH ENDS, which is not cosmetic: the script tests
           // `includes(" x ")`, and without the padding a tag that is another's prefix
           // would half-match.
-          "data-panel-tags": " " + mine.join(" ") + " ",
+          "data-panel-tags": " " + pressable.join(" ") + " ",
         ),
       )
     }

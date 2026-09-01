@@ -306,6 +306,70 @@ this page*; that searches every note in the rookery, with a proper ranking and
 a modal. The two are independent — this package does not depend on it, and a
 project may install either alone.
 
+## Grouped pills: `#filter-panel`
+
+The other filter box, and it is `@rookery/search`'s `#panel` told about the todo
+graph — the same name that package exports, re-exported here with pills that know
+what `ready` and `blocked` mean. A site star-importing both gets this one as long as
+it imports `@rookery/todos` **last**.
+
+```typst
+#filter-panel(today: TODAY)
+```
+
+**Four pill groups, none of them declared:** `epic` and `tag` on the first line,
+`state` and `priority` on the second under a `todo states:` label. The first pair
+says what a todo is *about*, the second how far along it is. Within a group the
+values **OR**; across groups they **AND** — so `blocked` + `p1` leaves blocked
+priority-one todos, where `#todos-search`'s single undifferentiated pill row could
+only ever union.
+
+**The `tag` group is every plain tag the listed todos carry**, and that is the point
+of it: put a new tag on one todo and its pill is there on the next build, with no
+list to maintain anywhere. It is a `multi:` facet in `#panel`'s sense — a row holds a
+*set* of tags, so pressing two tags widens the list and a row carrying either
+survives.
+
+What it leaves out, all of it a fact another group already states:
+
+- **Valued keys** — `timeline-log`, `todo-deps`, a site's own `cfp-venue`. That is
+  the three tag surfaces above doing the work: the flat surface is the one that
+  renders as a pill, and a valued key holds a date, a URL or an id, which a reader
+  filters by key rather than wears as a name.
+- **`todo` and `todo-*`** — `state` and `priority` decode those properly. A `todo`
+  pill would select every row there is.
+- **`epic-*`, and the bare tag whose `epic-<tag>` is also present.** A site minting a
+  todo under an epic writes both keys, so without this the epic's name would sit in
+  two groups at once — and pressing it in one but not the other reads as a
+  contradiction, groups ANDing across.
+
+**Tags are not chipped on the row**, unlike the other three facets, and that is a
+decision about the grid: `.idea-row` is `<gutter> 1fr auto auto` and the badge strip
+is that last `auto`, so a chip per tag makes the strip as wide as the widest row's
+tag list and squeezes every title on the page to pay for it. Each row still wears
+every tag as an `.idea-tag-<tag>` class, so theming by tag is unaffected.
+
+**To keep a whole tag family out of the group**, pass `tag-filter:` — a predicate over
+the tag key, which narrows the group and cannot widen it:
+
+```typst
+#filter-panel(
+  today: TODAY,
+  tag-filter: k => not k.starts-with("venue-") and not k.starts-with("sort-"),
+)
+```
+
+A predicate rather than a list of names, because the group's whole value is that
+nothing declares it: a list of tags to exclude is the same maintenance burden back
+again, one entry per tag instead of one per pill. What a site wants to drop is a
+*family*, and its families are its own — `venue-*` and `sort-*` here, some other
+scheme on the next site. The package's own four rules above run first regardless, so a
+`tag-filter` returning `true` for `timeline-log` still gets no pill.
+
+Pass `facets:` to narrow the groups (`facets: ("epic", "state", "priority")` is the
+row this had before the tag group), and `state-label: none` to put every group back
+on one line.
+
 ## Derived, never stored
 
 `blocked`, `ready` and `stale` are questions about the graph and the calendar as

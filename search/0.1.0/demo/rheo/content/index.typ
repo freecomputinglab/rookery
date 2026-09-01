@@ -175,3 +175,51 @@ the only thing that produces a page backlink:
   noun: "pill notes",
   placeholder: "Filter pill notes",
 )
+
+// ---- #filter-panel with DERIVED pills -------------------------------------
+//
+// THE SAME WIDGET, PILLS UNAUTHORED. `pills: auto` offers every FLAT tag the listed
+// notes carry, so a tag written on one note has a pill on the next build and no list is
+// kept anywhere. Three rules are on show, and none of them is visible from the Typst
+// side:
+//
+//   `auto-note` IS A VALUED TAG and gets no pill. rookery's tag surfaces split on
+//   exactly this — a flat key IS the fact, a valued one holds a date, a URL or an id —
+//   and a derived pill row offering them would be reading a note's data as its
+//   vocabulary. An AUTHORED `pills:` list may still name one; only the derivation cares.
+//
+//   `hide-me-a` IS FILTERED OUT by `tag-filter:`, which is how a whole namespaced family
+//   stays out of a row that nothing declares. The predicate does double duty here — one
+//   prefix and one exact name — which is why it is a predicate rather than a list.
+//
+//   `demo-auto` IS THE SCOPING TAG, on every row by construction, so its pill could
+//   never narrow anything. Nothing drops it automatically; the same `tag-filter:` does.
+//
+// THE CHIPS ARE NAMED SEPARATELY, and that is the other half of the argument. Chips
+// default to the authored pills, and there are none to default to here — a chip per
+// derived tag would make `#idea-row`'s badge strip as wide as the widest row's whole tag
+// list and squeeze every title on the page. So `chips: ("auto-x",)` keeps the one tag
+// worth reading off a row while the pills stay an inventory.
+#idea(
+  "auto-both",
+  title: [Derived pills, one chip],
+  tags: ("demo-auto": none, "auto-x": none, "hide-me-a": none, "auto-note": "GH-9"),
+)[
+  Carries a flat tag with a pill, a flat tag filtered out of the pills, and a VALUED tag
+  that can have none.
+]
+
+#idea("auto-one", title: [One derived pill, no chip], tags: ("demo-auto": none, "auto-y": none))[
+  `auto-y` earns a pill because this note carries it, and no chip because the chip list
+  does not name it.
+]
+
+#filter-panel(
+  tag: "demo-auto",
+  pills: auto,
+  chips: ("auto-x",),
+  tag-filter: t => t != "demo-auto" and not t.starts-with("hide-me-"),
+  visible: 2,
+  noun: "auto notes",
+  placeholder: "Filter auto notes",
+)

@@ -29,10 +29,28 @@ import { score } from "./score.js";
 // mean "either" — and across facets they AND. An EMPTY set means that facet is
 // unconstrained, which is what makes "no pills pressed" show everything rather
 // than nothing.
-const passesFacets = (row, facets) => {
+//
+// A MULTI-VALUED FACET (`data-panel-multi`) holds a SET per row rather than a value, so
+// the within-group OR becomes an INTERSECTION test: the row survives if it carries any
+// pressed value. The same rule stated over a set instead of a scalar — which is why it
+// branches here and nowhere else, and why such a group still ANDs with the scalar ones
+// beside it.
+//
+// EXPORTED for the node suite, on the same terms as `passesTags` below: `src/search.js`
+// does not re-export it.
+export const passesFacets = (row, facets, multi) => {
   for (const [field, wanted] of facets) {
     if (wanted.size === 0) continue;
-    if (!wanted.has(row.values[field] ?? "")) return false;
+    if (multi.has(field)) {
+      let hit = false;
+      for (const v of wanted) {
+        if (row.values[field].has(v)) {
+          hit = true;
+          break;
+        }
+      }
+      if (!hit) return false;
+    } else if (!wanted.has(row.values[field] ?? "")) return false;
   }
   return true;
 };
@@ -92,6 +110,14 @@ export const wirePanel = (container, n) => {
   }
   const fields = [...facets.keys()];
 
+  // WHICH FIELDS HOLD A SET, declared by the Typst side because the markup cannot say
+  // it: a padded `" a b "` and a scalar value are the same string once written. Absent
+  // on every panel that has no such facet, which is what keeps older markup reading
+  // exactly as before.
+  const multi = new Set(
+    (container.dataset.panelMulti || "").split(" ").filter(Boolean),
+  );
+
   // The tag panel's own state: which pills are pressed, as tag names.
   const pressed = new Set();
 
@@ -100,7 +126,14 @@ export const wirePanel = (container, n) => {
   // preserves the order Typst sorted them into.
   const rows = [...list.querySelectorAll(".panel-row")].map((el, index) => {
     const values = {};
-    for (const f of fields) values[f] = el.getAttribute(`data-${f}`) ?? "";
+    for (const f of fields) {
+      const raw = el.getAttribute(`data-${f}`) ?? "";
+      // A MULTI-VALUED FIELD IS TOKENIZED HERE, once, the same way the tag set below
+      // is and for the same reason: an exact membership test beats any string test,
+      // and the Typst side padded the attribute so a half-match was never possible
+      // either way.
+      values[f] = multi.has(f) ? new Set(raw.split(" ").filter(Boolean)) : raw;
+    }
     // The attribute is space-padded at both ends by the Typst side, so that a
     // substring test cannot half-match a tag that is another's prefix. Split here
     // anyway and keep a Set: an exact membership test is better than any string
@@ -135,7 +168,9 @@ export const wirePanel = (container, n) => {
       //
       // `== null` rather than `=== null`, so an `undefined` from a caller's own
       // `haystack:` returning nothing is treated the same way rather than kept.
-      const ok = tagMode ? passesTags(row, pressed, pillMatch) : passesFacets(row, facets);
+      const ok = tagMode
+        ? passesTags(row, pressed, pillMatch)
+        : passesFacets(row, facets, multi);
       const s = ok ? score(row.text, q) : null;
       if (s == null) {
         row.el.hidden = true;

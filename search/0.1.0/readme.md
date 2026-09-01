@@ -1114,6 +1114,39 @@ That is the division: `ideas(values: true)` may carry arbitrary values for
 Typst-side rendering, and this is where such a value would otherwise be
 stringified into an attribute and read back as nonsense.
 
+### `multi:` — one facet holding a SET
+
+A scalar facet can only ask *which one is it* — one sort, one state, one epic. A
+note's **tags** are not that shape, and the pill row that is (`#filter-panel`
+below) has no groups at all. `multi:` is the third case: name a facet there and its
+projected value is an ARRAY of scalars.
+
+```typst
+#context panel(
+  rows: rows,                         // each row: (.., tag: ("frontend", "phd"))
+  facets: ("state", "tag"),
+  multi: ("tag",),
+)
+```
+
+- **One pill per distinct value ANY listed row carries** — the union, deduped and
+  sorted. So the group needs no vocabulary declared anywhere: a value one new row
+  introduces has a pill on the next build, and one nothing carries has none.
+- **A row survives the group if it carries ANY pressed value**, which is the same
+  within-group OR stated over a set instead of a scalar. Such a group still ANDs
+  with every other, so a tag and a state narrow together.
+- **The values ride as one space-padded attribute** (`data-tag=" frontend phd "`),
+  the shape `#filter-panel`'s `data-panel-tags` already had, and the panel emits
+  `data-panel-multi` so the script knows which attributes to tokenize — a padded
+  `" a b "` and a scalar are the same string once written.
+- **A value may not contain whitespace**, asserted rather than escaped: a space
+  splits one value into two tokens no pill can match. Project a slug.
+- **`sort:` may not name a multi-valued field.** A set has no single value to order
+  rows by.
+
+`@rookery/todos`' `#filter-panel` is the case this was written for — its `tag` group
+is every plain tag the listed todos carry, and nothing declares the list.
+
 ### The rules it follows
 
 - **Pills are one per value a listed row actually has**, never one per value the
@@ -1176,6 +1209,49 @@ porting it a fourth time.
 
 That is the whole call. There is no index to build and no wrapper to write, which is
 the point of the export: the widget a site kept re-implementing was this one.
+
+### `pills: auto` — derived instead of authored
+
+An authored list is right where the pills are a **vocabulary**: the kinds a note can be,
+in an order a reader expects, named before the first note of each exists. It is wrong
+where they are an **inventory** — the things the corpus is actually about — because that
+list is only ever as current as the last person to edit it.
+
+`pills: auto` derives them: every **flat** tag any listed row carries, sorted (so the
+order is stable across builds — `ideas()` is ordered by id, the set of tags it turns up
+is not).
+
+```typst
+#filter-panel(
+  tag: none,                                   // every idea
+  pills: auto,
+  tag-filter: t => not t.starts-with("venue-"),
+  chips: ("todo", "meeting", "cfp"),
+)
+```
+
+- **Flat tags only.** A valued tag renders no pill, which is rookery's own convention
+  rather than a rule invented here: a flat key IS the fact, while a valued one holds a
+  date, a URL, an id or a bag of metadata — something to filter *by key*, not a name a
+  pill can wear. So `timeline-log`, `cfp-venue` and `submission-work` stay out by
+  construction. An **authored** list may still name a valued key; only the derivation
+  cares.
+- **`tag-filter:`** is a predicate over the tag name, `t => bool`. It narrows and cannot
+  widen, and it applies to an authored list too, so a blacklist beats a pill written by
+  hand. A predicate rather than a list of exclusions, because the whole value of `auto`
+  is that nothing declares the list — and what a caller wants to drop is a *family*,
+  whose naming scheme is its own business. `@rookery/todos`' `#filter-panel` takes the
+  same argument name for its own derived `tag` group, so a site can hold one predicate
+  in one `let` and hand it to both panels.
+- **A pill every row carries** is not dropped automatically, though it can never narrow
+  anything — the scoping `tag:` is the common case. Use `tag-filter:` for it.
+- **`chips:`** names the tags that become chips on the rows. It defaults to the authored
+  pill list, and to **nothing** when the pills are derived: `#idea-row` is
+  `<gutter> 1fr auto auto` and the chip strip is that last `auto`, so a chip per derived
+  tag makes the strip as wide as the widest row's whole tag list and squeezes every title
+  on the page. Naming it separately is what lets one panel have both — pills as the
+  inventory, chips as the vocabulary. Every row still wears every tag it has as an
+  `idea-tag-<tag>` class, so theming is untouched either way.
 
 ### How a tag reads: `tag-display:`
 

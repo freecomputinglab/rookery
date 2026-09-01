@@ -4,8 +4,8 @@
 // this demo exists to exercise: the name is rookery's, the version here knows about
 // todos, and importing it from the wrapper is the whole of opting in.
 #import "@rookery/todos:0.1.0": (
-  done, epic, todo, todo-graph-view, todos-blocked, todos-list, todos-ready,
-  todos-search, todos-stale, todos-stats, todos-validate, window,
+  done, epic, filter-panel, todo, todo-graph-view, todos-blocked, todos-list,
+  todos-ready, todos-search, todos-stale, todos-stats, todos-validate, window,
 )
 #import "@rookery/timeline:0.1.0": entries
 
@@ -49,13 +49,23 @@ the things that need no filtering surface of their own.
 
 Two todos that both depend on #raw("parse") — the branch in the graph below.
 
-#todo("render", title: [Render output], deps: ("parse",))[Blocked until the parser lands.]
-#todo("style", title: [Style output], deps: ("parse",), type: "chore")[Also blocked.]
+#todo("render", title: [Render output], deps: ("parse",), tags: ("frontend",))[
+  Blocked until the parser lands.
+]
+#todo("style", title: [Style output], deps: ("parse",), type: "chore", tags: ("frontend",))[
+  Also blocked.
+]
 
 A todo depending on both branches, and one depending on that in turn: three
 levels deep.
 
-#todo("ship", title: [Ship it], priority: 1, deps: ("render", "style"))[The release itself.]
+#todo(
+  "ship",
+  title: [Ship it],
+  priority: 1,
+  deps: ("render", "style"),
+  tags: ("frontend", "phd"),
+)[The release itself.]
 #todo("docs", title: [Write the docs], type: "docs", deps: ("ship",))[Follows the release.]
 
 A DEFERRED todo. Its `scheduled` date comes from `@rookery/timeline`, merged
@@ -174,6 +184,23 @@ could offer them. With JavaScript off the input and pills are hidden and this is
 simply a list.
 
 #todos-search(today: TODAY)
+
+== Filter them in groups — `#filter-panel`
+
+The other filter, and the difference is the pills. `#todos-search` above renders
+one undifferentiated row of them; this is `@rookery/search`'s `#panel` told about
+the todo graph, so the pills come in GROUPS — epic and tag on the first line,
+state and priority on the second — and they compose the way a reader expects: the
+values within a group OR, and the groups AND. Press `blocked` and `p1` and you get
+blocked todos of priority one, not both lists concatenated.
+
+NOTHING BELOW DECLARES A TAG. The `tag` group is every plain tag the listed todos
+actually carry, so `frontend` and `phd` have pills because two todos were written
+with them — and `launch` does not appear twice despite being both an epic and a
+bare tag on its two todos. Add a tag to a todo above and its pill is there on the
+next build.
+
+#filter-panel(today: TODAY, visible: 6, noun: "open todos")
 
 == The dependency graph
 

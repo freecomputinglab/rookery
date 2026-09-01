@@ -100,17 +100,18 @@ import os, re, sys
 H = sys.argv[1]
 h = open(os.path.join(H, "index.html")).read()
 
-# THREE PANELS: two `#panel`s over the projection, and one `#filter-panel` over tags.
-# The facet assertions below are about the first two, so they are separated by MODE
-# rather than by position — `data-panel-mode="tags"` is the attribute one script uses
-# to tell the two kinds apart, and it is the honest discriminator here too.
+# FOUR PANELS: two `#panel`s over the projection, and two `#filter-panel`s over tags —
+# one with authored pills, one with `pills: auto`. The facet assertions below are about
+# the first two, so they are separated by MODE rather than by position —
+# `data-panel-mode="tags"` is the attribute one script uses to tell the two kinds apart,
+# and it is the honest discriminator here too.
 panels = re.findall(r'<div class="panel"[^>]*>', h)
-if len(panels) != 3:
-    print(f"FAIL: expected 3 panels on index.html, found {len(panels)}"); sys.exit(1)
+if len(panels) != 4:
+    print(f"FAIL: expected 4 panels on index.html, found {len(panels)}"); sys.exit(1)
 faceted = [p for p in panels if 'data-panel-mode="tags"' not in p]
 tagged = [p for p in panels if 'data-panel-mode="tags"' in p]
-if len(faceted) != 2 or len(tagged) != 1:
-    print(f"FAIL: expected 2 faceted panels and 1 tag panel, got {len(faceted)}/{len(tagged)}")
+if len(faceted) != 2 or len(tagged) != 2:
+    print(f"FAIL: expected 2 faceted panels and 2 tag panels, got {len(faceted)}/{len(tagged)}")
     sys.exit(1)
 
 # NO JSON ISLAND OF ITS OWN. A panel's facts ride as `data-` attributes on the
@@ -216,11 +217,10 @@ grep -q 'data-panel-tag="demo-b"' "$FP" || note "no demo-b pill"
 if grep -q 'data-panel-tag="never-carried"' "$FP"; then
   note "a pill no row carries reached the page; it must be dropped"
 fi
-# Three rows, and their tag attributes are what the script composes. The attribute is
-# space-padded at both ends so a prefix cannot half-match. This panel declares
-# `pill-match="all"`, the non-default, so the markup has to say so.
-fp_rows=$(grep -o 'data-panel-tags="[^"]*"' "$FP" | wc -l)
-[ "$fp_rows" -eq 3 ] || note "expected 3 filter-panel rows, found $fp_rows"
+# Their tag attributes are what the script composes. The attribute is space-padded at
+# both ends so a prefix cannot half-match. This panel declares `pill-match="all"`, the
+# non-default, so the markup has to say so. (The per-panel ROW COUNT is asserted in the
+# python block below, which can tell the two tag panels apart; a file-wide grep cannot.)
 grep -q 'data-panel-tags=" demo-a demo-b "' "$FP" || note "the both-pills row's tags are wrong"
 grep -q 'data-panel-tags=" demo-a "' "$FP" || note "the one-pill row's tags are wrong"
 grep -q 'data-panel-tags="  "' "$FP" || note "the no-pills row should carry an empty padded list"
@@ -228,5 +228,58 @@ grep -q 'data-panel-tags="  "' "$FP" || note "the no-pills row should carry an e
 grep -q 'class="idea-row panel-row' "$FP" || note "filter-panel rows are not #idea-row"
 grep -q 'class="idea-row-badges"' "$FP" || note "no shared badge strip in the filter panel"
 grep -q 'class="idea-tag idea-tag-demo-a"' "$FP" || note "a pill tag did not become a chip on its row"
+
+# ---- #filter-panel with pills: auto ------------------------------------------
+#
+# THE DERIVED PILL ROW, asserted on the output because every rule it follows is about
+# markup that nothing declared: which tags became buttons, which did not, and which
+# became chips. All three are correct-looking HTML when wrong, so neither a Typst
+# fixture nor a build failure can see any of it.
+#
+# SEGMENTED BY PANEL, not grepped file-wide: there are two tag panels on this page now
+# and a bare grep cannot say which one it found.
+python3 - "$FP" <<'AUTO' || fail=1
+import re, sys
+h = open(sys.argv[1]).read()
+
+bad = 0
+def note(m):
+    global bad
+    print("FAIL: " + m); bad = 1
+
+# Each `.panel` div, split on the opening tag; the derived one is the panel whose
+# placeholder says so. THE CLASS MUST END at the quote or a space: `panel-pills` starts
+# with `panel` too, and a looser lookahead split each panel in half right before its own
+# pill row — leaving a segment that held the input and no buttons at all.
+panels = re.split(r'(?=<div class="panel[" ])', h)
+auto = [p for p in panels if 'placeholder="Filter auto notes"' in p]
+if len(auto) != 1:
+    print(f"FAIL: found {len(auto)} derived-pill panels, wanted 1"); sys.exit(1)
+seg = auto[0]
+
+pills = re.findall(r'data-panel-tag="([^"]*)"', seg)
+if sorted(pills) != ["auto-x", "auto-y"]:
+    note(f"derived pills are {sorted(pills)}, wanted auto-x/auto-y — `auto-note` is a"
+         f" VALUED tag and can have no pill, `hide-me-a` and the scoping `demo-auto`"
+         f" are filtered out by tag-filter")
+
+rows = re.findall(r'data-panel-tags="([^"]*)"', seg)
+if len(rows) != 2:
+    note(f"expected 2 rows in the derived panel, found {len(rows)}")
+# The attribute carries the PILL set, never the chip set: a pill whose tag never
+# reaches it is a button that hides every row.
+if sorted(rows) != [" auto-x ", " auto-y "]:
+    note(f"row pill sets are {sorted(rows)}, wanted ' auto-x ' and ' auto-y '")
+
+# Chips are the AUTHORED list alone. `auto-y` earns a pill and must NOT earn a chip,
+# which is the whole point of naming the two separately.
+chips = re.findall(r'class="idea-tag idea-tag-([a-z0-9-]+)"', seg)
+if chips != ["auto-x"]:
+    note(f"chips are {chips}, wanted auto-x alone — a derived pill must not become a chip")
+
+if not bad:
+    print(f"  auto pills: {sorted(pills)}, chips {chips}, {len(rows)} rows")
+sys.exit(bad)
+AUTO
 
 if [ "$fail" -eq 0 ]; then echo "demo/rheo OK"; else echo "demo/rheo FAILED"; exit 1; fi

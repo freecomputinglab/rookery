@@ -790,20 +790,53 @@
     margin-right: 0.15rem;
   }
 
-  /* Each declared facet is its own group, so two facets read as two sets of
-     choices rather than as one undifferentiated row of pills. */
+  /* THE GROUP IS NOT A BOX, and that is what lets one line of pills run the full
+     width of the input above it.
+
+     IT WAS `display: flex; flex-wrap: wrap`, which made each group an ATOMIC FLEX
+     ITEM of its row — and an item that can wrap internally SHRINKS rather than
+     overflowing, so flexbox fitted every group onto one line by narrowing each to
+     its share of the width. Two groups therefore rendered as two half-width
+     COLUMNS, each wrapping at the middle of the page with ragged space to its
+     right, while the line as a whole never reached the edge. MEASURED on a panel
+     whose first row holds ten `epic` pills and eight `tag` ones: both columns
+     wrapped after four or five.
+
+     `display: contents` drops the box and promotes the pills themselves to flex
+     items of the row, so all of them are ONE wrapping stream and a line breaks
+     only when it is actually full. The row's own `gap` then spaces every pill
+     identically, which is why the group's own `gap` is not missed — it was the
+     same 0.35rem.
+
+     NOTHING ABOUT THE WIRING CHANGES: `panel.js` finds groups with
+     `querySelectorAll('.panel-pill-group')` and reads `data-panel-group` off them,
+     which is a DOM query and indifferent to display. The groups carry no ARIA role
+     either — `role="group"` is on `.panel-pills` — so none of this leaves the
+     accessibility tree. What the groups no longer have is a SEPARATOR; see below
+     for why that is deliberate. */
   .panel-pill-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
+    display: contents;
   }
 
-  /* WITHIN A ROW ONLY. Across rows the line break already separates them, and a
-     left margin on the first group of the second row would indent it out of
-     line with the first. */
-  .panel-pill-group + .panel-pill-group {
-    margin-left: 0.9rem;
-  }
+  /* NO SEPARATOR BETWEEN GROUPS, and that is a decision rather than an omission.
+
+     There was one — 0.9rem to the left of each group after the first — and it did
+     not do the job it was there for. A gap slightly wider than the pill gap reads
+     as a GLITCH, not as a boundary: on a row of eighteen pills the eye finds an
+     unexplained hole rather than two sets of choices, and MEASURED on a live panel
+     the report was exactly that ("there is still a gap between `writing` and
+     `birds`"). It also could not survive wrapping — a line breaking on a group
+     boundary put the margin at the start of a line, indenting one pill for no
+     visible reason, and "is this item first on its flex line" is not expressible
+     in CSS.
+
+     SO THE ROW IS UNIFORM, one gap between every pair of pills. The cost is real
+     and worth naming: within a group the values OR, across groups they AND, and
+     nothing in a single unlabelled row says where one group ends. THE ANSWER IS A
+     LABEL, not a wider gap — `#panel`'s `facet-rows:` gives each line its own
+     (`(label: [todo states:], facets: ("state", "priority"))`), and a group that
+     genuinely must be told apart from its neighbour belongs on a line that says
+     what it is. */
 
   .panel-pill {
     font: inherit;
