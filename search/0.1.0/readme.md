@@ -1180,6 +1180,35 @@ is every plain tag the listed todos carry, and nothing declares the list.
 - **Ids are generated at runtime**, so two panels on one page both work. Markup
   carrying a hardcoded id cannot be placed twice.
 
+### The input takes a `tags:` expression
+
+The same query language the search bar takes — see [Filtering by
+tag](#filtering-by-tag) — works in a panel's filter box:
+
+```
+tags:todo&!todo-closed            the open todos
+tags:(a|b)&c                      `&` binds tighter than `|`; `()` groups
+tags:draft window                 filter by the tags, rank by "window"
+```
+
+- **A leading `tags:` only.** Mid-query it is text, matching how a person reads it, so
+  a note body containing "tags:" can never be mistaken for a filter.
+- **Evaluated against `data-panel-all-tags`** — every tag the row's note carries —
+  **not against the pills.** Under `tag-filter:` or `pills: auto` most of a note's tags
+  have no pill, and on a `@rookery/todos` panel the whole `todo-*` namespace has none;
+  the query can still name all of them.
+- **The expression filters, the residual text ranks.** A tag says WHICH rows exist and
+  the text says how they order — no third tier, no score bonus for a tag hit. Same
+  division `search()` makes for the bar.
+- **It ANDs with the pills.** A pressed pill is a visible commitment and so is a typed
+  query, so a row must satisfy both. A query that silently released the pills would
+  leave buttons reading as pressed while no longer filtering.
+- **Every prefix of a valid query works**, because a live input types them all on the
+  way to one: `tags:todo&` behaves as `tags:todo`, and `tags:(todo` as `tags:todo`. The
+  parser repairs and never throws.
+- **Matching folds case and hyphens** and is by prefix, so `tags:todo` also matches
+  `todo-closed` — which is why the negation in the first example above is needed.
+
 ### Without JavaScript
 
 The container is emitted with `data-panel-ready="false"` and the stylesheet hides
@@ -1244,7 +1273,11 @@ is not).
   date, a URL, an id or a bag of metadata — something to filter *by key*, not a name a
   pill can wear. So `timeline-log`, `cfp-venue` and `submission-work` stay out by
   construction. An **authored** list may still name a valued key; only the derivation
-  cares.
+  cares. And a tag with no pill is still reachable from the input — see below.
+- **The input takes a `tags:` expression**, exactly as `#panel`'s does (that section has
+  the rules). It reads every tag the row's note carries rather than the pill list, which
+  is what keeps the tags this panel deliberately leaves unpressable still *nameable*:
+  `tags:venue-postdoc` works on a panel whose `tag-filter:` dropped that whole family.
 - **`tag-filter:`** is a predicate over the tag name, `t => bool`. It narrows and cannot
   widen, and it applies to an authored list too, so a blacklist beats a pill written by
   hand. A predicate rather than a list of exclusions, because the whole value of `auto`

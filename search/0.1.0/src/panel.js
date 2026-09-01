@@ -19,11 +19,30 @@
 // way `data-panel-pill-match` says — "any" by default, "all" to intersect. One
 // `wirePanel` serves both and only the predicate branches.
 //
-// THE SCORER IS `score` FROM `score.js`, imported rather than re-ported. That
-// function had three copies across this repo and a consuming site before panels
-// existed; adding a fourth here would have been the whole problem again.
+// THE INPUT TAKES A `tags:` EXPRESSION, the same language the search bar takes —
+// `tags:todo&!todo-closed` in a panel's filter box lists the open todos. The query is
+// split ONCE per keystroke (`splitQuery`), the expression becomes a PREDICATE over the
+// row's own tags (`data-panel-all-tags`, every tag its note carries — not the pill
+// set), and the residual text is what `score` ranks. That division is `score.js`'s and
+// is repeated here rather than reinvented: a tag says WHICH rows exist, the text says
+// how they rank.
+//
+// THE EXPRESSION AND THE PILLS BOTH NARROW. See `apply` for why that is the only
+// composition that is not surprising.
+//
+// THE SCORER IS `score` FROM `score.js` and the language is `tagquery.js`, both
+// imported rather than re-ported. `score` had three copies across this repo and a
+// consuming site before panels existed; adding a fourth here would have been the whole
+// problem again, and a second copy of the parser would be worse.
 
 import { score } from "./score.js";
+import { splitQuery, evalTagQuery } from "./tagquery.js";
+// `fold` IS REQUIRED, not decorative: `evalTagQuery`'s contract is that `tags` arrive
+// ALREADY FOLDED, which is how `search()` satisfies it (`score.js`:
+// `(row.tags ?? []).map(fold)`). Skip it and a panel's tag query is case- and
+// hyphen-sensitive in a way the search bar is not, which reads as the language being
+// broken in one of the two places it runs.
+import { fold } from "./text.js";
 
 // Does a row survive the pills? Within a facet the values OR — two state pills
 // mean "either" — and across facets they AND. An EMPTY set means that facet is
@@ -141,7 +160,29 @@ export const wirePanel = (container, n) => {
     const tags = new Set(
       (el.getAttribute("data-panel-tags") || " ").split(" ").filter(Boolean),
     );
-    return { el, index, text: el.getAttribute("data-panel-text") || "", values, tags };
+    // EVERY TAG THE NOTE CARRIES, for the input's `tags:` expression — a DIFFERENT set
+    // from `tags` above, which is the PILL set. Under `tag-filter:` or `pills: auto`
+    // most of a note's tags have no pill, and on a todo panel the whole `todo-*`
+    // namespace has none, so a query reading the pill set could not name them.
+    //
+    // AN ARRAY, not a Set, because `evalTagQuery` takes one and tests by PREFIX
+    // (`tg === v || tg.startsWith(v)`) — a membership test would not do, and folding
+    // it into a Set would only be thrown away.
+    //
+    // FOLDED HERE, once per row, per `evalTagQuery`'s contract. The Typst side
+    // deliberately does not fold, so the rule lives in one language.
+    const allTags = (el.getAttribute("data-panel-all-tags") || " ")
+      .split(" ")
+      .filter(Boolean)
+      .map(fold);
+    return {
+      el,
+      index,
+      text: el.getAttribute("data-panel-text") || "",
+      values,
+      tags,
+      allTags,
+    };
   });
   const total = rows.length;
 
@@ -155,7 +196,16 @@ export const wirePanel = (container, n) => {
   const noun = count ? (count.textContent.split(" ").slice(1).join(" ") || "rows") : "rows";
 
   const apply = () => {
-    const q = input.value.trim();
+    // SPLIT ONCE PER KEYSTROKE, ahead of the loop, exactly where `search()` splits it —
+    // not per row. A leading `tags:` becomes `rpn` and the rest becomes the text that
+    // ranks; anything else leaves `rpn` empty and `text` the query untouched, so a
+    // panel with no tag expression behaves precisely as it always did.
+    //
+    // `.trim()` AFTER, which is right for both branches: `splitQuery` trims only
+    // LEADING whitespace itself and hands back an already-trimmed residual for the tags
+    // branch, so this only ever tidies the non-tags one.
+    const { rpn, text } = splitQuery(input.value);
+    const q = text.trim();
     const kept = [];
     for (const row of rows) {
       // `0` FOR AN EMPTY QUERY is what leaves the build-time order untouched until
@@ -168,9 +218,24 @@ export const wirePanel = (container, n) => {
       //
       // `== null` rather than `=== null`, so an `undefined` from a caller's own
       // `haystack:` returning nothing is treated the same way rather than kept.
-      const ok = tagMode
-        ? passesTags(row, pressed, pillMatch)
-        : passesFacets(row, facets, multi);
+      //
+      // THE TAG EXPRESSION IS A PREDICATE and it runs FIRST, ahead of any scoring, so a
+      // row the tags exclude is never scored. No third tier, no bonus for a tag hit, no
+      // perturbation of the sort below — a tag says WHICH rows exist, the residual text
+      // says how they rank. `score.js` states that division for the search bar; this is
+      // the same division in the other place the language runs.
+      //
+      // IT ANDs WITH THE PILLS, and that is the only composition that is not
+      // surprising: a pressed pill is a visible commitment and a typed query is a
+      // visible commitment, so a row must satisfy both. The alternative — a query
+      // silently releasing the pills — leaves buttons on screen that still read as
+      // pressed while no longer filtering, which is worse than a list that comes back
+      // empty and can be explained by looking at it.
+      const ok =
+        (rpn.length === 0 || evalTagQuery(rpn, row.allTags)) &&
+        (tagMode
+          ? passesTags(row, pressed, pillMatch)
+          : passesFacets(row, facets, multi));
       const s = ok ? score(row.text, q) : null;
       if (s == null) {
         row.el.hidden = true;

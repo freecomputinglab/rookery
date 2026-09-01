@@ -366,6 +366,23 @@ again, one entry per tag instead of one per pill. What a site wants to drop is a
 scheme on the next site. The package's own four rules above run first regardless, so a
 `tag-filter` returning `true` for `timeline-log` still gets no pill.
 
+**The input takes a `tags:` expression**, the same language `@rookery/search`'s bar
+takes — so the string this package's own tag-surface note has always advertised now
+works in the box as well:
+
+```
+tags:todo&!todo-closed
+```
+
+It is evaluated against every tag the todo carries rather than against the pills, and
+that gap is widest here: the `tag` group drops the whole `todo-*` namespace and the
+epics, so `tags:todo-p1` and `tags:epic-jobs` name things no pill on this panel offers.
+The expression filters and the residual text ranks (`tags:todo window`), and it **ANDs**
+with whatever pills are pressed. `@rookery/search`'s `#panel` section carries the rules.
+
+`#todos-search` — the other filter box, further up — does **not** take the language: it
+has its own input and its own scorer, and giving it one is separate work.
+
 Pass `facets:` to narrow the groups (`facets: ("epic", "state", "priority")` is the
 row this had before the tag group), and `state-label: none` to put every group back
 on one line.
