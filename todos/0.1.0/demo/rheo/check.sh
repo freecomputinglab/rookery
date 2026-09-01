@@ -120,8 +120,30 @@ for a in attrs:
 if " frontend phd " not in attrs:
     note("no row carries two tags; the intersection test is unexercised")
 
+# THE QUERY CHANNEL is a SECOND attribute, and on a todo panel the gap between the
+# two is at its widest: the `tag` group drops the whole `todo-*` namespace and the
+# epics, so those tags have no pill at all — and `tags:todo-p1` typed into the input
+# must still find the row. Asserted on `ship`, which carries a priority, two plain
+# tags and the base key.
+allt = re.findall(r'data-panel-all-tags="([^"]*)"', seg)
+if len(allt) != len(attrs):
+    note(f"{len(attrs)} rows carry data-tag but {len(allt)} carry"
+         f" data-panel-all-tags; the query channel must be on every row")
+ship = [a for a in allt if "frontend" in a and "phd" in a]
+if len(ship) != 1:
+    note(f"could not find the `ship` row's query tags among {allt}")
+else:
+    for want in ("todo", "todo-p1", "frontend", "phd"):
+        if want not in ship[0]:
+            note(f"{want!r} is missing from data-panel-all-tags={ship[0]!r} — the"
+                 f" query channel carries the todo namespace even though no pill does")
+for a in allt:
+    if a and not (a.startswith(" ") and a.endswith(" ")):
+        note(f"data-panel-all-tags={a!r} is not space-padded at both ends")
+
 if not bad:
-    print(f"  filter-panel: 4 groups, tag pills {tags}, {len(attrs)} rows padded")
+    print(f"  filter-panel: 4 groups, tag pills {tags}, {len(attrs)} rows padded,"
+          f" query tags on {len(allt)}")
 sys.exit(bad)
 PANEL
 

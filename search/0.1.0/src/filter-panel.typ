@@ -295,6 +295,16 @@
           // `includes(" x ")`, and without the padding a tag that is another's prefix
           // would half-match.
           "data-panel-tags": " " + pressable.join(" ") + " ",
+          // THE WHOLE SET, for the input's `tags:` expression, where the attribute
+          // above is the PILL set. Two channels because they answer two questions: a
+          // pill asks "is this one of the values this group offers", a tag expression
+          // asks "does the note carry this tag" — and under `tag-filter:` or
+          // `pills: auto` most of a note's tags have no pill at all, so a query
+          // reading the pill set would silently be unable to name them.
+          //
+          // Same padding, same reason. `#panel` emits the same attribute from its own
+          // `tags:` adapter.
+          "data-panel-all-tags": " " + _tags-of(r).join(" ") + " ",
         ),
       )
     }

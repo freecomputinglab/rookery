@@ -1100,6 +1100,15 @@ JavaScript the rendering is a complete readable list rather than an empty contai
 waiting to be filled. The projection's scalar guarantee is exactly what makes that
 generic instead of hand-written per widget.
 
+One more attribute rides on every row, and it is not a facet: **`data-panel-all-tags`**
+holds every tag the row's note carries, space-padded, so the input can take a `tags:`
+expression. It is deliberately *not* the pills — `tag-filter:` and `pills: auto` between
+them leave most of a note's tags unpressable, and a query must still be able to name
+them. `#panel` fills it from its `tags:` adapter (rookery's `tags-dict` keys, else the
+flat `tags` array; pass your own for a projection that kept neither), and it is emitted
+unconditionally, empty string included — a row missing it and a row with no tags must be
+indistinguishable to the script.
+
 That guarantee is enforced HERE, at the attribute boundary, and the message names
 the field:
 

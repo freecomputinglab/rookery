@@ -182,6 +182,24 @@
   // label, name and body — searching the BODY is what finds a note by a phrase
   // inside it rather than by its title.
   haystack: none,
+  // EVERY TAG THE ROW'S NOTE CARRIES, as an adapter returning an array of names.
+  // It rides as `data-panel-all-tags` so the input can take a `tags:` expression —
+  // the same language the search bar takes.
+  //
+  // NOT THE FACETS, AND NOT THE PILLS. A facet is a projection of one question; the
+  // pills are whichever values a group offers. A tag expression asks about the note
+  // itself, so it needs the whole set — including the tags `tag-filter:` kept out of
+  // the pill row, which is most of them on a real site.
+  //
+  // AN ADAPTER, because a projected row need not have kept its tags at all. The
+  // default reads rookery's own two shapes, exactly as `#filter-panel`'s `_tags-of`
+  // does, so a caller may pass rows from `ideas()` or from `ideas(values: true)`
+  // and neither needs to say which.
+  //
+  // A ROW WITH NEITHER FIELD GETS AN EMPTY SET, and therefore matches no tag
+  // expression at all. That is correct rather than merely convenient: a row whose
+  // tags are unknown must not pass a filter it was never tested against.
+  tags: none,
   // How to draw one row. Content, free-form: this package renders the chrome and
   // the row's own markup is the site's business.
   render: r => [#r.at("label", default: r.at("name", default: ""))],
@@ -256,6 +274,20 @@
       r.at("name", default: ""),
       r.at("body", default: ""),
     ).filter(s => s != "" and s != none).join(" ")
+  }
+
+  // ROOKERY'S TWO TAG SHAPES, read the same way `#filter-panel`'s `_tags-of` reads
+  // them: `ideas()` gives `tags` as an array of names, and `values: true` adds
+  // `tags-dict`, whose KEYS are those same names. Preferring the dict is what makes
+  // a `@rookery/todos` row — which always carries one — work without a caller
+  // saying so.
+  let tags-of = if tags != none { tags } else {
+    r => {
+      let d = r.at("tags-dict", default: none)
+      if d != none { return d.keys() }
+      let t = r.at("tags", default: ())
+      if type(t) == dictionary { t.keys() } else { t }
+    }
   }
 
   let rows = if sort == none { rows } else {
@@ -383,6 +415,19 @@
                   ("panel-row",) + if row-class == none { () } else { row-class(r) }
                 ).join(" "),
                 "data-panel-text": lower(hay(r)),
+                // EVERY TAG THE NOTE CARRIES, for the input's `tags:` expression.
+                // Unconditional, and `""` where the note has none — a row missing the
+                // attribute and a row with no tags must be indistinguishable, so the
+                // script has one case rather than two.
+                //
+                // `_multi-attr` rather than a hand-rolled join, so the space padding
+                // is the same shape `data-panel-tags` has and the script tokenizes
+                // both with one line.
+                //
+                // NOT CASE-FOLDED HERE. `evalTagQuery` needs folded tags and the
+                // script folds them at read time; folding in Typst too would put one
+                // rule in two languages for one attribute.
+                "data-panel-all-tags": _multi-attr("tags", tags-of(r)),
               )
                 // One `data-<field>` per faceted field, on the row carrying it.
                 // No JSON island: the payload IS the markup. A multi-valued field

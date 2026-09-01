@@ -277,9 +277,48 @@ chips = re.findall(r'class="idea-tag idea-tag-([a-z0-9-]+)"', seg)
 if chips != ["auto-x"]:
     note(f"chips are {chips}, wanted auto-x alone — a derived pill must not become a chip")
 
+# THE QUERY CHANNEL, a SECOND attribute and not the pill set. Every tag the note
+# carries rides here — including the ones the pills deliberately exclude, which is the
+# whole reason it is separate: `tag-filter:` and `pills: auto` between them leave most
+# of a note's tags unpressable, and a `tags:` expression must still be able to name
+# them.
+allt = re.findall(r'data-panel-all-tags="([^"]*)"', seg)
+if len(allt) != 2:
+    note(f"expected 2 data-panel-all-tags in the derived panel, found {len(allt)}")
+both = [a for a in allt if "auto-x" in a]
+if len(both) != 1:
+    note(f"could not find the auto-both row's query tags among {allt}")
+else:
+    for want in ("demo-auto", "auto-x", "hide-me-a", "auto-note"):
+        if want not in both[0]:
+            note(f"{want!r} is missing from data-panel-all-tags={both[0]!r} —"
+                 f" the query channel carries EVERY tag, pills or no pills")
+for a in allt:
+    if a and not (a.startswith(" ") and a.endswith(" ")):
+        note(f"data-panel-all-tags={a!r} is not space-padded at both ends")
+
 if not bad:
-    print(f"  auto pills: {sorted(pills)}, chips {chips}, {len(rows)} rows")
+    print(f"  auto pills: {sorted(pills)}, chips {chips}, {len(rows)} rows,"
+          f" query tags {both[0].strip().split() if both else None}")
 sys.exit(bad)
 AUTO
+
+# EVERY PANEL ROW ON THE PAGE carries the query channel, in both panel kinds — the two
+# faceted `#panel`s as well as the two tag panels. A row without it is a row no tag
+# expression can ever match, which is invisible in the output and would look like the
+# query language simply not working for that one note.
+python3 - "$FP" <<'ALLTAGS' || fail=1
+import re, sys
+h = open(sys.argv[1]).read()
+rows = len(re.findall(r'class="[^"]*panel-row', h))
+attrs = len(re.findall(r'data-panel-all-tags="', h))
+if rows == 0:
+    print("FAIL: no panel rows at all"); sys.exit(1)
+if rows != attrs:
+    print(f"FAIL: {rows} panel rows but {attrs} data-panel-all-tags attributes — the"
+          f" attribute must be unconditional, the empty string included")
+    sys.exit(1)
+print(f"  query channel: {attrs}/{rows} rows carry data-panel-all-tags")
+ALLTAGS
 
 if [ "$fail" -eq 0 ]; then echo "demo/rheo OK"; else echo "demo/rheo FAILED"; exit 1; fi
