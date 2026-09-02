@@ -38,6 +38,46 @@ still holds.
 - There is no separate linter. "Lint" = the package builds and its demo/test
   project compiles with `rheo compile`.
 
+## Comment style
+
+A comment here describes the code as it stands. Not how it got that way, not
+what it replaced, not which version moved it — a reader arriving cold needs the
+current shape and the reasons it holds, and everything else is a diff they can
+read in `jj log` if they want it.
+
+- **Describe the present.** Say what the code is and why it is that way. Never
+  what it used to be, what moved where, which release changed it, or that
+  something "is gone". "The scorer lives in `score.typ`" is worth a line; "the
+  scorer used to live in `tagquery.typ`" is worth none.
+- **No issue ids.** Never name a beads issue, a bookmark or a branch. The
+  argument for a line has to stand on its own, because most readers of it have
+  no access to the tracker and no interest in one.
+- **Keep the measurement, drop the lab notebook.** A number that justifies a
+  constant stays, and says what it buys: 48 terms, a 40% document-frequency
+  ceiling, 12 keyword chips. The machine it was measured on, the date, the
+  baseline it beat and the alternatives that lost do not — unless a future
+  reader would otherwise retune the number, and then one sentence, not a
+  paragraph.
+- **One header per file, no interior banners.** The first comment block says
+  what the file is. A `// ---- Some Section ----` divider restating it is
+  forbidden: the module is the section, and a file needing dividers is a file
+  wanting to be two.
+- **Comment the non-obvious.** A comment restating the line under it earns
+  nothing. What earns its place: a constraint the code cannot express (a
+  stylesheet rule the script depends on, an import order a closure makes
+  load-bearing), a contract a caller would otherwise get wrong, a rule shared
+  with another language.
+- **Declarative and concise.** Present tense. Emphasis capitals are for the one
+  claim in a block that carries it, not for every second clause, and a comment
+  should not argue with mistakes its reader has not made yet. Aim for files
+  where comments are a minority of the lines.
+
+The one exception is **parity**. A comment may name its counterpart in the other
+language — `score.typ` naming `src/score.js`, `tagquery.typ` naming
+`src/tagquery.js`, either naming `just parity` as what pins them — because that
+is a present-tense fact about how the code is arranged, and the two halves
+cannot be changed apart.
+
 ## Local development against a live rheo project
 
 `@rookery/<pkg>` resolves from the Typst package cache
