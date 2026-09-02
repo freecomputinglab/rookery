@@ -9,3 +9,5 @@
 // rather than re-emits.
 #include "content/index.typ"
 #include "content/sub/page.typ"
+#include "content/relations.typ"
+#include "content/sub/deeper/page.typ"

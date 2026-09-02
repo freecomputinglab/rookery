@@ -138,12 +138,11 @@ if [ -f "$H/ideas/index.html" ]; then
   if grep -q 'idea-outline-row"><a href="[^"]*#loc-' "$idx"; then
     note "ideas/index.html links a row at a vertebra anchor, not at a minted page"
   fi
-  # SIX. `secret-note` was added for the invisible-tag assertions, `private-note`
-  # for the exclusion ones (EXCLUDED, so it never registers and never gets a row —
+  # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
-  # page), and `derived-note` for the derived-title ones.
-  grep -q 'idea-index-count">6 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 6 ideas"
+  # page — so it grows with the rookery's content rather than staying pinned.
+  grep -q 'idea-index-count">21 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 21 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -186,13 +185,14 @@ fi
 # and no match is exactly the failure this line exists to report. MEASURED while
 # writing it: with `syndicate: false` the check exited 1 silently instead of
 # naming the count.
-# THREE dated notes: `plain-note`, `secret-note` and `sub-note`, each carrying an
-# explicit `created:`. `private-note` is excluded and so emits no beacon either — a
-# second place the exclusion has to reach, since `.marrow.typ` writes one beacon
-# per minted page.
+# SIX dated notes: `plain-note`, `secret-note` and `sub-note`, each carrying an
+# explicit `created:`, plus `w-inner`/`w-outer`/`w-early` (added for `sort:
+# "date"`, which needs notes that differ in date to order). `private-note` is
+# excluded and so emits no beacon either — a second place the exclusion has to
+# reach, since `.marrow.typ` writes one beacon per minted page.
 beacons=$({ grep -o '<li>idea:[^<]*</li>' "$H/index.html" || true; } | wc -l)
-[ "$beacons" -eq 3 ] ||
-  note "index.html renders $beacons syndication beacons, expected exactly 3 (the dated notes)"
+[ "$beacons" -eq 6 ] ||
+  note "index.html renders $beacons syndication beacons, expected exactly 6 (the dated notes)"
 # The TITLE the note authored, not its slug, and the minted page's own path.
 grep -q '<li>idea:plain-note | Plain note | ideas/plain-note.html | note</li>' "$H/index.html" ||
   note "plain-note's beacon payload is wrong (id, title, page or categories)"
