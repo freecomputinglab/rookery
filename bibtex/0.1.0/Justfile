@@ -43,4 +43,7 @@ test:
     typst compile --features html --format html --root . test/sweep-all.typ test/build/sweep-all.html 2>test/build/sweep-all.stderr
     cat test/build/sweep-all.stderr >&2
     ! grep -q "did not converge" test/build/sweep-all.stderr
+    typst compile --features html --format html --root . test/fields.typ test/build/fields.html 2>test/build/fields.stderr
+    cat test/build/fields.stderr >&2
+    ! grep -q "did not converge" test/build/fields.stderr
     ./test/check.sh

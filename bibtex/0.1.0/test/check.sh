@@ -56,6 +56,28 @@ if by_id["idea:smith2020"] != "":
 print(f"  all(): 2 notes registered — {rows}")
 PY
 
+FL=test/build/fields.html
+[ -f "$FL" ] || { echo "FAIL: no $FL — run 'just test' first"; exit 1; }
+
+# `fields.typ` hides `doi` and `urldate` via the factory's own `show-fields:` —
+# their `<dt>` rows must be entirely absent, and a field the entry carries but
+# the dictionary doesn't name (`author`) must still be there.
+python3 - "$FL" <<'PY' || fail=1
+import re, sys
+h = open(sys.argv[1]).read()
+
+if "<dt>DOI</dt>" in h:
+    print("FAIL: show-fields hid \"doi\" but <dt>DOI</dt> is still rendered")
+    sys.exit(1)
+if "<dt>Accessed</dt>" in h:
+    print("FAIL: show-fields hid \"urldate\" but <dt>Accessed</dt> is still rendered")
+    sys.exit(1)
+if "<dt>Author</dt>" not in h:
+    print("FAIL: show-fields did not name \"author\" but its <dt>Author</dt> is missing")
+    sys.exit(1)
+print("  show-fields: doi and urldate absent, author present")
+PY
+
 EX=test/build/sweep-existing.html
 AL=test/build/sweep-all.html
 [ -f "$EX" ] || { echo "FAIL: no $EX — run 'just test' first"; exit 1; }

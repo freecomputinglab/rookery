@@ -81,6 +81,40 @@
 // negative test case: Typst has no way to catch a panic, so a fixture cannot
 // assert one without aborting the whole compile.
 
+// ---- _visible-order — fields-block's show-fields filter --------------------
+//
+// `fields-block` returns content, so the filter that decides which fields
+// appear is tested directly rather than through rendered markup — `check.sh`
+// covers the markup itself, on a fixture that actually renders.
+#let _ENTRY = (entry-type: "book", title: "Ethics", author: "Alain Badiou", doi: "10.1/x")
+
+// Omitted entirely: every field shows, in `_ORDER`'s sequence.
+#assert.eq(_visible-order(_ENTRY, (:)), ("entry-type", "author", "title", "doi"))
+
+// A partial dictionary hides only what it names `false`; a field it doesn't
+// mention stays.
+#assert.eq(_visible-order(_ENTRY, ("doi": false)), ("entry-type", "author", "title"))
+
+// `true` is the same as absent: shown.
+#assert.eq(
+  _visible-order(_ENTRY, ("doi": true)),
+  ("entry-type", "author", "title", "doi"),
+)
+
+// An unknown key changes nothing — `show-fields` is validated on its values,
+// not its keys, so a misspelt one silently hides nothing.
+#assert.eq(
+  _visible-order(_ENTRY, ("isbn": false)),
+  ("entry-type", "author", "title", "doi"),
+)
+
+// Hiding every field the entry carries yields an empty order — `fields-block`
+// returns early on this rather than emitting a label over nothing.
+#assert.eq(
+  _visible-order(_ENTRY, ("entry-type": false, "title": false, "author": false, "doi": false)),
+  (),
+)
+
 // ---- keyword-tags — a BibTeX `keywords` field as rookery tag slugs --------
 //
 // Better BibTeX emits either separator depending on export settings, so both

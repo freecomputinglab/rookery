@@ -21,7 +21,7 @@ one note per reference, titled and keyed from the entry itself.
 carries as an HTML definition list, for a body that just wants the record
 laid out.
 
-## `bibtex(src, tagged-idea:, tag:, keywords:)`
+## `bibtex(src, tagged-idea:, tag:, keywords:, show-fields:)`
 
 `src` is a `.bib` file's contents, or an array of them — several exports read
 as one bibliography, joined with a newline between members so a file ending
@@ -38,7 +38,7 @@ parsed bibliography:
 | --- | --- |
 | `bib` | the parsed dictionary itself, `key -> (field: value, ..)`, every value a plain string |
 | `entry(key)` | that entry, asserting the key exists rather than handing back `none` |
-| `fields(key)` | that entry's fields, as the `<dl class="citation-fields">` `fields-block` builds |
+| `fields(key, show-fields: auto)` | that entry's fields, as the `<dl class="citation-fields">` `fields-block` builds; `show-fields` falls back to the factory's own `show-fields:` when omitted |
 | `citation(key, title: auto, tags: none, show-tags: true, ..)` | a note titled from the entry (`title:` overrides it) and tagged `tag:` (`"citation"` by default) alongside whatever `tags:` you pass |
 | `all()` | mints a note for every entry not already claimed by a hand-written `citation` call |
 
@@ -128,6 +128,53 @@ the tags are an addition to it, not a replacement.
 run where `#context` is available — `all()` already runs inside one;
 `citation` opens one of its own for this mode specifically, rather than for
 every mode.
+
+## `show-fields:` — hiding fields from the citation block
+
+`fields-block` (and `fields(..)` through it) renders every field an entry
+carries. Some of that is noise on a published page — `urldate` is when the
+record was last touched in Zotero, and a `doi` is redundant beside a `url` —
+so `show-fields` says which fields to leave out:
+
+```typst
+#let refs = bibtex(read("refs.bib"), show-fields: ("urldate": false, "doi": false))
+```
+
+or on a single call, without touching the factory default:
+
+```typst
+#refs.fields("badiou2002", show-fields: ("urldate": false))
+```
+
+It's a dictionary mapping a field name to a boolean, and its shape is what
+makes it pleasant to write:
+
+| | |
+| --- | --- |
+| omitted entirely | (default) every field is shown — `show-fields: (:)` and no argument at all behave identically, so upgrading to this doesn't change any existing project |
+| a partial dictionary | hides only what it names `false`; a field it doesn't mention is shown — the dictionary is a list of exceptions, not a whitelist, so you name the two fields you don't want rather than the twenty you do |
+| `true` | shown, same as absent — worth accepting so a project can flip a field back on and keep the line as a record of the decision, instead of deleting it |
+
+`"entry-type"` is a valid key here too, even though it names no real BibTeX
+field — it's the parser's own synthesized key behind the `Type` row, and
+`("entry-type": false)` hides that row like any other.
+
+Only the *values* are validated (each must be a boolean); the keys are not
+checked against any known field list, because the block deliberately renders
+any field a `.bib` carries, including ones this package has never heard of —
+so a misspelt key (`"urldata"` for `"urldate"`) is legitimate syntax that
+silently hides nothing.
+
+Hiding every field an entry carries makes `fields-block` emit nothing at all —
+no label, no empty `<dl>`.
+
+`show-fields:` pairs well with `keywords:` above: tag from `keywords` while
+hiding the `keywords` row itself, so the citation block shows the tags rather
+than the raw comma-separated field they came from:
+
+```typst
+#let refs = bibtex(read("refs.bib"), keywords: "all", show-fields: ("keywords": false))
+```
 
 ## What the parser does not handle
 

@@ -1,12 +1,14 @@
 // @rookery/bibtex — a BibTeX reader and a `#citation` note constructor for
 // @rookery/core notes.
 //
-// `bibtex(src, tagged-idea:, tag:, keywords:)` parses one or more `.bib`
+// `bibtex(src, tagged-idea:, tag:, keywords:, show-fields:)` parses one or more `.bib`
 // sources once and closes over the result, returning:
 //
 //   bib:      the parsed dictionary, `key -> (field: value, ..)`
 //   entry:    key -> that entry, asserting the key exists
-//   fields:   key -> its fields, as the HTML `<dl>` `fields-block` builds
+//   fields:   (key, show-fields: auto) -> its fields, as the HTML `<dl>`
+//             `fields-block` builds; `show-fields` falls back to the
+//             factory's own when omitted
 //   citation: (key, title: auto, tags: none, show-tags: true, ..) -> a note,
 //             titled from the entry unless `title:` overrides it
 //   all:      () -> mints every entry NOT already claimed by a hand-written
@@ -53,12 +55,22 @@
 // tags that ALREADY exist — the known-tag set is a fixed point under its own
 // writes — so reading it mid-sweep still converges. See `note` below for how
 // that read reaches both minting paths.
-#let bibtex(src, tagged-idea: _core-tagged-idea, tag: "citation", keywords: none) = {
+#let bibtex(
+  src,
+  tagged-idea: _core-tagged-idea,
+  tag: "citation",
+  keywords: none,
+  show-fields: (:),
+) = {
   assert(
     keywords in _KEYWORDS-MODES,
     message: "@rookery/bibtex: `keywords` must be none, \"all\" or \"existing\" — got "
       + repr(keywords),
   )
+  // Captured under its own name because `fields:` below takes a per-call
+  // parameter of the same name — inside that closure, `show-fields` is the
+  // per-call one, and this is the only way back to the factory's.
+  let _show-fields = show-fields
   let src = if type(src) == array { src.join("\n") } else { src }
   let bib = parse-bib(src)
   let entry = key => {
@@ -101,7 +113,10 @@
   (
     bib: bib,
     entry: entry,
-    fields: key => fields-block(entry(key)),
+    fields: (key, show-fields: auto) => fields-block(
+      entry(key),
+      show-fields: if show-fields == auto { _show-fields } else { show-fields },
+    ),
     // The authoring form: claims its key — so `all()` skips it — then mints.
     // The claim is idempotent, so writing `citation` for one key twice still
     // reads as one claimed key, not a collision.
