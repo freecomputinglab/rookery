@@ -14,7 +14,8 @@
 // anything else.
 //
 // TWO PANEL KINDS, TOLD APART BY `data-panel-mode`. `#panel` (no mode) filters on
-// projected fields, ORing within a group and ANDing across groups. `#filter-panel`
+// projected fields, ORing within a group and ANDing across groups — bar the groups
+// `data-panel-union` names, which OR with each other too. `#filter-panel`
 // (`mode="tags"`) filters on bare tag names off `data-panel-tags`, composing them the
 // way `data-panel-pill-match` says — "any" by default, "all" to intersect. One
 // `wirePanel` serves both and only the predicate branches.
@@ -44,34 +45,57 @@ import { splitQuery, evalTagQuery } from "./tagquery.js";
 // broken in one of the two places it runs.
 import { fold } from "./text.js";
 
-// Does a row survive the pills? Within a facet the values OR — two state pills
-// mean "either" — and across facets they AND. An EMPTY set means that facet is
-// unconstrained, which is what makes "no pills pressed" show everything rather
-// than nothing.
+// DOES ONE GROUP ACCEPT THE ROW? Within a facet the values OR — two state pills mean
+// "either".
 //
 // A MULTI-VALUED FACET (`data-panel-multi`) holds a SET per row rather than a value, so
-// the within-group OR becomes an INTERSECTION test: the row survives if it carries any
-// pressed value. The same rule stated over a set instead of a scalar — which is why it
-// branches here and nowhere else, and why such a group still ANDs with the scalar ones
-// beside it.
+// the OR becomes an INTERSECTION test: the row carries any pressed value. The same rule
+// stated over a set instead of a scalar, which is why it branches here and nowhere else.
+//
+// SEPARATE FROM `passesFacets` because the answer is now read two ways — a group that
+// must accept, and a group that only has to be one of the accepting ones — and the two
+// readings must not each carry their own copy of the scalar/multi split.
+const accepts = (row, field, wanted, multi) => {
+  if (!multi.has(field)) return wanted.has(row.values[field] ?? "");
+  for (const v of wanted) if (row.values[field].has(v)) return true;
+  return false;
+};
+
+// Does a row survive the pills? Groups AND by default — a tag and a state narrow
+// together — and an EMPTY set means that facet is unconstrained, which is what makes "no
+// pills pressed" show everything rather than nothing.
+//
+// THE `union` GROUPS ARE THE EXCEPTION, and they exist because ANDing is wrong for
+// groups that ask ONE question in two projections. @rookery/todos splits what a todo is
+// ABOUT across `epic` and `tag`: a todo under `epic-rheo` never also gets a `rheo` tag
+// pill (the epic group already says it), so pressing `rheo` and `birds` — two subjects,
+// two pills, adjacent on one line — asked for a todo whose epic is `rheo` AND whose tags
+// include `birds`, and returned nothing on every real corpus. MEASURED on a site with 74
+// open todos: every two-subject press was empty. The groups stay separate because they
+// are derived differently and chip differently; what they compose as is now declared.
+//
+// SO: a row must satisfy EVERY pressed ordinary group, and — if any union group has a
+// pill pressed at all — at least ONE of the union groups. A single pressed union group
+// is therefore exactly what it was before, which is what keeps this from changing the
+// one-pill case.
 //
 // EXPORTED for the node suite, on the same terms as `passesTags` below: `src/search.js`
-// does not re-export it.
-export const passesFacets = (row, facets, multi) => {
+// does not re-export it. `union` DEFAULTS TO EMPTY so every caller predating it — and
+// every panel whose markup carries no `data-panel-union` — gets the plain AND.
+export const passesFacets = (row, facets, multi, union = new Set()) => {
+  // `asked` rather than testing `union.size`: a union group with NO pill pressed asks
+  // nothing, and requiring a hit from it would hide every row the moment a site declared
+  // the composition.
+  let asked = false;
+  let met = false;
   for (const [field, wanted] of facets) {
     if (wanted.size === 0) continue;
-    if (multi.has(field)) {
-      let hit = false;
-      for (const v of wanted) {
-        if (row.values[field].has(v)) {
-          hit = true;
-          break;
-        }
-      }
-      if (!hit) return false;
-    } else if (!wanted.has(row.values[field] ?? "")) return false;
+    if (union.has(field)) {
+      asked = true;
+      if (accepts(row, field, wanted, multi)) met = true;
+    } else if (!accepts(row, field, wanted, multi)) return false;
   }
-  return true;
+  return !asked || met;
 };
 
 // THE TAG PANEL'S PREDICATE (`#filter-panel`, `data-panel-mode="tags"`), and it reads
@@ -135,6 +159,13 @@ export const wirePanel = (container, n) => {
   // exactly as before.
   const multi = new Set(
     (container.dataset.panelMulti || "").split(" ").filter(Boolean),
+  );
+
+  // WHICH GROUPS OR WITH EACH OTHER instead of ANDing — see `passesFacets`. Read the
+  // same way `multi` is, and absent on every panel that never declared it, so an older
+  // page's markup composes exactly as it always did.
+  const union = new Set(
+    (container.dataset.panelUnion || "").split(" ").filter(Boolean),
   );
 
   // The tag panel's own state: which pills are pressed, as tag names.
@@ -235,7 +266,7 @@ export const wirePanel = (container, n) => {
         (rpn.length === 0 || evalTagQuery(rpn, row.allTags)) &&
         (tagMode
           ? passesTags(row, pressed, pillMatch)
-          : passesFacets(row, facets, multi));
+          : passesFacets(row, facets, multi, union));
       const s = ok ? score(row.text, q) : null;
       if (s == null) {
         row.el.hidden = true;

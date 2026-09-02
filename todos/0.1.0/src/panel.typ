@@ -18,9 +18,16 @@
 // GROUPS. rookery-search's `#filter-panel` has one pill row and one `pill-match` for
 // all of it, so `epic-jobs` + `todo-p0` UNION under the default "any" — press two,
 // get more — and return nothing at all under "all", two epics being mutually
-// exclusive. `#panel`'s facet mode already composes the way a reader expects
-// (`panel.js`: "Within a facet the values OR .. and across facets they AND"), so
-// epic, tag, state and priority each become their own group for free.
+// exclusive. `#panel`'s facet mode composes per group, so epic, tag, state and
+// priority each become their own group for free.
+//
+// AND THE GROUPS DO NOT ALL COMPOSE ALIKE, which is the correction this file needed
+// after shipping. "Within a facet the values OR .. and across facets they AND" was
+// quoted here as though it were the whole of what a reader expects, and it is not: it
+// is right for the STATE line, where `ready` and `p0` ask different questions, and
+// wrong for the SUBJECT line, where `epic` and `tag` are one question in two
+// projections and ANDing them returns nothing. `union:` below says which line is
+// which — see the argument at the `panel(..)` call.
 //
 // THE `tag` GROUP IS WHY `multi:` EXISTS IN @rookery/search. The other three answer
 // "which one" and fit a scalar; a todo's plain tags are a SET, and a pill per tag any
@@ -385,6 +392,22 @@
     // three scalar groups would otherwise trip an assertion about a group they had
     // just chosen not to have.
     multi: facets.filter(f => f in _MULTI),
+    // THE SUBJECT GROUPS OR WITH EACH OTHER, where `state` and `priority` go on ANDing.
+    // `epic` and `tag` are ONE QUESTION — what is this todo about — arriving as two
+    // projections, and the split is not the reader's: a todo under `epic-rheo` gets its
+    // `rheo` pill in the epic group and none in the tag group (`_tags-of` drops a key
+    // whose `epic-<key>` is present, so the name is never offered twice), while a plain
+    // `birds` can only ever be a tag. Pressing the two therefore asked for a todo whose
+    // epic is `rheo` AND whose tags include `birds`, which no todo is or ever will be —
+    // two subjects that were the same question composing as though they were different
+    // ones.
+    //
+    // THE SAME LIST THE LAYOUT USES, deliberately: what shares the subject line is what
+    // composes as one question, so a facet added to that line cannot land on the wrong
+    // side of this. `state` and `priority` are the other line and the other rule — those
+    // two ask "how far along" from opposite ends and a reader pressing `ready` and `p0`
+    // means both.
+    union: subject,
     facet-rows: facet-rows,
     sort: "when",
     descending: order == "newest",

@@ -343,10 +343,17 @@ it imports `@rookery/todos` **last**.
 
 **Four pill groups, none of them declared:** `epic` and `tag` on the first line,
 `state` and `priority` on the second under a `todo states:` label. The first pair
-says what a todo is *about*, the second how far along it is. Within a group the
-values **OR**; across groups they **AND** — so `blocked` + `p1` leaves blocked
-priority-one todos, where `#todos-search`'s single undifferentiated pill row could
-only ever union.
+says what a todo is *about*, the second how far along it is.
+
+**The two lines compose differently, because they ask different kinds of question.**
+Within any group the values **OR**. Across the *state* line they **AND** — `blocked`
++ `p1` leaves blocked priority-one todos, where `#todos-search`'s single
+undifferentiated pill row could only ever union. Across the *subject* line they
+**OR**: `epic` and `tag` are one question in two projections, so pressing `rheo` (an
+epic) and `birds` (a tag) shows both, not their intersection. That is `#panel`'s
+[`union:`](../../search/0.1.0/readme.md#union--groups-that-answer-one-question), and
+before it existed the pair returned nothing at all — a todo under `epic-rheo` gets no
+`rheo` pill in the tag group (see below), so no row could ever be both.
 
 **The `tag` group is every plain tag the listed todos carry**, and that is the point
 of it: put a new tag on one todo and its pill is there on the next build, with no
@@ -364,8 +371,9 @@ What it leaves out, all of it a fact another group already states:
   pill would select every row there is.
 - **`epic-*`, and the bare tag whose `epic-<tag>` is also present.** A site minting a
   todo under an epic writes both keys, so without this the epic's name would sit in
-  two groups at once — and pressing it in one but not the other reads as a
-  contradiction, groups ANDing across.
+  two groups at once, and one pill would read as two filters. It is exactly this rule
+  that makes the subject line's `union:` necessary: the epic's name lives in one
+  group only, so the two groups cannot be intersected.
 
 **Tags are not chipped on the row**, unlike the other three facets, and that is a
 decision about the grid: `.idea-row` is `<gutter> 1fr auto auto` and the badge strip

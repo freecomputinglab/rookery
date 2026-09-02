@@ -1161,14 +1161,46 @@ projected value is an ARRAY of scalars.
 `@rookery/todos`' `#filter-panel` is the case this was written for — its `tag` group
 is every plain tag the listed todos carry, and nothing declares the list.
 
+### `union:` — groups that answer one question
+
+Groups AND across by default, which is right when each asks a different question: a
+state and a priority narrow together, and a reader pressing `ready` and `p0` means
+both. It is wrong when ONE question arrives as two projections.
+
+```typst
+#context panel(
+  rows: rows,
+  facets: ("epic", "tag", "state", "priority"),
+  multi: ("tag",),
+  union: ("epic", "tag"),             // one question: what is this about
+)
+```
+
+`@rookery/todos` is the case, and the bug is worth stating because it was invisible.
+Its panel splits what a todo is *about* across `epic` and `tag`, and a todo carrying
+`epic-rheo` is given no `rheo` pill in the tag group — the epic group already says
+it. So pressing `rheo` and `birds`, two subjects side by side on one line, asked for
+a todo whose epic is `rheo` AND whose tags include `birds`: nothing, on every corpus
+there is, from two pills that each worked alone.
+
+- **A row must satisfy every pressed ordinary group, and at least ONE union group**
+  — when any union group has a pill pressed at all. Nothing pressed there
+  constrains nothing.
+- **One pressed union group is exactly what it was.** This only ever changes the
+  case where two of them are pressed.
+- **It is not `multi:`.** That is one group holding a set per row; this is how a
+  group composes with the groups beside it. A group is freely both.
+- **It does not merge the groups.** They stay separately derived, separately
+  chipped, and separately laid out — the grouping was never what was wrong.
+
 ### The rules it follows
 
 - **Pills are one per value a listed row actually has**, never one per value the
   vocabulary permits. A pill for a value nothing carries is a filter that could
   only ever return nothing.
-- **Within a facet the values OR; across facets they AND.** An empty set is
-  unconstrained, which is what makes "no pills pressed" show everything rather
-  than nothing.
+- **Within a facet the values OR; across facets they AND** — bar the groups
+  `union:` names, which OR with each other too. An empty set is unconstrained,
+  which is what makes "no pills pressed" show everything rather than nothing.
 - **`visible:` is a SCROLL CAP, not a data cap.** Every row stays in the markup and
   the count rides as a CSS custom property. A consuming site had capped its list
   and hidden the rest; its own comment records why that was abandoned — it "made

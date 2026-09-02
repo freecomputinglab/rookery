@@ -138,9 +138,40 @@
   // WHAT IT BUYS. A scalar facet can only ask "which one is it" — one epic, one sort,
   // one state. A note's TAGS are not that shape, and `#filter-panel`'s tag mode, which
   // is, has a single undifferentiated pill row and no groups. This is the missing
-  // third case: a tag group that composes with the scalar ones under the same
-  // OR-within, AND-across rule.
+  // third case: a tag group that composes with the scalar ones beside it under the
+  // ordinary group rules, rather than replacing them. HOW it composes with them is
+  // `union:` below — this argument only says the group holds a set.
   multi: (),
+  // WHICH GROUPS ANSWER ONE QUESTION, and therefore OR WITH EACH OTHER rather than
+  // ANDing. Every other group composes as it always did: a row must satisfy each of
+  // them, and — if any group named here has a pill pressed — at least ONE of these.
+  //
+  //   union: ("epic", "tag"),
+  //
+  // WHY IT IS NEEDED AT ALL, given "OR within, AND across" is the rule this widget was
+  // written around. That rule is right when each group asks a DIFFERENT question: a
+  // state and a priority narrow together and a reader pressing both means the
+  // conjunction. It is wrong when one question arrives as two projections. @rookery/todos
+  // splits what a todo is ABOUT into `epic` and `tag` — a todo carrying `epic-rheo`
+  // never also gets a `rheo` pill in the tag group, since the epic group already says it
+  // — so `rheo` and `birds`, two subjects sitting side by side on one line, ANDed into
+  // an empty list on every corpus anyone has. The reader's reading of two subject pills
+  // is "either", and that is what this declares.
+  //
+  // NOT A REPLACEMENT FOR `multi:`, which is about one group holding a SET per row. A
+  // multi-valued group already ORs internally; this says how a group composes with the
+  // groups BESIDE it, and the two are freely combined — @rookery/todos' `tag` group is
+  // both.
+  //
+  // WHY NOT MERGE THE GROUPS INSTEAD. Because they are genuinely two: they are derived
+  // differently (one off `epic-*`, one off the flat keys), they chip differently, and a
+  // reader wants the epics gathered rather than strewn through an alphabetical tag row.
+  // What was wrong was never the grouping, only the composition — so only the
+  // composition is declared.
+  //
+  // A SINGLE ENTRY IS A NO-OP, by construction: one pressed union group behaves exactly
+  // as it did. So this only ever changes the two-groups-pressed case.
+  union: (),
   // HOW THE GROUPS ARE LAID OUT, and nothing else — which facets exist is still
   // `facets:` alone. `none` is one row holding every group, which is what this
   // function has always emitted. Otherwise an array of
@@ -253,6 +284,17 @@
     )
   }
 
+  // SAME TYPO, THE FOURTH WAY ROUND, and this one is the quietest of the lot: a `union:`
+  // entry naming no facet changes the composition of nothing at all, so the panel renders
+  // correctly and goes on ANDing the two groups the caller meant to join.
+  for f in union {
+    assert(
+      facets.contains(f),
+      message: "@rookery/search: #panel's `union:` names `" + f + "`, which is not in "
+        + "`facets:` — there is no group by that name to compose with anything.",
+    )
+  }
+
   // A SET CANNOT BE AN ORDER. `sort:` is compared as one padded string per row, so a
   // multi-valued field there would sort by its first value and read as arbitrary.
   //
@@ -344,6 +386,10 @@
       // once written. Absent when no facet is multi-valued, so an older page's markup
       // reads exactly as it always did.
       ..if multi.len() == 0 { (:) } else { ("data-panel-multi": multi.join(" ")) },
+      // WHICH GROUPS OR WITH EACH OTHER — see `union:`. Emitted only when declared, so
+      // a panel that never asked for it carries the markup it always did and the script
+      // reads the plain AND.
+      ..if union.len() == 0 { (:) } else { ("data-panel-union": union.join(" ")) },
       // The visible height goes to CSS as a custom property rather than as a
       // rule, so the number lives once, here, in the call that sets it.
       ..if visible == none { (:) } else { (style: "--panel-rows: " + str(visible)) },

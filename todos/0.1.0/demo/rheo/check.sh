@@ -127,6 +127,15 @@ if groups != ["epic", "tag", "state", "priority"]:
 if 'data-panel-multi="tag"' not in seg:
     note("the panel does not declare data-panel-multi=\"tag\"; the tag pills would match nothing")
 
+# THE SUBJECT GROUPS OR WITH EACH OTHER, and this is the one claim in the file that
+# is about a bug nobody could see: `epic` and `tag` are one question in two
+# projections, so without the declaration pressing an epic and a tag ANDs into a row
+# that cannot exist — the epic's own name is never offered as a tag pill. Two pills
+# that each work alone, "nothing matches" together, correct markup throughout.
+if 'data-panel-union="epic tag"' not in seg:
+    note("the panel does not declare data-panel-union=\"epic tag\"; an epic pill and a"
+         " tag pill would AND and match nothing")
+
 tags = re.findall(r'data-panel-facet="tag" data-panel-value="([^"]*)"', seg)
 if tags != ["frontend", "phd"]:
     note(f"the tag pills are {tags}, wanted frontend/phd — the union of the plain tags"
