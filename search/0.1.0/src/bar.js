@@ -2,10 +2,10 @@
 // input as the reader types.
 
 import { renderRow } from "./row.js";
-import { search } from "./score.js";
+import { searchSplit } from "./score.js";
 import { selection } from "./selection.js";
 import { positiveAtoms, splitQuery } from "./tagquery.js";
-import { fold } from "./text.js";
+import { queryTerms } from "./text.js";
 import { readLimit } from "./limit.js";
 
 export const wire = (root, rows, n) => {
@@ -50,10 +50,10 @@ export const wire = (root, rows, n) => {
     //
     // The tag expression's POSITIVE atoms travel beside them, so a chip an atom
     // prefix-matched is marked too. Computed once per render, not per row.
-    const { rpn, text } = splitQuery(q);
-    const terms = fold(text).split(" ").filter((t) => t !== "");
-    const atoms = positiveAtoms(rpn);
-    for (const hit of search(rows, q, limit)) {
+    const split = splitQuery(q);
+    const terms = queryTerms(split.text);
+    const atoms = positiveAtoms(split.rpn);
+    for (const hit of searchSplit(rows, split, limit)) {
       list.append(renderRow(hit, terms, atoms));
     }
   };

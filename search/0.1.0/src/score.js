@@ -137,8 +137,15 @@ const dateCmp = (a, b) => {
   if (b.created == null) return -1;
   return a.created < b.created ? 1 : a.created > b.created ? -1 : 0;
 };
-export const search = (rows, query, limit) => {
-  const { rpn, text } = splitQuery(query);
+// `search` SPLITS THE QUERY; `searchSplit` takes one already split, for a caller
+// that needs the same `{ rpn, text }` to mark its rows with. Splitting twice per
+// keystroke is the alternative, and it puts the entry point to the language in two
+// layers of one render.
+//
+// INTERNAL: `src/search.js` exports `search` and not this, the package's public
+// JavaScript surface being what that entrypoint exports.
+export const searchSplit = (rows, split, limit) => {
+  const { rpn, text } = split;
   const q = text;
   const out = [];
   for (const row of rows) {
@@ -164,3 +171,5 @@ export const search = (rows, query, limit) => {
   );
   return limit == null ? out : out.slice(0, limit);
 };
+
+export const search = (rows, query, limit) => searchSplit(rows, splitQuery(query), limit);

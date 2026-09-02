@@ -37,6 +37,12 @@ export const fold = (s) => s.toLowerCase().replaceAll("-", " ").replaceAll("_", 
 // therefore used for `hay` only, and `clusters` directly for everything else.
 const SEGMENTER = new Intl.Segmenter("en", { granularity: "grapheme" });
 export const clusters = (s) => [...SEGMENTER.segment(s)].map((g) => g.segment);
+// THE HIGHLIGHT-TERM RULE, shared by the result row's title and id, the keyword
+// chips and the fetched preview: a query folded, split on spaces, empties
+// dropped. Callers pass the RESIDUAL text of a query rather than the raw input,
+// so a `tags:` expression is never marked as though a note contained it.
+export const queryTerms = (s) => fold(s).split(" ").filter((t) => t !== "");
+
 const CLUSTER_CACHE = new Map();
 export const clustersCached = (s) => {
   let v = CLUSTER_CACHE.get(s);

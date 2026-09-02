@@ -2,7 +2,7 @@
 // and the one place the island's compressed `body` field is reader-facing.
 
 import { KEYWORD_LIMIT, appendMarked, matchRanges } from "./marks.js";
-import { fold } from "./text.js";
+import { queryTerms } from "./text.js";
 
 // THE KEYWORD ROW — the failed-fetch fallback, and the ONE place the
 // compressed index is reader-facing. The island's `body` field is not prose:
@@ -49,14 +49,14 @@ export function renderKeywords(preview, hit, queryValue) {
     preview.append(empty);
     return;
   }
-  const queryTerms = fold(queryValue.trim()).split(" ").filter((t) => t !== "");
+  const qterms = queryTerms(queryValue.trim());
   // The ranges are carried alongside each term rather than recomputed for the
   // chips: whether a term matched IS whether it has any ranges, so one
   // `matchRanges` per term answers both the hoist and the marking.
   const matched = [];
   const rest = [];
   for (const term of terms) {
-    const ranges = matchRanges(term, queryTerms);
+    const ranges = matchRanges(term, qterms);
     (ranges.length > 0 ? matched : rest).push({ term, ranges });
   }
   const why = document.createElement("p");

@@ -2,12 +2,12 @@
 // rows, opened from a trigger or Ctrl-K.
 
 import { renderRow } from "./row.js";
-import { search } from "./score.js";
+import { searchSplit } from "./score.js";
 import { selection } from "./selection.js";
 import { fetchNote } from "./preview.js";
 import { markTermsInNode } from "./marks.js";
 import { positiveAtoms, splitQuery } from "./tagquery.js";
-import { fold } from "./text.js";
+import { queryTerms } from "./text.js";
 import { readLimit } from "./limit.js";
 import { renderKeywords } from "./keywords.js";
 
@@ -94,9 +94,7 @@ export const wireModal = (dialog, rows) => {
       // The residual, not the raw input: marking the fetched page for the literal
       // "tags:" would highlight an instruction rather than a match. Same rule as
       // both `render`s.
-      const terms = fold(splitQuery(input.value.trim()).text)
-        .split(" ")
-        .filter((t) => t !== "");
+      const terms = queryTerms(splitQuery(input.value.trim()).text);
       // Cloned, not moved: the cache holds this `<div>` for the rest of the
       // session and `markTermsInNode` edits what it walks.
       const clone = box.cloneNode(true);
@@ -128,7 +126,7 @@ export const wireModal = (dialog, rows) => {
     // input still named `…-opt-0` while the list held zero rows. `select(0)` sets
     // it again on every path that has something to select.
     sel.clear();
-    // EMPTY QUERY shows the corpus, not nothing: `search(rows, "", limit)`
+    // EMPTY QUERY shows the corpus, not nothing: an empty query
     // already returns everything at score 0, dated rows newest-first ahead of
     // undated rows (which keep their id order) — see `dateCmp` — telescope's
     // empty-prompt behaviour, deliberately unlike `#search-bar`'s dropdown,
@@ -136,14 +134,14 @@ export const wireModal = (dialog, rows) => {
     //
     // With a `tags:` expression and no residual text, that becomes the whole
     // FILTERED corpus ranked the same way — the same sentence one level in.
-    hits = search(rows, q, limit);
+    const split = splitQuery(q);
+    hits = searchSplit(rows, split, limit);
     // The residual, not the raw input: see `wire`'s `render` above. Marking the
     // literal "tags:" in every note is the failure this avoids. And the tag
     // expression's positive atoms alongside, for the chips — this is the surface
     // where they are visible at all.
-    const { rpn, text } = splitQuery(q);
-    const terms = fold(text).split(" ").filter((t) => t !== "");
-    const atoms = positiveAtoms(rpn);
+    const terms = queryTerms(split.text);
+    const atoms = positiveAtoms(split.rpn);
     for (const hit of hits) {
       const row = renderRow(hit, terms, atoms);
       row.addEventListener("pointerenter", () => {
