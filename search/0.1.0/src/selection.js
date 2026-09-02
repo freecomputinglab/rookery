@@ -62,17 +62,33 @@ export const selection = (list, input, onSelect = null) => {
       clear();
       return;
     }
+    const previous = selected;
     selected = Math.max(0, Math.min(i, els.length - 1));
+    // IDS ARE WRITTEN ONLY WHERE THEY ARE WRONG. Every row needs
+    // `<list>-opt-<index>` for `aria-activedescendant` to name it, and after a
+    // re-render the fresh rows have none — but an unchanged list is the common
+    // case, and an arrow key through it should not rewrite every id it passes.
     for (const [idx, el] of els.entries()) {
-      el.id = `${list.id}-opt-${idx}`;
-      if (idx === selected) {
-        el.setAttribute("aria-selected", "true");
-        el.setAttribute("data-rookery-search-selected", "true");
-      } else {
+      const want = `${list.id}-opt-${idx}`;
+      if (el.id !== want) el.id = want;
+    }
+    // TWO ROWS CHANGE PER MOVE — the one leaving and the one arriving — so an
+    // arrow key writes two attributes rather than two per row. From NO SELECTION
+    // the whole list is written once instead: every row has to state its own
+    // `aria-selected`, and a freshly rendered row carries none, so a screen reader
+    // would otherwise read a list where only one row said anything.
+    if (previous < 0) {
+      for (const [idx, el] of els.entries()) {
+        if (idx === selected) continue;
         el.setAttribute("aria-selected", "false");
         el.removeAttribute("data-rookery-search-selected");
       }
+    } else if (previous < els.length && previous !== selected) {
+      els[previous].setAttribute("aria-selected", "false");
+      els[previous].removeAttribute("data-rookery-search-selected");
     }
+    els[selected].setAttribute("aria-selected", "true");
+    els[selected].setAttribute("data-rookery-search-selected", "true");
     input.setAttribute("aria-activedescendant", els[selected].id);
     els[selected].scrollIntoView({ block: "nearest" });
     if (onSelect !== null) onSelect();

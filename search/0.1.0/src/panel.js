@@ -287,10 +287,16 @@ export const wirePanel = (container, n) => {
     // it in the accessibility tree. It needs `.panel-row[hidden]` in the
     // stylesheet to bite, since the row sets its own `display` and the UA's
     // `[hidden]` rule loses to any author rule that does.
+    // ONE WRITE TO THE LIVE LIST, not one per row. Appending an element that is
+    // already in the document MOVES it, in a fragment exactly as in the list, so
+    // the resulting order is the same — a panel over a few hundred rows just stops
+    // doing a few hundred separate mutations per keystroke.
+    const order = document.createDocumentFragment();
     for (const { row } of kept) {
       row.el.hidden = false;
-      list.appendChild(row.el);
+      order.append(row.el);
     }
+    list.append(order);
 
     // Scrolled halfway down and then narrowing the query would otherwise leave
     // the box parked past the end of the new, shorter list.
