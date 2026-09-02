@@ -1,0 +1,91 @@
+/* rookery-bibtex — the citation block `#fields-block` draws: a label, then one
+   row per bibliographic field.
+
+   Thin on purpose, like the rest of this family: enough that an entry reads as a
+   table out of the box, and nothing that presumes a page design. No fonts, no page
+   colours, and no absolute font size — every size here is a factor of whatever the
+   page already sets, so the block takes the surrounding type.
+
+   THE LAYER, and it is not optional. rheo links a PACKAGE's stylesheet AFTER the
+   project's own, so on equal specificity this file would win every tie and a project
+   could not fix it by writing its rule "later" — there is no later. Wrapping
+   everything in a cascade layer inverts that: any UNLAYERED rule in the project's CSS
+   beats any layered rule here, whatever its specificity or position. A plain
+   `.citation-fields dt { color: red }` in a site's stylesheet just works. That is the
+   guarantee, and it is why nothing in this file sits outside the layer.
+
+   THE PROPERTIES. Every colour and size is `var(--x, <default>)`, the default being
+   the literal in the var() call. Set one on `.citation-fields` (or anywhere it
+   inherits from) and the block is themed without overriding a rule at all:
+
+     --citation-fg       a field's value
+     --citation-muted    the label above the block, and a field's name
+     --citation-gap      vertical space between rows
+     --citation-gutter   width of the name column
+
+   THE GUTTER MATCHES @rookery/timeline'S RAIL, 7.5em, and the match is the point: a
+   note page that draws both puts this block under that one, and two adjacent tables
+   whose columns start in different places read as two conventions rather than one
+   page. A project moving one should move the other — hence the default here reads
+   `--timeline-gutter` first, so setting that single property lines both up. */
+@layer bibtex {
+  /* A LABEL, NOT A HEADING, and `#fields-block` emits a `<div>` for it precisely so
+     it claims no place in the page's outline above the note's own headings. Styled as
+     one, so it does not read as one — the same treatment @rookery/timeline gives
+     `.upcoming-title`. */
+  .citation-fields-head {
+    margin: 1.2rem 0 0;
+    color: var(--citation-muted, gray);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.85em;
+  }
+
+  /* TWO COLUMNS: the field's name in the gutter, its value to the right. A grid on
+     the `<dl>` itself, with each `<dt>`/`<dd>` auto-placed as its own item — so a
+     value that wraps to three lines pushes the next row down instead of drifting out
+     of column.
+
+     A GRID RATHER THAN A FLEX LINE, for the reason measured across this family: a
+     flex item's basis is only a HYPOTHETICAL size, so a long field name would push
+     its value and no two rows would agree on where the value starts.
+
+     `align-items: baseline` sits a name on the first line of its value, which is what
+     keeps a one-word name level with the opening line of an abstract. */
+  .citation-fields {
+    display: grid;
+    grid-template-columns: var(--citation-gutter, var(--timeline-gutter, 7.5em)) 1fr;
+    column-gap: 0.9rem;
+    row-gap: var(--citation-gap, 0.25rem);
+    align-items: baseline;
+    margin: 0.6rem 0 0;
+  }
+
+  /* THE FIELD NAME, muted and uppercased — a label, matching the stage names on
+     @rookery/timeline's rail so the two blocks read as one page. */
+  .citation-fields dt {
+    color: var(--citation-muted, gray);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.85em;
+  }
+
+  /* THE VALUE. `margin: 0` is load-bearing rather than tidy: a browser's default
+     `<dd>` carries `margin-inline-start: 40px`, which in a grid cell indents every
+     value away from its own column. */
+  .citation-fields dd {
+    margin: 0;
+    color: var(--citation-fg, inherit);
+    font-size: 0.9em;
+  }
+
+  /* NUMBERS AN EVEN WIDTH, so a year, a volume and a page range line up down the
+     column rather than shifting with each digit — the same reason
+     @rookery/timeline sets it on a date. `overflow-wrap` is for the two fields that
+     can carry an unbroken string longer than the column: a DOI and a URL, which
+     would otherwise widen the grid and push the page sideways. */
+  .citation-fields dd {
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+}
