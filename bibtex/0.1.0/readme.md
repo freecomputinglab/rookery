@@ -31,7 +31,7 @@ mid-token cannot fuse into the next file's first token:
 #let refs = bibtex((read("primary.bib"), read("secondary.bib")))
 ```
 
-The return value is a dictionary of four functions, all closed over the
+The return value is a dictionary of five functions, all closed over the
 parsed bibliography:
 
 | | |
@@ -40,10 +40,40 @@ parsed bibliography:
 | `entry(key)` | that entry, asserting the key exists rather than handing back `none` |
 | `fields(key)` | that entry's fields, as the `<dl class="citation-fields">` `fields-block` builds |
 | `citation(key, title: auto, tags: none, show-tags: true, ..)` | a note titled from the entry (`title:` overrides it) and tagged `tag:` (`"citation"` by default) alongside whatever `tags:` you pass |
+| `all()` | mints a note for every entry not already claimed by a hand-written `citation` call |
 
 `citation`'s `key` accepts the form you actually write: `@badiou2002` (a
 Typst `ref`, caught by Typst's own reference checking if the key is wrong), a
 bare label, or a string computed at build time.
+
+A dictionary field holding a function cannot be called with `#refs.citation(..)`
+under Typst 0.15.1 — `cannot directly call dictionary keys as functions` — so
+call through parenthesized field access instead: `#(refs.citation)(..)`,
+`#(refs.all)()`.
+
+## `all()` — minting the rest of the bibliography
+
+A bibliography is a list of things worth a note. `citation(..)` mints one
+where you've written it by hand; `all()` mints the REST — every key `bib`
+carries that no `citation` call has claimed, in the bibliography's own
+alphabetical key order:
+
+```typst
+#let refs = bibtex(read("refs.bib"))
+
+#refs.citation(<etal2002>)[The one you want to say something about.]
+#(refs.all)()
+```
+
+`etal2002` keeps its hand-written body; every other entry mints with an empty
+body, titled from the entry the same way `citation` derives its own title.
+**Call it once, from one vertebra** — a second call is a compile error
+(`all() mints the whole bibliography and must be called once, from one
+vertebra`), because it mints the whole bibliography and a second pass would
+either double-register every key or silently do nothing, neither of which is
+useful. A hand-written `citation` for a key always wins: `all()` never mints
+over one, no matter where in the document the two calls sit relative to each
+other.
 
 `tagged-idea:` defaults to `@rookery/core`'s own, which is what you want on
 plain rookery. **A project on `@rookery/timeline` or `@rookery/todos` should

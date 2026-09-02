@@ -62,3 +62,16 @@
 
 // No title at all: `none`, rookery's own "this note has no authored title".
 #assert.eq(bib-title((author: "Someone")), none)
+
+// ---- bibtex(..) — the factory's own shape -----------------------------------
+//
+// `all` is a field on the returned dictionary, and a function — the sweep a
+// project calls once. What it MINTS is document-level behaviour and needs the
+// rendered fixture in `test/sweep.typ`; this only checks the shape.
+#assert.eq(type(bibtex(TWO).all), function)
+
+// `all()` mints in `bib.keys().sorted()` order, alphabetical rather than
+// insertion order — a fixture whose keys are already alphabetical (like
+// `TWO` above) cannot tell the two apart, hence a fixture entered in reverse.
+#let UNSORTED = "@book{zeta, title = {Z},}\n\n@book{alpha, title = {A},}\n"
+#assert.eq(bibtex(UNSORTED).bib.keys().sorted(), ("alpha", "zeta"))
