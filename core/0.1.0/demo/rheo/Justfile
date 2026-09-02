@@ -38,3 +38,8 @@ typst:
     mkdir -p build
     typst compile --features html --format html --root ../../../.. native.typ build/native.html
     typst compile --features html --root ../../../.. native.typ build/native.pdf
+
+# Asserts on `build/native.html` — see check-native.sh's own header for why it
+# is a separate script rather than a mode flag on `check.sh`.
+check-typst: typst
+    ./check-native.sh

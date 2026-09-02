@@ -159,11 +159,12 @@ jobs:
         run: cd core/0.1.0/demo/rheo && just check
 
       # The same content compiled a SECOND way, plain `typst compile`, no
-      # rheo — one document, one compile pass, no minted pages. AFTER the
-      # namespace-symlink step, for the same reason as the rheo build above:
-      # the content imports `@rookery/core:0.1.0` by coordinate.
-      - name: core rheo demo's rookery compiles without rheo too
-        run: cd core/0.1.0/demo/rheo && just typst
+      # rheo — one document, one compile pass, no minted pages — and asserted
+      # by `check-native.sh`, not merely compiled. AFTER the namespace-symlink
+      # step, for the same reason as the rheo build above: the content
+      # imports `@rookery/core:0.1.0` by coordinate.
+      - name: core rheo demo's rookery compiles and asserts without rheo too
+        run: cd core/0.1.0/demo/rheo && just check-typst
 
       # search's own rheo fixture. Its `check.sh` asserts what neither the
       # `node --test` suite nor the parity harness can see: that rheo copied

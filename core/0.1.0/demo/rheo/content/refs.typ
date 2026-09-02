@@ -23,11 +23,6 @@ Some prose citing Knuth directly: @knuth1984.
 A page-level claim#footnote[Falls back to Typst's own footnote mechanism.]
 made outside any note.
 
-// Trailing prose citation — AFTER the last note on the page, with nothing
-// following to claim it. Claimed by the document-wide trailing block
-// `#show: rookery` emits only when something is actually left over.
-A trailing citation with nothing after it: @knuth1984.
-
 == Derived labels
 
 // Under the limit: verbatim, no ellipsis. A NAMED slug — unlike
@@ -40,3 +35,10 @@ A trailing citation with nothing after it: @knuth1984.
 // Nothing to derive from, so this one stays untitled — and must not gain an
 // empty title span.
 #idea("dt-empty")[]
+
+// Trailing prose citation — AFTER the last note on the page, with nothing
+// following to claim it. An idea's sweep block only claims a citation
+// written BEFORE it, so this one — after `dt-empty`, the last note here —
+// falls instead to the document-wide trailing block `#show: rookery` emits
+// when something is genuinely left over.
+A trailing citation with nothing after it: @knuth1984.

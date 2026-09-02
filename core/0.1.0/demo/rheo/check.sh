@@ -19,17 +19,23 @@ for slug in root-note inner-note plain-note sub-note; do
 done
 
 # 2. Depth arithmetic. The root vertebra links to a minted page with no `../`;
-#    the nested one, handle `sub:page`, pays exactly one. This is the assertion a
-#    root-only spine cannot make, and an off-by-one here breaks every link on
-#    every page of a real site.
+#    the nested one, handle `sub:page`, pays exactly one; the doubly-nested one,
+#    handle `sub:deeper:page`, pays exactly two. This is the assertion a
+#    root-only or one-level spine cannot make, and an off-by-one here breaks
+#    every link on every page of a real site.
 grep -q 'href="ideas/root-note.html"' "$H/index.html" ||
   note "index.html does not link ideas/root-note.html at depth 0"
 grep -q 'href="\.\./ideas/root-note.html"' "$H/sub/page.html" ||
   note "sub/page.html does not link ../ideas/root-note.html at depth 1"
+grep -q 'href="\.\./\.\./ideas/w-outer\.html"' "$H/sub/deeper/page.html" ||
+  note "sub/deeper/page.html does not link ../../ideas/w-outer.html at depth 2"
 # `if !` rather than `grep ... && note ...`: an AND-list whose first command is
 # meant to FAIL reads as an accident, and one edit away from tripping `set -e`.
 if grep -q 'href="\.\./\.\./' "$H/sub/page.html"; then
   note "sub/page.html has a ../../ href — one level deep should never need two"
+fi
+if grep -q 'href="\.\./\.\./\.\./' "$H/sub/deeper/page.html"; then
+  note "sub/deeper/page.html has a ../../../ href — two levels deep should never need three"
 fi
 
 # 3. `idea-page-template` ran, and the minted page carries both footer sections.
@@ -317,10 +323,11 @@ grep -q 'derived-note.html">DERIVEDBODY' "$H/ideas/index.html" ||
 #     Both halves are asserted, because either alone can rot: the markup, so the
 #     adjacency the rule exists for stays exercised by this demo (root-note cites
 #     from inside its body, and inner-note's card follows that block; the nested
-#     page cites outside any note, and sub-note's card follows that one), and the
-#     RULE in the built stylesheet, since no browser is available here and a
-#     dropped rule would compile clean and look wrong.
-python3 - "$H/index.html" "$H/sub/page.html" <<'SWEEP' || fail=1
+#     page cites outside any note, and sub-note's card follows that one; refs.html
+#     cites in prose before `cited-note`), and the RULE in the built stylesheet,
+#     since no browser is available here and a dropped rule would compile clean
+#     and look wrong.
+python3 - "$H/index.html" "$H/sub/page.html" "$H/refs.html" <<'SWEEP' || fail=1
 import re, sys
 bad = 0
 for path in sys.argv[1:]:
@@ -330,12 +337,129 @@ for path in sys.argv[1:]:
               f" the adjacency the hat-clearance rule exists for is no longer exercised")
         bad = 1
 if not bad:
-    print("  sweep block: a populated .idea-page-refs sits directly above a card on both pages")
+    print("  sweep block: a populated .idea-page-refs sits directly above a card on all three pages")
 sys.exit(bad)
 SWEEP
 
 grep -q 'idea-page-refs:has(li) + .idea-box' "$H/rookery/core/core.css" ||
   note "the built CSS has no .idea-page-refs:has(li) + .idea-box rule — a card's id will overlap the references above it"
+
+# 14. WINDOW DEPTHS (`content/sub/deeper/page.typ`). `depth: 0` renders a bare
+#     link row with no transcluded body at all; `depth: 2` unfurls the nested
+#     `#window("w-inner")` as a real window INSIDE `#window("w-outer")`'s own,
+#     rather than collapsing it to a permalink the way the document default
+#     (depth 1) does.
+python3 - "$H/sub/deeper/page.html" <<'DEPTHS' || fail=1
+import sys
+h = open(sys.argv[1]).read()
+bad = 0
+if '<figure><ul class="idea-page-list"><li class="idea-page-row">' \
+   '<a href="../../ideas/w-outer.html">Outer</a></li></ul></figure>' not in h:
+    print("FAIL: sub/deeper/page.html's depth: 0 window is not a bare link row with no body")
+    bad = 1
+# w-inner's own body renders once as its own card, plus once per place a
+# window actually unfurls it rather than collapsing it to a bare permalink.
+# MEASURED at 5 with the depth: 2 call in place — removing that one call
+# alone drops it to 4, which is what makes the count a regression signal for
+# it specifically, whatever else on the page also happens to unfurl w-inner.
+n = h.count("The innermost note, unfurled only when a window’s depth budget reaches it.")
+if n != 5:
+    print(f"FAIL: sub/deeper/page.html renders w-inner's body {n} times, expected exactly 5 — "
+          f"the depth: 2 window may no longer be unfurling the window nested inside it")
+    bad = 1
+if not bad:
+    print("  window depths: depth 0 is a bare link row, depth 2 unfurls the window nested inside it")
+sys.exit(bad)
+DEPTHS
+
+# 15. CYCLES TERMINATE (`content/sub/deeper/page.typ`). A self-window and an
+#     A-windows-B/B-windows-A pair each render their OWN card exactly once —
+#     the failure shape a runaway `_flatten` would show is a repeated card,
+#     not a compile error, so this is a count rather than a presence check.
+for id in self-loop cycle-a cycle-b; do
+  n=$(grep -o "id=\"idea:$id\" class=\"idea\"" "$H/sub/deeper/page.html" | wc -l)
+  [ "$n" -eq 1 ] ||
+    note "sub/deeper/page.html renders idea:$id's card $n times, expected exactly 1 — a cycle must terminate, not re-expand"
+done
+
+# 16. THE TWO `#ideas-outline` FORMS DIFFER UNDER RHEO (`content/sub/deeper/page.typ`),
+#     which no `demo/pure` root can show: the page form reads `state("rheo-handle")`
+#     and lists only this vertebra's own notes, while `rookery-wide: true` lists
+#     every note in the rookery, root-note included.
+python3 - "$H/sub/deeper/page.html" <<'FORMS' || fail=1
+import sys
+h = open(sys.argv[1]).read()
+bad = 0
+page_start = h.index("This page’s ideas</h4>")
+whole_start = h.index("Whole rookery</h4>")
+depth_start = h.index("Depth-capped</h4>")
+page_section = h[page_start:whole_start]
+whole_section = h[whole_start:depth_start]
+if "Root note" in page_section:
+    print("FAIL: sub/deeper/page.html's page-form outline lists a note from another vertebra")
+    bad = 1
+if "Root note" not in whole_section:
+    print("FAIL: sub/deeper/page.html's rookery-wide outline is missing a note from another vertebra")
+    bad = 1
+if not bad:
+    print("  outline forms: the page form is local, the rookery-wide form is not")
+sys.exit(bad)
+FORMS
+
+# 17. PRUNE AND PROMOTE (`content/relations.typ`). Filtered to `tags: "phd"`, the
+#     untitled parent that does not itself carry `phd` is absent, and its tagged
+#     child ("Pinned") is promoted to the TOP LEVEL of that outline rather than
+#     left dangling at a depth with no parent above it.
+python3 - "$H/relations.html" <<'PRUNE' || fail=1
+import re, sys
+h = open(sys.argv[1]).read()
+bad = 0
+tail = h[h.index("Tagged phd</h4>"):]
+if "Auto note" in tail:
+    print("FAIL: relations.html's Tagged phd outline still lists the untagged parent — it should be pruned")
+    bad = 1
+if not re.search(r'<ul class="idea-outline"><li class="idea-outline-row idea-tag-phd idea-tag-draft">'
+                  r'<a href="#loc-3">Pinned</a></li>', tail):
+    print("FAIL: relations.html's Tagged phd outline does not promote Pinned to the top level")
+    bad = 1
+if not bad:
+    print("  prune and promote: the untagged parent is pruned, its tagged child promoted")
+sys.exit(bad)
+PRUNE
+
+# 18. THE OTHER TWO CITATION POSITIONS (`content/refs.typ`; the sweep position is
+#     check 13 above). The in-body citation reaches the note's OWN References
+#     block, on the page and again on its minted page. A `#footnote` written
+#     outside any note falls to Typst's page-endnote mechanism rather than to
+#     `.idea-footnotes` (which is a per-note block — check `content/index.typ`'s
+#     `plain-note` for that half). And a citation with nothing following it on
+#     the page is claimed by the document-wide TRAILING block, which — unlike a
+#     sweep block — carries its own `<h2>References</h2>` heading because
+#     nothing else on the page will.
+grep -q 'idea-references' "$H/ideas/cited-note.html" ||
+  note "ideas/cited-note.html has no References block for its own in-body citation"
+grep -q 'role="doc-endnotes"' "$H/refs.html" ||
+  note "refs.html has no page endnote section for the footnote written outside any note"
+if grep -q 'idea-footnotes' "$H/refs.html"; then
+  note "refs.html wraps its outside-any-note footnote in .idea-footnotes — that class is for a footnote INSIDE a note"
+fi
+n=$(grep -o 'idea-page-refs"><section role="doc-bibliography" class="hanging-indent"><h2>References</h2>' "$H/refs.html" | wc -l)
+[ "$n" -eq 1 ] ||
+  note "refs.html has $n trailing reference blocks (with their own heading), expected exactly 1"
+
+# 19. THE EMPTY-BODIED NOTE (`content/refs.typ`'s `dt-empty`) — nothing to derive
+#     a label from at all. It still mints a page, and that page's `<h1>` stays
+#     EMPTY rather than gaining a derived title span it has no text to fill —
+#     the same no-duplication guard check 12 pins for `derived-note`.
+dp="$H/ideas/dt-empty.html"
+[ -f "$dp" ] || note "no minted page at ideas/dt-empty.html"
+if [ -f "$dp" ]; then
+  grep -q '<h1 id="idea:dt-empty" class="idea"></h1>' "$dp" ||
+    note "ideas/dt-empty.html's <h1> is not empty — an empty body must not gain a heading"
+  if grep -q 'idea-title' "$dp"; then
+    note "ideas/dt-empty.html prints a derived title span despite having no body to derive one from"
+  fi
+fi
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"
