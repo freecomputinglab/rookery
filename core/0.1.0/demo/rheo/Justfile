@@ -12,7 +12,7 @@ build:
     rheo compile .
 
 watch:
-    rheo watch .
+    rheo watch . --html --open
 
 # Asserts on the OUTPUT, not merely that the build succeeded — every path below
 # exists only under rheo and none of it is covered by `demo/pure`.

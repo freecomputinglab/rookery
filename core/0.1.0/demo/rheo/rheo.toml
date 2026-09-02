@@ -3,7 +3,7 @@
 # exercises everything that only exists under rheo — `.marrow.typ`'s minted
 # pages, the backlink maps, `idea-page-template`, and the depth arithmetic that
 # a root-only spine cannot catch.
-version = "0.5.2"
+version = "0.6.2"
 content_dir = "content"
 formats = ["html"]
 
