@@ -1,23 +1,18 @@
 // The preview pane's rich content: fetching a note's own minted page and
 // extracting the part of it worth showing.
+//
+// `#search-modal` emits the JSON island and nothing else, so the pane's rendering
+// is FETCHED: the selected note's minted page (`ideas/<slug>.html`, which
+// rookery's `.marrow.typ` emits) is requested the first time that row is selected.
+// Rendering every note's body into every page instead costs `notes × pages` Typst
+// renders per build; a page rheo already emits costs the build nothing.
 
 import { markTermsInNode } from "./marks.js";
 
-// ---- The preview pane's rich content: the note's own minted page ----------
-//
-// `#search-modal` emits the JSON island and nothing else, so the pane's rich
-// rendering is FETCHED: the selected note's minted page (`ideas/<slug>.html`,
-// which rookery's `.marrow.typ` already emits) is requested the first time that
-// row is selected. See `search-modal`'s doc comment in `src/lib.typ` for the
-// measurement behind that: rendering every note's body into every page cost
-// `notes × pages` Typst renders — ~3,900 on a 57-note site, 14.6s against a
-// 2.65s baseline — and the cost was per CALL, so truncating the bodies did not
-// touch it. A page rheo already emits costs the build nothing at all.
-//
-// Keyed by href and holding the PROMISE, not the result: two quick selections
-// of one row must share a single request, and a MISS has to be remembered too
-// (as a resolved `null`), so a note whose page 404s is not re-fetched on every
-// arrow key. Session-lived — a `Map` in module scope, gone on navigation.
+// Keyed by href and holding the PROMISE, not the result: two quick selections of
+// one row must share a single request, and a MISS has to be remembered too — as a
+// resolved `null` — so a note whose page 404s is not re-fetched on every arrow key.
+// Session-lived, a `Map` in module scope, gone on navigation.
 export const previewCache = new Map();
 // The note itself, lifted out of its minted page: every element between the
 // page's heading and its `<footer class="idea-footer">` — body, footnotes,
@@ -27,31 +22,24 @@ export const previewCache = new Map();
 // document holds no `h1.idea` (not a minted page) or the range is empty.
 //
 // THE RANGE STARTS AFTER `.idea-head`, NOT AFTER THE `<h1>`, and the two are
-// different elements. rookery 0.3.0 and later wrap a minted page's permalink tab and its
-// `<h1>` in one `<div class="idea-head">` (so the stylesheet's
-// `.idea-tab + h*.idea` rule always matches — Typst's HTML export otherwise
-// groups the leading inline run under a `<p>` unpredictably). Inside that
-// wrapper the `<h1>` is the LAST child, so walking ITS siblings finds nothing
-// and every preview collapsed to the plain-text excerpt. MEASURED against
-// `rookery.ohrg.org/build/html/ideas/*.html`. Falling back to the `<h1>` itself
-// keeps a page minted by rookery 0.2.0, where the heading really is a top-level
-// sibling of the body, working unchanged.
+// different elements: rookery wraps a minted page's permalink tab and its `<h1>`
+// in one `<div class="idea-head">`, inside which the `<h1>` is the LAST child — so
+// walking the heading's own siblings finds nothing at all. The fallback to the
+// `<h1>` covers a page minted before that wrapper existed, where the heading is a
+// top-level sibling of the body.
 //
 // Returned inside `<div class="idea-window idea-window-plain">` wrapping a
-// `<div class="idea-window-body">`, wearing the h1's own `style`. Every part of
-// that is load-bearing. The nesting and the class names are EXACTLY what
-// rookery's `#idea-body` produces, which is what this pane used to be given, so
-// the stylesheet needs no new selectors and no second code path — including the
-// `.idea-window-body > :first-child` margin rule, which counts on the extra
-// level. `.idea-window-plain` is rookery's own modifier for "not a box": it
-// strips the accent rule and hover tint a real `#window` draws, which a preview
-// must not draw inside the pane's own frame. And the style attribute carries
-// `--idea-link-color` and the rest of the per-note theme custom properties,
-// which on a minted page live on its heading container (there being no
-// `.idea-box` around it) — take the siblings and leave that behind and the
-// preview renders in rookery's default colours rather than the project's own.
-// Under rookery 0.3.0 and later that container is `.idea-head`; under 0.2.0 it was the
-// `<h1>` itself, so both are consulted, nearest first.
+// `<div class="idea-window-body">`, wearing the heading container's own `style`.
+// Every part of that is load-bearing. The nesting and the class names are exactly
+// what rookery's `#idea-body` produces, so the stylesheet needs no new selectors —
+// including the `.idea-window-body > :first-child` margin rule, which counts on
+// the extra level. `.idea-window-plain` is rookery's modifier for "not a box",
+// stripping the accent rule and hover tint a real `#window` draws, which a preview
+// must not draw inside the pane's own frame. The style attribute carries
+// `--idea-link-color` and the rest of the per-note theme properties, which on a
+// minted page live on the heading container rather than on a `.idea-box`: take the
+// siblings and leave that behind and the preview renders in rookery's default
+// colours instead of the project's.
 //
 // Relative `href`/`src` values are resolved against the FETCHED page's URL, not
 // left as written. A note's page sits in `ideas/`, the modal can be open on a

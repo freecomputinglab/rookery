@@ -4,12 +4,7 @@
 // The other half of the parity contract with the Typst side.
 
 import { clusters, clustersCached, fold } from "./text.js";
-// `splitQuery` IS THE LANGUAGE'S OWN, and it used to be defined right here — which
-// meant refining the `tags:` syntax touched a module about ranking. It moved to
-// `tagquery.js` beside the parser it calls; this file only uses it.
-//
-// `parseTagQuery` and `positiveAtoms` went with it: the first was only ever called
-// by `splitQuery`, and the second was an import this file never used at all.
+// The `tags:` language belongs to `tagquery.js`; this file only uses it.
 import { evalTagQuery, splitQuery } from "./tagquery.js";
 // Port of `fuzzy-score`. `null` (Typst `none`) when the query's characters do
 // not all appear in `hay` in order; otherwise an integer, higher better.
@@ -56,11 +51,8 @@ export const score = (hay, query) => {
 // for the measurements and for every choice below; this is the port, not the
 // record.
 //
-// TWO THINGS THAT WERE HERE ARE GONE. The +6 contiguous-phrase bonus, because no
-// phrase survives compression. And all the cluster counting — the old earliness
-// term had to re-measure `indexOf`'s UTF-16 offset through a spread to agree with
-// Typst's `.clusters()`; a rank is a term INDEX, which both languages count
-// identically for nothing.
+// NO PHRASE BONUS and no cluster counting: no phrase survives compression, and a
+// rank is a term INDEX, which both languages count identically for free.
 //
 // `toLowerCase()`, NOT `fold()`: folding turns `-`/`_` into spaces, which would
 // split `rheo-context` into two query terms and lose the exact-match bonus.
@@ -93,13 +85,12 @@ export const bodyScore = (body, query) => {
 // `bodyScore`. Every tier-0 row ranks above every tier-1 row; within a tier,
 // best score first, ties broken by id so the order is stable.
 //
-// `row.body` MISSING IS THE WHOLE IMPLEMENTATION OF `body-search: false`, not
-// merely tolerated: `#search-index(body-search: false)` omits the field, this
-// reads it as `""`, and `bodyScore("", q)` is `null` for every non-empty query,
-// so no row can reach tier 1 and the browser searches ids and titles only. Keep
-// the `?? ""` and keep `bodyScore` returning `null` on an absent term match —
-// between them they are what makes the switch need no JavaScript counterpart.
-// It also covers an older island that never carried bodies at all.
+// `row.body` MISSING IS THE WHOLE IMPLEMENTATION OF `body-search: false`:
+// `#search-index(body-search: false)` omits the field, this reads it as `""`, and
+// `bodyScore("", q)` is `null` for every non-empty query, so no row can reach tier
+// 1 and the browser searches ids and titles only. Keep the `?? ""` and keep
+// `bodyScore` returning `null` for an absent term — between them the switch needs
+// no JavaScript counterpart.
 // A LEADING `tags:` EXPRESSION IS EXTRACTED, NOT SCORED. The query is split once
 // before the loop — the tag expression becomes a PREDICATE on each row, and the
 // residual text is what the two tiers rank. `_rank`'s Typst twin does exactly
@@ -114,23 +105,16 @@ export const bodyScore = (body, query) => {
 // island, or a row for a note with no tags, simply has no key — `#search-index`
 // omits it rather than shipping `[]` per row.
 //
-// With a tag expression and NO residual text (`tags:draft` on its own), `q` is
-// `""`, `score(hay, "")` is 0 for every survivor, and they all land in the name
-// tier at score 0. THAT tie no longer breaks by id alone: for `q === ""` (a bare
-// `""` query too) `dateCmp` below breaks it by `row.created` first, newest
-// first, undated last — the JS twin of `_rank`'s date branch in `src/lib.typ`,
-// which mirrors `_sort-ids` in rookery's own `src/pure.typ`. A REAL query
-// (`q !== ""`) is untouched: ties there still break by id alone, exactly as
-// before.
+// AN EMPTY RESIDUAL IS THE BROWSE LISTING. With a tag expression and no residual
+// text — `tags:draft` on its own — `q` is `""`, `score(hay, "")` is 0 for every
+// survivor, and they all land in the name tier tied at 0. For `q === ""`, a bare
+// query included, `dateCmp` breaks that tie by `row.created`: newest first, undated
+// last, the twin of `_rank`'s date branch in `src/rank.typ`. A real query breaks
+// ties by id alone.
 //
 // `row.created` is ALREADY the zero-padded `"[year][month][day]"` stamp
-// `#search-index` ships (see its comment in `src/lib.typ`) — never a raw date
-// object — so lexicographic string comparison is numeric-order comparison,
-// with no parsing needed here.
-//
-// THE KEY IS `created`, not `updated`, since 0.6.0: rookery dropped its
-// `updated` field, and the island key renamed with it rather than shipping a
-// name that disagreed with its contents.
+// `#search-index` ships, never a raw date, so a lexicographic string comparison is
+// a numeric-order comparison and nothing here parses anything.
 const dateCmp = (a, b) => {
   if (a.created == null && b.created == null) return 0;
   if (a.created == null) return 1;

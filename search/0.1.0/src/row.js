@@ -9,28 +9,22 @@ import { KEYWORD_LIMIT, appendMarked, matchRanges } from "./marks.js";
 // a window's summary, in an outline row. Shared by the dropdown (`wire`) and
 // the modal (`wireModal`) so the two never drift into building rows two ways.
 //
-// `terms` highlights every occurrence it finds in the title/id text, the
-// same `<mark>` the preview pane uses. This is a literal-substring
-// highlight, not a reconstruction of `fuzzy-score`'s own SUBSEQUENCE match —
-// the two can disagree (a scattered subsequence match highlights nothing
-// here), but a literal substring is what a reader actually typed most of the
-// time, and highlighting it is far more useful than highlighting nothing at
-// all rather than trying to be exactly right for every fuzzy match.
+// `terms` highlights every occurrence it finds in the title and id text, with the
+// same `<mark>` the preview pane uses. It is a literal-substring highlight rather
+// than a reconstruction of `fuzzy-score`'s SUBSEQUENCE match, so the two can
+// disagree — a scattered subsequence match marks nothing — but a literal substring
+// is what a reader typed most of the time, and marking that beats marking nothing.
 //
-// A TAGGED HIT ALSO GETS A SECOND LINE of tag pills, and it is emitted HERE —
-// in the one shared row builder — rather than in `wireModal` alone. The
-// dropdown gets the same DOM and HIDES it in CSS
+// A TAGGED HIT ALSO GETS A SECOND LINE of tag pills, emitted here in the one
+// shared row builder. The dropdown gets the same DOM and hides it in CSS
 // (`.rookery-search-tags { display: none }`, shown again by
-// `.rookery-search-list .rookery-search-tags`). That is the whole modal-only
-// mechanism: no `showTags` parameter, no branch on which surface called, no
-// second row builder — the sharing above exists precisely to stop the two
-// surfaces drifting into building rows two ways, and a visibility rule is
-// something CSS can express without breaking it.
+// `.rookery-search-list .rookery-search-tags`), which is the whole modal-only
+// mechanism: no `showTags` parameter, no branch on the calling surface, no second
+// row builder.
 //
-// The tags are why a `tags:` query is legible at all: an atom matches a tag by
-// PREFIX (`evalTagQuery`'s `tg.startsWith(tok.v)` above, so `tags:note` also
-// matches `notebook`), and a row that shows its own tags explains its own
-// presence in the list instead of looking like a mystery hit.
+// The tags are why a `tags:` query is legible: an atom matches a tag by PREFIX, so
+// `tags:note` also matches `notebook`, and a row showing its own tags explains its
+// own presence in the list rather than reading as a mystery hit.
 //
 // `atoms` is `positiveAtoms(rpn)` — passed in rather than re-parsed here,
 // because both callers already hold the split query. It is the THIRD argument
@@ -45,9 +39,9 @@ export const renderRow = (hit, terms, atoms = []) => {
   a.href = hit.href;
   const title = document.createElement("span");
   title.className = "rookery-search-title";
-  // NO `|| hit.name` FALLBACK, and do not restore one as defensive: `text` is
-  // rookery's derived `label` as of 0.6.0 and is never empty, so a fallback would
-  // be dead code that also hid a real bug if the island ever shipped `""`.
+  // NO `|| hit.name` FALLBACK: `text` is rookery's derived `label`, which is never
+  // empty, so a fallback would be dead code hiding a real bug if the island ever
+  // shipped `""`.
   const titleText = hit.text;
   appendMarked(title, titleText, matchRanges(titleText, terms));
   const id = document.createElement("span");
@@ -62,19 +56,15 @@ export const renderRow = (hit, terms, atoms = []) => {
   // breaker falls back to the last opportunity it does have: the space before
   // the title's final word, which then drops onto line two under the id.
   //
-  // MEASURED in headless Chromium at 1280px, before the fix: the row `Amanda
-  // Holmes and Adrian Johnston` broke after "Adrian" at every pane width, in
-  // both the dropdown and the modal. `<wbr>` adds no advance width, so the
-  // id's x position is unchanged (196.1px either way) and the gap still comes
-  // from `.rookery-search-id`'s own `margin-left: 0.4em`.
-  //
-  // REJECTED alternatives, both measured: a space text node fixes it but
-  // widens the gap by a word space; `.rookery-search-title { display: block }`
-  // fixes it but forces the id onto its own line in EVERY row.
+  // `<wbr>` adds no advance width, so the id's x position is unchanged and the gap
+  // still comes from `.rookery-search-id`'s own `margin-left: 0.4em`. A space text
+  // node would widen the gap by a word space, and
+  // `.rookery-search-title { display: block }` would force the id onto its own
+  // line in every row.
   a.append(title, document.createElement("wbr"), id);
-  // `hit.tags ?? []` for the same reason `search` reads it that way: a note
-  // with no tags, or a row from an older island, simply has no key —
-  // `#search-index` omits the field rather than shipping `[]` per row.
+  // `hit.tags ?? []` for the same reason `search` reads it that way: a note with no
+  // tags has no key at all, `#search-index` omitting the field rather than shipping
+  // `[]` per row.
   //
   // OMITTED ENTIRELY for an untagged note, never emitted empty. The modal's
   // list has a fixed max-height, so a blank second line on every untagged row
@@ -87,12 +77,11 @@ export const renderRow = (hit, terms, atoms = []) => {
   // how the second line is made.
   //
   // Each chip carries rookery's own `idea-tag-<tag>` class alongside this
-  // package's, mirroring the classes rookery emits on a note's heading and box,
-  // so a project that already styles one of its tags gets the modal for free
-  // with no new selectors. KNOWN HAZARD, pre-existing rather than introduced
-  // here: `#idea` validates tags nowhere, so a tag containing a space already
-  // emits a broken two-class `idea-tag-my tag` in rookery itself. Not
-  // sanitised here — that would silently disagree with rookery's own output.
+  // package's, mirroring what rookery emits on a note's heading and box, so a
+  // project already styling one of its tags gets the modal for free. A tag
+  // containing a space emits a broken two-class `idea-tag-my tag` here, exactly as
+  // it does in rookery — sanitising it here would disagree with rookery's own
+  // output.
   //
   // A CHIP THAT IS EVIDENCE FOR THE QUERY IS MARKED, and only the PREFIX an
   // atom actually matched — `notebook` under `tags:note` shows `note` marked

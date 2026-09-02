@@ -46,19 +46,15 @@ export const wireModal = (dialog, rows) => {
 
     // NO EXCERPT UP FRONT. The fetched rendering is the first and only text this
     // pane shows; until it lands there is the indicator below and nothing else.
-    //
-    // The excerpt used to render synchronously here, on the reasoning that it was
-    // already in hand and cost no request. What that bought was a visible reflow
-    // on EVERY selection — plain text for a few milliseconds, then the same note
-    // again as real content, a different and worse rendering of the thing about to
-    // replace it. It also pinned the island's `body` field to being readable
-    // prose, which is what stopped that field being compressed into a note's most
-    // distinctive terms.
+    // Painting the island's text first would mean a visible reflow on EVERY
+    // selection — plain text for a few milliseconds, then the same note again as
+    // real content — and would pin that field to being readable prose rather than
+    // a note's most distinctive terms.
     //
     // `renderKeywords` is the FAILED-FETCH fallback and nothing else: a build
     // opened over `file://`, a note whose page 404s, a hit with no href at all.
-    // Those are the cases where there is no rendering coming and the island's own
-    // terms are the final answer.
+    // Those are the cases where no rendering is coming and the island's own terms
+    // are the final answer.
     if (typeof hit.href !== "string" || hit.href === "") {
       renderKeywords(preview, hit, input.value);
       return;
@@ -68,13 +64,10 @@ export const wireModal = (dialog, rows) => {
     // content flow entirely — nothing to append, nothing to remove, and no
     // chance of it surviving a `replaceChildren` as a stray node.
     //
-    // Set whenever there is an href, no longer only on a cache MISS. The
-    // cache-miss guard existed because the pane already held the excerpt, so
-    // flagging a memoised row would flash a spinner over content for one frame
-    // every time the reader arrow-keyed back up a list they had been down. With
-    // the pane empty the indicator IS the pane's only content, and a memoised
-    // href resolves on a microtask — the attribute is set and cleared inside one
-    // task, before a paint, so there is nothing left to flash.
+    // Set whenever there is an href, cache hit included: the indicator is the
+    // pane's only content until the note lands, and a memoised href resolves on a
+    // microtask — set and cleared inside one task, before a paint, so nothing
+    // flashes.
     preview.dataset.rookerySearchLoading = "true";
     fetchNote(hit.href).then((box) => {
       // Cleared BEFORE the early return, so a miss stops the indicator too: a
@@ -120,11 +113,9 @@ export const wireModal = (dialog, rows) => {
     const q = input.value.trim();
     list.replaceChildren();
     // CLEARED HERE, with the rows it referred to, and NOT left to `select(0)` at
-    // the bottom: the no-hits path below returns before reaching it, so
-    // `aria-activedescendant` survived pointing at a row that had just been
-    // removed from the document. MEASURED — after a query matching nothing, the
-    // input still named `…-opt-0` while the list held zero rows. `select(0)` sets
-    // it again on every path that has something to select.
+    // the bottom: the no-hits path below returns before reaching it, which would
+    // leave `aria-activedescendant` naming a row absent from the document.
+    // `select(0)` sets it again on every path that has something to select.
     sel.clear();
     // EMPTY QUERY shows the corpus, not nothing: an empty query
     // already returns everything at score 0, dated rows newest-first ahead of
@@ -149,25 +140,22 @@ export const wireModal = (dialog, rows) => {
       });
       list.append(row);
     }
-    // NO HITS: the pane has to be emptied HERE, because `select` cannot do it.
-    // It returns on `els.length === 0` before reaching its `renderPreview()`
-    // call, and `renderPreview` is the only thing that ever clears the pane —
-    // so a query matching nothing used to leave the LAST match's preview on
-    // screen beside an empty result list. Not fixed inside `select`, which is
-    // about which row is highlighted and is also called from `pointerenter`
-    // above, where there is by construction a row to select.
+    // NO HITS: the pane is emptied HERE, because `select` cannot do it — it
+    // returns on `els.length === 0` before reaching its `renderPreview()` call,
+    // and `renderPreview` is the only thing that clears the pane. Otherwise a
+    // query matching nothing leaves the LAST match's preview on screen beside an
+    // empty result list. It does not belong inside `select`, which is about which
+    // row is highlighted and is also called from `pointerenter` above, where there
+    // is by construction a row to select.
     //
-    // `previewGen` is bumped for the same reason `renderPreview` bumps it: a
-    // `fetchNote` begun for the previous query is still in flight, and its
-    // `.then` paints the pane unless the generation has moved on. Without this
-    // the stale note reappears over the filler a moment later — the same bug,
-    // one keystroke behind.
+    // `previewGen` is bumped for the reason `renderPreview` bumps it: a `fetchNote`
+    // begun for the previous query may still be in flight, and its `.then` paints
+    // the pane unless the generation has moved on.
     if (hits.length === 0) {
       previewGen += 1;
-      // The generation bump above already orphans an in-flight request's paint,
-      // but its `.then` no longer clears the loading flag once it is orphaned —
-      // so this path has to clear it, or the filler sits under a spinner that
-      // never stops.
+      // The generation bump above orphans an in-flight request's paint, and an
+      // orphaned `.then` clears no flag — so this path clears it, or the filler
+      // sits under a spinner that never stops.
       delete preview.dataset.rookerySearchLoading;
       const empty = document.createElement("p");
       empty.className = "rookery-search-preview-empty";
@@ -193,11 +181,11 @@ export const wireModal = (dialog, rows) => {
       if (hit !== undefined) window.location.href = hit.href;
     } else if (ev.key === "Escape") {
       // NOT left to native `<dialog>` Escape-to-close, despite that being the
-      // usual advice: MEASURED, a focused `type="search"` input with a
-      // non-empty value consumes Escape for its OWN default action (clearing
-      // the field) before it reaches the dialog's cancel algorithm, so the
-      // modal never closes on the first press. Closing explicitly here is
-      // reliable regardless of what the input holds.
+      // usual advice: a focused `type="search"` input with a non-empty value
+      // consumes Escape for its own default action, clearing the field, before it
+      // reaches the dialog's cancel algorithm — so the modal would not close on
+      // the first press. Closing explicitly here is reliable whatever the input
+      // holds.
       ev.preventDefault();
       dialog.close();
     }

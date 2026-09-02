@@ -5,21 +5,19 @@
 // Typst-side `search-ideas` remains the supported path.
 //
 // Built with vite into `dist/lib.js` as an IIFE bundle exposing the global
-// `RookerySearch`, the same shape every other JS package here ships. An ES
-// module in `src/` and a global at runtime: the module form is what lets the
-// parity fixture import it under node, the global is what lets a site build its
-// own UI on this ranking instead of forking it. The bottom of this file
-// publishes that same global in SOURCE mode, where vite is not involved.
+// `RookerySearch`, the shape every other JS package here ships. An ES module in
+// `src/` and a global at runtime: the module form is what lets the parity fixture
+// import it under node, the global is what lets a site build its own UI on this
+// ranking instead of forking it. The bottom of this file publishes that same
+// global in source mode, where vite is not involved.
 //
 // No dependencies, and it should stay that way — vite is bundling one file.
 //
-// PARITY. `score` below is a line-for-line port of `fuzzy-score` in
-// `src/lib.typ`, and `bodyScore` is the same port of `body-score`. The two
-// pairs must agree, and `just parity` is what enforces it — it feeds two
-// fixtures through both languages and diffs the scores. Change one side,
-// change the other, re-run the fixture. Every exported ranking function now has
-// a Typst twin: the one exception used to be `snippet`, and it is gone along
-// with the preview excerpt it built.
+// PARITY. Every exported ranking function has a Typst twin — `score` against
+// `fuzzy-score`, `bodyScore` against `body-score`, the `tags:` parser and
+// evaluator against theirs — and `just parity` enforces it, feeding fixtures
+// through both languages and diffing the results. Change one side, change the
+// other, re-run the fixture.
 //
 // EMBEDDING. Every bar on the page is found by its `data-rookery-search`
 // attribute, whose VALUE is the id of the island it reads. So several bars can
@@ -88,10 +86,10 @@ export const init = () => {
     // single pass. Two bars therefore close independently and correctly — a
     // click on one is outside the other, and dismisses only it.
     //
-    // `pointerdown`, not `click`: it fires before focus moves, so the
-    // dropdown is gone by the time the reader's press lands and nothing
-    // flickers. A result link is INSIDE its own bar, so following one never
-    // counts as a click outside — navigation is unaffected.
+    // `pointerdown`, not `click`: it fires before focus moves, so the dropdown
+    // is dismissed by the time the reader's press lands and nothing flickers. A
+    // result link is INSIDE its own bar, so following one never counts as a click
+    // outside and navigation is unaffected.
     document.addEventListener("pointerdown", (ev) => {
       for (const bar of bars) {
         if (!bar.root.contains(ev.target)) bar.dismiss();
@@ -130,21 +128,19 @@ export const init = () => {
     modals.values().next().value?.open();
   });
 };
-// THE SAME GLOBAL DIST MODE ALREADY PUBLISHES, published in SOURCE mode too.
-// `vite.config.js` builds an IIFE named `RookerySearch`, so a project consuming
-// `dist/lib.js` has had this object all along; a project consuming `src/*.js`
-// through a repo-backed namespace had ES modules and no global, so the same site
-// code worked or did not depending on how the package was installed. That
-// asymmetry is what this ends: the surface is now a property of the package, not
-// of the delivery mode.
+// THE GLOBAL, PUBLISHED IN SOURCE MODE TOO. `vite.config.js` builds an IIFE named
+// `RookerySearch`, so a release carries this object; a project consuming `src/*.js`
+// through a repo-backed namespace gets ES modules, and this assignment is what
+// gives it the same surface. The surface is a property of the package rather than
+// of how it was installed.
 //
-// `??=` so the IIFE's own assignment wins where both somehow run, and guarded on
-// `typeof document` being a browser rather than on `window`, because node imports
-// this module in the parity harness and must NOT be handed a global — a node
-// suite that saw one could not tell the two modes apart.
+// `??=` so the IIFE's own assignment wins where both run, and guarded on
+// `typeof document` rather than on `window`, because node imports this module in
+// the parity harness and must NOT be handed a global — a node suite that saw one
+// could not tell the two modes apart.
 //
-// BEFORE the auto-init below, so anything `init()` reaches — or any other
-// package's own DOMContentLoaded handler — finds the global already standing.
+// BEFORE the auto-init below, so anything `init()` reaches, and any other
+// package's own DOMContentLoaded handler, finds the global already standing.
 if (typeof document !== "undefined") {
   globalThis.RookerySearch ??= {
     fold,

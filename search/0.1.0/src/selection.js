@@ -1,40 +1,27 @@
 // The active option, shared by the bar and the modal: exactly one row of a
 // `role="listbox"` marked, and the `role="combobox"` input told which.
-
-// ---- The active option, shared by the bar and the modal --------------------
 //
-// ONE implementation for both surfaces, because it is one job: mark exactly one
-// row of a `role="listbox"` as the active option, tell the `role="combobox"`
-// input which one that is, and keep it in view. The two differ only in what
-// FOLLOWS a selection — the modal repaints its preview pane, the bar does
-// nothing — so that is the parameter.
-//
-// It was the modal's alone (`wireModal`'s `select`) while the bar had no keyboard
-// navigation at all: the bar announced the full combobox pattern
-// (`role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`,
-// `aria-controls`) over rows carrying `role="option"`, and then answered no arrow
-// key, set `aria-selected` on nothing, and never named an active descendant. A
-// reader who tabbed in and typed could only reach a result by tabbing through
-// every one of them, with nothing to say which was current.
+// ONE implementation for both surfaces, because it is one job — mark the active
+// row, name it on the input, keep it in view. They differ only in what FOLLOWS a
+// selection, the modal repainting its preview pane and the bar doing nothing, so
+// that is the parameter.
 //
 // `-1` MEANS NO ACTIVE OPTION, and it is a real state rather than a sentinel for
-// zero. The modal opens on a selected first row, because its preview pane needs
-// something to show and an empty pane beside a full list reads as broken. The bar
-// must NOT: its dropdown appears under a field the reader is still typing in, and
-// pre-highlighting a row there would claim Enter goes somewhere before they have
-// looked. So the bar clears to `-1` on every render and the first ArrowDown lands
-// on row 0.
+// zero. The modal opens on a selected first row, its preview pane needing
+// something to show; the bar must not, its dropdown sitting under a field the
+// reader is still typing in, where a pre-highlighted row would claim Enter goes
+// somewhere before they have looked. So the bar clears to `-1` on every render and
+// the first ArrowDown lands on row 0.
 //
 // CLAMPED, NEVER WRAPPED, at both ends: arrowing past the last row keeps the last
-// row rather than jumping to the first. A wrap in a list whose length changes on
-// every keystroke loses the reader's place. From `-1`, ArrowUp clamps to row 0
-// too — the first press activates the list either way, which is more predictable
-// than "up from nothing means the end".
+// row. A wrap in a list whose length changes on every keystroke loses the reader's
+// place. From `-1`, ArrowUp clamps to row 0 too, so the first press activates the
+// list either way.
 //
 // `aria-activedescendant` is on the INPUT, which is where the combobox pattern
 // puts it and the only place it can be: focus never leaves the field on either
-// surface, so a screen reader learns the current option from this attribute or
-// not at all. That needs per-row ids, which cannot live in the markup — a bar is
+// surface, so a screen reader learns the current option from that attribute or not
+// at all. It needs per-row ids, which cannot live in the markup — a bar is
 // placeable more than once on a page — so they are assigned here from the list's
 // own id, itself assigned at runtime for the same reason.
 let listSeq = 0;

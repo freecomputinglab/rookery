@@ -32,9 +32,9 @@ export const wire = (root, rows, n) => {
   const render = () => {
     const q = input.value.trim();
     list.replaceChildren();
-    // BEFORE the early return below, not after the rows are appended: the rows
-    // this cleared against are already gone, and a closed dropdown must not leave
-    // the input pointing at an option that no longer exists.
+    // BEFORE the early return below, not after the rows are appended: a closed
+    // dropdown must not leave the input pointing at an option absent from the
+    // document.
     sel.clear();
     const open = q !== "" && !dismissed;
     root.dataset.rookerySearchOpen = open ? "true" : "false";

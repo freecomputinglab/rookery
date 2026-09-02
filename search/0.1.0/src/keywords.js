@@ -4,18 +4,15 @@
 import { KEYWORD_LIMIT, appendMarked, matchRanges } from "./marks.js";
 import { queryTerms } from "./text.js";
 
-// THE KEYWORD ROW — the failed-fetch fallback, and the ONE place the
-// compressed index is reader-facing. The island's `body` field is not prose:
-// it is that note's most distinctive terms, space-joined in weight order.
-// MEASURED on a weeknotes copy: `"entry actual notes general introductory site
-// first weeknotes wrote post posted blog writing"`. There is nothing there to
-// excerpt, which is why the excerpt is gone rather than merely demoted.
+// THE ISLAND'S `body` FIELD IS NOT PROSE: it is that note's most distinctive
+// terms, space-joined in weight order — `"entry actual notes general introductory
+// site first weeknotes wrote post posted blog writing"` is a real example. There
+// is nothing there to excerpt, which is why this row is a bag of words.
 //
-// CHIPS, NOT A PARAGRAPH. Set as running text that string reads as debug
-// output that leaked into the UI; one box per term says "these are the note's
-// terms" without needing a caption to say it. It also makes the ORDER visible
-// as an order: the compression pass already sorts by weight, so display order
-// is meaningful — most distinctive first.
+// CHIPS, NOT A PARAGRAPH. Set as running text that string reads as debug output
+// that leaked into the UI; one box per term says "these are the note's terms"
+// without a caption. It also makes the ORDER visible as an order — the compression
+// pass sorts by weight, so most distinctive comes first.
 //
 // Except that a term the reader's query matched is hoisted ahead of the
 // unmatched ones among the shown terms. Weight order is the default, but a
@@ -29,17 +26,16 @@ import { queryTerms } from "./text.js";
 // preview" and "No match found" — muted, italic, a note ABOUT the pane rather
 // than content in it.
 //
-// AN EMPTY BODY KEEPS THE PLAIN "No preview" LINE, and it is a real case, not
-// a defensive one — MEASURED: a genuinely empty note ships an empty `body`,
-// and `body-search: false` omits the field from every row. An empty chip row
-// would be a frame with nothing in it above a sentence explaining nothing.
+// AN EMPTY BODY KEEPS THE PLAIN "No preview" LINE, and it is a real case rather
+// than a defensive one: a genuinely empty note ships an empty `body`, and
+// `body-search: false` omits the field from every row. An empty chip row would be
+// a frame with nothing in it above a sentence explaining nothing.
 //
-// `createElement`/`textContent` throughout, never `innerHTML`, for the reason
-// the module header gives: a term comes out of the author's own notes and must
-// never be able to inject markup. `<mark>` is the only markup here and
-// `appendMarked` is what appends it — the same element and class a result row
-// and a fetched note's text nodes are marked with, so a match looks identical
-// wherever the reader meets it.
+// `createElement`/`textContent` throughout, never `innerHTML`: a term comes out of
+// the author's own notes and must never be able to inject markup. `<mark>` is the
+// only markup here and `appendMarked` appends it — the same element and class a
+// result row and a fetched note's text nodes are marked with, so a match looks
+// identical wherever the reader meets it.
 export function renderKeywords(preview, hit, queryValue) {
   const terms = (hit.body ?? "").split(" ").filter((t) => t !== "");
   if (terms.length === 0) {

@@ -32,9 +32,8 @@
 // composition that is not surprising.
 //
 // THE SCORER IS `score` FROM `score.js` and the language is `tagquery.js`, both
-// imported rather than re-ported. `score` had three copies across this repo and a
-// consuming site before panels existed; adding a fourth here would have been the whole
-// problem again, and a second copy of the parser would be worse.
+// imported rather than re-ported: one ranking rule and one parser per language is
+// the whole reason those modules exist.
 
 import { score } from "./score.js";
 import { splitQuery, evalTagQuery } from "./tagquery.js";
@@ -65,23 +64,22 @@ const accepts = (row, field, wanted, multi) => {
 // together — and an EMPTY set means that facet is unconstrained, which is what makes "no
 // pills pressed" show everything rather than nothing.
 //
-// THE `union` GROUPS ARE THE EXCEPTION, and they exist because ANDing is wrong for
-// groups that ask ONE question in two projections. @rookery/todos splits what a todo is
-// ABOUT across `epic` and `tag`: a todo under `epic-rheo` never also gets a `rheo` tag
-// pill (the epic group already says it), so pressing `rheo` and `birds` — two subjects,
-// two pills, adjacent on one line — asked for a todo whose epic is `rheo` AND whose tags
-// include `birds`, and returned nothing on every real corpus. MEASURED on a site with 74
-// open todos: every two-subject press was empty. The groups stay separate because they
-// are derived differently and chip differently; what they compose as is now declared.
+// THE `union` GROUPS ARE THE EXCEPTION, because ANDing is wrong for groups asking
+// ONE question in two projections. @rookery/todos splits what a todo is ABOUT
+// across `epic` and `tag`: a todo under `epic-rheo` never also gets a `rheo` tag
+// pill, the epic group already saying it, so ANDing `rheo` with `birds` — two
+// subjects, two pills — can only ever return nothing. The groups stay separate
+// because they are derived differently and chip differently; what they compose as
+// is declared.
 //
 // SO: a row must satisfy EVERY pressed ordinary group, and — if any union group has a
 // pill pressed at all — at least ONE of the union groups. A single pressed union group
 // is therefore exactly what it was before, which is what keeps this from changing the
 // one-pill case.
 //
-// EXPORTED for the node suite, on the same terms as `passesTags` below: `src/search.js`
-// does not re-export it. `union` DEFAULTS TO EMPTY so every caller predating it — and
-// every panel whose markup carries no `data-panel-union` — gets the plain AND.
+// EXPORTED for the node suite, on the same terms as `passesTags` below:
+// `src/search.js` does not re-export it. `union` DEFAULTS TO EMPTY, so a panel
+// whose markup carries no `data-panel-union` gets the plain AND.
 export const passesFacets = (row, facets, multi, union = new Set()) => {
   // `asked` rather than testing `union.size`: a union group with NO pill pressed asks
   // nothing, and requiring a hit from it would hide every row the moment a site declared
@@ -115,10 +113,10 @@ export const passesFacets = (row, facets, multi, union = new Set()) => {
 // AN EMPTY SET PASSES EVERYTHING in both modes, which is what makes "no pills pressed"
 // show the whole list rather than none of it — the same rule the facet path relies on.
 //
-// EXPORTED for the node suite, not for consumers: `src/search.js` — the
-// package's public surface — does not re-export it, the same line `test/internal.mjs`
-// draws for the three helpers it bridges. A predicate this small is exactly the kind
-// of thing a test should pin directly rather than through a DOM.
+// EXPORTED for the node suite, not for consumers: `src/search.js` — the package's
+// public surface — does not re-export it, the same line `test/internal.mjs` draws
+// for the helpers it bridges. A predicate this small is better pinned directly than
+// through a DOM.
 export const passesTags = (row, pressed, mode) => {
   if (pressed.size === 0) return true;
   if (mode === "all") {
@@ -140,8 +138,7 @@ export const wirePanel = (container, n) => {
   // copy of that is precisely what `#panel` was written to stop. So the mode picks a
   // predicate and nothing else.
   const tagMode = container.dataset.panelMode === "tags";
-  // "any" unless the panel says otherwise, including when the attribute is absent — an
-  // older page's markup keeps working and gets the default.
+  // "any" unless the panel says otherwise, the absent attribute included.
   const pillMatch = container.dataset.panelPillMatch === "all" ? "all" : "any";
 
   // The facet fields, read off the groups the Typst side emitted. A panel with no
@@ -153,17 +150,15 @@ export const wirePanel = (container, n) => {
   }
   const fields = [...facets.keys()];
 
-  // WHICH FIELDS HOLD A SET, declared by the Typst side because the markup cannot say
-  // it: a padded `" a b "` and a scalar value are the same string once written. Absent
-  // on every panel that has no such facet, which is what keeps older markup reading
-  // exactly as before.
+  // WHICH FIELDS HOLD A SET, declared by the Typst side because the markup cannot
+  // say it: a padded `" a b "` and a scalar value are the same string once written.
+  // Absent on a panel with no such facet.
   const multi = new Set(
     (container.dataset.panelMulti || "").split(" ").filter(Boolean),
   );
 
-  // WHICH GROUPS OR WITH EACH OTHER instead of ANDing — see `passesFacets`. Read the
-  // same way `multi` is, and absent on every panel that never declared it, so an older
-  // page's markup composes exactly as it always did.
+  // WHICH GROUPS OR WITH EACH OTHER instead of ANDing — see `passesFacets`. Read
+  // the same way `multi` is, and absent on a panel that never declared it.
   const union = new Set(
     (container.dataset.panelUnion || "").split(" ").filter(Boolean),
   );
@@ -239,16 +234,13 @@ export const wirePanel = (container, n) => {
     const q = text.trim();
     const kept = [];
     for (const row of rows) {
-      // `0` FOR AN EMPTY QUERY is what leaves the build-time order untouched until
-      // someone types: every row scores the same and the index tiebreak decides.
-      // `score` RETURNS `null` FOR NO MATCH, and `0` for an empty query. NOT `-1`:
-      // this line tested `s < 0`, and `null < 0` is FALSE in JavaScript, so every
-      // non-matching row was KEPT and the text input did nothing but reorder. MEASURED
-      // against `score("beta reference", "abstract")`, which is `null`: typing
-      // `abstract` left both rows visible and the count reading "2 todos".
-      //
-      // `== null` rather than `=== null`, so an `undefined` from a caller's own
-      // `haystack:` returning nothing is treated the same way rather than kept.
+      // `score` RETURNS `null` FOR NO MATCH and `0` for an empty query, which is
+      // what leaves the build-time order untouched until someone types: every row
+      // scores the same and the index tiebreak decides. The test below must be
+      // `== null` and never `s < 0` — `null < 0` is FALSE in JavaScript, which
+      // would keep every non-matching row and leave the input merely reordering.
+      // `== null` rather than `=== null` so an `undefined` from a caller's own
+      // `haystack:` is treated the same way.
       //
       // THE TAG EXPRESSION IS A PREDICATE and it runs FIRST, ahead of any scoring, so a
       // row the tags exclude is never scored. No third tier, no bonus for a tag hit, no
@@ -256,12 +248,11 @@ export const wirePanel = (container, n) => {
       // says how they rank. `score.js` states that division for the search bar; this is
       // the same division in the other place the language runs.
       //
-      // IT ANDs WITH THE PILLS, and that is the only composition that is not
-      // surprising: a pressed pill is a visible commitment and a typed query is a
-      // visible commitment, so a row must satisfy both. The alternative — a query
-      // silently releasing the pills — leaves buttons on screen that still read as
-      // pressed while no longer filtering, which is worse than a list that comes back
-      // empty and can be explained by looking at it.
+      // IT ANDs WITH THE PILLS, which is the only composition that is not
+      // surprising: a pressed pill and a typed query are both visible commitments,
+      // so a row must satisfy both. A query that silently released the pills would
+      // leave buttons on screen reading as pressed while filtering nothing, which
+      // is worse than an empty list a reader can explain by looking at it.
       const ok =
         (rpn.length === 0 || evalTagQuery(rpn, row.allTags)) &&
         (tagMode
@@ -283,10 +274,10 @@ export const wirePanel = (container, n) => {
     // and no row a reader cannot reach.
     //
     // `hidden` is the ATTRIBUTE rather than a class: it is what tells assistive
-    // technology the row is gone, where a class would hide it visually and leave
-    // it in the accessibility tree. It needs `.panel-row[hidden]` in the
-    // stylesheet to bite, since the row sets its own `display` and the UA's
-    // `[hidden]` rule loses to any author rule that does.
+    // technology the row is absent, where a class would hide it visually and leave
+    // it in the accessibility tree. It needs `.panel-row[hidden]` in the stylesheet
+    // to bite, the row setting its own `display` and the UA's `[hidden]` rule
+    // losing to any author rule that does.
     // ONE WRITE TO THE LIVE LIST, not one per row. Appending an element that is
     // already in the document MOVES it, in a fragment exactly as in the list, so
     // the resulting order is the same — a panel over a few hundred rows just stops

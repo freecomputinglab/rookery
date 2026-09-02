@@ -3,21 +3,17 @@
 
 import { clusters, fold } from "./text.js";
 
-// How many chips the keyword row shows. 12, per the row's own comment in
-// `wireModal`: the compressed field can run to dozens of terms and a 48-term row
-// is a wall of boxes rather than a preview. Not exposed as a knob, exactly as
-// the excerpt radius it replaces was not — it is an implementation detail of the
-// modal rather than a public contract the way `#search-index`'s `body-terms` is.
+// How many chips the keyword row shows. The compressed field can run to dozens of
+// terms, and a 48-term row is a wall of boxes rather than a preview. Not a knob:
+// it is an implementation detail of the modal, where `#search-index`'s
+// `body-terms` is a public contract.
 export const KEYWORD_LIMIT = 12;
-// Every occurrence of every `terms` entry in `text`, folded and
-// case-insensitive, merged where they overlap. UTF-16 string offsets, and
-// nothing in this file asks for any other kind now that the excerpt's
-// cluster-space window is gone: neither a title/id row, nor a keyword chip, nor
-// a fetched note's individual text nodes are ever diffed against a Typst
-// counterpart, so there is no cross-language parity reason to pay for cluster
-// precision here. `fold` is length-preserving (each folded character replaces
-// exactly one), so an offset found in the FOLDED copy slices correctly out of
-// `text` itself.
+// Every occurrence of every `terms` entry in `text`, folded and case-insensitive,
+// merged where they overlap. UTF-16 string offsets throughout: nothing marked here
+// — a title, an id, a keyword chip, a fetched note's text nodes — is ever diffed
+// against a Typst counterpart, so cluster precision would buy nothing. `fold` is
+// length-preserving, each folded character replacing exactly one, so an offset
+// found in the FOLDED copy slices correctly out of `text` itself.
 export const matchRanges = (text, terms) => {
   const folded = fold(text);
   const ranges = [];
