@@ -43,6 +43,10 @@
 #import "score.typ": *
 #import "rank.typ": *
 #import "lookup.typ": *
+// BEFORE `corpus.typ`, whose `#search-index` calls `_compress-corpus` — the same
+// dependency-order rule this manifest states throughout. `.marrow.typ` resolves
+// `_compress-corpus` through this entrypoint, so the name has to arrive here too.
+#import "compress.typ": *
 #import "corpus.typ": *
 #import "ui.typ": *
 #import "panel.typ": *

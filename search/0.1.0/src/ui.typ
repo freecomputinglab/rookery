@@ -8,6 +8,71 @@
 #import "base.typ": *
 #import "corpus.typ": *
 
+// What `#search-bar` and `#search-modal` do identically, before either draws
+// anything: validate the four arguments they share and emit the island.
+//
+// MEASURED before this existed: 34 of `#search-bar`'s 66 code lines were byte
+// for byte the same as lines in `#search-modal` — the parameter list, the
+// guard, four asserts and the whole `#search-index` call with its six forwarded
+// arguments. Bead `rp-modal-limit-default-c88` was that duplication biting: the
+// modal's JavaScript fallback for `limit` had drifted from the Typst default.
+//
+// `where` is the caller's name for the messages, the same convention the
+// `_assert-*` validators above use.
+//
+// NOT SHARED, deliberately: the `<input>` element. Both spell the same eight
+// attributes, but in a different ORDER, and Typst emits them in the order given
+// — so one canonical version would change the bytes of every page carrying the
+// other. That is a real cleanup and it needs its own bead, with a diff a
+// reviewer can look at, not a silent rider on this one.
+//
+// The guard `if _target() != "html" or _rheo-ctx() == none { return }` stays in
+// both too: `return` belongs to the function that means to return.
+#let _search-ui-common(
+  where,
+  limit,
+  class,
+  index,
+  elem-id,
+  body-terms,
+  df-ceiling,
+  body-search,
+  tags,
+  match,
+) = {
+  // `none` IS UNCAPPED, the same word `#panel`/`#filter-panel`'s `visible: none`
+  // already uses — one vocabulary across the package for "do not cap this". It is a
+  // RENDER cap either way: the island carries every row regardless, and `score.js`
+  // has always read a null limit as "all of them".
+  assert(
+    limit == none or (type(limit) == int and limit > 0),
+    message: "@rookery/search: " + where + " `limit` must be a positive "
+      + "integer, or `none` for every match — got " + repr(limit),
+  )
+  assert(
+    class == none or type(class) == str,
+    message: "@rookery/search: " + where + " `class` must be none or a "
+      + "string — got " + repr(class),
+  )
+  _assert-tags(tags, where)
+  _assert-match(match, where)
+  if index {
+    search-index(
+      elem-id: elem-id,
+      body-terms: body-terms,
+      df-ceiling: df-ceiling,
+      body-search: body-search,
+      tags: tags,
+      match: match,
+    )
+  }
+}
+
+// One class attribute for both, so a project's `class:` lands the same way on a
+// bar and on a modal.
+#let _search-class(base, class) = if class == none { base } else { base + " " + class }
+
+
 // ---- #search-bar — the embeddable search UI. RHEO ONLY --------------------
 //
 //   #search-bar()

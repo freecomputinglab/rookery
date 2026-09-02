@@ -4,7 +4,7 @@
 // It is a module of its own so that `#search-index` in `corpus.typ` can import
 // the name: a module cannot import the entrypoint that imports it.
 
-#import "@rookery/core:0.1.0": ideas, note-href
+#import "@rookery/core:0.1.0": ideas
 #import "base.typ": *
 #import "rank.typ": *
 
