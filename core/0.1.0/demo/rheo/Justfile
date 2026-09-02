@@ -30,3 +30,11 @@ check: clean build
 
 clean:
     rm -rf build
+
+# The same rookery, compiled WITHOUT rheo — one document, no minted pages,
+# every href an in-page fragment. `--features html` is mandatory for both
+# formats, not only for HTML.
+typst:
+    mkdir -p build
+    typst compile --features html --format html --root ../../../.. native.typ build/native.html
+    typst compile --features html --root ../../../.. native.typ build/native.pdf

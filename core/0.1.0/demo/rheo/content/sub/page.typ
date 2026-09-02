@@ -1,4 +1,4 @@
-#import "../lib.typ": demo
+#import "../lib.typ": demo, vertebra-link
 #import "@rookery/core:0.1.0": idea, window
 #show: demo
 
@@ -10,7 +10,7 @@ root-only spine cannot catch an off-by-one in that arithmetic; this page is why
 the demo has a subdirectory at all.
 
 A page-level citation, outside any note: @lamport1994. And a page-level link
-back to #link(label("index"))[the root vertebra].
+back to #vertebra-link("index")[the root vertebra].
 
 #idea("sub-note", title: [Sub note], created: datetime(year: 2026, month: 3, day: 14))[
   A note written on the nested vertebra, windowing back at the root one's note —

@@ -158,6 +158,13 @@ jobs:
       - name: core rheo demo compiles and asserts, under the declared floor
         run: cd core/0.1.0/demo/rheo && just check
 
+      # The same content compiled a SECOND way, plain `typst compile`, no
+      # rheo — one document, one compile pass, no minted pages. AFTER the
+      # namespace-symlink step, for the same reason as the rheo build above:
+      # the content imports `@rookery/core:0.1.0` by coordinate.
+      - name: core rheo demo's rookery compiles without rheo too
+        run: cd core/0.1.0/demo/rheo && just typst
+
       # search's own rheo fixture. Its `check.sh` asserts what neither the
       # `node --test` suite nor the parity harness can see: that rheo copied
       # `dist/lib.js` and `dist/search.css` into the output, that BOTH are

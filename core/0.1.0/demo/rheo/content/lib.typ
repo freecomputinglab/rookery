@@ -44,6 +44,18 @@
   doc
 }
 
+// Whether rheo is driving this build. `sys.inputs` is global to the
+// compile, so this is readable from any scope — the detection every
+// Pattern B package uses.
+#let under-rheo() = "rheo-context" in sys.inputs
+
+// A link to another VERTEBRA, by page handle. Only rheo publishes a
+// handle anchor, so under plain `typst compile` the sentence keeps its
+// words and loses its link rather than failing to compile.
+#let vertebra-link(handle, body) = if under-rheo() {
+  link(label(handle), body)
+} else { body }
+
 #let demo(doc) = {
   show: rookery.with(
     idea-page-template: idea-page,

@@ -1,4 +1,4 @@
-#import "lib.typ": demo, idea, note
+#import "lib.typ": demo, idea, note, vertebra-link
 #import "@rookery/core:0.1.0": footnote, ideas-outline, window
 
 // `idea` AND `note` COME FROM `lib.typ`, not from the package, and that is the
@@ -11,7 +11,7 @@
 
 A page-level link, written in ordinary prose OUTSIDE any note, because that is
 the only thing that produces a page backlink:
-#link(label("sub:page"))[the nested vertebra].
+#vertebra-link("sub:page")[the nested vertebra].
 
 #idea("root-note", title: [Root note])[
   A note written on the ROOT vertebra, citing @knuth1984 from inside a note.
