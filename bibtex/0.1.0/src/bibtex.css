@@ -20,7 +20,8 @@
 
      --citation-fg       a field's value
      --citation-muted    the label above the block, and a field's name
-     --citation-gap      vertical space between rows
+     --citation-line     the rules between fields
+     --citation-gap      space between a field's text and the rule under it
      --citation-gutter   width of the name column
 
    THE GUTTER MATCHES @rookery/timeline'S RAIL, 7.5em, and the match is the point: a
@@ -56,9 +57,28 @@
     display: grid;
     grid-template-columns: var(--citation-gutter, var(--timeline-gutter, 7.5em)) 1fr;
     column-gap: 0.9rem;
-    row-gap: var(--citation-gap, 0.25rem);
-    align-items: baseline;
     margin: 0.6rem 0 0;
+    border-top: 1px solid var(--citation-line, var(--timeline-line, currentColor));
+  }
+
+  /* THE RULES BETWEEN FIELDS, one per row, drawn on BOTH cells of the row so the two
+     segments abut into a single line across the block. Horizontal only: there is no
+     rule down the gutter, because the field names are a label column rather than a
+     second column of data.
+     ONE ROW'S TWO CELLS MUST END AT THE SAME HEIGHT for those segments to meet, and
+     that is what forbids `align-items: baseline` here. Baseline alignment sizes each
+     cell to its own content, so a one-word name beside a paragraph-long abstract
+     draws its rule at the top of the row while the abstract draws it at the bottom —
+     one row, two broken lines at different heights. The default `stretch` gives both
+     cells the row's full height instead, which is also why the gap between rows is
+     `padding` on the cells rather than `row-gap` on the grid: a gap would fall
+     BELOW each rule, leaving the line crammed against the text above it.
+     A name still sits level with the first line of its value, since both cells now
+     start at the row's top edge. */
+  .citation-fields dt,
+  .citation-fields dd {
+    padding: var(--citation-gap, 0.4rem) 0;
+    border-bottom: 1px solid var(--citation-line, var(--timeline-line, currentColor));
   }
 
   /* THE FIELD NAME, muted and uppercased — a label, matching the stage names on
