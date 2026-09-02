@@ -1399,6 +1399,37 @@ a.idea-row-title:hover {
   border-top: 1px solid var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12)));
 }
 
+/* CLEARANCE FOR THE FOLLOWING CARD'S HAT, and the sweep block is the only place
+   in this stylesheet that owes it. `#idea` emits the sweep immediately before its
+   card and OUTSIDE it (`_sweep-block` in bib.typ, called from idea.typ and
+   transclusion.typ), so a sweep that caught a citation is the one element that can
+   sit directly under a lifted id with nothing to give it: the `li` margin is
+   0.15em of this block's own 0.85em, about 2px, against an overhang of a whole
+   label plus 1px, about 10px at the default. The id lands on the last reference
+   line.
+
+   `figure:has(> .idea-box)`'s `padding-top` cannot pay for it. That padding is at
+   the TOP of the figure and the sweep sits between it and the card, so it buys
+   space above the references rather than under them.
+
+   THE FOOTNOTES AND REFERENCES BLOCKS NEED NO SUCH RULE: both are emitted INSIDE
+   `.idea-box`, after the body, so neither is ever the element directly above
+   another card's hat.
+
+   `:has(li)` because an empty sweep must go on occupying no space at all — see
+   the rule above. `+ .idea-box` because the same class is also the page's own
+   trailing-citation block, which is followed by nothing and needs no spacing
+   under it; and because `_sweep-block` is never emitted before an `.idea-window`,
+   whose summary tab carries a different lift.
+
+   Expressed against `--idea-label-size` and carrying the same `+ 1px` the lift
+   does, so the visible gap stays about 0.5rem whatever a project sets the label
+   to. Half of `figure + figure:has(> .idea-box)`'s 1rem, because a sweep and its
+   card are one note's apparatus rather than two stacked cards. */
+.idea-page-refs:has(li) + .idea-box {
+  margin-top: calc(0.5rem + var(--idea-label-size, 0.57rem) + 1px);
+}
+
 /* ---- #ideas-outline — a page's own notes, as a tree ------------------------
    Wears the same left rule as `.idea-box`/`.idea-window`, from the same
    custom property, so a page's table of contents reads as part of the same

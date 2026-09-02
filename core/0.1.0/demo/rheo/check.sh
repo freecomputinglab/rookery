@@ -305,6 +305,36 @@ fi
 grep -q 'derived-note.html">DERIVEDBODY' "$H/ideas/index.html" ||
   note "ideas/index.html row for derived-note does not use its derived title"
 
+# 13. THE SWEEP BLOCK AND THE CARD UNDER IT, which are two halves of one piece of
+#     layout: `#idea` emits a title-less `.idea-page-refs` immediately before its
+#     card and outside it, and the card's id is lifted out of its own box by a
+#     whole label. A sweep that CAUGHT a citation therefore sits directly under
+#     that overhang with about 2px of `li` margin to give it, and the id lands on
+#     the last reference line unless the stylesheet pays the difference.
+#
+#     Both halves are asserted, because either alone can rot: the markup, so the
+#     adjacency the rule exists for stays exercised by this demo (root-note cites
+#     from inside its body, and inner-note's card follows that block; the nested
+#     page cites outside any note, and sub-note's card follows that one), and the
+#     RULE in the built stylesheet, since no browser is available here and a
+#     dropped rule would compile clean and look wrong.
+python3 - "$H/index.html" "$H/sub/page.html" <<'SWEEP' || fail=1
+import re, sys
+bad = 0
+for path in sys.argv[1:]:
+    h = open(path).read()
+    if not re.search(r'<div class="idea-page-refs">.{0,600}?<li[^>]*>.{0,600}?</ul></section></div><div class="idea-box"', h, re.S):
+        print(f"FAIL: {path} has no populated .idea-page-refs immediately before an .idea-box —"
+              f" the adjacency the hat-clearance rule exists for is no longer exercised")
+        bad = 1
+if not bad:
+    print("  sweep block: a populated .idea-page-refs sits directly above a card on both pages")
+sys.exit(bad)
+SWEEP
+
+grep -q 'idea-page-refs:has(li) + .idea-box' "$H/rookery/core/core.css" ||
+  note "the built CSS has no .idea-page-refs:has(li) + .idea-box rule — a card's id will overlap the references above it"
+
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"
   exit 1
