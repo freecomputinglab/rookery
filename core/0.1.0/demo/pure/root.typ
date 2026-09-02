@@ -1,6 +1,12 @@
-// Native Typst demo — no rheo involved. Proves @rookery/core needs only ONE
-// compilation unit and works as a plain Typst package: import it, #include
-// your note files, done.
+// Native Typst demo — no rheo involved. Most of @rookery/core's feature
+// coverage now lives in `demo/rheo/native.typ`, the SAME package compiled the
+// SAME way (plain `typst compile`, no rheo), over a rookery with real content
+// and real cross-vertebra transclusion instead of a standalone fixture. What
+// stays here is what that move could not take with it: `card-gap.typ` and
+// `folded-height.typ`, two CSS regression fixtures that need PIXEL
+// measurement to assert at all — no automated check in either demo can do
+// that, so they stay small and isolated rather than diluting the rookery's
+// narrative content with shapes that exist only for a stylesheet's sake.
 //
 // MEASURED 2026-08-13: typst 0.15.1's `typst` CLI (nixpkgs) has NO way to
 // invoke the multi-document "bundle" target the epic's design notes describe
@@ -18,33 +24,10 @@
 // deployment would need to include ../../src/core.css manually (rheo does
 // this for you via [tool.rheo.html]).
 //
-// `#show: rookery.with(bibliography: ..)` wraps the WHOLE bundle below, with
-// otherwise-default settings — harmless to a.typ/b.typ (a title-less,
-// nothing-cited bibliography call renders nothing, lib.typ:775-782) — so it
-// can also install the document-wide footnote fallback footnotes.typ needs
-// (lib.typ:2799 `show FNK:`) and the bibliography plumbing bib.typ needs
-// (lib.typ:757/783/2743), without a third root. `prefix:`/`theme:` still get
-// their own document (root-prefix.typ) — see that file's own header for why
-// those two, unlike bibliography, cannot share this one.
-//
 // Build (PDF):  typst compile --features html --root ../.. root.typ build/root.pdf
 // Build (HTML): typst compile --features html --format html --root ../.. root.typ build/root.html
 #import "../../src/lib.typ": rookery
-#show: rookery.with(
-  theme: (tags-color: (draft: rgb("#3366ff"))),
-  bibliography: arguments(bytes(read("refs.bib")), style: "chicago-author-date")
-)
+#show: rookery
 
-#include "a.typ"
-#include "b.typ"
-#include "footnotes.typ"
-#include "bib.typ"
-#include "outline.typ"
-#include "tags.typ"
-#include "windows.typ"
-#include "window-tags.typ"
 #include "card-gap.typ"
 #include "folded-height.typ"
-#include "cycles.typ"
-#include "idea-body.typ"
-#include "titles.typ"

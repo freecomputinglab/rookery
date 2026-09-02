@@ -145,6 +145,12 @@ jobs:
       # (CLAUDE.md, "Build"). `demo/pure` is plain `typst compile`, so it runs
       # anywhere. `just build`, not a hand-copied subset of its `typst compile`
       # lines, so a new root added to the Justfile is gated in CI automatically.
+      #
+      # What's left here is what the rheo demo's own native-Typst build (below)
+      # cannot cover: `excluded.typ`'s `--input` pair (`rheo compile` forwards no
+      # `--input` at all) and `root-prefix.typ`/`theme.typ`'s non-default
+      # `prefix:`/`theme:`, which is document-wide state and cannot share a
+      # document with content that hardcodes the default.
       - name: core pure demo compiles and checks, HTML and PDF
         run: cd core/0.1.0/demo/pure && just build
 

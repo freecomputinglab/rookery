@@ -1,8 +1,12 @@
-# The rheo half of @rookery's in-repo coverage. `demo/pure/` next door proves
-# the package works as a plain Typst package with no rheo at all; this one
-# exercises everything that only exists under rheo — `.marrow.typ`'s minted
-# pages, the backlink maps, `idea-page-template`, and the depth arithmetic that
-# a root-only spine cannot catch.
+# @rookery/core's in-repo coverage: this content compiles TWO ways, both from
+# this project. `rheo compile .` exercises everything that only exists under
+# rheo — `.marrow.typ`'s minted pages, the backlink maps, `idea-page-template`,
+# and the depth arithmetic that a root-only spine cannot catch. `just typst`
+# compiles the same content the other way, plain `typst compile`, no rheo at
+# all — what `demo/pure/` next door proved on a smaller, standalone fixture
+# before this content grew large enough to prove it too. `demo/pure/` keeps
+# only what neither build here can cover: `excluded.typ`'s `--input` pair and
+# `root-prefix.typ`/`theme.typ`'s non-default document config.
 version = "0.6.2"
 content_dir = "content"
 formats = ["html"]
