@@ -28,7 +28,7 @@
 // Defined after `_outbound` above because it calls it at registration time, and
 // a `#let` closure captures the scope visible AT DEFINITION time.
 
-#let idea(level: 1, title: none, tags: (), exclude-tags: (), created: none, show-date: false, show-tags: false, ..args) = {
+#let idea(level: 1, title: none, tags: (), exclude-tags: (), created: none, show-date: false, show-tags: false, show-context: auto, show-backlinks: auto, ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
   // below and further down at render time — str has no `.map`, so the error
@@ -294,6 +294,13 @@
         origin: origin,
         links: links,
         tags: tags,
+        // `auto` (the default) means "use the document-wide
+        // `rookery.with(show-context:, show-backlinks:)` setting" — `.marrow.typ`
+        // reads these off the record ONLY for the minted-page footer and falls
+        // back to the document default when either is `auto`. `true`/`false`
+        // here overrides that default for THIS note alone.
+        show-context: show-context,
+        show-backlinks: show-backlinks,
       )
       _registry.update(r => {
         let existing = r.at(id, default: none)

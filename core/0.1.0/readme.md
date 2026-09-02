@@ -1632,6 +1632,28 @@ Each minted page shows the note's title and permalink id, then its body, then
 a footer with two parts — each omitted, rather than left empty, when it has
 nothing to say.
 
+### Turning the footer off: `show-context`, `show-backlinks`
+
+Both default to `true`, so a page's footer is exactly what it always was
+unless you say otherwise. Context is the link back to the vertebra a note was
+written on; Backlinks is every note and page that links here. Turn either off
+document-wide, independently of the other — nothing else about the page
+changes:
+
+```typst
+#show: rookery.with(show-context: false, show-backlinks: false)
+```
+
+`#idea` (and `#note`/`#todo`/anything built on `tagged-idea`) takes the same
+two arguments, defaulting to `auto` — "use the document-wide setting above" —
+so a single note can override either without changing it for the rest of the
+rookery:
+
+```typst
+#idea("etal", show-context: false)[A note with no Context section, whatever
+`rookery.with(show-context: ..)` says.]
+```
+
 ### A landing page for the whole rookery: `index-page`
 
 `ideas/` is the parent directory of every permalink this package mints, and the

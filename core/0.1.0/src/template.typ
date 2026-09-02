@@ -117,6 +117,8 @@
   ref-target: "page",
   syndicate: false,
   index-page: true,
+  show-context: true,
+  show-backlinks: true,
   invisible-tags: (),
   doc,
 ) = {
@@ -129,6 +131,8 @@
     ref-target,
     syndicate,
     index-page,
+    show-context,
+    show-backlinks,
     invisible-tags,
   )
   let resolved = _resolve-theme(
@@ -168,6 +172,8 @@
   _idea-page-template.update(_ => idea-page-template)
   _syndicate.update(syndicate)
   _index-page.update(index-page)
+  _show-context.update(show-context)
+  _show-backlinks.update(show-backlinks)
   // Normalized to a flat array of NAMES here, once, so `_visible-tags` can do a
   // plain `t not in hidden` on every call rather than re-deriving the shape.
   // `.update(value)` and never `.update(_ => value)` — an array is not a

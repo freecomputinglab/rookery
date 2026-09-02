@@ -89,12 +89,14 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _IDEA-DIR, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _plain, _visible-tags, window
+#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _IDEA-DIR, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _show-context, _show-backlinks, _plain, _visible-tags, window
 
 #context {
   let registry = _registry.final()
   let tpl = _idea-page-template.final()
   let syndicate = _syndicate.final()
+  let show-context = _show-context.final()
+  let show-backlinks = _show-backlinks.final()
 
   // THE PER-TAG THEME, which every page below has to carry for itself.
   //
@@ -339,6 +341,20 @@
         // anchor there, where a backlink row links to the top of the page.
         let back-pages = page-backlinks.at(id, default: ()).filter(h => h != origin)
 
+        // PER-NOTE OVERRIDE. `rec.show-context`/`rec.show-backlinks` are `auto`
+        // unless `#idea(show-context: .., show-backlinks: ..)` set one — see the
+        // banner beside `rec` in idea.typ. `auto` falls back to the document-wide
+        // `rookery.with(show-context:, show-backlinks:)` setting; `true`/`false`
+        // overrides it for this note's page alone.
+        let use-context = {
+          let v = rec.at("show-context", default: auto)
+          if v == auto { show-context } else { v }
+        }
+        let use-backlinks = {
+          let v = rec.at("show-backlinks", default: auto)
+          if v == auto { show-backlinks } else { v }
+        }
+
         // Both parts are the SAME shape — a titled section, heading first —
         // so the stylesheet can treat them as one thing and lay them out
         // side by side. Neither is a special case of the other: "written
@@ -374,12 +390,12 @@
         // this hatched", and the answer is the vertebra it was written on, whether
         // or not another note happens to enclose it. A window would answer a
         // different question and bury this one.
-        let context-part = if origin == none { [] } else {
+        let context-part = if origin == none or not use-context { [] } else {
           section("idea-context", [Context],
             page-list((link(label(id), _handle-title(origin)),)))
         }
 
-        let backlinks-part = if back.len() == 0 and back-pages.len() == 0 { [] } else {
+        let backlinks-part = if not use-backlinks or (back.len() == 0 and back-pages.len() == 0) { [] } else {
           // FOLDED and `depth: 1`, always: a backlink list is an index of what
           // points here, and a reader following one wants to see which notes
           // those are before reading any of them in full. `depth` is pinned

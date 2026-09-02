@@ -184,6 +184,23 @@
 // one published under it because it upgraded the package.
 #let _index-page = state("rheo-idea-index-page", false)
 
+// Whether `.marrow.typ` should render the Context section (a link back to
+// the vertebra a note was written on) on each minted note page. Same
+// wrapper discipline as `_syndicate`/`_index-page`: `.update(v)`, not
+// `.update(_ => v)` — a bool is not a function.
+//
+// DEFAULT ON, unlike `_index-page`: Context is how a reader who landed on a
+// note's standalone page finds their way back to where it was written, and
+// most projects want that by default.
+#let _show-context = state("rheo-idea-show-context", true)
+
+// Whether `.marrow.typ` should render the Backlinks section (every note and
+// page that links here) on each minted note page. Same wrapper discipline
+// and same DEFAULT ON reasoning as `_show-context` above — this is the OTHER
+// half of a minted page's navigational footer, not a separate feature with
+// different defaults.
+#let _show-backlinks = state("rheo-idea-show-backlinks", true)
+
 // ---- Invisible tags — a tag that leaves no visual trace -------------------
 //
 //   #show: rookery.with(invisible-tags: ("private",))

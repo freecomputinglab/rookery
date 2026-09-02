@@ -415,6 +415,8 @@
   ref-target,
   syndicate,
   index-page,
+  show-context,
+  show-backlinks,
   invisible-tags,
 ) = {
   assert(
@@ -475,6 +477,14 @@
   assert(
     type(index-page) == bool,
     message: "@rookery/core: `index-page` must be a boolean — got " + repr(index-page),
+  )
+  assert(
+    type(show-context) == bool,
+    message: "@rookery/core: `show-context` must be a boolean — got " + repr(show-context),
+  )
+  assert(
+    type(show-backlinks) == bool,
+    message: "@rookery/core: `show-backlinks` must be a boolean — got " + repr(show-backlinks),
   )
   // THROUGH `_assert-tags`, the same helper every other tag-shaped argument in
   // this package uses, so `invisible-tags: "private"` needs no array ceremony and
