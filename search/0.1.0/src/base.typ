@@ -58,6 +58,33 @@
 // reproduce exactly. Recorded as a known limitation in the readme instead.
 #let _fold(s) = lower(s).replace("-", " ").replace("_", " ")
 
+// ---- Reading a row, however rookery handed it over ------------------------
+
+// A row's own tag NAMES. `ideas()` gives `tags` as an array of names and
+// `values: true` adds `tags-dict`, whose keys are those same names, so reading
+// either means a caller may pass rows from either call. A row with neither
+// field is untagged, and therefore matches no tag expression at all.
+#let _row-tags(r) = {
+  let d = r.at("tags-dict", default: none)
+  if d != none { return d.keys() }
+  let t = r.at("tags", default: ())
+  if type(t) == dictionary { t.keys() } else { t }
+}
+
+// The default haystack a text input filters on: the row's label, name and body,
+// joined. Searching the BODY is what finds a note by a phrase inside it rather
+// than by its title.
+#let _row-haystack(r) = (
+  r.at("label", default: ""),
+  r.at("name", default: ""),
+  r.at("body", default: ""),
+).filter(s => s != "" and s != none).join(" ")
+
+// A `datetime` as the zero-padded `[year][month][day]` string every date sort
+// here compares, or `none` for an undated row. The padding is what makes a
+// plain string sort a date sort, with no `datetime` comparison anywhere.
+#let _date-stamp(d) = if d == none { none } else { d.display("[year][month][day]") }
+
 // ---- Argument validators shared by more than one public function ----------
 //
 // `tags`, `match` and `body-search` are checked identically by several of this

@@ -223,9 +223,9 @@
   // the pill row, which is most of them on a real site.
   //
   // AN ADAPTER, because a projected row need not have kept its tags at all. The
-  // default reads rookery's own two shapes, exactly as `#filter-panel`'s `_tags-of`
-  // does, so a caller may pass rows from `ideas()` or from `ideas(values: true)`
-  // and neither needs to say which.
+  // default is `_row-tags`, which reads rookery's own two tag shapes, so a caller
+  // may pass rows from `ideas()` or from `ideas(values: true)` and neither needs
+  // to say which.
   //
   // A ROW WITH NEITHER FIELD GETS AN EMPTY SET, and therefore matches no tag
   // expression at all. That is correct rather than merely convenient: a row whose
@@ -310,27 +310,12 @@
       + "Project a scalar to sort on.",
   )
 
-  let hay = if haystack != none { haystack } else {
-    r => (
-      r.at("label", default: ""),
-      r.at("name", default: ""),
-      r.at("body", default: ""),
-    ).filter(s => s != "" and s != none).join(" ")
-  }
+  let hay = if haystack != none { haystack } else { _row-haystack }
 
-  // ROOKERY'S TWO TAG SHAPES, read the same way `#filter-panel`'s `_tags-of` reads
-  // them: `ideas()` gives `tags` as an array of names, and `values: true` adds
-  // `tags-dict`, whose KEYS are those same names. Preferring the dict is what makes
-  // a `@rookery/todos` row — which always carries one — work without a caller
-  // saying so.
-  let tags-of = if tags != none { tags } else {
-    r => {
-      let d = r.at("tags-dict", default: none)
-      if d != none { return d.keys() }
-      let t = r.at("tags", default: ())
-      if type(t) == dictionary { t.keys() } else { t }
-    }
-  }
+  // `_row-tags` reads rookery's two tag shapes, preferring `tags-dict` — which is
+  // what makes a `@rookery/todos` row, which always carries one, work without a
+  // caller saying so.
+  let tags-of = if tags != none { tags } else { _row-tags }
 
   let rows = if sort == none { rows } else {
     // `\u{ffff}` sorts after every ordinary character, which puts the unset rows

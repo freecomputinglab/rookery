@@ -251,8 +251,8 @@
     // `updated` while it carried a creation date would be exactly the drift this
     // file's comments exist to prevent. `just parity` is what keeps this stamp
     // and `score.js`'s `dateCmp` reading the same key.
-    let u = e.at("created", default: none)
-    if u != none { row.insert("created", u.display("[year][month][day]")) }
+    let u = _date-stamp(e.at("created", default: none))
+    if u != none { row.insert("created", u) }
     row.insert("href", e.href)
     row
   })

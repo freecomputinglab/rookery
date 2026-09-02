@@ -35,16 +35,6 @@
 // deliberately not what the cell shows.
 #let _iso(d) = d.display("[year]-[month]-[day]")
 
-// A row's own tag NAMES, whatever shape rookery handed them in. `ideas()` gives
-// `tags` as an array of names; `values: true` adds `tags-dict`, whose KEYS are the
-// same names. Reading either means a caller can pass rows from either call.
-#let _tags-of(r) = {
-  let d = r.at("tags-dict", default: none)
-  if d != none { return d.keys() }
-  let t = r.at("tags", default: ())
-  if type(t) == dictionary { t.keys() } else { t }
-}
-
 // THE FLAT ONES ONLY, for `pills: auto`. rookery's three tag surfaces (see
 // @rookery/todos' `tags.typ`, which names them) split on exactly this: a FLAT tag
 // carries no value because the key IS the fact, and that is the surface that "renders
@@ -65,7 +55,7 @@
 // rather than false, and a caller in that position has `tag-filter:`.
 #let _flat-tags-of(r) = {
   let d = r.at("tags-dict", default: none)
-  if d == none { return _tags-of(r) }
+  if d == none { return _row-tags(r) }
   d.keys().filter(k => d.at(k) == none)
 }
 
@@ -225,13 +215,7 @@
       + repr(pill-match),
   )
 
-  let hay = if haystack != none { haystack } else {
-    r => (
-      r.at("label", default: ""),
-      r.at("name", default: ""),
-      r.at("body", default: ""),
-    ).filter(s => s != "" and s != none).join(" ")
-  }
+  let hay = if haystack != none { haystack } else { _row-haystack }
 
   let rows = if rows != none { rows } else { ideas(tags: tag, values: true) }
 
@@ -239,10 +223,7 @@
   // is a partition rather than a `.rev()` of the whole list. The stamp is a zero-padded
   // `[year][month][day]` STRING, so this is a plain string sort in date order and no
   // `datetime` comparison happens anywhere.
-  let stamp = r => {
-    let d = when(r)
-    if d == none { none } else { d.display("[year][month][day]") }
-  }
+  let stamp = r => _date-stamp(when(r))
   let asc = rows.filter(r => stamp(r) != none).sorted(key: stamp)
   let dated = if order == "soonest" { asc } else { asc.rev() }
   let undated = rows.filter(r => stamp(r) == none)
@@ -263,7 +244,7 @@
   // list can name a tag by typo or one nothing carries yet, which would ship as dead
   // chrome. A no-op on the derived path — it came from the rows — and kept as one line
   // rather than two so both modes leave here having been asked the same question.
-  let carried = named.filter(t => rows.any(r => _tags-of(r).contains(t)))
+  let carried = named.filter(t => rows.any(r => _row-tags(r).contains(t)))
 
   // THE CHIP VOCABULARY, which is the pill list only by default and only when that list
   // was authored: see `chips:` for why a derived list must not reach the badge strip.
@@ -277,14 +258,14 @@
       // tag never reaches `data-panel-tags` is a button that hides every row. `shown` is
       // what the reader SEES. Collapsing them again is how a derived pill row would
       // silently start printing the whole corpus's tags onto every row.
-      let pressable = carried.filter(t => _tags-of(r).contains(t))
-      let shown = chips.filter(t => _tags-of(r).contains(t))
+      let pressable = carried.filter(t => _row-tags(r).contains(t))
+      let shown = chips.filter(t => _row-tags(r).contains(t))
       idea-row(
         when: if d == none { none } else { _fmt-day(d) },
         iso: if d == none { none } else { _iso(d) },
         title: r.at("label", default: r.at("name", default: "")),
         href: r.at("href", default: none),
-        tags: _tags-of(r),
+        tags: _row-tags(r),
         badges: shown.map(t => (text: tag-display(t), tag: t)),
         // The panel's own row hook, kept so the script and the stylesheet reach these
         // rows exactly as they reach `#panel`'s.
@@ -304,7 +285,7 @@
           //
           // Same padding, same reason. `#panel` emits the same attribute from its own
           // `tags:` adapter.
-          "data-panel-all-tags": " " + _tags-of(r).join(" ") + " ",
+          "data-panel-all-tags": " " + _row-tags(r).join(" ") + " ",
         ),
       )
     }

@@ -131,10 +131,7 @@
   name-hits = if q != "" {
     name-hits.sorted(key: e => -1 * e.score)
   } else {
-    let stamp-of(e) = {
-      let u = e.at("created", default: none)
-      if u == none { none } else { u.display("[year][month][day]") }
-    }
+    let stamp-of(e) = _date-stamp(e.at("created", default: none))
     let dated = name-hits.filter(e => stamp-of(e) != none)
     let undated = name-hits.filter(e => stamp-of(e) == none)
     let ordered = ()
