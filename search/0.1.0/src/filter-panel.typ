@@ -46,8 +46,8 @@
 // `submission-work` are things to filter BY KEY, not names a pill can wear — and a
 // derived pill row that offered them would be reading a note's data as its vocabulary.
 //
-// MEASURED on a site with 47 auto-derived pills: six of them were valued keys, and each
-// one is a button reading like a namespace.
+// On a site with 47 auto-derived pills, six were valued keys — each a button
+// reading like a namespace.
 //
 // AN AUTHORED `pills:` LIST IS UNAFFECTED. A caller naming a valued key means it —
 // presence-filtering by such a key is legitimate and `#panel`'s tag query does it — so
@@ -153,9 +153,8 @@
   // here. Two tags that display the same string produce two pills reading alike, which
   // the panel cannot detect and will not warn about — that is the caller's to avoid.
   //
-  // NOT `label:`, which is what this argument was called for about an hour: `label` is
-  // already a rookery ROW FIELD (a note's own name, read three lines below as
-  // `r.at("label")`), so one word meant two things inside one function.
+  // NOT `label:`: that is already a rookery ROW FIELD, read below as
+  // `r.at("label")`, so the name would mean two things inside one function.
   tag-display: t => t.replace("-", " "),
   // HOW MANY ROWS SHOW BEFORE THE LIST SCROLLS, and `none` means IT DOES NOT: the
   // list flows down the page for as long as there are matching rows. Not a data cap

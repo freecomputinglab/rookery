@@ -1,25 +1,19 @@
-// Whether we are compiling under rheo and to what, the theme rookery
-// publishes, and the argument validators several public functions share.
+// Target detection, text folding, row readers and the argument validators more
+// than one public function needs.
 //
-// EVERY OTHER MODULE IMPORTS THIS ONE and it imports nothing, which is what
+// Every other module imports this one and it imports nothing, which is what
 // keeps the module graph a DAG.
 
-
-// ---- Target detection — a deliberate copy of rookery's ---------------------
+// `_rheo-ctx`/`_target` are a copy of rookery's own pair, not an import of it:
+// they are six lines of `sys.inputs` read, and `sys.inputs` is readable from any
+// package's scope, so the copy behaves identically without rookery widening its
+// public surface. Keep the two in step.
 //
-// The originals are `_rheo-ctx` and `_target` in `rookery/0.4.0/src/lib.typ`,
-// where they are underscore-private. They are copied rather than exported and
-// imported: six lines of `sys.inputs` read, against making rookery widen its
-// public surface with something no author would ever call. `sys.inputs` is
-// readable from any package's scope, so the copy behaves identically.
-//
-// `std.target()` reports EPUB as "html"; rheo's own context distinguishes
-// them. `std.target()` rather than a bare `target()`, because rheo injects its
-// `target()` polyfill into each vertebra's scope, not into package scope — and
-// that read REQUIRES `--features html`, which every build of a project using
-// this package therefore needs.
-//
-// Keep in step with rookery's. If that pair changes, this one changes too.
+// `std.target()` reports EPUB as "html" where rheo's context distinguishes the
+// two, hence the context first. `std.target()` rather than a bare `target()`,
+// because rheo injects its `target()` polyfill into each vertebra's scope and not
+// into package scope — and that read requires `--features html`, which every
+// build of a project using this package therefore needs.
 #let _rheo-ctx() = sys.inputs.at("rheo-context", default: none)
 
 #let _target() = {
@@ -27,38 +21,26 @@
   if c != none and "target" in c { c.target } else { std.target() }
 }
 
-// ---- The rookery theme — inherited, not copied ----------------------------
-//
-// This package's stylesheet reads rookery's own custom properties before its
-// literals — `var(--rookery-search-border, var(--idea-border-color, ...))` and
-// friends — so a site that themes its notes tints the search UI to match with no
-// second configuration. That used to require this package to carry its own copy
-// of rookery's theme table and inject it as an inline `style` on `#search-bar`'s
-// span and `#search-modal`'s dialog, because neither has a `.idea-*` ancestor to
-// inherit from and rookery only emitted the properties on its own containers.
-//
-// Rookery now ALSO publishes the configured theme once per page as a
-// document-scope `<style>:root { --idea-*: ...; }</style>` rule (see the banner
-// above `_THEME-KEYS`/`_theme`/`_themed` in `rookery/0.4.0/src/lib.typ`). Custom
-// properties inherit down the WHOLE DOM from `:root`, so `#search-bar` and
-// `#search-modal` see the theme for free with no private copy of the table and
-// no state-key contract to keep in step. MEASURED 2026-08-18: `getComputedStyle`
-// on both elements resolves `--idea-border-color` correctly via that inheritance
-// alone, with no inline style of their own.
+// THE THEME IS INHERITED, NOT COPIED. This package's stylesheet reads rookery's
+// custom properties ahead of its own literals —
+// `var(--rookery-search-border, var(--idea-border-color, ...))` and friends — so a
+// site that themes its notes tints the search UI to match with no second
+// configuration. Rookery publishes the configured theme once per page as a
+// document-scope `<style>:root { --idea-*: ...; }</style>` rule, and custom
+// properties inherit from `:root` down the whole DOM, so `#search-bar` and
+// `#search-modal` resolve it with no inline style and no private copy of the
+// table — neither element has a `.idea-*` ancestor to inherit from.
 
-// Lowercase, and `-`/`_` read as a space. Applied to the HAYSTACK AND THE
-// QUERY, which is what makes an id findable by how a person types it: the note
-// `flat-ids` matches "flat ids", and the exact string "flat-ids" still matches
-// too, because both sides collapse to the same thing. Folding only the
-// haystack would have broken the second case — the query's literal `-` would
-// find no `-` left to match.
+// Lowercase, with `-`/`_` read as a space. Applied to the HAYSTACK AND THE QUERY,
+// which is what makes an id findable by how a person types it: the note
+// `flat-ids` matches "flat ids", and the literal "flat-ids" still matches, both
+// sides collapsing to the same thing. Folding only the haystack would break the
+// second case, the query's `-` finding no `-` left to match.
 //
-// Deliberately NOT accent-folding: MEASURED, "cafe" does not match "Café", and
-// fixing that means Unicode normalisation the JavaScript port would have to
-// reproduce exactly. Recorded as a known limitation in the readme instead.
+// Deliberately NOT accent-folding: "cafe" does not match "Café", and fixing that
+// means Unicode normalisation the JavaScript port would have to reproduce
+// exactly. The readme records it as a known limitation.
 #let _fold(s) = lower(s).replace("-", " ").replace("_", " ")
-
-// ---- Reading a row, however rookery handed it over ------------------------
 
 // A row's own tag NAMES. `ideas()` gives `tags` as an array of names and
 // `values: true` adds `tags-dict`, whose keys are those same names, so reading
@@ -85,26 +67,15 @@
 // plain string sort a date sort, with no `datetime` comparison anywhere.
 #let _date-stamp(d) = if d == none { none } else { d.display("[year][month][day]") }
 
-// ---- Argument validators shared by more than one public function ----------
+// `tags`, `match` and `body-search` are checked identically by several public
+// functions, so the check and its message live here once. `where` is the caller's
+// own name as it appears in the message, possessive included — `#search-ideas'`
+// and `#search-index's` are both correct for their nouns.
 //
-// `tags`, `match` and `body-search` are checked identically by several of this
-// package's public functions, each of which used to carry its own six-line
-// `assert` and its own copy of the message. MEASURED at 0.4.0: 18 assert blocks
-// in this file, `tags` written out four times and `match` four.
-//
-// `where` is the caller's own name as it already appears in the message, so the
-// text a reader sees is byte for byte what it was — possessive included, since
-// `#search-ideas'` and `#search-index's` are both correct for their nouns.
-//
-// A DELIBERATE COPY of `@rookery/core`'s three, not an import of them, for the
-// same reason `_target` above is a copy: these say `@rookery/search:` and
-// belong to this package's messages. Importing an internal of another package to
-// save nine lines would couple the two on something neither documents.
-//
-// `limit` and `class` are NOT here. They are checked by `#search-bar` and
-// `#search-modal`, which are being folded onto one shared core in their own
-// bead — deduplicating them here would only move the same lines twice. And
-// `#search-ideas`' `limit` is a different check anyway: it accepts 0, the UI's
+// A deliberate copy of `@rookery/core`'s three rather than an import: these
+// messages say `@rookery/search:` and belong to this package. `limit` and `class`
+// are checked in `_search-ui-common` instead, being the UI surfaces' pair;
+// `#search-ideas`' `limit` is a different check again, accepting 0 where the UI's
 // does not.
 #let _assert-tags(v, where) = assert(
   v == none

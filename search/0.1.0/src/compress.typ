@@ -1,59 +1,43 @@
-// The corpus pass: a note's plain-text body tokenized, and every note
-// compressed to its most distinctive terms.
+// The corpus pass: a note's plain-text body tokenized, and every note compressed
+// to its most distinctive terms.
 //
-// Build time only. Nothing here is ported to JavaScript, because the browser
-// matches against the RESULT — `body-score`/`bodyScore` are the only pair that
-// needs porting.
+// What `#search-index` puts in a row's `body`. That field is MATCH-ONLY — the
+// modal's preview pane fetches the note's own minted page rather than excerpting
+// the island — so its bytes go on the terms that DISTINGUISH a note rather than
+// on whatever the note opens with. On a 56-note site, `body-terms: 48` and
+// `df-ceiling: 40` cost about 24 KB of island for whole-note coverage, with 38 of
+// the 56 notes reaching the term cap: the budget binds rather than idling.
+//
+// NO WEIGHTS ARE SHIPPED. Position is the weight and `body-score` reads rank. In
+// notes this short almost every term has tf=1, so a weight collapses to idf, and
+// idf is a property of the term rather than of the note — a digit-per-term weight
+// string cost 11% of the payload to distinguish the top two or three terms.
+//
+// Build time only, and it stays that way: the browser matches against the RESULT,
+// so `body-score`/`bodyScore` are the only pair that needs porting.
 
 #import "base.typ": *
 
-// ---- The corpus pass — a note compressed to its most distinctive terms -----
+// The stopword FLOOR, not the filter: the df ceiling below catches nearly
+// everything on this list anyway, worth 0.4% of the island's bytes. It earns its
+// place on a SMALL rookery, where too few notes exist for df to carry any signal.
 //
-// What `#search-index` puts in a row's `body`. NOT a prose prefix: that field is
-// MATCH-ONLY now (the modal's preview pane fetches the note's own minted page
-// rather than excerpting the island — see `#search-modal`), so its bytes are
-// spent on the terms that DISTINGUISH a note instead of on whatever the note
-// happened to open with.
-//
-// MEASURED on weeknotes.ohrg.org (56 notes): the old 1200-cluster prefix cap
-// shipped 48,587 of 76,420 body chars, so 36% of the corpus prose was not
-// findable in the browser AT ALL. At `body-terms: 48` and `df-ceiling: 40` the
-// terms cost 18,791B and the whole island ~24,190B, against 54,610B before — 44%
-// of the old cost, with whole-note coverage. 38 of the 56 notes hit the 48-term
-// cap, so the budget is real and not slack.
-//
-// NO WEIGHTS ARE SHIPPED. Position is the weight, and `body-score` reads rank.
-// MEASURED and this is why: in notes this short almost every term has tf=1, so
-// the weight collapses to idf, and idf is a property of the TERM (identical
-// across notes), so a digit-per-term weight string cost 11% overhead to
-// distinguish only the top two or three terms. Rank carries what is left.
-//
-// BUILD TIME ONLY, and it stays that way: none of this is ported to JavaScript
-// and none of it should be, because the browser matches against the RESULT.
-// `body-score`/`bodyScore` are the only pair that needs porting.
-
-// The stopword FLOOR — not the filter. MEASURED: the island is 15,112B with this
-// list and 15,047B without it, a 0.4% difference, because the df ceiling below
-// already catches nearly everything on it. It is here for a SMALL rookery, where
-// too few notes exist for df to carry any signal at all.
-//
-// Function words only, and nothing shorter than three clusters: `_tokenize`'s
+// Function words only, and nothing shorter than three clusters — `_tokenize`'s
 // length floor has already dropped `a`, `is`, `of`, `to`, `it` and the rest
-// before this dictionary is consulted, so listing them would be dead weight.
-// That is also why `im` and `id` are absent while `ive`/`wasnt`/`dont` are here —
-// the contractions appear in their apostrophe-stripped form, since an apostrophe
-// never survives tokenization.
+// before this dictionary is consulted. That is why `im` and `id` are absent while
+// `ive`/`wasnt`/`dont` are here: a contraction arrives apostrophe-stripped, no
+// apostrophe surviving tokenization.
 //
-// TYPOS ARE NOT FILTERED, deliberately: `somethign` is in the note, and a reader
-// who typed the same typo should find it.
+// TYPOS ARE NOT FILTERED: `somethign` is in the note, and a reader who typed the
+// same typo should find it.
 //
-// A DICTIONARY, not an array, for the same reason as `_prec`: the question asked
-// of every token is a key test, and `t in _stopwords` is that test, where array
-// membership is a scan of a hundred strings per token.
+// A DICTIONARY, not an array, because the question asked of every token is a key
+// test — `t in _stopwords` — where array membership is a scan of a hundred
+// strings per token.
 #let _stopwords = {
-  // Parenthesised, and it has to be: in Typst CODE mode a line break ends the
-  // statement, so a continuation line opening with `+` is read as a unary plus
-  // on a fresh expression — MEASURED, `cannot apply unary '+' to string`.
+  // Parenthesised, and it has to be: in Typst code mode a line break ends the
+  // statement, so a continuation line opening with `+` reads as a unary plus on a
+  // fresh expression and fails with `cannot apply unary '+' to string`.
   let ws = (
     "the and but not for with was are were been being have has had "
     + "this that these those they them their there then than from into "
@@ -77,10 +61,9 @@
 // duplicates KEPT — `_compress-corpus` counts them for tf.
 //
 // Lowercased, split on every non-alphanumeric cluster EXCEPT `.` and `-`, which
-// are kept INSIDE a token. MEASURED against this corpus: `0.5.1`,
-// `rheo-context`, `eco-marxist` and `marrow.typ` are exactly what a reader
-// searches for, and splitting them yields `5`, `1`, `rheo`, `context` — none of
-// which is the thing wanted. A LEADING `.` is kept too, so `.marrow.typ` survives
+// are kept INSIDE a token: `0.5.1`, `rheo-context`, `eco-marxist` and
+// `marrow.typ` are exactly what a reader searches for, and splitting them yields
+// `5`, `1`, `rheo`, `context` — none of which is the thing wanted. A LEADING `.` is kept too, so `.marrow.typ` survives
 // verbatim; the dotted form then answers both queries, a dotless one still being
 // a substring of it, where the stripped form answers only the dotless query. A
 // TRAILING `.`/`-` is stripped, that one being sentence punctuation rather than
@@ -124,22 +107,18 @@
 // The corpus-wide pass: `bodies` in, one space-joined term string per body out,
 // SAME ORDER, so the caller zips the result back onto its rows positionally.
 //
-// THE SIGNATURE TAKES BODIES, NEVER ROWS, and that is a build-cost decision, not
-// a matter of taste. `#search-index` runs on EVERY output page, so this pass is
-// called once per page. MEASURED (typst 0.15.1, 2026-08-17) with a pure function
-// doing ~285 ms of dictionary work, called from one document: an empty document
-// costs 42 ms, ONE call 327 ms, THIRTY calls with an IDENTICAL argument 287 ms —
-// the same as one, i.e. free — and THIRTY calls with ONE ARGUMENT DIFFERING
-// 6242 ms, about 21x. Typst memoises a pure call keyed on its ARGUMENTS, so this
-// pass costs once per build as long as every argument is page-invariant.
+// THE SIGNATURE TAKES BODIES, NEVER ROWS, and that is a build-cost decision.
+// `#search-index` runs on every output page, so this pass is called once per
+// page, and Typst memoises a pure call keyed on its ARGUMENTS: thirty calls with
+// an identical argument cost the same as one, while thirty differing in one
+// argument cost about 21x. So the pass is free per build for as long as every
+// argument is page-invariant.
 //
 // An `ideas()` row is NOT page-invariant: `href` is depth-relative, so a nested
-// vertebra's rows differ from a top-level page's. Hand this the whole rows array
-// and every page is a cache miss — the 6242 ms column. `id` and `body` are the
-// stable fields; `bodies` is the projection of the only one this needs. DO NOT
-// "simplify" it back to taking rows: nothing fails, no test goes red, the build
-// time is silently multiplied by the page count. That is exactly how bead
-// rheo-packages-ngx was missed.
+// vertebra's rows differ from a top-level page's, so handing this the whole rows
+// array makes every page a cache miss. `bodies` is the projection of the only
+// field this needs. DO NOT widen it back to rows: nothing fails, no test goes
+// red, and the build time is silently multiplied by the page count.
 #let _compress-corpus(bodies, body-terms: 48, df-ceiling: 40) = {
   let n = bodies.len()
   let toks = bodies.map(_tokenize)
@@ -171,23 +150,20 @@
       }
     }
 
-    // THE DF CEILING is the part that earns its keep. MEASURED on weeknotes at
-    // 40%: it cuts the/this/and/that/for/with/was/which/also/but/from/about/
-    // have/been AND corpus-specific noise no word list could ever know about —
-    // `week`, in 38 of 56 notes. It buys QUALITY, not bytes: size is almost
-    // identical from df<=20% to df<=100% (14,998B against 15,130B at 32 terms)
-    // because top-K already binds.
+    // THE DF CEILING is the part that earns its keep. At 40% it cuts the ordinary
+    // function words AND the corpus-specific noise no word list could know about
+    // — `week`, on a site of weeknotes. It buys QUALITY rather than bytes: the
+    // island is much the same size from df<=20% to df<=100%, because the top-K cut
+    // already binds.
     //
     // The percentage is compared by CROSS-MULTIPLICATION, so no float and no
     // rounding decides whether a term is in or out.
     //
-    // A df OF 1 IS NEVER DROPPED. A term in exactly one note is by definition
-    // not shared with the corpus, and the ceiling exists to remove what IS
-    // shared. Without the guard a small rookery indexes NOTHING: at n=2 every
-    // term is in 50% or 100% of the notes and 50 > 40. It cannot move the
-    // measurement above either — 40% of 56 notes is 22.4, so no df=1 term on
-    // weeknotes was ever near the ceiling. It rescues only the corpus too small
-    // for df to mean anything, the same case the stopword floor is there for.
+    // A df OF 1 IS NEVER DROPPED. A term in exactly one note is by definition not
+    // shared with the corpus, and the ceiling exists to remove what is shared.
+    // Without the guard a small rookery indexes NOTHING: at n=2 every term is in
+    // 50% or 100% of the notes and 50 > 40. It rescues only the corpus too small
+    // for df to mean anything, the case the stopword floor is also there for.
     let kept = order.filter(t => {
       let d = df.at(t)
       d <= 1 or d * 100 <= n * df-ceiling
@@ -200,19 +176,16 @@
     // SORTED BY WEIGHT ALONE, tie-broken by FIRST APPEARANCE: `order` is in
     // first-appearance order and Typst's `.sorted` is stable, so equal weights
     // keep the order the note wrote them in and the island is byte-stable between
-    // builds. Same stable-sort reliance `_rank` documents, and the reason the
-    // key is a plain integer rather than a `(weight, index)` array — an array
-    // key is not reliably comparable here.
+    // builds. The key is a plain integer rather than a `(weight, index)` array
+    // because an array key is not reliably comparable here.
     let ranked = kept.sorted(key: t => (
       -1 * int(calc.round(100 * tf.at(t) * calc.log(n / df.at(t), base: 2)))
     ))
 
     let top = ranked.slice(0, calc.min(body-terms, ranked.len()))
-    // `array.join()` on an EMPTY array returns `none`, not `""` (MEASURED, and
-    // also recorded at `parse-tag-query` above — this is now the second place
-    // that gotcha is load-bearing, `#search-index`'s truncation having gone), and
-    // an empty result is a real case: MEASURED, one note on weeknotes compressed
-    // to zero terms, its body being genuinely empty.
+    // `array.join()` on an EMPTY array returns `none` in Typst, not `""`, and an
+    // empty result is a real case: a genuinely empty note compresses to no terms
+    // at all.
     if top.len() == 0 { "" } else { top.join(" ") }
   })
 }

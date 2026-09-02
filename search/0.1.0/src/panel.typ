@@ -1,19 +1,14 @@
 // `#panel` — a filter-and-sort widget over a `tag-index` projection.
 //
-// WHY IT IS HERE AND NOT IN CORE. @rookery/core ships no JavaScript at all, and
-// this repo's CLAUDE.md records that as deliberate: "search is only worth having
-// with JavaScript, and rookery is the one package here that ships none", which is
-// why search was split out in the first place. A panel is the same case, and this
-// package already has the vite build, the fuzzy scorer and an import of rookery.
+// WHY IT IS HERE AND NOT IN CORE. @rookery/core ships no JavaScript, deliberately
+// — search is only worth having with JavaScript, which is why it is a package of
+// its own. A panel is the same case, and this package already carries the vite
+// build, the fuzzy scorer and an import of rookery.
 //
-// WHAT IT REPLACES. One fuzzy subsequence scorer was being written three times
-// across two packages and a consuming site — `src/score.js` here,
-// `todo-search.js` in @rookery/todos, and a site's own hand-rolled copy
-// whose comment said outright that it was "Ported from `todo-search.js`" — with
-// three near-identical Typst halves above them, each existing because
-// `#todos-search` renders its pill row internally with no hook to add a facet to.
-// A panel closes both gaps: facets are DECLARED, and a derived value reaches a
-// facet through a projection.
+// WHAT IT IS FOR. A filtered list over projected rows, with the facets DECLARED
+// rather than baked in, so a site adds a pill group by naming a projected field
+// instead of hand-rolling a widget and a scorer of its own. A derived value
+// reaches a facet through the projection.
 //
 //   #let INDEX = tag-index((sort: (family: "sort-"), state: (from: ..)))
 //   #panel(
@@ -286,18 +281,15 @@
   // sorted by deadline reads as urgent when it is merely unset.
   descending: false,
   // How many rows are VISIBLE before the list scrolls. NOT a data cap: every row
-  // stays in the markup. A consuming site had capped its list and hidden the
-  // rest, and its own comment records why that was abandoned — it "made the box
-  // a preview of the corpus rather than the corpus — you could not reach the
-  // thirty-third place without narrowing the query enough to lift it into the
-  // top five, and if you did not know its name you could not narrow at all".
+  // stays in the markup. Capping the data instead makes the box a preview of the
+  // corpus rather than the corpus — the thirty-third row is then unreachable
+  // without narrowing the query enough to lift it into the top few, which a reader
+  // who does not know its name cannot do.
   //
   // `none` MEANS IT DOES NOT SCROLL: the list flows down the page for as long as
-  // there are matching rows. `#filter-panel` has taken this since it was written —
-  // a scroll box earns its place in a widget a reader opens to find one thing, and
-  // not in a page's main list, where it cuts a row in half and hides the rest behind
-  // a gesture nothing advertises. This function was the odd one out, and `str(none)`
-  // is what a caller trying it hit.
+  // there are matching rows. A scroll box earns its place in a widget a reader
+  // opens to find one thing, and not in a page's main list, where it cuts a row in
+  // half and hides the rest behind a gesture nothing advertises.
   visible: 8,
   // The haystack the text input filters on, per row. Defaults to the row's own
   // label, name and body — searching the BODY is what finds a note by a phrase
@@ -388,11 +380,10 @@
   // A SET CANNOT BE AN ORDER. `sort:` is compared as one padded string per row, so a
   // multi-valued field there would sort by its first value and read as arbitrary.
   //
-  // `repr`, NOT `str`: an `assert` message is evaluated whether or not the condition
-  // holds, and `str(none)` PANICS — "expected integer, float, .. found none", with no
-  // mention of this assertion or of `sort:`. The default `sort: none` would have hit it
-  // on every panel that orders by nothing, which is most of them. Same trap the
-  // `visible:` comment below records a caller falling into.
+  // `repr`, NOT `str`: an `assert` message is evaluated whether or not the
+  // condition holds, and `str(none)` PANICS with "expected integer, float, ..
+  // found none", naming neither this assertion nor `sort:`. The default
+  // `sort: none` would hit that on every panel ordering by nothing.
   assert(
     sort == none or not multi.contains(sort),
     message: "@rookery/search: #panel's `sort:` is " + repr(sort) + ", which is also "

@@ -1,33 +1,23 @@
 // The two public search surfaces — the embeddable `#search-bar` and the overlay
 // `#search-modal` — and the core they share.
 //
-// RHEO ONLY, both: they mint an island and DOM that `src/search.js`
-// wires up in the browser, and neither has anything to do under plain
-// `typst compile`.
+// RHEO ONLY, both: they mint an island and the DOM `src/search.js` wires up in
+// the browser, and neither has anything to do under plain `typst compile`.
 
 #import "base.typ": *
 #import "corpus.typ": *
 
-// What `#search-bar` and `#search-modal` do identically, before either draws
-// anything: validate the four arguments they share and emit the island.
+// What `#search-bar` and `#search-modal` do identically before either draws
+// anything: validate the four arguments they share and emit the island. `where`
+// is the caller's name for the messages, the convention the `_assert-*`
+// validators use.
 //
-// MEASURED before this existed: 34 of `#search-bar`'s 66 code lines were byte
-// for byte the same as lines in `#search-modal` — the parameter list, the
-// guard, four asserts and the whole `#search-index` call with its six forwarded
-// arguments. Bead `rp-modal-limit-default-c88` was that duplication biting: the
-// modal's JavaScript fallback for `limit` had drifted from the Typst default.
+// NOT SHARED: the `<input>` element. Both spell the same eight attributes in a
+// different ORDER, and Typst emits them in the order given, so one canonical
+// version would rewrite the bytes of every page carrying the other.
 //
-// `where` is the caller's name for the messages, the same convention the
-// `_assert-*` validators above use.
-//
-// NOT SHARED, deliberately: the `<input>` element. Both spell the same eight
-// attributes, but in a different ORDER, and Typst emits them in the order given
-// — so one canonical version would change the bytes of every page carrying the
-// other. That is a real cleanup and it needs its own bead, with a diff a
-// reviewer can look at, not a silent rider on this one.
-//
-// The guard `if _target() != "html" or _rheo-ctx() == none { return }` stays in
-// both too: `return` belongs to the function that means to return.
+// The `if _target() != "html" or _rheo-ctx() == none { return }` guard stays in
+// both surfaces too — a `return` belongs to the function that means to return.
 #let _search-ui-common(
   where,
   limit,
@@ -41,9 +31,9 @@
   match,
 ) = {
   // `none` IS UNCAPPED, the same word `#panel`/`#filter-panel`'s `visible: none`
-  // already uses — one vocabulary across the package for "do not cap this". It is a
-  // RENDER cap either way: the island carries every row regardless, and `score.js`
-  // has always read a null limit as "all of them".
+  // uses — one vocabulary across the package for "do not cap this". It is a RENDER
+  // cap either way: the island carries every row regardless, and `score.js` reads
+  // a null limit as "all of them".
   assert(
     limit == none or (type(limit) == int and limit > 0),
     message: "@rookery/search: " + where + " `limit` must be a positive "
@@ -72,9 +62,6 @@
 // bar and on a modal.
 #let _search-class(base, class) = if class == none { base } else { base + " " + class }
 
-
-// ---- #search-bar — the embeddable search UI. RHEO ONLY --------------------
-//
 //   #search-bar()
 //   #search-bar(placeholder: "Find a note", limit: 12, class: "topbar-search")
 //   #search-bar(index: false)   // a SECOND bar on a page that already has one
@@ -82,12 +69,11 @@
 //   #search-bar(body-search: false) // ids and titles only, no body text
 //   #search-bar(tags: "phd")        // a bar over only the notes tagged phd
 //
-// Emits the JSON island (via `search-index`, `body-terms:`, `df-ceiling:`,
-// `body-search:`, `tags:` and `match:` forwarded to it UNCHANGED — this function
-// asserts none of them, `#search-index` owns their validation), an `<input>`, and
-// an empty
-// results container; `src/search.js`, injected by rheo from the
-// manifest's `js_scripts`, wires them together.
+// Emits the JSON island — via `search-index`, with `body-terms:`, `df-ceiling:`,
+// `body-search:`, `tags:` and `match:` forwarded unchanged, that function owning
+// their validation — then an `<input>` and an empty results container.
+// `src/search.js`, injected by rheo from the manifest's `js_scripts`, wires them
+// together.
 //
 // `tags:` SCOPES THE BAR by scoping its island, which is why it belongs here
 // rather than in the script: the corpus is chosen in Typst, and the browser
@@ -139,15 +125,14 @@
   )
   html.elem(
     "span",
-    // No inline theme style needed: it inherits rookery's `--idea-*` properties
-    // from the document-scope `:root` rule. See the theme block near the top of
-    // this file.
+    // No inline theme style: it inherits rookery's `--idea-*` properties from the
+    // document-scope `:root` rule rookery publishes per page — see `base.typ`.
     attrs: (
       class: _search-class("rookery-search", class),
       "data-rookery-search": elem-id,
-      // EMITTED EVEN WHEN UNCAPPED, and that is the trap: `wire.js` falls back to
-      // this widget's own default when the attribute is ABSENT, so omitting it for
-      // `none` would silently re-cap the very case that asked not to be.
+      // EMITTED EVEN WHEN UNCAPPED: the script falls back to this widget's own
+      // default when the attribute is ABSENT, so omitting it for `none` would
+      // silently re-cap the one case that asked not to be.
       "data-rookery-search-limit": if limit == none { "none" } else { str(limit) },
       "data-rookery-search-open": "false",
     ),
@@ -165,8 +150,6 @@
   )
 }
 
-// ---- #search-modal — the overlay search UI. RHEO ONLY ---------------------
-//
 //   #search-modal()
 //   #search-modal(placeholder: "Search ideas", limit: 30, trigger-label: "Search")
 //   #search-modal(trigger: false)   // markup only; open it from your own button
@@ -204,27 +187,19 @@
 // which rookery's `.marrow.typ` already emits) when the reader selects the row,
 // then caching it for the session. Nothing is rendered into this page.
 //
-// That is a build-cost decision, and a MEASURED one. This function sits in a
-// site's header, so it runs on EVERY page; an earlier version emitted a hidden
-// per-note container holding `#idea-body`'s rendering of every note, which is
-// `notes × pages` renders per build — 57 × 69 ≈ 3,900 on weeknotes.ohrg.org,
-// costing 14.6s against a 2.65s baseline and 312 MB of output (301 MB of it
-// base64 images, since Typst's HTML export inlines every `#image`). Stripping
-// the images cut the size to 33 MB but left the time at 14.6s, because the cost
-// is PER CALL, not per byte: rendering the same bodies at `limit: 1`, near
-// empty, still cost 10.3s. Truncation could not fix that; only not rendering
-// N×M could. Fetching reuses pages rheo already emits, so the marginal build
-// cost of a rich preview is now exactly zero.
+// That is a build-cost decision. This function sits in a site's header, so it
+// runs on EVERY page, and rendering every note's body into every page costs
+// `notes × pages` Typst renders — on a 57-note site with 69 pages, about 3,900
+// renders, 14.6s against a 2.65s baseline and hundreds of megabytes of output,
+// most of it base64 images. The cost is PER CALL rather than per byte, so
+// truncating the bodies does not touch it. Fetching reuses pages rheo already
+// emits, so the marginal build cost of a rich preview is zero.
 //
-// The trade, stated plainly: `fetch` does not work from `file://`, so opening
-// a build straight off disk gets the JSON island's `body` field instead of the
-// rich rendering — which since 0.3.0 is that note's compressed KEYWORD ROW, not
-// a prose excerpt, because the field is compressed precisely on the grounds that
-// the pane no longer renders it as prose (see `#search-index`). Rich previews
-// need http (`rheo watch`, or any served copy). Serve the build, or accept the
-// keyword row. Note that `body-search: false` removes that field, so the two
-// together mean no preview at all on `file://`; over http the fetched page is
-// unaffected.
+// The trade: `fetch` does not work from `file://`, so a build opened straight off
+// disk gets the island's `body` field — that note's compressed KEYWORD ROW —
+// instead of the rich rendering. Rich previews need http (`rheo watch`, or any
+// served copy). `body-search: false` removes that field, so the two together mean
+// no preview at all on `file://`; over http the fetched page is unaffected.
 //
 // SAME ISLAND, SHARED BY NAME, NO IDS IN THE MARKUP — the rule `#search-bar`
 // follows (see its comment above). The trigger's `data-rookery-search-modal`
@@ -287,17 +262,16 @@
   }
   html.elem(
     "dialog",
-    // No inline theme style needed here either: this element is emitted wherever
-    // the author calls `#search-modal` — in practice a site's header — and now
-    // inherits rookery's `--idea-*` properties from the document-scope `:root`
-    // rule rather than from a DOM parent. See the theme block near the top of
-    // this file.
+    // No inline theme style here either: the dialog is emitted wherever the author
+    // calls `#search-modal`, in practice a site's header, and inherits rookery's
+    // `--idea-*` properties from the document-scope `:root` rule rather than from
+    // a DOM parent — see `base.typ`.
     attrs: (
       class: _search-class("rookery-search-modal", class),
       "data-rookery-search": elem-id,
-      // EMITTED EVEN WHEN UNCAPPED, and that is the trap: `wire.js` falls back to
-      // this widget's own default when the attribute is ABSENT, so omitting it for
-      // `none` would silently re-cap the very case that asked not to be.
+      // EMITTED EVEN WHEN UNCAPPED: the script falls back to this widget's own
+      // default when the attribute is ABSENT, so omitting it for `none` would
+      // silently re-cap the one case that asked not to be.
       "data-rookery-search-limit": if limit == none { "none" } else { str(limit) },
     ),
     html.elem(

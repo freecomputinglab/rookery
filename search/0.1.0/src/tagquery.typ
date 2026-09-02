@@ -1,24 +1,14 @@
 // The `tags:` query language: a boolean expression over a note's tags.
 //
-// THE WHOLE LANGUAGE AND NOTHING ELSE: the prefix that opens an expression
+// The whole language and nothing else — the prefix that opens an expression
 // (`split-query`), a shunting-yard parse to RPN, and an evaluator over that RPN.
 // Refining the language means editing this file and its JavaScript twin,
-// `src/tagquery.js`, and no other.
-//
-// THE SCORER USED TO LIVE HERE and now sits in `score.typ`. `fuzzy-score` and
-// `body-score` have nothing to do with tags; all they shared with this file is
-// that ONE query can carry both a tag expression and residual text — which
-// `split-query` separates precisely so that the two halves never have to know
-// about each other. The JavaScript side was always split this way; this is the
-// Typst side catching up.
-//
-// PINNED TO ITS JS TWIN case for case by test/parity.mjs — `parse-tag-query`
-// against `parseTagQuery`, `split-query` against `splitQuery`.
+// `src/tagquery.js`, and no other; `test/parity.mjs` pins the two case for case,
+// `parse-tag-query` against `parseTagQuery` and `split-query` against
+// `splitQuery`.
 
 #import "base.typ": *
 
-// ---- tags: query — a boolean expression over a note's tags ----------------
-//
 //   tags:(a|b)&c        `&` binds tighter than `|`; `()` groups
 //   tags:!draft         `!` negates, binds tightest, right-associative
 //   tags:draft window   an unescaped SPACE ends the tag expression; the rest
@@ -36,19 +26,13 @@
 // character to an operator later would silently change what queries already
 // written mean. Adding to this set is a breaking change, not a feature.
 //
-// SHUNTING-YARD RATHER THAN RECURSIVE DESCENT, for two load-bearing reasons:
-// (1) an iterative parser emits an RPN token ARRAY, which `test/parity.typ` can
-// diff across the two languages AS DATA, exactly as it already diffs scores;
-// (2) it needs no recursion, so a deeply nested query cannot hit Typst's
-// call-depth ceiling.
+// SHUNTING-YARD RATHER THAN RECURSIVE DESCENT, for two reasons: an iterative
+// parser emits an RPN token ARRAY, which the fixture can diff across the two
+// languages as data exactly as it diffs scores; and it needs no recursion, so a
+// deeply nested query cannot reach Typst's call-depth ceiling.
 //
-// MEASURED (typst 0.15.1): 1000 parses plus 500 evaluations cost 61 ms in
-// total, about 60 microseconds per parse — against a build that does ONE parse.
-// Cheap enough that nothing here is worth caching.
-//
-// `src/search.js` gets the same rules for the live bar, and the two must
-// agree token for token; the `<tag-parity>` fixture is what pins them. Every
-// decision below is mirrored there, so change neither copy alone.
+// A parse costs about 60 microseconds and a build does one, so nothing here is
+// worth caching.
 
 // The operator table. A DICTIONARY, not an array of operators plus a lookup:
 // `c in _prec` is then a KEY test — precisely the question the tokenizer asks of
@@ -95,22 +79,17 @@
         repaired.push("trailing-backslash")
       }
     } else if c.trim() == "" {
-      // `c.trim() == ""` is the whitespace test, not a regex. Rust's
-      // `char::is_whitespace` (which Typst's `trim` uses) and JavaScript's
-      // `String.trim` agree on every character either language will
-      // realistically see in a search box, and each port using its OWN trim is
-      // what keeps them honest. They differ on U+FEFF, which JS trims and Rust
-      // does not — written up in the readme's limitations rather than pretended
-      // impossible.
+      // `c.trim() == ""` is the whitespace test rather than a regex, so each side
+      // keeps its own runtime's definition: Rust's `char::is_whitespace`, which
+      // Typst's `trim` uses, and JavaScript's `String.trim` agree on everything a
+      // search box realistically holds. They differ on U+FEFF, which JavaScript
+      // trims and Rust does not, and the readme records that as a limitation.
       //
-      // `array.join()` on an EMPTY array returns `none`, not `""` (MEASURED —
-      // the same gotcha recorded at `#search-index` below), and the empty slice
-      // is reached by a query whose LAST cluster is the separating space
-      // (`tags:draft `, typed on the way to `tags:draft window`), so the length
-      // is checked here instead of handing `none` to `.trim()` at the end. The
-      // spike's 19 cases never end on a bare space; this guard is the one line
-      // added to its parser, and JavaScript's `slice(i + 1).join("")` yields
-      // `""` unaided, so the ports still agree.
+      // `array.join()` on an EMPTY array returns `none` in Typst, not `""`, and
+      // the empty slice is reached by a query whose last cluster is the separating
+      // space (`tags:draft `, typed on the way to `tags:draft window`) — hence the
+      // length test rather than handing `none` to `.trim()`. JavaScript's
+      // `slice(i + 1).join("")` yields `""` unaided, so the ports agree.
       let rest = cs.slice(i + 1)
       residual = if rest.len() == 0 { "" } else { rest.join("") }
       stop = true
@@ -133,8 +112,8 @@
         if top == "(" {
           go = false
         } else {
-          // `!` at EQUAL precedence does NOT pop (the `c != "!"` below). That is
-          // its right-associativity, and it is what makes `!!a` parse instead of
+          // `!` at EQUAL precedence does NOT pop — the `c != "!"` below — which is
+          // its right-associativity, and what makes `!!a` parse instead of
           // emitting a `!` with no operand under it.
           let higher = if _prec.at(top) > _prec.at(c) {
             true

@@ -1,57 +1,43 @@
 // @rookery/search — fuzzy search over a rookery.
 //
-// Reads the corpus through `@rookery/core`'s public primitives and never
-// touches its internals: `ideas()` for the notes, `note-href()` for links.
-// Nothing here RENDERS a note's body — the modal's preview pane fetches the
-// note's own minted page at runtime instead (see `search-modal` below), so
-// this package's build cost is one pass over the registry per page rather
-// than one full body render per note per page.
+// Reads the corpus through `@rookery/core`'s public primitives and never touches
+// its internals: `ideas()` for the notes, `note-href()` for links. Nothing here
+// renders a note's body — the modal's preview pane fetches the note's own minted
+// page at runtime — so the build cost is one pass over the registry per page
+// rather than one body render per note per page.
 //
-// Two layers, and the split matters:
-//   - `search-ideas(query)` is pure Typst and works under plain
-//     `typst compile` — build a static list of matches with no JavaScript.
-//   - `search-index()` and `search-bar()` are RHEO ONLY. The bar's script is
-//     injected by rheo from this manifest's `js_scripts`, and the index links
-//     to minted note pages, which only rheo produces.
+// Two layers:
+//   - `search-ideas(query)` is pure Typst and works under plain `typst compile`,
+//     for a static list of matches with no JavaScript.
+//   - `search-index()`, `search-bar()` and `search-modal()` are rheo only. Their
+//     script is injected by rheo from this manifest's `js_scripts`, and the index
+//     links to minted note pages, which only rheo produces.
 //
-// BUILT, unlike `@rookery/core`: `typst.toml` points at `dist/`, and `dist/`
-// comes from `just build` (vite copies this file and the CSS across and
-// bundles `src/search.js` into `dist/lib.js`). Editing `src/` does
-// NOT take effect until you rebuild — the one ergonomic cost of shipping JS.
+// A BUILT PACKAGE, unlike `@rookery/core`: `dist/lib.js` comes from `just build`,
+// so an edit to `src/*.js` takes effect only after a rebuild. The Typst
+// entrypoint and the stylesheet are read from `src/` directly.
 #import "@rookery/core:0.1.0": ideas, note-href
 
 // THE ENTRYPOINT IS A MANIFEST. Every name this package exports lives in one of
 // the modules below, and `#import "x.typ": *` re-exports transitively — so
-// `@rookery/search:0.1.0` stays a single import for a project and
-// `.marrow.typ` keeps resolving `_compress-corpus`, `_corpus-cache` and
-// `_corpus-key` by name.
+// `@rookery/search:0.1.0` is a single import for a project, and `.marrow.typ`
+// resolves `_compress-corpus`, `_corpus-cache` and `_corpus-key` by name.
 //
-// THE ORDER IS THE DEPENDENCY ORDER and it is load-bearing: a `#let` closure
-// captures the scope visible AT DEFINITION time, and Typst has no cycles to fall
-// back on. `ideas.typ` sits above `corpus.typ` because `#search-index` calls
-// `#search-ideas`; with the two the other way round the package built, both test
-// suites passed, and a real site failed with `unknown variable: search-ideas` —
-// which is why `rheo compile` on rookery.ohrg.org is part of this package's
-// checks and not only `just test`.
+// THE ORDER IS THE DEPENDENCY ORDER, and it is load-bearing: a `#let` closure
+// captures the scope visible at definition time, and Typst has no cycles to fall
+// back on. A line in the wrong place still builds as a package and still passes
+// both suites, failing only on a real site with `unknown variable: ..` — which is
+// why `rheo compile` over a demo project is one of this package's checks.
 #import "base.typ": *
 #import "tagquery.typ": *
-// AFTER `tagquery.typ` AND BEFORE `rank.typ`, which is the dependency order the
-// paragraph above demands rather than tidy alphabetical accident: `rank.typ`'s
-// `_rank` calls `fuzzy-score` and `body-score`, which now live here. Put this line
-// below `rank.typ` and the package still builds while a real site fails with
-// `unknown variable: fuzzy-score` — the exact failure that paragraph records.
+// Before `rank.typ`, whose `_rank` calls `fuzzy-score` and `body-score`.
 #import "score.typ": *
 #import "rank.typ": *
 #import "lookup.typ": *
-// BEFORE `corpus.typ`, whose `#search-index` calls `_compress-corpus` — the same
-// dependency-order rule this manifest states throughout. `.marrow.typ` resolves
-// `_compress-corpus` through this entrypoint, so the name has to arrive here too.
+// Before `corpus.typ`, whose `#search-index` calls `_compress-corpus`.
 #import "compress.typ": *
 #import "corpus.typ": *
 #import "ui.typ": *
 #import "panel.typ": *
-// AFTER `panel.typ`, and the order matters for the reason this manifest states: a
-// closure captures its definition scope. `#filter-panel` is panel's sibling — same
-// chrome, a tag scope and authored pills instead of projected facets — and it reaches
-// `#idea-row` from @rookery/core, which the top of this file already imports from.
+// After `panel.typ`, whose `_panel-shell` draws `#filter-panel`'s chrome.
 #import "filter-panel.typ": *
