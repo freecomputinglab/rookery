@@ -218,7 +218,6 @@
     if top.len() == 0 { "" } else { top.join(" ") }
   })
 }
-// cost a key per row to say the same thing. The port reads `row.tags ?? []`.
 // ---- The build-once corpus cache ------------------------------------------
 //
 // `_compress-corpus` is a pure function of its arguments and Typst memoises it
@@ -255,6 +254,124 @@
 // so it can be a dictionary key at all.
 #let _corpus-key(body-terms, df-ceiling) = "t" + str(body-terms) + "/d" + str(df-ceiling)
 
+//
+//   #search-index()                       // usually not called directly
+//   #search-index(elem-id: "notes-index")  // a second, differently-keyed index
+//   #search-index(body-terms: 24)          // a tighter term budget per note
+//   #search-index(df-ceiling: 20)          // a harsher cut of shared terms
+//   #search-index(body-search: false)      // no body text in the island at all
+//   #search-index(tags: "phd")             // only the notes tagged phd
+//
+// Emits `<script type="application/json" id="rookery-search-index">[...]</script>`,
+// one row per note: `(id, name, text, tags, body, created, href)`, where `text`
+// is the plain-text title ("" when untitled), `tags` is the note's own tag
+// array (THE KEY IS ABSENT when it has none), `body` is that note's compressed
+// term string ("" when it compresses to nothing), `created` is that note's
+// resolved date as a zero-padded `"[year][month][day]"` string (THE KEY IS
+// ABSENT when the note is undated — never shipped as `""` or `null`; this is
+// the same stamp `_rank` computes from `e.created` for the default/browse
+// listing, see its comment), and `href` is the depth-relative
+// path to the note's minted page — computed against the page this call sits on,
+// so an island in a site's shared chrome comes out right on a nested vertebra
+// too.
+//
+// The field is `text`, not `title`, on purpose: same name, same meaning, same
+// type as `search-ideas` returns. `title` there is CONTENT, which JSON cannot
+// carry, and one name meaning two types across two surfaces is how a consumer
+// gets it wrong.
+//
+// `body-terms` AND `df-ceiling` CONTROL THE COMPRESSION, and there is no
+// character cap any more: a row's `body` is `_compress-corpus`' output for that
+// note — its `body-terms` most distinctive terms, space-joined in weight order,
+// with every term appearing in more than `df-ceiling` percent of the SELECTED
+// notes dropped first. The measurements behind both defaults are recorded at
+// `_compress-corpus`.
+//
+// `body-chars` IS RETIRED, and that is 0.3.0's breaking change. The budget is a
+// term count now, because a prefix cap spent the bytes on whatever a note
+// happened to open with and hid the rest of it from the browser entirely —
+// MEASURED, 36% of weeknotes' prose was unfindable in the bar. It is legal only
+// because this field is no longer read as prose: the preview pane fetches the
+// note's own page instead of excerpting the island.
+//
+// A cap of SOME kind is not optional, because the island is INLINE IN EVERY
+// PAGE, not fetched once: MEASURED for rookery.ohrg.org, its `content/*.typ`
+// sources total ~31 KB across roughly 40 notes, so an uncapped index costs on
+// the order of 20-25 KB of JSON on every page.
+//
+// THE FIELD IS STILL CALLED `body` and still holds plain text — what changed is
+// its CONTENT, not its name or its type. `search()` in
+// `src/search.js` reads `hit.body` and `snippet` excerpts it for the
+// failed-fetch fallback; both keep working, and the string they get simply reads
+// as a keyword row rather than as a note's opening sentence.
+//
+// `df-ceiling` IS MEASURED OVER THE SELECTED NOTES, so `tags:` below moves it: a
+// term common across a whole rookery can be distinctive within one tag's notes,
+// and each island's ceiling is computed for the corpus it actually carries.
+//
+// A NOTE CAN COMPRESS TO NOTHING, and its `body` is then `""`. MEASURED, one note
+// on weeknotes did, its body being genuinely empty. Such a note is unfindable by
+// body — the same as an empty note already was — and its keyword row is empty.
+//
+// `body-search: false` OMITS THE `body` FIELD ALTOGETHER — a row is then
+// `(id, name, text, href)`, and the island shrinks to roughly the sum of the
+// corpus's ids and titles. It is the same switch `#search-ideas` takes and
+// means the same thing on both sides of the language boundary: the browser
+// searches ids and titles only. No JavaScript change is needed to enforce it,
+// and that is by construction rather than luck — `search()` in
+// `src/search.js` reads `row.body ?? ""`, and `bodyScore("", q)` is
+// `null` for every non-empty query, so a row with no body simply cannot produce
+// a body-tier hit. Leaving the field out is therefore the whole implementation.
+//
+// Two consequences worth stating plainly. A note findable ONLY by a word in its
+// body becomes unfindable — that is the point, not a regression. And the modal's
+// preview pane loses the keyword row drawn from this field, so on `file://`
+// (where the rich preview cannot be fetched) it shows "No preview"; over http the
+// fetched page is unaffected.
+//
+// EITHER WAY THE TYPST SIDE STAYS EXHAUSTIVE: `#search-ideas` scores full bodies
+// and never truncated, so a term this island drops — to `body-search: false`, to
+// the `df-ceiling`, or to the `body-terms` cut — is still findable there. See its
+// comment on that deliberate asymmetry.
+//
+// WHY NOT A SEPARATE FETCHED JSON FILE, which would keep pages small: rheo
+// emits pages from typst, and there is no supported way for a package to emit
+// a standalone asset file next to them. An inline island is what the package
+// can actually produce, and it also works from `file://` with no fetch.
+//
+// `search-bar` emits this itself, so most projects never call it. Call it
+// directly when building a custom UI, or when several bars share one index —
+// see `search-bar`'s `index:` parameter.
+//
+// The rows are `search-ideas("")` — the empty query matching everything — with
+// the fields JSON cannot carry dropped, and unmintable notes filtered out. No
+// `body-search:` is forwarded to that call and none is wanted: an empty query
+// returns `none` from `body-score` for every note, so the body tier is empty
+// whatever the switch says, and every row arrives through the name tier.
+//
+// `tags:`/`match:` ARE forwarded there, and they scope the island: a note the
+// selection excludes is not in the JSON, so the browser cannot find it. That is
+// how a bar over just the notes tagged `phd` is built — see `#search-bar`.
+//
+// EACH ROW CARRIES ITS NOTE'S `tags`, because the browser now has something left
+// to decide with them: a reader types `tags:(a|b)&c` into the bar and the script
+// evaluates that expression per row (see `#search-ideas`' comment on the two
+// axes). The author's `tags:` parameter below still settles the CORPUS in Typst —
+// what ships is the field the reader's own filter reads.
+//
+// MEASURED, 40 notes with tags present, bodies under 0.2.0's 1200-cluster prefix
+// cap: 51.1 KB -> 51.8 KB, so +723 B, +1.4%, about 18 B per note. The per-note
+// cost is unchanged now that the cap is a term budget; the PERCENTAGE is larger,
+// the rest of the row having shrunk.
+//
+// THERE IS DELIBERATELY NO `tag-search: false` SWITCH. 18 B a note does not earn a
+// knob — `body-search: false` earns one because it removes the largest field in
+// the row, and a per-project judgement about whether full-text hits are noise has
+// no counterpart here.
+//
+// THE KEY IS OMITTED for an untagged note rather than written as `()`, exactly as
+// `body-search: false` omits `body`: an absent key means "none", where `()` would
+// cost a key per row to say the same thing. The port reads `row.tags ?? []`.
 #let search-index(
   elem-id: "rookery-search-index",
   body-terms: 48,
