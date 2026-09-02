@@ -75,3 +75,28 @@
 // `TWO` above) cannot tell the two apart, hence a fixture entered in reverse.
 #let UNSORTED = "@book{zeta, title = {Z},}\n\n@book{alpha, title = {A},}\n"
 #assert.eq(bibtex(UNSORTED).bib.keys().sorted(), ("alpha", "zeta"))
+
+// A bad `keywords:` value is rejected, naming the three accepted ones —
+// exercised by reading `bibtex(..)`'s own assert message rather than by a
+// negative test case: Typst has no way to catch a panic, so a fixture cannot
+// assert one without aborting the whole compile.
+
+// ---- keyword-tags — a BibTeX `keywords` field as rookery tag slugs --------
+//
+// Better BibTeX emits either separator depending on export settings, so both
+// are accepted; each part is trimmed, lowercased, and every run of
+// non-alphanumeric characters collapses to one hyphen with the ends
+// stripped.
+#assert.eq(keyword-tags("ethics, ontology, badiou"), ("ethics", "ontology", "badiou"))
+#assert.eq(keyword-tags("ethics; ontology; badiou"), ("ethics", "ontology", "badiou"))
+
+// A keyword with a space would otherwise break its CSS class — slugifying
+// collapses it to one hyphen. Mixed case folds too.
+#assert.eq(keyword-tags("Digital Humanities"), ("digital-humanities",))
+#assert.eq(keyword-tags("ETHICS, Ontology"), ("ethics", "ontology"))
+
+// Punctuation-only keyword slugifies to the empty string and is dropped.
+#assert.eq(keyword-tags("ethics, !!!, badiou"), ("ethics", "badiou"))
+
+// No `keywords` field at all: an empty array, not an error.
+#assert.eq(keyword-tags(none), ())

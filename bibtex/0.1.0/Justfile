@@ -14,13 +14,19 @@ default:
 # cannot infer a format from that path, and nothing there is rendered — only
 # asserted.
 #
-# `sweep.typ`'s stderr is captured and grepped for `did not converge`: a
+# `sweep*.typ`'s stderr is captured and grepped for `did not converge`: a
 # sweep that calls the CLAIMING `citation` from inside its own loop reads its
 # own write in the same pass, and Typst's state resolution oscillates and
 # gives up with exactly that warning while still exiting 0 — a silently
 # incomplete bibliography on a build that only warns. `all()` is built to
-# avoid it (see `src/claim.typ`), and this is what would catch a regression:
-# `typst compile` alone would not, since the warning does not fail the build.
+# avoid it (see `src/claim.typ`), and `keywords: "existing"` reads the tag
+# registry mid-sweep for the same reason (see `src/lib.typ`) — this is what
+# would catch a regression in either: `typst compile` alone would not, since
+# the warning does not fail the build.
+#
+# `sweep-all.typ`/`sweep-existing.typ` are separate documents, not two calls
+# in `sweep.typ`, because a second `all()` call is a compile error — each
+# needs its own `bibtex(..)` and its own vertebra.
 test:
     typst compile --features html --root . --format pdf test/units.typ /dev/null
     @echo "units OK"
@@ -31,4 +37,10 @@ test:
     typst compile --features html --format html --root . test/sweep.typ test/build/sweep.html 2>test/build/sweep.stderr
     cat test/build/sweep.stderr >&2
     ! grep -q "did not converge" test/build/sweep.stderr
+    typst compile --features html --format html --root . test/sweep-existing.typ test/build/sweep-existing.html 2>test/build/sweep-existing.stderr
+    cat test/build/sweep-existing.stderr >&2
+    ! grep -q "did not converge" test/build/sweep-existing.stderr
+    typst compile --features html --format html --root . test/sweep-all.typ test/build/sweep-all.html 2>test/build/sweep-all.stderr
+    cat test/build/sweep-all.stderr >&2
+    ! grep -q "did not converge" test/build/sweep-all.stderr
     ./test/check.sh

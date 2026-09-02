@@ -56,4 +56,101 @@ if by_id["idea:smith2020"] != "":
 print(f"  all(): 2 notes registered — {rows}")
 PY
 
+EX=test/build/sweep-existing.html
+AL=test/build/sweep-all.html
+[ -f "$EX" ] || { echo "FAIL: no $EX — run 'just test' first"; exit 1; }
+[ -f "$AL" ] || { echo "FAIL: no $AL — run 'just test' first"; exit 1; }
+
+# `keywords: "existing"` keeps a keyword only where it already matches a tag
+# elsewhere in the rookery (`liminal`, seeded by the hand-written `seed`
+# note); `keywords: "all"` keeps every keyword regardless. Both fixtures mint
+# the same three bibliography entries, so the two `kw-row` scans below are
+# directly comparable — the only thing that differs is which keywords
+# survive.
+python3 - "$EX" "$AL" <<'PY' || fail=1
+import re, sys
+
+def txt(s):
+    return " ".join(re.sub(r"<[^>]+>", " ", s).split())
+
+def rows(path):
+    h = open(path).read()
+    out = {}
+    for row in re.findall(r'<div class="kw-row">(.*?)</div>', h, re.S):
+        m_id = re.search(r'<span class="kw-id">(.*?)</span>', row, re.S)
+        m_tags = re.search(r'<span class="kw-tags">(.*?)</span>', row, re.S)
+        out[txt(m_id.group(1))] = txt(m_tags.group(1)) if m_tags else ""
+    return out
+
+existing = rows(sys.argv[1])
+all_mode = rows(sys.argv[2])
+
+want_existing = {
+    "idea:aaa": "citation,liminal",
+    "idea:bbb": "citation",
+    "idea:ccc": "citation",
+    "idea:seed": "liminal",
+}
+want_all = {
+    "idea:aaa": "brandnew,citation,liminal",
+    "idea:bbb": "brandnew,citation",
+    "idea:ccc": "citation,digital-humanities",
+    "idea:seed": "liminal",
+}
+
+ok = True
+if existing != want_existing:
+    print(f"FAIL: keywords=\"existing\" tags are {existing}, wanted {want_existing}")
+    ok = False
+if all_mode != want_all:
+    print(f"FAIL: keywords=\"all\" tags are {all_mode}, wanted {want_all}")
+    ok = False
+
+def fmt(d):
+    ids = ("idea:aaa", "idea:bbb", "idea:ccc", "idea:seed")
+    return " | ".join(f"{k.split(':')[1]}={d[k].replace(',', '+')}" for k in ids)
+
+print(f'  existing: {fmt(existing)}')
+print(f'  all:      {fmt(all_mode)}')
+
+if not ok: sys.exit(1)
+PY
+
+# Every `class="..."` a note carries is `idea`, `idea-box`, `idea-tag` (the
+# permalink pill's own shape hook) or `idea-tag-<slug>`, where `<slug>` is
+# what `keyword-tags` produces (lowercase, hyphen-separated). A raw
+# multi-word keyword that skipped slugifying would split into a bogus
+# `idea-tag-<word>` token PLUS a stray bare word carrying no `idea-tag-`
+# prefix at all — a broken two-class attribute, invisible in a passing
+# compile. Scanned across every rendered fixture, not just the keyword ones,
+# so this also guards `sweep.html` and any future one.
+python3 - test/build/*.html <<'PY' || fail=1
+import re, sys
+
+allowed = re.compile(r'^(idea|idea-box|idea-tag|idea-tag-[a-z0-9]+(-[a-z0-9]+)*)$')
+bad = []
+for path in sys.argv[1:]:
+    h = open(path).read()
+    for m in re.finditer(r'class="([^"]*)"', h):
+        tokens = m.group(1).split()
+        # Only an attribute that is ALREADY one of a note's own class lists —
+        # `class="idea idea-tag-.."`, `class="idea-box idea-tag-.."`,
+        # `class="idea-tag idea-tag-.."` (a permalink pill) — is in scope; an
+        # unrelated attribute (this fixture's own `kw-row` spans, say) never
+        # carries an `idea`/`idea-tag`/`idea-tag-` token at all.
+        if not any(t in ("idea", "idea-box", "idea-tag") or t.startswith("idea-tag-") for t in tokens):
+            continue
+        for token in tokens:
+            if not allowed.match(token):
+                bad.append((path, m.group(1), token))
+
+if bad:
+    for path, cls, token in bad:
+        print(f'FAIL: {path}: stray class token {token!r} in class="{cls}" — '
+              f'a keyword with a space that was not slugified splits an '
+              f'`idea-tag-` class exactly like this')
+    sys.exit(1)
+print("  no stray idea-tag- class tokens")
+PY
+
 if [ "$fail" -eq 0 ]; then echo "sweep OK"; else echo "sweep FAILED"; exit 1; fi

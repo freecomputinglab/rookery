@@ -21,7 +21,7 @@ one note per reference, titled and keyed from the entry itself.
 carries as an HTML definition list, for a body that just wants the record
 laid out.
 
-## `bibtex(src, tagged-idea:, tag:)`
+## `bibtex(src, tagged-idea:, tag:, keywords:)`
 
 `src` is a `.bib` file's contents, or an array of them — several exports read
 as one bibliography, joined with a newline between members so a file ending
@@ -86,9 +86,48 @@ undecorated one would not carry them:
 #let refs = bibtex(read("refs.bib"), tagged-idea: tagged-idea)
 ```
 
-`parse-bib`, `bib-title`, `cite-key` and `fields-block` are re-exported from
-the entrypoint too, for a consumer that wants the parts directly rather than
-only through the factory.
+`parse-bib`, `bib-title`, `cite-key`, `fields-block` and `keyword-tags` are
+re-exported from the entrypoint too, for a consumer that wants the parts
+directly rather than only through the factory.
+
+## `keywords:` — a Zotero export's keywords as rookery tags
+
+A Better BibTeX export carries `keywords = {..}` — the Zotero tags on the
+record. By default that field renders as an ordinary row in the citation
+block and nothing else; `keywords:` also turns it into real rookery tags, so
+a citation is reachable through the same tag views as every other note:
+
+```typst
+#let refs = bibtex(read("refs.bib"), keywords: "all")
+```
+
+Three values, `none` (the default — no consuming project changes behaviour
+on upgrade):
+
+| | |
+| --- | --- |
+| `none` | (default) the `keywords` field is not turned into tags at all |
+| `"all"` | every keyword becomes a tag, whether or not the rookery already has it |
+| `"existing"` | only a keyword that already matches a tag SOMEWHERE ELSE in the rookery becomes one; the rest are ignored |
+
+A keyword is slugified before it is compared or minted — trimmed, lowercased,
+every run of non-alphanumeric characters collapsed to one hyphen, leading and
+trailing hyphens stripped — so `Digital Humanities` becomes the tag
+`digital-humanities`, and `"existing"` matches against that slug (the tags
+already in a rookery are themselves slugs). A keyword that slugifies to the
+empty string is dropped. `keywords` may hold several, split on both `,` and
+`;` since Better BibTeX emits either depending on export settings.
+
+Keyword tags merge with whatever `tags:` a `citation`/`all()` call already
+carries, and with the package's own `tag` (`"citation"` by default) — a
+caller's explicit tag always wins on a key collision. The `keywords` row
+itself stays in the citation block regardless: it is bibliographic data, and
+the tags are an addition to it, not a replacement.
+
+`"existing"` reads the rookery's own tag registry, which is why it can only
+run where `#context` is available — `all()` already runs inside one;
+`citation` opens one of its own for this mode specifically, rather than for
+every mode.
 
 ## What the parser does not handle
 
