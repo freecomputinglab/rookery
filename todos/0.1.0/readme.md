@@ -292,6 +292,30 @@ deliberately never stored as tags, so no tag query can select them.
 **Searching covers the body, not just the title** — the haystack is the title,
 the name and the body, so typing a phrase from inside a todo finds it.
 
+### A `tags:` expression, when `@rookery/search` is installed
+
+With that package on the page the input also takes the reader's `tags:` query
+language, against **every tag the todo carries** rather than the pill
+vocabulary:
+
+```
+tags:todo&!todo-closed        the open todos
+tags:todo-p1                  the priority-1 ones — no pill names a priority
+tags:phd window               a tag filter, then "window" as the fuzzy query
+```
+
+The expression decides **which** rows exist and the residual text decides how
+they **rank**, the same division `#filter-panel` draws. It **ANDs** with any
+pressed pill: both are visible commitments, so a row must satisfy both.
+
+**Without `@rookery/search` the input is the plain fuzzy filter it has always
+been** — `tags:todo` is then scored as literal text, matches nothing, and raises
+nothing. This package still declares no dependency on that one for this widget:
+`#todos-search` imports nothing from it and names it in no manifest. The browser
+half feature-detects the `RookerySearch` global at wire time and offers one more
+capability when it finds it, which is deliberately *not* the same thing as
+`#filter-panel`'s real package edge.
+
 ### Without JavaScript
 
 The input and the pills are hidden and every todo is listed as an ordinary

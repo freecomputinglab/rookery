@@ -5,10 +5,11 @@
 // Typst-side `search-ideas` remains the supported path.
 //
 // Built with vite into `dist/lib.js` as an IIFE bundle exposing the global
-// `RheoRookerySearch`, the same shape every other JS package here ships. An ES
+// `RookerySearch`, the same shape every other JS package here ships. An ES
 // module in `src/` and a global at runtime: the module form is what lets the
 // parity fixture import it under node, the global is what lets a site build its
-// own UI on this ranking instead of forking it.
+// own UI on this ranking instead of forking it. The bottom of this file
+// publishes that same global in SOURCE mode, where vite is not involved.
 //
 // No dependencies, and it should stay that way — vite is bundling one file.
 //
@@ -30,6 +31,19 @@
 import { readIndex } from "./island.js";
 import { wire, wireModal } from "./wire.js";
 import { initPanels, wirePanel } from "./panel.js";
+// IMPORTED AS WELL AS RE-EXPORTED. `export { x } from "./y.js"` forwards `x`
+// without binding it here, so the global at the bottom — which names these
+// values — needs the import too. The `export` lines below stay exactly as they
+// were: the public module surface is not what changed.
+import { fold, clusters } from "./text.js";
+import {
+  TAG_PREFIX,
+  splitQuery,
+  parseTagQuery,
+  evalTagQuery,
+  positiveAtoms,
+} from "./tagquery.js";
+import { score, bodyScore, search } from "./score.js";
 
 export { fold, clusters } from "./text.js";
 export { TAG_PREFIX, splitQuery, parseTagQuery, evalTagQuery, positiveAtoms } from "./tagquery.js";
@@ -115,6 +129,40 @@ export const init = () => {
     modals.values().next().value?.open();
   });
 };
+// THE SAME GLOBAL DIST MODE ALREADY PUBLISHES, published in SOURCE mode too.
+// `vite.config.js` builds an IIFE named `RookerySearch`, so a project consuming
+// `dist/lib.js` has had this object all along; a project consuming `src/*.js`
+// through a repo-backed namespace had ES modules and no global, so the same site
+// code worked or did not depending on how the package was installed. That
+// asymmetry is what this ends: the surface is now a property of the package, not
+// of the delivery mode.
+//
+// `??=` so the IIFE's own assignment wins where both somehow run, and guarded on
+// `typeof document` being a browser rather than on `window`, because node imports
+// this module in the parity harness and must NOT be handed a global — a node
+// suite that saw one could not tell the two modes apart.
+//
+// BEFORE the auto-init below, so anything `init()` reaches — or any other
+// package's own DOMContentLoaded handler — finds the global already standing.
+if (typeof document !== "undefined") {
+  globalThis.RookerySearch ??= {
+    fold,
+    clusters,
+    TAG_PREFIX,
+    splitQuery,
+    parseTagQuery,
+    evalTagQuery,
+    positiveAtoms,
+    score,
+    bodyScore,
+    search,
+    readIndex,
+    initPanels,
+    wirePanel,
+    init,
+  };
+}
+
 // Auto-init in a browser. Guarded so the parity fixture can `import` this module
 // under node, where there is no document and nothing to wire.
 if (typeof document !== "undefined") {

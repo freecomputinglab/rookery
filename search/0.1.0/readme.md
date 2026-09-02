@@ -434,10 +434,15 @@ and settles a real per-project question about whether full-text hits are noise.
 
 `#parse-tag-query(src)`, `#eval-tag-query(rpn, tags)` and `#split-query(q)` are
 public, and so are their ports `parseTagQuery`, `evalTagQuery` and `splitQuery`
-on the `RheoRookerySearch` global — the same reason the ranking is exported
+on the `RookerySearch` global — the same reason the ranking is exported
 there. A site with its own search UI should run the reader's own rule rather
 than fork it or write a second one that disagrees with the bar about what
 `tags:!draft` means.
+
+The global stands **however the package was installed** — from a release, where
+vite's IIFE assigns it, or straight off a git ref, where `src/search.js` assigns
+it itself. It used to appear only in the first case, so the same site code
+worked or did not depending on which coordinate a project happened to use.
 
 `split-query` is the entry point a UI wants: it returns `(rpn, text, repaired)`,
 with `rpn: ()` for a query carrying no `tags:` prefix and `text` the residual to
@@ -636,7 +641,7 @@ const rows = JSON.parse(
 );
 ```
 
-Rank those rows with `RheoRookerySearch.score(hay, query)` — the same rule
+Rank those rows with `RookerySearch.score(hay, query)` — the same rule
 `#fuzzy-score` applies at compile time, ported. Use it rather than writing a
 second one, so a custom UI and the built-in bar agree about what "best match"
 means.

@@ -8,6 +8,7 @@
   },
   "packageManager": "pnpm@10.21.0",
   "devDependencies": {
+    "linkedom": "^0.18.13",
     "vite": "^8.0.5"
   }
 }

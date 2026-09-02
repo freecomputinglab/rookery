@@ -45,11 +45,34 @@ if not rows:
     print("FAIL: no todo-search-row elements"); sys.exit(1)
 bad = 0
 for r in rows:
-    for a in ("data-todo-name", "data-todo-status", "data-todo-text"):
+    for a in ("data-todo-name", "data-todo-status", "data-todo-text", "data-todo-tags"):
         if f"{a}=" not in r:
             print(f"FAIL: a search row is missing {a}"); bad = 1
+
+# THE QUERY CHANNEL, for a `tags:` expression typed into the input. Padded at both
+# ends on EVERY row — a row missing the attribute and a row with no tags must be
+# indistinguishable to the script, and the padding is what stops a token
+# half-matching one that is another's prefix.
+for a in re.findall(r'data-todo-tags="([^"]*)"', h):
+    if not (a.startswith(" ") and a.endswith(" ")):
+        print(f"FAIL: data-todo-tags={a!r} is not space-padded at both ends"); bad = 1
+
+# THE WHOLE TAG SET, not the pill vocabulary. `parse` carries a priority and a
+# plain tag, neither of which has a pill on this widget — which is the point of
+# an expression, so a channel holding only what the pills already cover would be
+# useless.
+parse = [r for r in rows if 'data-todo-name="parse"' in r]
+if len(parse) != 1:
+    print(f"FAIL: found {len(parse)} rows named `parse`, wanted 1"); bad = 1
+else:
+    tags = re.search(r'data-todo-tags="([^"]*)"', parse[0])
+    got = tags.group(1).split() if tags else []
+    for want in ("todo", "todo-p1", "phd"):
+        if want not in got:
+            print(f"FAIL: {want!r} is missing from the `parse` row's tags {got}"); bad = 1
+
 if not bad:
-    print(f"  search: {len(rows)} rows, all with name/status/text")
+    print(f"  search: {len(rows)} rows, all with name/status/text/tags")
 sys.exit(bad)
 PY
 

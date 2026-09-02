@@ -8,6 +8,21 @@
 //
 // The pure half is exported so it can be tested without a DOM — the same split
 // `layout.js` and `todos.js` already use.
+//
+// THE INPUT TAKES A `tags:` EXPRESSION WHEN `@rookery/search` IS ON THE PAGE,
+// and that capability is reached for through the `RookerySearch` GLOBAL rather
+// than an import. The reason is the property `search.typ`'s header states: a
+// project wanting only `#todos-search` must need nothing but this package and
+// `@rookery/core`, and an import — relative or by coordinate — would make the
+// dependency unconditional. A relative ES import could not even serve both asset
+// modes: in source mode `rookery/search/tagquery.js` sits beside this file, in
+// dist mode each package is one bundled `lib.js` and that path does not exist.
+//
+// So the language is FEATURE-DETECTED at wire time and degrades to nothing:
+// without the global, `tags:todo` is scored as literal text exactly as it was
+// before, and nothing is raised. The alternative — a second copy of the parser
+// here — would be a third implementation of it with no parity harness over the
+// new one.
 
 // A case-insensitive SUBSEQUENCE score: every character of `query` must appear
 // in `haystack` in order, though not necessarily adjacently. Returns a number,
@@ -59,22 +74,47 @@ export function passes(row, facets) {
   return true;
 }
 
-function wire(container) {
+// EXPORTED for the node suite, not for consumers: nothing re-exports it and
+// `todos.js` imports this module for its side effect alone. The join between the
+// two halves — reading the right attribute, folding it, splitting once, ANDing
+// the result with the pills — is what a DOM case can pin and a pure one cannot.
+export function wire(container) {
   const input = container.querySelector(".todo-search-input");
   const list = container.querySelector(".todo-search-results");
   const count = container.querySelector(".todo-search-count");
   if (!input || !list) return;
 
+  // THE `tags:` LANGUAGE, IF `@rookery/search` PUT IT THERE. Read ONCE at wire
+  // time rather than per keystroke, so a page either has the capability or does
+  // not and the filter loop below has no third case to consider.
+  //
+  // ALL THREE FUNCTIONS OR NONE: `splitQuery` recognises the prefix, `fold`
+  // normalises the row's tags to what the parser already did to the atoms, and
+  // `evalTagQuery` decides. A partial surface is a version skew, and must degrade
+  // exactly as an absent one does rather than half-work.
+  const tq = globalThis.RookerySearch;
+  const hasTagQuery = Boolean(tq && tq.splitQuery && tq.evalTagQuery && tq.fold);
+
   // Read once. The rows never change after this — filtering only toggles
   // `hidden` and re-appends, so the original index survives as the tiebreak
   // that preserves the build-time priority order.
-  const rows = [...list.querySelectorAll(".todo-search-row")].map((el, index) => ({
-    el,
-    index,
-    text: el.getAttribute("data-todo-text") || "",
-    status: el.getAttribute("data-todo-status") || "",
-    type: el.getAttribute("data-todo-type") || "",
-  }));
+  const rows = [...list.querySelectorAll(".todo-search-row")].map((el, index) => {
+    // Padded at both ends by the Typst side, so the two empties are filtered.
+    // AN ARRAY, not a Set, because `evalTagQuery` takes one and tests by PREFIX
+    // (`tg === v || tg.startsWith(v)`) — a membership test would not do.
+    //
+    // FOLDED HERE when the language is available, per `evalTagQuery`'s contract;
+    // left alone when it is not, since nothing then reads it.
+    const tags = (el.getAttribute("data-todo-tags") || " ").split(" ").filter(Boolean);
+    return {
+      el,
+      index,
+      text: el.getAttribute("data-todo-text") || "",
+      status: el.getAttribute("data-todo-status") || "",
+      type: el.getAttribute("data-todo-type") || "",
+      tags: hasTagQuery ? tags.map((t) => tq.fold(t)) : tags,
+    };
+  });
   const total = rows.length;
 
   // `aria-controls` wired at RUNTIME, because the markup carries no id: a
@@ -89,10 +129,29 @@ function wire(container) {
   const pills = [...container.querySelectorAll(".todo-search-pill")];
 
   const apply = () => {
-    const q = input.value.trim();
+    // SPLIT ONCE PER KEYSTROKE, ahead of the loop, exactly where `#panel` splits
+    // it — not per row. A leading `tags:` becomes `rpn` and the rest becomes the
+    // text that ranks; anything else leaves `rpn` empty and `text` the query
+    // untouched. With no language on the page the input value goes to `score`
+    // whole, which is what it always did.
+    const { rpn, text } = hasTagQuery
+      ? tq.splitQuery(input.value)
+      : { rpn: [], text: input.value };
+    const q = text.trim();
     const scored = [];
     for (const row of rows) {
-      const s = passes(row, facets) ? score(row.text, q) : -1;
+      // THE EXPRESSION IS A PREDICATE and it runs before any scoring, so a row
+      // the tags exclude is never scored: a tag says WHICH rows exist, the
+      // residual text says how they rank. It ANDs with the pills for the reason
+      // `#panel` does — a pressed pill and a typed query are both visible
+      // commitments, and a query that silently released the pills would leave
+      // buttons on screen reading as pressed while no longer filtering.
+      //
+      // `score` HERE STAYS THIS FILE'S OWN subsequence matcher, deliberately
+      // simpler than `@rookery/search`'s (see its comment above). The language
+      // and the ranking are separate questions and this bead answers only one.
+      const ok = passes(row, facets) && (rpn.length === 0 || tq.evalTagQuery(rpn, row.tags));
+      const s = ok ? score(row.text, q) : -1;
       if (s < 0) {
         // THE `hidden` ATTRIBUTE NEEDS `.todo-search-row[hidden]` IN THE
         // STYLESHEET to do anything here, and the two must move together. A

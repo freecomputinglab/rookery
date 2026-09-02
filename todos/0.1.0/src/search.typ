@@ -18,6 +18,18 @@
 // its own bar, its own pills and its own list, and a project wanting only
 // `#todos-search` needs nothing but this package and `@rookery/core`.
 //
+// WITH ONE QUALIFICATION, and it is deliberately NOT the package edge
+// `panel.typ` has. There is still no import here, no manifest entry and no
+// Typst dependency: with `@rookery/search` absent this widget renders and
+// filters exactly as it always did. What it does now is offer ONE MORE
+// capability when that package happens to be on the page — the browser half
+// feature-detects the `RookerySearch` GLOBAL at wire time and, finding it,
+// lets the input take a `tags:` expression against the whole tag set each row
+// carries in `data-todo-tags`. Absent, the input is the plain fuzzy filter and
+// nothing is raised. A runtime global rather than an import is what keeps that
+// property: an import would make the dependency unconditional, which is the one
+// thing this file must not do.
+//
 // THAT USED TO BE WRITTEN AS A RULE ABOUT THE WHOLE PACKAGE — "MUST NOT depend on
 // @rookery/search" — and it was too strong. `panel.typ` now skins that
 // package's `#filter-panel`, for the reason point 1 above states: `ready` and
@@ -69,6 +81,22 @@
     "data-todo-text": lower(
       (row.text, row.name, _plain-body(row)).filter(s => s != "" and s != none).join(" "),
     ),
+    // EVERY TAG THE TODO CARRIES, for a `tags:` expression typed into the input
+    // — the WHOLE set, not the pill vocabulary. This widget's pills are `ready`,
+    // `blocked` and the types present; the point of an expression is to name what
+    // has no pill, which on a todo is most of it (`todo-p1`, an epic key, a
+    // project's own plain tags).
+    //
+    // UNCONDITIONAL, and padded at both ends even when the set is empty, for the
+    // reason `#panel`'s `data-panel-all-tags` is: a row missing the attribute and
+    // a row with no tags must be indistinguishable to the script, so it has one
+    // case rather than two. The padding is what keeps a token from half-matching
+    // one that is another's prefix.
+    //
+    // NOT CASE-FOLDED HERE. `evalTagQuery` wants folded tags and the script folds
+    // them at read time; folding in Typst as well would put one rule in two
+    // languages for one attribute.
+    "data-todo-tags": " " + row.tags-dict.keys().join(" ") + " ",
   ),
   {
     let label = _label(row)
