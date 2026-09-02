@@ -121,6 +121,96 @@
     .sorted()
 }
 
+// The chrome both panels in this package wear: the paged fallback, the empty
+// state, the wrapper, the text input, the pill block, the live count and the
+// results list. What differs between them — the wrapper's own declarations, the
+// pill markup and the row markup — arrives as arguments.
+//
+// `pills` IS A CLOSURE OR `none` rather than content, because a pill row is
+// derived from the rows and deriving `#panel`'s asserts that every faceted value
+// is a scalar. On the paged path no pill is rendered, so that assert must not
+// run: the closure is called only where its output is emitted.
+//
+// TWO ATTRIBUTE SLOTS, because the two widgets state their declarations on
+// opposite sides of the ready flag — `#filter-panel` names its mode and its pill
+// composition before it, `#panel` its `multi`/`union` declarations after — and
+// Typst emits attributes in the order given. One slot would rewrite the bytes of
+// every page carrying whichever widget lost.
+//
+// `paged-render` DEFAULTS TO `render`, and `#panel` takes that default: its HTML
+// rows are `<li>` elements carrying the data attributes and its paged rows are
+// the caller's own `render`, where `#filter-panel`'s HTML row is `#idea-row`,
+// which is HTML-only and panics on the paged path.
+#let _panel-shell(
+  rows,
+  render,
+  paged-render: none,
+  attrs: (:),
+  attrs-after: (:),
+  pills: none,
+  visible: 8,
+  placeholder: "Filter",
+  noun: "rows",
+  empty: [Nothing here.],
+) = {
+  // PAGED/EPUB: there is no input to type into and no pill to press, so the same
+  // rows render as an ordinary list. Every view in this package takes this branch
+  // for the same reason.
+  if target() != "html" {
+    if rows.len() == 0 { return text(gray, emph(empty)) }
+    return list(..rows.map(if paged-render == none { render } else { paged-render }))
+  }
+
+  if rows.len() == 0 {
+    return html.elem("p", attrs: (class: "panel-empty"), empty)
+  }
+
+  html.elem(
+    "div",
+    attrs: (
+      // `panel-flow` IS THE UNCAPPED CASE, as a class rather than as an absent custom
+      // property: CSS cannot test whether `--panel-rows` was set, so the stylesheet
+      // needs something positive to hang "no max-height" on.
+      class: if visible == none { "panel panel-flow" } else { "panel" },
+      ..attrs,
+      // `false` until the script has wired itself up. The stylesheet hides the
+      // input, the pills and the scroll cap while it says so, which is how the
+      // widget degrades: with no JavaScript the chrome that would do nothing
+      // never appears, and what is left is an ordinary complete list.
+      "data-panel-ready": "false",
+      ..attrs-after,
+      // The visible height goes to CSS as a custom property rather than as a
+      // rule, so the number lives once, in the call that sets it.
+      ..if visible == none { (:) } else { (style: "--panel-rows: " + str(visible)) },
+    ),
+    {
+      html.elem(
+        "input",
+        attrs: (
+          class: "panel-input",
+          type: "search",
+          placeholder: placeholder,
+          "aria-label": placeholder,
+          autocomplete: "off",
+        ),
+      )
+      if pills != none {
+        html.elem(
+          "div",
+          attrs: (class: "panel-pills", role: "group", "aria-label": "Refine"),
+          pills(),
+        )
+      }
+      html.elem(
+        "p",
+        attrs: (class: "panel-count", "aria-live": "polite"),
+        str(rows.len()) + " " + noun,
+      )
+      html.elem("ul", attrs: (class: "panel-results"), rows.map(render).join())
+    },
+  )
+}
+
 #let panel(
   rows: (),
   // Projected field names to offer as pill groups, in the order given. Each
@@ -329,18 +419,6 @@
     if descending { s.rev() } else { s }
   }
 
-  // PAGED/EPUB: there is no input to type into and no pill to press, so the same
-  // rows render as an ordinary list. Every view in this package takes this branch
-  // for the same reason.
-  if target() != "html" {
-    if rows.len() == 0 { return text(gray, emph(empty)) }
-    return list(..rows.map(render))
-  }
-
-  if rows.len() == 0 {
-    return html.elem("p", attrs: (class: "panel-empty"), empty)
-  }
-
   let pill(field, value) = html.elem(
     "button",
     attrs: (
@@ -353,129 +431,105 @@
     value.replace("-", " "),
   )
 
-  html.elem(
-    "div",
-    attrs: (
-      // `panel-flow` IS THE UNCAPPED CASE, as a class rather than as an absent custom
-      // property: CSS cannot test whether `--panel-rows` was set, so the stylesheet
-      // needs something positive to hang "no max-height" on. Same device, same class,
-      // as `#filter-panel`.
-      class: if visible == none { "panel panel-flow" } else { "panel" },
-      // `false` until the script has wired itself up. The stylesheet hides the
-      // input, the pills and the scroll cap while it says so, which is how the
-      // widget degrades: with no JavaScript the chrome that would do nothing
-      // never appears, and what is left is an ordinary complete list.
-      "data-panel-ready": "false",
-      // WHICH ATTRIBUTES HOLD A SET, for the script — the one thing it cannot read off
-      // the markup, a padded `" a b "` and a scalar `"a b"` being indistinguishable
-      // once written. Absent when no facet is multi-valued, so an older page's markup
-      // reads exactly as it always did.
-      ..if multi.len() == 0 { (:) } else { ("data-panel-multi": multi.join(" ")) },
-      // WHICH GROUPS OR WITH EACH OTHER — see `union:`. Emitted only when declared, so
-      // a panel that never asked for it carries the markup it always did and the script
-      // reads the plain AND.
-      ..if union.len() == 0 { (:) } else { ("data-panel-union": union.join(" ")) },
-      // The visible height goes to CSS as a custom property rather than as a
-      // rule, so the number lives once, here, in the call that sets it.
-      ..if visible == none { (:) } else { (style: "--panel-rows: " + str(visible)) },
-    ),
-    {
-      html.elem(
-        "input",
-        attrs: (
-          class: "panel-input",
-          type: "search",
-          placeholder: placeholder,
-          "aria-label": placeholder,
-          autocomplete: "off",
-        ),
-      )
-      let group(f) = {
-        let vals = _facet-values(rows, f, multi: multi.contains(f))
-        html.elem(
-          "span",
-          attrs: (class: "panel-pill-group", "data-panel-group": f),
-          vals.map(v => pill(f, v)).join(),
-        )
-      }
+  let group(f) = {
+    let vals = _facet-values(rows, f, multi: multi.contains(f))
+    html.elem(
+      "span",
+      attrs: (class: "panel-pill-group", "data-panel-group": f),
+      vals.map(v => pill(f, v)).join(),
+    )
+  }
 
-      if facets.len() > 0 {
-        html.elem(
+  // A PANEL WITH NO FACETS EMITS NO PILL BLOCK. Everything else is deferred: the
+  // shell calls this only on the HTML path, which is what keeps `_facet-values`'
+  // scalar assert off the paged one.
+  let pill-block = if facets.len() == 0 { none } else {
+    () => if facet-rows == none {
+      facets.map(group).join()
+    } else {
+      // ONE `div` PER ROW, and the groups keep their own element inside it —
+      // `panel.js` finds them with a DESCENDANT selector (`.panel-pill-group`,
+      // `.panel-pill`), so a layer of layout between the panel and its groups
+      // changes nothing about the wiring.
+      facet-rows
+        .map(r => html.elem(
           "div",
-          attrs: (class: "panel-pills", role: "group", "aria-label": "Refine"),
-          if facet-rows == none {
-            facets.map(group).join()
-          } else {
-            // ONE `div` PER ROW, and the groups keep their own element inside it —
-            // `panel.js` finds them with a DESCENDANT selector
-            // (`.panel-pill-group`, `.panel-pill`), so a layer of layout between the
-            // panel and its groups changes nothing about the wiring.
-            facet-rows
-              .map(r => html.elem(
-                "div",
-                attrs: (class: "panel-pill-row"),
-                {
-                  let l = r.at("label", default: none)
-                  if l != none {
-                    html.elem("span", attrs: (class: "panel-pill-label"), l)
-                  }
-                  r.at("facets", default: ()).map(group).join()
-                },
-              ))
-              .join()
+          attrs: (class: "panel-pill-row"),
+          {
+            let l = r.at("label", default: none)
+            if l != none {
+              html.elem("span", attrs: (class: "panel-pill-label"), l)
+            }
+            r.at("facets", default: ()).map(group).join()
           },
+        ))
+        .join()
+    }
+  }
+
+  _panel-shell(
+    rows,
+    r => html.elem(
+      "li",
+      attrs: (
+        (
+          // `panel-row` FIRST and unconditionally: the script and the stylesheet
+          // both hang off it, so a `row-class` adapter cannot drop it by
+          // returning the wrong thing.
+          class: (
+            ("panel-row",) + if row-class == none { () } else { row-class(r) }
+          ).join(" "),
+          "data-panel-text": lower(hay(r)),
+          // EVERY TAG THE NOTE CARRIES, for the input's `tags:` expression.
+          // Unconditional, and `""` where the note has none — a row missing the
+          // attribute and a row with no tags must be indistinguishable, so the
+          // script has one case rather than two.
+          //
+          // `_multi-attr` rather than a hand-rolled join, so the space padding is
+          // the same shape `data-panel-tags` has and the script tokenizes both
+          // with one line.
+          //
+          // NOT CASE-FOLDED HERE. `evalTagQuery` needs folded tags and the script
+          // folds them at read time; folding in Typst too would put one rule in
+          // two languages for one attribute.
+          "data-panel-all-tags": _multi-attr("tags", tags-of(r)),
         )
-      }
-      html.elem(
-        "p",
-        attrs: (class: "panel-count", "aria-live": "polite"),
-        str(rows.len()) + " " + noun,
-      )
-      html.elem(
-        "ul",
-        attrs: (class: "panel-results"),
-        rows
-          .map(r => html.elem(
-            "li",
-            attrs: (
-              (
-                // `panel-row` FIRST and unconditionally: the script and the
-                // stylesheet both hang off it, so a `row-class` adapter cannot
-                // drop it by returning the wrong thing.
-                class: (
-                  ("panel-row",) + if row-class == none { () } else { row-class(r) }
-                ).join(" "),
-                "data-panel-text": lower(hay(r)),
-                // EVERY TAG THE NOTE CARRIES, for the input's `tags:` expression.
-                // Unconditional, and `""` where the note has none — a row missing the
-                // attribute and a row with no tags must be indistinguishable, so the
-                // script has one case rather than two.
-                //
-                // `_multi-attr` rather than a hand-rolled join, so the space padding
-                // is the same shape `data-panel-tags` has and the script tokenizes
-                // both with one line.
-                //
-                // NOT CASE-FOLDED HERE. `evalTagQuery` needs folded tags and the
-                // script folds them at read time; folding in Typst too would put one
-                // rule in two languages for one attribute.
-                "data-panel-all-tags": _multi-attr("tags", tags-of(r)),
-              )
-                // One `data-<field>` per faceted field, on the row carrying it.
-                // No JSON island: the payload IS the markup. A multi-valued field
-                // rides as its padded token list rather than as one value.
-                + facets
-                  .map(f => (
-                    "data-" + f,
-                    if multi.contains(f) {
-                      _multi-attr(f, r.at(f, default: ()))
-                    } else { _attr(f, r.at(f, default: none)) },
-                  ))
-                  .to-dict()
-            ),
-            render(r),
-          ))
-          .join(),
-      )
+          // One `data-<field>` per faceted field, on the row carrying it. No JSON
+          // island: the payload IS the markup. A multi-valued field rides as its
+          // padded token list rather than as one value.
+          + facets
+            .map(f => (
+              "data-" + f,
+              if multi.contains(f) {
+                _multi-attr(f, r.at(f, default: ()))
+              } else { _attr(f, r.at(f, default: none)) },
+            ))
+            .to-dict()
+      ),
+      render(r),
+    ),
+    // The paged list draws the caller's own row, `<li>` and data attributes being
+    // meaningless in a PDF.
+    paged-render: render,
+    // BUILT BY INSERTION, not as a literal of two spreads: `(..a, ..b)` with no
+    // named field is an ARRAY literal in Typst, and spreading a dictionary into one
+    // is an error.
+    attrs-after: {
+      let a = (:)
+      // WHICH ATTRIBUTES HOLD A SET, for the script — the one thing it cannot read
+      // off the markup, a padded `" a b "` and a scalar `"a b"` being
+      // indistinguishable once written. Absent when no facet is multi-valued.
+      if multi.len() > 0 { a.insert("data-panel-multi", multi.join(" ")) }
+      // WHICH GROUPS OR WITH EACH OTHER — see `union:`. Present only when declared,
+      // so a panel that never asked for it carries the markup it always did and the
+      // script reads the plain AND.
+      if union.len() > 0 { a.insert("data-panel-union", union.join(" ")) }
+      a
     },
+    pills: pill-block,
+    visible: visible,
+    placeholder: placeholder,
+    noun: noun,
+    empty: empty,
   )
 }

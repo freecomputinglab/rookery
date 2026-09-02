@@ -22,6 +22,9 @@
 // fourth copy of it.
 
 #import "base.typ": *
+// `_panel-shell` — the chrome this widget and `#panel` share. `lib.typ` imports
+// `panel.typ` ahead of this file, but a module resolves its own imports.
+#import "panel.typ": *
 #import "@rookery/core:0.1.0": idea-row, ideas
 
 // SHORT AND NUMERIC, matching @rookery/timeline's own `_fmt-day` exactly —
@@ -291,82 +294,44 @@
     }
   }
 
-  // PAGED/EPUB: nothing to type into and no pill to press, so the rows render as an
-  // ordinary list. `#idea-row` is HTML-only and panics if reached here, so this branch
-  // builds its own — the same fallback every view in this family keeps.
-  if target() != "html" {
-    if rows.len() == 0 { return text(gray, emph(empty)) }
-    return list(
-      ..rows.map(r => {
-        let d = when(r)
-        if d != none { [#_fmt-day(d) — ] }
-        r.at("label", default: r.at("name", default: ""))
-      }),
-    )
-  }
-
-  if rows.len() == 0 {
-    return html.elem("p", attrs: (class: "panel-empty"), empty)
-  }
-
-  html.elem(
-    "div",
+  _panel-shell(
+    rows,
+    draw,
+    // `#idea-row` is HTML-only and panics on the paged path, so that list builds
+    // its own row: the date as this package spells it, then the note's label.
+    paged-render: r => {
+      let d = when(r)
+      if d != none { [#_fmt-day(d) — ] }
+      r.at("label", default: r.at("name", default: ""))
+    },
     attrs: (
-      // `panel-flow` IS THE UNCAPPED CASE, as a class rather than as an absent custom
-      // property: CSS cannot test whether `--panel-rows` was set, so the stylesheet
-      // needs something positive to hang "no max-height" on.
-      class: if visible == none { "panel panel-flow" } else { "panel" },
       // `data-panel-mode` IS HOW ONE SCRIPT TELLS THE TWO PANELS APART. `#panel`'s
       // pills carry `data-panel-facet`/`data-panel-value` and filter on a row's
       // `data-<field>`; these carry `data-panel-tag` and compose `data-panel-tags`
       // the way `data-panel-pill-match` says.
       "data-panel-mode": "tags",
-      // HOW THE PILLS COMPOSE, read by `panel.js`. Emitted always rather than only for
-      // the non-default, so the markup states the behaviour a reader is looking at
-      // instead of leaving it to be inferred from an absence.
+      // HOW THE PILLS COMPOSE, read by `panel.js`. Emitted always rather than only
+      // for the non-default, so the markup states the behaviour a reader is looking
+      // at instead of leaving it to be inferred from an absence.
       "data-panel-pill-match": pill-match,
-      // `false` until the script has wired itself. The stylesheet hides the input, the
-      // pills and the scroll cap while it says so, which is how the widget degrades:
-      // with no JavaScript the chrome that would do nothing never appears, and what is
-      // left is an ordinary complete list.
-      "data-panel-ready": "false",
-      ..if visible == none { (:) } else { (style: "--panel-rows: " + str(visible)) },
     ),
-    {
-      html.elem(
-        "input",
-        attrs: (
-          class: "panel-input",
-          type: "search",
-          placeholder: placeholder,
-          "aria-label": placeholder,
-          autocomplete: "off",
-        ),
-      )
-      if carried.len() > 0 {
-        html.elem(
-          "div",
-          attrs: (class: "panel-pills", role: "group", "aria-label": "Refine"),
-          carried
-            .map(t => html.elem(
-              "button",
-              attrs: (
-                type: "button",
-                class: "panel-pill",
-                "data-panel-tag": t,
-                "aria-pressed": "false",
-              ),
-              tag-display(t),
-            ))
-            .join(),
-        )
-      }
-      html.elem(
-        "p",
-        attrs: (class: "panel-count", "aria-live": "polite"),
-        str(rows.len()) + " " + noun,
-      )
-      html.elem("ul", attrs: (class: "panel-results"), rows.map(draw).join())
+    pills: if carried.len() == 0 { none } else {
+      () => carried
+        .map(t => html.elem(
+          "button",
+          attrs: (
+            type: "button",
+            class: "panel-pill",
+            "data-panel-tag": t,
+            "aria-pressed": "false",
+          ),
+          tag-display(t),
+        ))
+        .join()
     },
+    visible: visible,
+    placeholder: placeholder,
+    noun: noun,
+    empty: empty,
   )
 }
