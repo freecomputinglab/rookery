@@ -1,0 +1,15 @@
+default:
+    @echo "rookery-bibtex: pure Typst package, entrypoint is src/lib.typ directly — nothing to build"
+
+# Unit fixture for the parser, the title/key derivations and the field view.
+# No runner: `assert.eq` inside `test/units.typ` fails the compile with a line
+# number, and a passing compile is the green light — the same shape
+# `@rookery/core` and `@rookery/timeline` use.
+#
+# `--root .` so the fixture's `#import "/src/lib.typ"` resolves against THIS
+# package. `--features html` for parity with this repo's other Justfiles.
+# `--format pdf` with a `/dev/null` output because typst cannot infer a format
+# from that path, and nothing here is rendered — only asserted.
+test:
+    typst compile --features html --root . --format pdf test/units.typ /dev/null
+    @echo "units OK"
