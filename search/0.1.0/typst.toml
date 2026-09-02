@@ -51,7 +51,10 @@ js_scripts = [
   "src/preview.js",
   "src/selection.js",
   "src/island.js",
-  "src/wire.js",
+  "src/limit.js",
+  "src/keywords.js",
+  "src/bar.js",
+  "src/modal.js",
   "src/panel.js",
   "src/search.js",
 ]

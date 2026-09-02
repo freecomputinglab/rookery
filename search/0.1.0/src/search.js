@@ -29,7 +29,8 @@
 
 
 import { readIndex } from "./island.js";
-import { wire, wireModal } from "./wire.js";
+import { wire } from "./bar.js";
+import { wireModal } from "./modal.js";
 import { initPanels, wirePanel } from "./panel.js";
 // IMPORTED AS WELL AS RE-EXPORTED. `export { x } from "./y.js"` forwards `x`
 // without binding it here, so the global at the bottom — which names these

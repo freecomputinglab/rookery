@@ -1,131 +1,16 @@
-// Wiring the two surfaces to the DOM: `wire` for the embedded bar, `wireModal`
-// for the overlay.
+// `#search-modal`'s overlay: a two-pane listbox and preview over the island's
+// rows, opened from a trigger or Ctrl-K.
 
-import { readIndex } from "./island.js";
 import { renderRow } from "./row.js";
 import { search } from "./score.js";
 import { selection } from "./selection.js";
-import { extractNote, fetchNote, previewCache } from "./preview.js";
-import { KEYWORD_LIMIT, appendMarked, markTermsInNode, matchRanges } from "./marks.js";
-import { parseTagQuery, positiveAtoms, splitQuery } from "./tagquery.js";
+import { fetchNote } from "./preview.js";
+import { markTermsInNode } from "./marks.js";
+import { positiveAtoms, splitQuery } from "./tagquery.js";
 import { fold } from "./text.js";
+import { readLimit } from "./limit.js";
+import { renderKeywords } from "./keywords.js";
 
-// The `limit` attribute, which is a NUMBER, the string "none", or absent.
-//
-// `null` is what `search()` already reads as uncapped (`score.js`: `limit == null ?
-// out : out.slice(0, limit)`), so "none" resolves to that rather than to Infinity —
-// the core has meant this all along and only the attribute could not say it.
-//
-// ABSENT IS NOT UNCAPPED. It means an older page's markup, or one rendered before
-// this attribute existed, and both want the widget's own default — which is why the
-// fallback is a parameter here rather than a constant.
-const readLimit = (raw, fallback) => {
-  if (raw === "none") return null;
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
-};
-
-export const wire = (root, rows, n) => {
-  const input = root.querySelector(".rookery-search-input");
-  const list = root.querySelector(".rookery-search-results");
-  if (input === null || list === null) return;
-  const limit = readLimit(root.dataset.rookerySearchLimit, 8);
-
-  // Assigned here, not in the markup: a bar has to be placeable more than once
-  // on a page, and duplicate ids would break both `aria-controls` and any CSS
-  // or script keyed off them.
-  list.id = `rookery-search-listbox-${n}`;
-  input.setAttribute("aria-controls", list.id);
-
-  // Set by a click outside this bar, cleared the moment the reader types
-  // again. It is a separate piece of state from "the query is empty", because
-  // a dismissed dropdown must STAY shut while its query is still in the input
-  // — including when the reader clicks back into the field. Only new typing
-  // brings it back, which is the one unambiguous signal that they want it.
-  let dismissed = false;
-
-  const sel = selection(list, input);
-
-  const render = () => {
-    const q = input.value.trim();
-    list.replaceChildren();
-    // BEFORE the early return below, not after the rows are appended: the rows
-    // this cleared against are already gone, and a closed dropdown must not leave
-    // the input pointing at an option that no longer exists.
-    sel.clear();
-    const open = q !== "" && !dismissed;
-    root.dataset.rookerySearchOpen = open ? "true" : "false";
-    input.setAttribute("aria-expanded", open ? "true" : "false");
-    if (!open) return;
-    // HIGHLIGHT TERMS COME FROM THE RESIDUAL, not the raw input: a query of
-    // `tags:draft window` must mark "window" and never the literal "tags:draft",
-    // which is an instruction rather than something any note contains.
-    //
-    // Note the `open` test above still reads the RAW input, on purpose — a bare
-    // `tags:draft` with no residual text should open the dropdown, and it is
-    // non-empty even though its residual is "".
-    //
-    // The tag expression's POSITIVE atoms travel beside them, so a chip an atom
-    // prefix-matched is marked too. Computed once per render, not per row.
-    const { rpn, text } = splitQuery(q);
-    const terms = fold(text).split(" ").filter((t) => t !== "");
-    const atoms = positiveAtoms(rpn);
-    for (const hit of search(rows, q, limit)) {
-      list.append(renderRow(hit, terms, atoms));
-    }
-  };
-
-  input.addEventListener("input", () => {
-    dismissed = false;
-    render();
-  });
-  input.addEventListener("keydown", (ev) => {
-    // ArrowDown/ArrowUp plus Ctrl-n/Ctrl-p, the same pair the modal takes, so a
-    // reader does not have to learn two sets of keys for one search.
-    //
-    // `preventDefault` on the arrows because a `type="search"` input would
-    // otherwise move the text caret to the end or the start of the value — the
-    // arrows belong to the list while the list is open, which is exactly what
-    // `open` tests. With the dropdown shut they are the caret's again.
-    const open = root.dataset.rookerySearchOpen === "true";
-    if (open && (ev.key === "ArrowDown" || (ev.ctrlKey && ev.key === "n"))) {
-      ev.preventDefault();
-      sel.move(1);
-    } else if (open && (ev.key === "ArrowUp" || (ev.ctrlKey && ev.key === "p"))) {
-      ev.preventDefault();
-      sel.move(-1);
-    } else if (ev.key === "Enter") {
-      // THE HREF COMES OFF THE ROW, not out of a parallel `hits` array the way
-      // the modal reads it: the row IS an `<a>`, so its `href` property is the
-      // resolved URL and there is no second copy of the result list to keep in
-      // step with the DOM. Enter with nothing selected is left alone — the field
-      // may be inside a form, and swallowing a submit no reader asked us to
-      // swallow is worse than doing nothing.
-      const row = sel.current();
-      if (row !== null) {
-        ev.preventDefault();
-        window.location.href = row.href;
-      }
-    } else if (ev.key === "Escape") {
-      input.value = "";
-      dismissed = false;
-      render();
-      input.blur();
-    }
-  });
-
-  return {
-    root,
-    // Called for every click that lands outside this bar. Leaves the query in
-    // the input: the reader dismissed a dropdown, they did not ask to lose
-    // what they had typed.
-    dismiss: () => {
-      if (dismissed) return;
-      dismissed = true;
-      render();
-    },
-  };
-};
 export const wireModal = (dialog, rows) => {
   const input = dialog.querySelector(".rookery-search-input");
   const list = dialog.querySelector(".rookery-search-list");
@@ -143,75 +28,6 @@ export const wireModal = (dialog, rows) => {
   // a list of hits starts a request per row it passes through and those can
   // resolve in any order — without this, the slowest one wins the pane.
   let previewGen = 0;
-
-  // THE KEYWORD ROW — the failed-fetch fallback, and the ONE place the
-  // compressed index is reader-facing. The island's `body` field is not prose:
-  // it is that note's most distinctive terms, space-joined in weight order.
-  // MEASURED on a weeknotes copy: `"entry actual notes general introductory site
-  // first weeknotes wrote post posted blog writing"`. There is nothing there to
-  // excerpt, which is why the excerpt is gone rather than merely demoted.
-  //
-  // CHIPS, NOT A PARAGRAPH. Set as running text that string reads as debug
-  // output that leaked into the UI; one box per term says "these are the note's
-  // terms" without needing a caption to say it. It also makes the ORDER visible
-  // as an order: the compression pass already sorts by weight, so display order
-  // is meaningful — most distinctive first.
-  //
-  // Except that a term the reader's query matched is hoisted ahead of the
-  // unmatched ones among the shown terms. Weight order is the default, but a
-  // matched term is WHY this note is on screen, and it must not be the one term
-  // the cap cut off. Sliced to `KEYWORD_LIMIT` after the hoist for that reason.
-  //
-  // The line above the row says why a bag of words is the preview at all —
-  // without it a reader is left to infer that the pane failed rather than that
-  // this is the intended rendering. It reuses `.rookery-search-preview-empty`
-  // rather than earning a class of its own: it is the same KIND of line as "No
-  // preview" and "No match found" — muted, italic, a note ABOUT the pane rather
-  // than content in it.
-  //
-  // AN EMPTY BODY KEEPS THE PLAIN "No preview" LINE, and it is a real case, not
-  // a defensive one — MEASURED: a genuinely empty note ships an empty `body`,
-  // and `body-search: false` omits the field from every row. An empty chip row
-  // would be a frame with nothing in it above a sentence explaining nothing.
-  //
-  // `createElement`/`textContent` throughout, never `innerHTML`, for the reason
-  // the module header gives: a term comes out of the author's own notes and must
-  // never be able to inject markup. `<mark>` is the only markup here and
-  // `appendMarked` is what appends it — the same element and class a result row
-  // and a fetched note's text nodes are marked with, so a match looks identical
-  // wherever the reader meets it.
-  const renderKeywords = (hit) => {
-    const terms = (hit.body ?? "").split(" ").filter((t) => t !== "");
-    if (terms.length === 0) {
-      const empty = document.createElement("p");
-      empty.className = "rookery-search-preview-empty";
-      empty.textContent = "No preview";
-      preview.append(empty);
-      return;
-    }
-    const queryTerms = fold(input.value.trim()).split(" ").filter((t) => t !== "");
-    // The ranges are carried alongside each term rather than recomputed for the
-    // chips: whether a term matched IS whether it has any ranges, so one
-    // `matchRanges` per term answers both the hoist and the marking.
-    const matched = [];
-    const rest = [];
-    for (const term of terms) {
-      const ranges = matchRanges(term, queryTerms);
-      (ranges.length > 0 ? matched : rest).push({ term, ranges });
-    }
-    const why = document.createElement("p");
-    why.className = "rookery-search-preview-empty";
-    why.textContent = "This note’s page could not be loaded — showing its keywords instead.";
-    const row = document.createElement("div");
-    row.className = "rookery-search-keywords";
-    for (const { term, ranges } of [...matched, ...rest].slice(0, KEYWORD_LIMIT)) {
-      const chip = document.createElement("span");
-      chip.className = "rookery-search-keyword";
-      appendMarked(chip, term, ranges);
-      row.append(chip);
-    }
-    preview.append(why, row);
-  };
 
   const renderPreview = () => {
     // `sel` is declared BELOW this function and read only when it runs, which is
@@ -244,7 +60,7 @@ export const wireModal = (dialog, rows) => {
     // Those are the cases where there is no rendering coming and the island's own
     // terms are the final answer.
     if (typeof hit.href !== "string" || hit.href === "") {
-      renderKeywords(hit);
+      renderKeywords(preview, hit, input.value);
       return;
     }
     // THE LOADING AFFORDANCE, and it is an attribute rather than an element: one
@@ -272,7 +88,7 @@ export const wireModal = (dialog, rows) => {
       // that had an href: the fetch is settled and it failed, so there is no
       // richer rendering coming and the island's own terms are the final answer.
       if (box === null) {
-        renderKeywords(hit);
+        renderKeywords(preview, hit, input.value);
         return;
       }
       // The residual, not the raw input: marking the fetched page for the literal
