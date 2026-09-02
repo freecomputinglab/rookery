@@ -73,15 +73,10 @@
 // The last rung is `scheduled` rather than `deferred`: it names the MECHANISM — a
 // `scheduled` stage dated after `today` — and leaves `deferred` to mean what
 // `status-of` already makes it mean, a todo declared as put off.
-// THE TWO GROUPS THAT ARE STATES, as against the two that are subjects. The split is
-// what `state-label` lays out on two lines; naming it here keeps the two places that
-// care — the layout below and the row split — reading off one list.
-//
-// IT WAS CALLED `_DERIVED`, and that name stopped being true the moment `tag` arrived:
-// every facet here is derived, `epic` and `tag` off the tag dictionary and these two
-// off the graph and the keys. What the second line actually holds is HOW FAR ALONG a
-// todo is, which is what its label already says.
-#let _STATE = ("state", "priority")
+// THE GROUPS THAT ASK WHAT A TODO IS ABOUT, as against how far along it is. They are
+// one question in two projections, so they OR with each other where `state` and
+// `priority` AND — see the `union:` argument passed below.
+#let _SUBJECT = ("epic", "tag")
 
 // THE FACETS THAT HOLD A SET rather than a value, in @rookery/search's `multi:` sense.
 // One entry, and it is the reason that argument exists.
@@ -154,9 +149,8 @@
   // The pill groups, in order. Each is a field this function projects below; a caller
   // dropping one gets a narrower panel, not a broken one.
   //
-  // `epic` AND `tag` FIRST, because the two state groups are laid out on a line of
-  // their own below them — see `state-label`. Within the facets list the order only
-  // decides the order of the groups on their line.
+  // WHICH GROUPS EXIST, and nothing about where they sit: `pill-rows:` below declares
+  // the lines. Within one line the group order is that line's own `facets:` entry.
   //
   // `tag` IS IN THE DEFAULT, and that is the point of it: every plain tag on every
   // listed todo gets a pill, so a site that invents a tag gets the filter for free
@@ -185,13 +179,27 @@
   // question, so a site holds the predicate in one `let` and hands it to both panels
   // rather than keeping two lists in step.
   tag-filter: none,
-  // THE HEADER OVER THE STATE PILLS, which sit on a line beneath the subject ones.
+  // THE PILL LAYOUT: one entry per line of pills, `(label: <content or none>,
+  // facets: (<group names>))`, the same shape @rookery/search's `#panel` takes for
+  // its own `facet-rows:` so that the two read alike.
   //
-  // `epic` and `tag` say what a todo is ABOUT; `state` and `priority` say how far
-  // along it is. One undifferentiated row of pills asks a reader to know which is
-  // which, so the two kinds get a line each and the second says what it is. `none`
-  // puts every group back on one line.
-  state-label: [todo states:],
+  // `label` IS OPTIONAL, and a line without one is simply a row of pills — the `tag`
+  // line takes that shape, being whatever subject pills the epic group did not
+  // already offer.
+  //
+  // WHY THREE LINES BY DEFAULT. `epic` and `tag` say what a todo is ABOUT while
+  // `state` and `priority` say how far along it is, and one undifferentiated row asks
+  // a reader to know which pill is which kind. The epics are a short, named
+  // vocabulary worth prefacing; the tags are open-ended; the states are the other
+  // question entirely.
+  //
+  // A ROW WHOSE FACETS ARE ALL ABSENT FROM `facets:` IS DROPPED rather than rendered
+  // as a blank line, so narrowing `facets:` needs no matching edit here.
+  pill-rows: (
+    (label: [epic:], facets: ("epic",)),
+    (facets: ("tag",)),
+    (label: [todo states:], facets: ("state", "priority")),
+  ),
   // WHICH ROWS ARE ROWS, before any pill is pressed. The default is the only one that
   // is always right — a closed todo is not outstanding work. A site with a second way
   // of finishing (a call answered before its deadline lapsed, say) passes its own.
@@ -374,14 +382,28 @@
     }
   }
 
-  // SUBJECT ABOVE, STATE BELOW — and split by membership rather than by a hardcoded
-  // pair, so a site adding a facet of its own lands on the top line without touching
-  // this. An empty line is dropped, not rendered blank.
-  let state-groups = facets.filter(f => f in _STATE)
-  let subject = facets.filter(f => f not in _STATE)
-  let subject-row = if subject.len() > 0 { ((facets: subject),) } else { () }
-  let facet-rows = if state-label == none or state-groups.len() == 0 { none } else {
-    subject-row + ((label: state-label, facets: state-groups),)
+  // THE LAYOUT `pill-rows:` DECLARES, intersected with the groups that actually
+  // exist. The intersection is load-bearing: `#panel` asserts that every name in
+  // `facet-rows:` is also in `facets:`, so a caller narrowing `facets:` would
+  // otherwise trip an assertion about a group they had just chosen not to have. A
+  // line left with no groups is dropped rather than rendered blank.
+  let facet-rows = pill-rows
+    .map(r => (
+      label: r.at("label", default: none),
+      facets: r.at("facets", default: ()).filter(f => f in facets),
+    ))
+    .filter(r => r.facets.len() > 0)
+
+  // EVERY GROUP MUST LAND SOMEWHERE, because `#panel` asserts the same from its side:
+  // a facet in `facets:` and in no row renders no pills at all, which is a filter the
+  // reader can neither see nor press.
+  for f in facets {
+    assert(
+      facet-rows.any(r => r.facets.contains(f)),
+      message: "@rookery/todos: #filter-panel's facet `" + f + "` is in `facets:` but "
+        + "in no `pill-rows:` entry, so it would render no pills. Put it in a row, or "
+        + "drop it from `facets:`.",
+    )
   }
 
   panel(
@@ -402,12 +424,11 @@
     // two subjects that were the same question composing as though they were different
     // ones.
     //
-    // THE SAME LIST THE LAYOUT USES, deliberately: what shares the subject line is what
-    // composes as one question, so a facet added to that line cannot land on the wrong
-    // side of this. `state` and `priority` are the other line and the other rule — those
-    // two ask "how far along" from opposite ends and a reader pressing `ready` and `p0`
-    // means both.
-    union: subject,
+    // NAMED BY `_SUBJECT` rather than derived from the layout, now that the layout is
+    // a caller's to declare: which groups ask ONE question is a fact about the todo
+    // model, not about how many lines the pills are drawn on. Intersected with
+    // `facets:` for the reason `multi:` above is.
+    union: facets.filter(f => f in _SUBJECT),
     facet-rows: facet-rows,
     sort: "when",
     descending: order == "newest",

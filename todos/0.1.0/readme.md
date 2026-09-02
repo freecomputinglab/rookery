@@ -341,16 +341,20 @@ it imports `@rookery/todos` **last**.
 #filter-panel(today: TODAY)
 ```
 
-**Four pill groups, none of them declared:** `epic` and `tag` on the first line,
-`state` and `priority` on the second under a `todo states:` label. The first pair
-says what a todo is *about*, the second how far along it is.
+**Four pill groups, none of them declared:** `epic` on its own line under an
+`epic:` label, `tag` on the next, then `state` and `priority` together under
+`todo states:`. The first two say what a todo is *about*, the last two how far
+along it is. `pill-rows:` declares that layout and a caller may replace it.
 
-**The two lines compose differently, because they ask different kinds of question.**
-Within any group the values **OR**. Across the *state* line they **AND** — `blocked`
-+ `p1` leaves blocked priority-one todos, where `#todos-search`'s single
-undifferentiated pill row could only ever union. Across the *subject* line they
-**OR**: `epic` and `tag` are one question in two projections, so pressing `rheo` (an
-epic) and `birds` (a tag) shows both, not their intersection. That is `#panel`'s
+**The subject groups and the state groups compose differently, because they ask
+different kinds of question.**
+Within any group the values **OR**. Between `state` and `priority` they **AND** —
+`blocked` + `p1` leaves blocked priority-one todos, where `#todos-search`'s single
+undifferentiated pill row could only ever union. Between `epic` and `tag` they
+**OR**: those two are one question in two projections, so pressing `rheo` (an
+epic) and `birds` (a tag) shows both, not their intersection. Splitting them
+across two lines changes nothing about that — the composition follows the
+question, not the layout. That is `#panel`'s
 [`union:`](../../search/0.1.0/readme.md#union--groups-that-answer-one-question), and
 before it existed the pair returned nothing at all — a todo under `epic-rheo` gets no
 `rheo` pill in the tag group (see below), so no row could ever be both.
@@ -415,9 +419,12 @@ with whatever pills are pressed. `@rookery/search`'s `#panel` section carries th
 `#todos-search` — the other filter box, further up — does **not** take the language: it
 has its own input and its own scorer, and giving it one is separate work.
 
-Pass `facets:` to narrow the groups (`facets: ("epic", "state", "priority")` is the
-row this had before the tag group), and `state-label: none` to put every group back
-on one line.
+Pass `facets:` to narrow the groups — `facets: ("epic", "state", "priority")` drops
+the tag pills — and `pill-rows:` to lay the remaining ones out differently. Its
+entries are `(label: <content or none>, facets: (<group names>))`, one per line, the
+same shape `#panel` takes for `facet-rows:`; a line whose groups are all absent from
+`facets:` is dropped, so narrowing one argument needs no edit to the other. Every
+group on one unlabelled line is `pill-rows: ((facets: ("epic", "tag", "state", "priority")),)`.
 
 ## Derived, never stored
 
