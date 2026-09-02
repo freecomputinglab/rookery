@@ -117,4 +117,13 @@ at `src/`, so an edit takes effect immediately. `citation(..)` calls into
 ```sh
 cd bibtex/0.1.0
 just test
+rheo compile demo/rheo
 ```
+
+`demo/rheo` is a small rookery whose notes come straight from a `.bib` file:
+`demo/rheo/references.bib` carries five entries — a book with a `shorttitle`,
+an article with a `doi`, `journal`, `volume`, `pages` and an `abstract`, an
+entry with three authors, and one with an `editor` and no `author` — and
+`demo/rheo/content/index.typ` sweeps all but one of them with `all()`, while
+`demo/rheo/content/entry.typ` claims the remaining one by hand with
+`#citation` to show the override `all()` respects.
