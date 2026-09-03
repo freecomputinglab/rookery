@@ -46,6 +46,12 @@ root:
 just examples
 ```
 
+`dag` is the one example that imports `@rookery/todos`, and unlike this
+package `todos` is a BUILT package — its `dist/lib.js` has to exist before
+rheo can resolve it. `just examples` above builds `slipshow` itself but not
+its sibling, so on a checkout where `todos` has never been built, compile it
+first: `cd ../../todos/0.1.0 && just build`.
+
 ## Self-contained
 
 No example imports from another, and there is no shared `examples/lib.typ`
