@@ -109,7 +109,7 @@
         // sits in ordinary prose, with no `.idea-box`/`.idea-window`
         // ancestor to inherit from.
         if _target() == "html" or _target() == "epub" {
-          html.elem("span", attrs: _themed((class: "idea-ref")), linked)
+          html.elem("span", attrs: _themed((class: "idea-ref", data-rookery: "ref")), linked)
         } else {
           linked
         }

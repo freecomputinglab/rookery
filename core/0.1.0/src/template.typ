@@ -304,7 +304,7 @@
     let own = _own-cited-keys(doc)
     if own.len() > 0 {
       if _target() == "html" or _target() == "epub" {
-        html.elem("div", attrs: (class: "idea-page-refs"), _bib-call([References]))
+        html.elem("div", attrs: (data-rookery: "page-refs", class: "idea-page-refs"), _bib-call([References]))
       } else {
         _bib-call([References])
       }

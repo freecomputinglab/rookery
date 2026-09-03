@@ -39,6 +39,13 @@
   if i == none { s } else { s.slice(i + 1) }
 }
 
+// The `data-rookery-tags` attrs entry for a list of visible tag names, or an
+// empty dictionary when there are none — the same emptiness the `idea-tag-<tag>`
+// class list already degrades to. Shared by every site that builds both a tag
+// class list and this attribute, so the two cannot disagree about which tags
+// are on the element.
+#let _tags-attr(names) = if names.len() == 0 { (:) } else { (data-rookery-tags: names.join(" ")) }
+
 // ---- _norm-tags — every accepted `tags:` form, as ONE dictionary -----------
 //
 // The tag store is a DICTIONARY as of 0.5.0: keys are tag names, values are

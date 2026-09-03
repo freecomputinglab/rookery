@@ -154,15 +154,18 @@ if len(lists) != 4:
 # riding alongside `.idea-row` as its hook. The old `.upcoming-when` / `.upcoming-name`
 # / `.upcoming-stage` cells were this file's own copy of that row and are gone.
 def rows(lst):
-    return [(c, b) for c, b in re.findall(r'<li class="([^"]*)">(.*?)</li>', lst, re.S)
+    return [(c, b) for c, b in re.findall(
+            r'<li[^>]*class="([^"]*)"[^>]*data-rookery="row"[^>]*>(.*?)</li>', lst, re.S)
             if "upcoming-row" in c]
 
 def when(row):
-    m = re.search(r'class="idea-row-when([^"]*)"[^>]*>(?:<time datetime="([^"]+)")?', row)
+    m = re.search(
+        r'<[a-z]+[^>]*class="idea-row-when([^"]*)"[^>]*data-rookery="row-when"[^>]*>'
+        r'(?:<time datetime="([^"]+)")?', row)
     return (m.group(1).strip(), m.group(2))
 
 def name(row):
-    return re.search(r'class="idea-row-title"[^>]*>([^<]*)', row).group(1)
+    return re.search(r'<[a-z]+[^>]*data-rookery="row-title"[^>]*>([^<]*)', row).group(1)
 
 # 1. ORDER, and it is the whole point of the view: the notes are written
 # later/sooner/booked/watched and must come out in date order.
@@ -190,7 +193,7 @@ if soft != ["Booked"]:
 
 # 3. THE BADGE is what has HAPPENED, not what is coming — so the booked row
 # reads `submitted`, and a row nothing has happened to has no badge at all.
-stages = {name(b): re.findall(r'class="idea-tag idea-tag-[^"]*">([^<]*)', b) for _, b in all_rows}
+stages = {name(b): re.findall(r'<[a-z]+[^>]*data-rookery="tag"[^>]*>([^<]*)', b) for _, b in all_rows}
 if stages["Booked"] != ["submitted"]:
     print(f"FAIL: Booked's badge is {stages['Booked']}, wanted submitted")
     sys.exit(1)
@@ -239,7 +242,9 @@ if h.count('class="upcoming-empty"') != 1:
 # the past is exactly that. They are what makes the ordering assertion below mean
 # something — a row with two chips is the only place "last in the strip" can fail.
 def chips(row):
-    return re.findall(r'class="idea-tag (idea-tag-[^"]*)">([^<]*)', row)
+    return re.findall(
+        r'<[a-z]+[^>]*class="idea-tag (idea-tag-[^"]*)"[^>]*data-rookery="tag"[^>]*>([^<]*)',
+        row)
 
 due = {name(b): chips(b) for _, b in rows(lists[3])}
 want = {

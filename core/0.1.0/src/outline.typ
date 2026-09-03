@@ -524,7 +524,14 @@
   let title-heading = if title-content == none { none } else if (
     _target() == "html" or _target() == "epub"
   ) {
-    html.elem("h4", attrs: _themed((class: "idea-outline-title idea-tab")), title-content)
+    // `data-rookery="outline-title"` is the element's own role; `data-rookery-tab`
+    // is the boolean flag that borrows the tab's flex/stub shape (see core.css)
+    // without claiming the "tab" role itself.
+    html.elem(
+      "h4",
+      attrs: _themed((class: "idea-outline-title idea-tab", data-rookery: "outline-title", data-rookery-tab: "tab")),
+      title-content,
+    )
   } else {
     heading(depth: 1, outlined: false, numbering: none, title-content)
   }
@@ -545,7 +552,9 @@
       entries,
       (items, root) => html.elem(
         "ul",
-        attrs: if root { _themed((class: "idea-outline")) } else { (class: "idea-outline") },
+        attrs: if root { _themed((class: "idea-outline", data-rookery: "outline")) } else {
+          (class: "idea-outline", data-rookery: "outline")
+        },
         items.join(),
       ),
       // The title in a span of its own, so the hairline marker and the row's
@@ -560,13 +569,17 @@
       // hide rows in its own CSS, with no Typst-side filter at all. The package
       // ships NO default rule for any of them — `#note`/`#todo` are sugar, not a
       // recognised set, and styling one here would invent an opinion.
-      (e, sub) => html.elem(
-        "li",
-        // Invisible tags drop out of an outline row for the same reason they drop
-        // out of a card: the class names the tag in the HTML.
-        attrs: (class: (("idea-outline-row",) + _visible-tags(e.tags.keys()).map(l => "idea-tag-" + l)).join(" ")),
-        link(e.loc, e.title) + if sub == none { [] } else { sub },
-      ),
+      (e, sub) => {
+        let visible = _visible-tags(e.tags.keys())
+        html.elem(
+          "li",
+          // Invisible tags drop out of an outline row for the same reason they drop
+          // out of a card: the class names the tag in the HTML.
+          attrs: (class: (("idea-outline-row",) + visible.map(l => "idea-tag-" + l)).join(" "), data-rookery: "outline-row")
+            + _tags-attr(visible),
+          link(e.loc, e.title) + if sub == none { [] } else { sub },
+        )
+      },
     )
   } else {
     // No theme container and no marker styling on the paged target: `#idea`

@@ -343,7 +343,7 @@
   if _target() == "html" or _target() == "epub" {
     html.elem(
       "sup",
-      attrs: (class: "idea-fn-ref", id: "fnref-" + tag),
+      attrs: (class: "idea-fn-ref", id: "fnref-" + tag, data-rookery: "fn-ref"),
       html.elem("a", attrs: (href: "#fn-" + tag), str(n)),
     )
   } else {
@@ -358,21 +358,21 @@
   if _target() == "html" or _target() == "epub" {
     html.elem(
       "div",
-      attrs: (class: "idea-footnotes"),
-      html.elem("h4", attrs: (class: "idea-footnotes-title"), [Footnotes])
+      attrs: (class: "idea-footnotes", data-rookery: "footnotes"),
+      html.elem("h4", attrs: (class: "idea-footnotes-title", data-rookery: "footnotes-title"), [Footnotes])
         + html.elem(
           "ol",
-          attrs: (class: "idea-footnote-list"),
+          attrs: (class: "idea-footnote-list", data-rookery: "footnote-list"),
           notes
             .enumerate()
             .map(((i, body)) => {
               let tag = str(b) + "-" + str(i + 1)
               html.elem(
                 "li",
-                attrs: (class: "idea-footnote", id: "fn-" + tag),
+                attrs: (class: "idea-footnote", id: "fn-" + tag, data-rookery: "footnote"),
                 html.elem(
                   "a",
-                  attrs: (class: "idea-fn-backlink", href: "#fnref-" + tag),
+                  attrs: (class: "idea-fn-backlink", href: "#fnref-" + tag, data-rookery: "fn-backlink"),
                   "^",
                 )
                   + " "

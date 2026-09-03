@@ -84,22 +84,23 @@
       + (
         class: (("idea-row-when",) + (if soft { ("soft",) } else { () }) + when-class)
           .join(" "),
+        data-rookery: "row-when",
       ),
     if when == none { [—] } else if iso == none { when } else {
       html.elem("time", attrs: (datetime: iso), when)
     },
   )
   if href == none {
-    html.elem("span", attrs: (class: "idea-row-title"), title)
+    html.elem("span", attrs: (class: "idea-row-title", data-rookery: "row-title"), title)
   } else {
-    html.elem("a", attrs: (class: "idea-row-title", href: href), title)
+    html.elem("a", attrs: (class: "idea-row-title", href: href, data-rookery: "row-title"), title)
   }
   // ONE SPAN PER `cells` ENTRY, between the title and the badges — a host
   // institution, a path to a manuscript, whatever a caller's own model has that
   // a reader scans DOWN for rather than reads inside the title. They are content,
   // not data: the row neither formats nor labels them.
   for c in cells {
-    html.elem("span", attrs: (class: "idea-row-cell"), c)
+    html.elem("span", attrs: (class: "idea-row-cell", data-rookery: "row-cell"), c)
   }
   // THE BADGE STRIP, and an empty one is omitted entirely rather than drawn
   // empty: a `<span>` with no children still takes a grid track, which on a
@@ -117,11 +118,14 @@
   if badges.len() > 0 {
     html.elem(
       "span",
-      attrs: (class: "idea-row-badges"),
+      attrs: (class: "idea-row-badges", data-rookery: "row-badges"),
       badges
         .map(b => html.elem(
           "span",
-          attrs: (class: "idea-tag idea-tag-" + b.tag),
+          // `data-rookery-tags` inlined rather than shared with `_tags-attr`
+          // (pure.typ): this file depends on nothing else in the package, and
+          // a badge's tag is always exactly one non-empty name.
+          attrs: (class: "idea-tag idea-tag-" + b.tag, data-rookery: "tag", data-rookery-tags: b.tag),
           b.text,
         ))
         .join(),
@@ -166,7 +170,11 @@
     attrs: attrs
       + (
         class: (("idea-row",) + extra + tags.map(t => "idea-tag-" + t)).join(" "),
-      ),
+        data-rookery: "row",
+      )
+      // `data-rookery-tags` inlined rather than shared with `_tags-attr`
+      // (pure.typ): this file depends on nothing else in the package.
+      + (if tags.len() == 0 { (:) } else { (data-rookery-tags: tags.join(" ")) }),
     idea-row-body(
       when: when,
       iso: iso,

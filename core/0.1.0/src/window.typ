@@ -374,12 +374,14 @@
     // the border, padding and hover tint that make sense around an actual
     // on-page `#window`, not around a body a caller is embedding inside a
     // box of its own. See core.css for why this needs a second class
-    // rather than a downstream override.
+    // rather than a downstream override. `data-rookery` stays "window" (every
+    // generic window rule still applies); `data-rookery-plain` is the boolean
+    // flag core.css keys the two box-suppressing overrides on.
     _bracket(
       html.elem(
         "div",
-        attrs: _themed((class: "idea-window idea-window-plain")),
-        html.elem("div", attrs: (class: "idea-window-body"), inner),
+        attrs: _themed((class: "idea-window idea-window-plain", data-rookery: "window", data-rookery-plain: "plain")),
+        html.elem("div", attrs: (class: "idea-window-body", data-rookery: "window-body"), inner),
       ),
       WK,
     )

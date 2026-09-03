@@ -375,9 +375,10 @@
           _permalink-tab(id, tags: if show-tags { flat-tags } else { () }, date: date),
           html.elem(
             "h" + str(level + 1),
-            attrs: (id: id, class: cls.join(" ")),
+            attrs: (id: id, class: cls.join(" "), data-rookery: "idea")
+              + _tags-attr(_visible-tags(tags.keys())),
             if ttl == none { [] } else {
-              html.elem("span", attrs: (class: "idea-title"), ttl)
+              html.elem("span", attrs: (class: "idea-title", data-rookery: "title"), ttl)
             },
           ),
         )
@@ -404,7 +405,10 @@
         _bracket(
           html.elem(
             "div",
-            attrs: _themed((class: box-cls.join(" "))),
+            attrs: _themed(
+              (class: box-cls.join(" "), data-rookery: "box")
+                + _tags-attr(_visible-tags(tags.keys())),
+            ),
             header + _footnoted(body) + _refs-block(_own-cited-keys(body)),
           ),
           IK,

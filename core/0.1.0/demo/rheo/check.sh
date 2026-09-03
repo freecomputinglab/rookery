@@ -330,9 +330,17 @@ grep -q 'derived-note.html">DERIVEDBODY' "$H/ideas/index.html" ||
 python3 - "$H/index.html" "$H/sub/page.html" "$H/refs.html" <<'SWEEP' || fail=1
 import re, sys
 bad = 0
+# Keyed on data-rookery, the STABLE role name, rather than on the `idea-page-refs`/
+# `idea-box` classes: those are the configurable public hook a project may rename
+# (see core.css's own theme header), so a structural adjacency check has to
+# survive a class rename to still be checking the same thing.
 for path in sys.argv[1:]:
     h = open(path).read()
-    if not re.search(r'<div class="idea-page-refs">.{0,600}?<li[^>]*>.{0,600}?</ul></section></div><div class="idea-box"', h, re.S):
+    if not re.search(
+        r'<div[^>]*data-rookery="page-refs"[^>]*>.{0,600}?<li[^>]*>.{0,600}?'
+        r'</ul></section></div><div[^>]*data-rookery="box"[^>]*>',
+        h, re.S,
+    ):
         print(f"FAIL: {path} has no populated .idea-page-refs immediately before an .idea-box —"
               f" the adjacency the hat-clearance rule exists for is no longer exercised")
         bad = 1
@@ -341,8 +349,8 @@ if not bad:
 sys.exit(bad)
 SWEEP
 
-grep -q 'idea-page-refs:has(li) + .idea-box' "$H/rookery/core/core.css" ||
-  note "the built CSS has no .idea-page-refs:has(li) + .idea-box rule — a card's id will overlap the references above it"
+grep -q '\[data-rookery="page-refs"\]:has(li) + \[data-rookery="box"\]' "$H/rookery/core/core.css" ||
+  note "the built CSS has no [data-rookery=\"page-refs\"]:has(li) + [data-rookery=\"box\"] rule — a card's id will overlap the references above it"
 
 # 14. WINDOW DEPTHS (`content/sub/deeper/page.typ`). `depth: 0` renders a bare
 #     link row with no transcluded body at all; `depth: 2` unfurls the nested
@@ -350,11 +358,17 @@ grep -q 'idea-page-refs:has(li) + .idea-box' "$H/rookery/core/core.css" ||
 #     rather than collapsing it to a permalink the way the document default
 #     (depth 1) does.
 python3 - "$H/sub/deeper/page.html" <<'DEPTHS' || fail=1
-import sys
+import re, sys
 h = open(sys.argv[1]).read()
 bad = 0
-if '<figure><ul class="idea-page-list"><li class="idea-page-row">' \
-   '<a href="../../ideas/w-outer.html">Outer</a></li></ul></figure>' not in h:
+# `data-rookery="page-list"`/`"page-row"` are the stable roles for this shape;
+# the `<figure>...</figure>` wrapper with nothing else inside it is what makes
+# it a BARE row rather than an unfurled window with a body.
+if not re.search(
+    r'<figure><ul[^>]*data-rookery="page-list"[^>]*><li[^>]*data-rookery="page-row"[^>]*>'
+    r'<a href="\.\./\.\./ideas/w-outer\.html">Outer</a></li></ul></figure>',
+    h,
+):
     print("FAIL: sub/deeper/page.html's depth: 0 window is not a bare link row with no body")
     bad = 1
 # w-inner's own body renders once as its own card, plus once per place a
@@ -418,8 +432,16 @@ tail = h[h.index("Tagged phd</h4>"):]
 if "Auto note" in tail:
     print("FAIL: relations.html's Tagged phd outline still lists the untagged parent — it should be pruned")
     bad = 1
-if not re.search(r'<ul class="idea-outline"><li class="idea-outline-row idea-tag-phd idea-tag-draft">'
-                  r'<a href="#loc-3">Pinned</a></li>', tail):
+# `data-rookery="outline"`/`"outline-row"` are the stable roles for the list and
+# its row; `data-rookery-tags="phd draft"` is the stable tag-membership attribute
+# (see core.css's own header) — checked instead of the `idea-tag-*` classes,
+# which are a configurable public hook and whose ORDER is not part of the
+# contract this check is defending.
+if not re.search(
+    r'<ul[^>]*data-rookery="outline"[^>]*><li[^>]*data-rookery="outline-row"[^>]*'
+    r'data-rookery-tags="phd draft"[^>]*><a href="#loc-3">Pinned</a></li>',
+    tail,
+):
     print("FAIL: relations.html's Tagged phd outline does not promote Pinned to the top level")
     bad = 1
 if not bad:
