@@ -212,6 +212,17 @@
 // different defaults.
 #let _show-backlinks = state("rheo-idea-show-backlinks", true)
 
+// Whether `.marrow.typ` should print the authored title as the `<h1>` on a
+// note's own minted page. Same wrapper discipline and same DEFAULT ON
+// reasoning as `_show-context`/`_show-backlinks` above.
+//
+// MINTED PAGE ONLY. A `#window` summary, an `@ref` and an outline row all
+// still call the note by its title (or derived label) regardless of this
+// setting — this exists for a page whose own metadata already names the
+// note (a reading, a session title) and does not want it repeated as a
+// heading.
+#let _show-title = state("rheo-idea-show-title", true)
+
 // ---- Invisible tags — a tag that leaves no visual trace -------------------
 //
 //   #show: rookery.with(invisible-tags: ("private",))

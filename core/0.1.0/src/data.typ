@@ -395,7 +395,7 @@
     .to-dict()
 }
 
-// The 18 knobs `#show: rookery` accepts, checked before anything is published.
+// The 19 knobs `#show: rookery` accepts, checked before anything is published.
 //
 // Extracted from `rookery` below rather than inlined in it: the function was 158
 // code lines, 13 of them asserts, and a reader asking what `#show: rookery`
@@ -418,6 +418,7 @@
   index-page,
   show-context,
   show-backlinks,
+  show-title,
   invisible-tags,
 ) = {
   assert(
@@ -500,6 +501,10 @@
   assert(
     type(show-backlinks) == bool,
     message: "@rookery/core: `show-backlinks` must be a boolean — got " + repr(show-backlinks),
+  )
+  assert(
+    type(show-title) == bool,
+    message: "@rookery/core: `show-title` must be a boolean — got " + repr(show-title),
   )
   // THROUGH `_assert-tags`, the same helper every other tag-shaped argument in
   // this package uses, so `invisible-tags: "private"` needs no array ceremony and

@@ -1693,6 +1693,35 @@ rookery:
 `rookery.with(show-context: ..)` says.]
 ```
 
+### Hiding the minted page's heading: `show-title`
+
+`show-title` governs a note's OWN MINTED PAGE ONLY. Defaults to `true`, so the
+`<h1>` is exactly what it always was unless you say otherwise. It does not
+touch anywhere else a note's title appears — a `#window` summary, an `@ref`,
+and an `ideas/index.html` row all still call the note by its title (or
+derived label) regardless of this setting, because that is how a reader finds
+the note in the first place. Turn it off document-wide when a project's own
+page chrome already names the note (a reading list entry, a session title in
+a metadata table) and printing it again as a heading is redundant:
+
+```typst
+#show: rookery.with(show-title: false)
+```
+
+`#idea` takes the same argument, defaulting to `auto` — "use the
+document-wide setting above" — so a single note can override it without
+changing the rest of the rookery:
+
+```typst
+#idea("etal", show-title: false)[This note's own page has no `<h1>`, but a
+`#window(<etal>)` elsewhere still shows its title.]
+```
+
+With `show-title: false` resolved, the minted page omits the `<h1>` entirely
+rather than leaving an empty one — the id that would have been the heading's
+anchor moves onto its `.idea-head` container instead, so a Context link from
+another page's footer still lands on the note.
+
 ### A landing page for the whole rookery: `index-page`
 
 `<dir>/` (see "Where pages are minted: `note-dir`" — `ideas/` unless you set

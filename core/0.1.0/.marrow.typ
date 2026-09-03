@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _show-context, _show-backlinks, _plain, _visible-tags, window
+#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _show-context, _show-backlinks, _show-title, _plain, _visible-tags, window
 
 #context {
   let registry = _registry.final()
@@ -97,6 +97,7 @@
   let syndicate = _syndicate.final()
   let show-context = _show-context.final()
   let show-backlinks = _show-backlinks.final()
+  let show-title = _show-title.final()
 
   // THE PER-TAG THEME, which every page below has to carry for itself.
   //
@@ -197,6 +198,14 @@
     // second call would only repeat the work; sharing one value also makes it
     // impossible for the walks to disagree with what is on the page.
     let flat = _body-at(rec, depth: minted-depth)
+    // PER-NOTE OVERRIDE, same shape as `use-context`/`use-backlinks` further
+    // down: `rec.show-title` is `auto` unless `#idea(show-title: ..)` set one,
+    // and `auto` falls back to the document-wide `rookery.with(show-title:)`
+    // setting.
+    let use-title = {
+      let v = rec.at("show-title", default: auto)
+      if v == auto { show-title } else { v }
+    }
     // Built as a value rather than passed straight to `rheo-document`, so the
     // project's template can wrap the WHOLE page — heading, body and footer —
     // and see exactly what a vertebra's own `#show:` would.
@@ -254,23 +263,30 @@
             rec.created.display("[year]-[month]-[day]")
           },
         ),
-        html.elem(
-          "h1",
-          // The <h1> keeps the `id` — it is this page's anchor, the destination
-          // of `#link(label(id))` from a Context footer — and the `idea` class
-          // every heading rule matches on.
-          attrs: (id: id, class: "idea"),
-          // Title in a span, exactly as `#idea` does it — a hook, not a
-          // requirement.
-          // THE AUTHORED TITLE, so a titleless note's <h1> stays empty exactly as it
-          // did before 0.6.0. The derived label goes in this page's `<title>`
-          // instead (see `rheo-document(title:)` below) — putting it here printed
-          // the body twice.
-          (if rec.title == none { [] } else {
-            html.elem("span", attrs: (class: "idea-title"), rec.title)
-          }),
-        ),
-        attrs: _themed((:)),
+        // The <h1> carries this page's anchor — the destination of
+        // `#link(label(id))` from a Context footer — and the `idea` class
+        // every heading rule matches on. `show-title:` resolving false omits
+        // the element entirely rather than leaving it empty: an empty
+        // heading still keeps its margins and leaves a hole where the title
+        // was. The anchor then moves onto `.idea-head` itself (`attrs:`
+        // below), the one element still enclosing the tab either way, so a
+        // Context link still lands here.
+        if use-title {
+          html.elem(
+            "h1",
+            attrs: (id: id, class: "idea"),
+            // Title in a span, exactly as `#idea` does it — a hook, not a
+            // requirement.
+            // THE AUTHORED TITLE, so a titleless note's <h1> stays empty exactly as it
+            // did before 0.6.0. The derived label goes in this page's `<title>`
+            // instead (see `rheo-document(title:)` below) — putting it here printed
+            // the body twice.
+            (if rec.title == none { [] } else {
+              html.elem("span", attrs: (class: "idea-title"), rec.title)
+            }),
+          )
+        } else { [] },
+        attrs: _themed(if use-title { (:) } else { (id: id) }),
       )
       // `flat`, not `rec.body`: the note is rendered at `minted-depth` (see
       // above), so a `#window` written in its body shows in full here and a
