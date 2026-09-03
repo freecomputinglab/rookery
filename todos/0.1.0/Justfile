@@ -15,6 +15,7 @@ build:
 # light, the same shape @rookery/core uses.
 test:
     typst compile --features html --root . --format pdf test/units.typ /dev/null
+    ./test/panics.sh
     @echo "units OK"
 
 # The browser-only half: the graph layout and rendering in `src/*.js`.

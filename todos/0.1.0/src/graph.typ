@@ -261,6 +261,78 @@
   )
 }
 
+// ---- layer-of / layers — longest-path layering, at build time -------------
+//
+// The Typst twin of `layer`/`rows` in `src/layout.js`, which lays out the
+// same graph for `#todo-graph-view`'s browser-side drawing. A node's layer is
+// one more than the deepest layer among the things it depends on: layer 0
+// depends on nothing — work that is unblocked — and layer n holds what those
+// release. LONGEST path rather than shortest, because with shortest-path
+// layering an edge can span several layers, and with longest-path every edge
+// is exactly one layer long. The two cannot be changed apart.
+//
+// ITERATIVE WITH A BOUNDED WORKLIST, not recursive, for the reason
+// `find-cycle` above already gives: Typst has a recursion depth limit and a
+// rookery is not bounded in size. Bounded at `graph.nodes.len() + 1` passes,
+// matching `layout.js`, so a bad input degrades to a wrong grouping rather
+// than a hang.
+//
+// A dep naming a node outside `graph.nodes` contributes nothing here, the
+// same way it contributes no edge to `graph.edges` — it is `unresolved`, not
+// a layering input.
+//
+// A pure function of the graph, not a context function: the caller is what
+// sits inside `#context`, the same split `todo-graph` documents above.
+// Named with the `-of` suffix this file's other readers use (`deps-of`,
+// `priority-of`) rather than the bare `layer` its JavaScript twin uses,
+// because a bare `layer` in package scope is a name a consuming project
+// could plausibly want for itself.
+#let layer-of(graph) = {
+  assert-acyclic(graph)
+
+  let deps = (:)
+  for name in graph.nodes.keys() { deps.insert(name, ()) }
+  for e in graph.edges { deps.insert(e.at(0), deps.at(e.at(0)) + (e.at(1),)) }
+
+  let layer = (:)
+  for name in graph.nodes.keys() { layer.insert(name, 0) }
+
+  let limit = graph.nodes.len() + 1
+  for _ in range(limit) {
+    let changed = false
+    for name in graph.nodes.keys() {
+      let want = deps.at(name).fold(0, (acc, d) => {
+        if d in layer { calc.max(acc, layer.at(d) + 1) } else { acc }
+      })
+      if want > layer.at(name) {
+        layer.insert(name, want)
+        changed = true
+      }
+    }
+    if not changed { break }
+  }
+  layer
+}
+
+// Groups `graph.nodes.values()` into an array of arrays by `layer-of(graph)`,
+// index = layer, layer 0 first — the nodes on the same layer are exactly the
+// notes a horizontal slipshow wants side by side: several todos depending on
+// the same parent and on nothing from each other. Within a layer, ties break
+// by priority then name, with an unprioritised node last, matching
+// `layout.js`'s `rows()` and the list views, so the drawn graph and a deck
+// built from the same data agree about sequence.
+#let layers(graph) = {
+  let layer = layer-of(graph)
+  let max-layer = layer.values().fold(-1, (m, l) => calc.max(m, l))
+  range(max-layer + 1).map(l => graph.nodes
+    .values()
+    .filter(r => layer.at(r.name) == l)
+    .sorted(key: r => (
+      if r.at("priority", default: none) == none { 9 } else { r.priority },
+      r.name,
+    )))
+}
+
 // ---- #todo-graph-view — the DAG, as a page element ------------------------
 //
 // Emits a container plus a `<script type="application/json">` payload holding

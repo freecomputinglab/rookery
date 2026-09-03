@@ -277,3 +277,28 @@
 )
 // `deadline` is deliberately NOT a rung, so a todo carrying one has not advanced.
 #assert.eq(rung(entries(deadline: d(2026, 8, 1)), ladder: TODO-LADDER, today: _T), none)
+
+// ---- layer-of / layers — the compile-time twin of `src/layout.js` ---------
+
+// a: no deps. b, c: both depend on a. d: depends on both b and c. The
+// horizontal case: b and c share a layer.
+#let dag = g(row("a"), row("b", deps: ("a",)), row("c", deps: ("a",)), row("d", deps: ("b", "c")))
+#assert.eq(layer-of(dag), (a: 0, b: 1, c: 1, d: 2))
+#assert.eq(layers(dag), ((dag.nodes.at("a"),), (dag.nodes.at("b"), dag.nodes.at("c")), (dag.nodes.at("d"),)))
+
+// LONGEST path, not shortest: `e` depends on both `a` and `b`, so it sits one
+// layer below `b`, not level with it.
+#let longest = g(row("a"), row("b", deps: ("a",)), row("e", deps: ("a", "b")))
+#assert.eq(layer-of(longest).at("e"), 2)
+
+// A dangling dep gets a layer anyway — `nope` contributes nothing, so `a`
+// stays at layer 0 — and it is `dangling.unresolved`, asserted above, that
+// records the dep itself.
+#assert.eq(layer-of(dangling).at("a"), 0)
+
+// Within a layer: priority ascending, then name, unprioritised last.
+#let rowp(name, deps: (), priority: none) = (
+  name: name, deps: deps, closed: false, tags-dict: (:), priority: priority,
+)
+#let tied = g(rowp("lo", priority: 3), rowp("hi", priority: 1), rowp("none-pri"))
+#assert.eq(layers(tied).at(0).map(r => r.name), ("hi", "lo", "none-pri"))
