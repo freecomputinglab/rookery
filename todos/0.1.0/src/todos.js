@@ -30,10 +30,23 @@ const MAX_TITLE_CHARS = 28;
 
 function drawNode(node, pt) {
   const classes = ["todo-graph-box", `todo-graph-${node.status}`];
-  if (node.priority != null) classes.push(`idea-tag-todo-p${node.priority}`);
-  if (node.type) classes.push(`idea-tag-todo-${node.type}`);
+  // MIRRORS rookery's own `idea-tag-<tag>` naming, so a project already theming
+  // one of these keys by name reaches the graph node too. `data-rookery-tags`
+  // rides alongside for the same reason `#idea-row`'s own badge (`@rookery/core`'s
+  // row.typ) carries one: a stable query hook that does not depend on the class.
+  const tags = [];
+  if (node.priority != null) {
+    classes.push(`idea-tag-todo-p${node.priority}`);
+    tags.push(`todo-p${node.priority}`);
+  }
+  if (node.type) {
+    classes.push(`idea-tag-todo-${node.type}`);
+    tags.push(`todo-${node.type}`);
+  }
 
-  const g = el("g", { class: classes.join(" ") });
+  const attrs = { class: classes.join(" ") };
+  if (tags.length > 0) attrs["data-rookery-tags"] = tags.join(" ");
+  const g = el("g", attrs);
   const rect = el("rect", {
     x: pt.x,
     y: pt.y,

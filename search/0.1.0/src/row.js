@@ -107,6 +107,10 @@ export const renderRow = (hit, terms, atoms = []) => {
     for (const t of tags) {
       const chip = document.createElement("span");
       chip.className = `rookery-search-tag idea-tag-${t}`;
+      // `data-rookery-tags` alongside the class, matching `#idea-row`'s own badge
+      // (`@rookery/core`'s row.typ): a script or a generic selector reads this to
+      // ask "which tag does this chip carry" without depending on the class name.
+      chip.dataset.rookeryTags = t;
       const folded = fold(t);
       let len = 0;
       for (const atom of atoms) {

@@ -152,10 +152,10 @@
     margin: 0.5rem 0;
   }
 
-  /* Status, driven by the classes the rows already wear. `idea-tag-todo-closed`
-   * is rookery's own class for our `todo-closed` key — no separate status class is
-   * emitted for it, because the tag already says so. */
-  .todo-row.idea-tag-todo-closed .todo-row-title {
+  /* Status, driven by the tags the rows already wear. `todo-closed` rides
+   * rookery's own `data-rookery-tags` attribute for our `todo-closed` key — no
+   * separate status class is emitted for it, because the tag already says so. */
+  .todo-row[data-rookery-tags~="todo-closed"] .todo-row-title {
     text-decoration: line-through;
     color: var(--todo-muted-color, var(--idea-id-color, gray));
   }
@@ -164,24 +164,24 @@
    * reaches a todo in `#todos-list` and its siblings; this one reaches the CARD, on
    * the page where the todo was written.
    *
-   * It needs nothing new from rookery: `.idea-box` and the note's own heading
-   * already carry `idea-tag-<key>` for every tag key (rookery's `idea.typ`), so the
-   * closed marker is on the card as a class the moment a todo carries it.
+   * It needs nothing new from rookery: `[data-rookery="box"]` and the note's own
+   * heading already carry `data-rookery-tags` listing every tag key (rookery's
+   * `idea.typ`), so the closed marker is on the card the moment a todo carries it.
    *
    * OPACITY, not a colour: a card is a whole block — heading, body, tag pills, its
    * own rule — and recolouring each part would be a rule per part and a new
    * disagreement every time rookery adds one. One property, and the card recedes
-   * whole. `.idea-box` is rookery's card container; the heading is styled alongside
-   * it because a top-level note's heading sits outside the box. */
-  .idea-box.idea-tag-todo-closed,
-  .idea.idea-tag-todo-closed {
+   * whole. `[data-rookery="box"]` is rookery's card container; the heading is
+   * styled alongside it because a top-level note's heading sits outside the box. */
+  [data-rookery="box"][data-rookery-tags~="todo-closed"],
+  [data-rookery="idea"][data-rookery-tags~="todo-closed"] {
     opacity: var(--todo-closed-opacity, 0.55);
   }
 
   /* Hovering restores it. A closed todo is receded, not hidden: a reader who goes
    * looking for one should be able to read it without opening its own page. */
-  .idea-box.idea-tag-todo-closed:hover,
-  .idea.idea-tag-todo-closed:hover {
+  [data-rookery="box"][data-rookery-tags~="todo-closed"]:hover,
+  [data-rookery="idea"][data-rookery-tags~="todo-closed"]:hover {
     opacity: 1;
   }
 
@@ -199,11 +199,11 @@
 
   /* Priority reads as weight, not colour: a p0 row should stand out in a list
    * a reader is scanning, without competing with the status channel above. */
-  .todo-row.idea-tag-todo-p0 .todo-row-title {
+  .todo-row[data-rookery-tags~="todo-p0"] .todo-row-title {
     font-weight: 700;
   }
 
-  .todo-row.idea-tag-todo-p1 .todo-row-title {
+  .todo-row[data-rookery-tags~="todo-p1"] .todo-row-title {
     font-weight: 600;
   }
 
@@ -226,7 +226,7 @@
    * `--todo-band-<name>` first, then a mix of the family-wide `--rookery-heat-*`
    * ramp, then the literal hue. A site sets the ramp ONCE and all six washes follow,
    * along with `#upcoming`'s countdown chips in @rookery/timeline. */
-  .idea-row-when[data-countdown] {
+  [data-rookery="row-when"][data-countdown] {
     position: relative;
     border-radius: 3px;
     padding: 0 0.3em;
@@ -234,61 +234,62 @@
     cursor: help;
   }
 
-  .idea-row-when.todo-when-urgent {
+  [data-rookery="row-when"].todo-when-urgent {
     background-color: var(
       --todo-band-urgent,
       color-mix(in oklab, var(--rookery-heat-urgent, #b3261e) 38%, transparent)
     );
   }
 
-  .idea-row-when.todo-when-soon {
+  [data-rookery="row-when"].todo-when-soon {
     background-color: var(
       --todo-band-soon,
       color-mix(in oklab, var(--rookery-heat-soon, #b3611e) 30%, transparent)
     );
   }
 
-  .idea-row-when.todo-when-later {
+  [data-rookery="row-when"].todo-when-later {
     background-color: var(
       --todo-band-later,
       color-mix(in oklab, var(--rookery-heat-later, #b38f1e) 24%, transparent)
     );
   }
 
-  .idea-row-when.todo-when-p0 {
+  [data-rookery="row-when"].todo-when-p0 {
     background-color: var(
       --todo-band-p0,
       color-mix(in oklab, var(--rookery-heat-urgent, #b3261e) 34%, transparent)
     );
   }
 
-  .idea-row-when.todo-when-p1 {
+  [data-rookery="row-when"].todo-when-p1 {
     background-color: var(
       --todo-band-p1,
       color-mix(in oklab, var(--rookery-heat-soon, #b3611e) 28%, transparent)
     );
   }
 
-  .idea-row-when.todo-when-p2 {
+  [data-rookery="row-when"].todo-when-p2 {
     background-color: var(
       --todo-band-p2,
       color-mix(in oklab, var(--rookery-heat-later, #b38f1e) 22%, transparent)
     );
   }
 
-  /* A BANDED DATE IS NOT SOFT-GREY. `.idea-row-when.soft` (core.css) greys and
-   * italicises the cell to say the date answers a different question than the list
-   * asked. Sitting on a wash it has to hold its own against it, so the ink comes
-   * back; the italic stays, which is the half of the distinction that still reads.
+  /* A BANDED DATE IS NOT SOFT-GREY. `[data-rookery="row-when"].soft` (core.css)
+   * greys and italicises the cell to say the date answers a different question
+   * than the list asked. Sitting on a wash it has to hold its own against it, so
+   * the ink comes back; the italic stays, which is the half of the distinction
+   * that still reads.
    *
    * SET AS A CUSTOM PROPERTY, NOT AS `color`, for the reason the chips here used to
    * be: core.css is UNLAYERED throughout, and unlayered CSS beats layered CSS
    * whatever the specificity — a `color:` declared inside this layer would lose to
-   * `.idea-row-when.soft` every time. What that rule DOES is read
+   * `[data-rookery="row-when"].soft` every time. What that rule DOES is read
    * `--idea-muted-color`, so this overrides the input rather than the output.
    * `currentColor` in `color` computes to the INHERITED colour, which is the row's
    * ordinary ink — exactly what "the grey goes" means. */
-  .idea-row-when.soft[data-countdown] {
+  [data-rookery="row-when"].soft[data-countdown] {
     --idea-muted-color: var(--todo-band-fg, currentColor);
   }
 
@@ -301,8 +302,8 @@
    * touch screen a tap is the only hover there is. ABOVE the cell rather than below,
    * so it never covers the row beneath — the next date down the column is the thing a
    * reader is comparing this one against. */
-  .idea-row-when[data-countdown]:hover::after,
-  .idea-row-when[data-countdown]:focus::after {
+  [data-rookery="row-when"][data-countdown]:hover::after,
+  [data-rookery="row-when"][data-countdown]:focus::after {
     content: attr(data-countdown);
     position: absolute;
     bottom: calc(100% + 0.35rem);
@@ -321,7 +322,7 @@
     pointer-events: none;
   }
 
-  .idea-row-when[data-countdown]:focus {
+  [data-rookery="row-when"][data-countdown]:focus {
     outline: 1px solid var(--todo-tooltip-outline, var(--idea-link-color, currentColor));
     outline-offset: 1px;
   }

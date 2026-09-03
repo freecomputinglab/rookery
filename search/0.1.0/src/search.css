@@ -82,7 +82,7 @@
    agreement is made here, in CSS, by name.
 
    THAT FALLBACK USED TO BE UNREACHABLE, and this is the one thing to know about
-   it. `--idea-*` arrives as an INLINE property on `.idea-box` and its kin, and a
+   it. `--idea-*` arrives as an INLINE property on `[data-rookery="box"]` and its kin, and a
    custom property inherits down the DOM — so a bar or a dialog in a site's
    header, which is nobody's descendant but `<body>`'s, saw none of them and every
    rule below shipped its last-resort literal whatever the project's theme said.
@@ -94,7 +94,7 @@
    it is the first link in every chain; it is no longer the only thing that works.
 
    THE LAST RESORT IS ROOKERY'S, deliberately: `rgba(128, 0, 255, 0.12)`, the
-   literal ending `.idea-box`'s left rule and `.idea-tab`'s top rule. It was
+   literal ending `[data-rookery="box"]`'s left rule and `[data-rookery="tab"]`'s top rule. It was
    `rgba(0, 0, 0, 0.25)` here, so an UNTHEMED site drew its note frames faint
    purple and its search rules grey — two colours for one system, on the one kind
    of site that has no theme to reconcile them. Change one and change the other. */
@@ -231,7 +231,7 @@
     );
   }
 
-  /* Same size as the title it follows, deliberately unlike `.idea-label`
+  /* Same size as the title it follows, deliberately unlike `[data-rookery="label"]`
      inline, which is set small so an id does not compete with the heading it
      sits beside. Here there is no heading to compete with — a result is one
      line of small text already, and shrinking half of it again just makes the
@@ -258,7 +258,7 @@
      writes one rule:
        .rookery-search-results .rookery-search-tags { display: flex }
      The CONTAINER is what is hidden, not the chips, so a project's own
-     `.idea-tag-*` rules cannot resurrect them in the dropdown by accident. */
+     generated `idea-tag-<tag>` rules cannot resurrect them in the dropdown by accident. */
   .rookery-search-tags {
     display: none;
   }
@@ -308,7 +308,7 @@
      `--idea-link-color` is the row's own hover background, which every row has;
      `--idea-tag-bg`/`--idea-tag-color` exist ONLY for a tag the author themed BY
      NAME through rookery's `theme: (tags-color: ..)`, which delivers them as a
-     generated `.idea-tag-<tag>` rule — and every chip here already wears that
+     generated `idea-tag-<tag>` rule — and every chip here already wears that
      class (`renderRow` sets `rookery-search-tag idea-tag-<tag>`), so the rule
      reaches a chip JavaScript inserts long after Typst has run. Nothing on the JS
      side is involved; the chain below is the whole mechanism.
@@ -532,23 +532,23 @@
      this, the first thing inside it carries its own top margin — a
      browser's UA default `margin` on the FALLBACK path's bare `<p>`, or on
      the first block `#idea-body` renders, three levels down inside
-     `.idea-window .idea-window-body` for the real-content path — stacking
+     `[data-rookery="window"] [data-rookery="window-body"]` for the real-content path — stacking
      with the pane's padding into visibly TOO MUCH top space. MEASURED.
      Both selectors, because the two paths nest their first block at
      different depths. */
   .rookery-search-preview > :first-child,
-  .rookery-search-preview .idea-window-body > :first-child {
+  .rookery-search-preview [data-rookery="window-body"] > :first-child {
     margin-top: 0;
   }
 
-  /* NOTHING HERE strips `.idea-window`'s box (border, padding, hover tint)
+  /* NOTHING HERE strips `[data-rookery="window"]`'s box (border, padding, hover tint)
      for content inside this pane — `extractNote` wraps a fetched note in
-     rookery's own `.idea-window-plain` modifier, which exists for exactly that
+     rookery's own `data-rookery-plain` modifier, which exists for exactly that
      reason. A downstream override attempted from here cannot win:
      core.css is UNLAYERED throughout, so a rule in THIS package's
      `@layer search` — however specific — always loses to it,
      MEASURED. See core.css's own comment beside
-     `.idea-window.idea-window-plain`. */
+     `[data-rookery="window"][data-rookery-plain]`. */
 
   /* Three lines wear this, and they are all the same kind of thing — a note
      ABOUT the pane rather than content in it: "No preview" for a note with no
@@ -583,8 +583,8 @@
      No cascade fight either: core.css sets no `display` on these classes
      at all, so this layered rule only has to beat the UA default, which any
      author declaration always does. */
-  .rookery-search-preview .idea-outline-title,
-  .rookery-search-preview .idea-outline {
+  .rookery-search-preview [data-rookery="outline-title"],
+  .rookery-search-preview [data-rookery="outline"] {
     display: none;
   }
 
@@ -914,7 +914,7 @@
     overflow-y: visible;
   }
 
-  .panel-row:not(.idea-row) {
+  .panel-row:not([data-rookery="row"]) {
     display: flex;
     gap: 0.6rem;
     align-items: baseline;
