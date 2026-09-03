@@ -145,3 +145,28 @@
   let names = resolve-slips(tags: "slip", order: "created").map(e => e.row.name)
   assert(names.position(n => n == "sel-dated") < names.position(n => n == "sel-undated"))
 }
+
+// `where:` selects on the WHOLE row rather than only the tag dictionary —
+// here, `created`, which no `tags:` predicate can see at all. Plain ideas,
+// not slips: `where:` has nothing to do with `#slip`.
+#idea("where-old", created: datetime(year: 2024, month: 1, day: 1))[Old]
+#idea("where-new", created: datetime(year: 2026, month: 1, day: 1))[New]
+
+#context {
+  let names = resolve-slips(where: r => r.created != none and r.created.year() >= 2025)
+    .map(e => e.row.name)
+  assert.eq(names, ("where-new",))
+}
+
+// `tags:` and `where:` compose: both filters apply, so a query naming a tag
+// AND a row predicate narrows by both rather than either one winning.
+#context {
+  let names = resolve-slips(tags: "slip", where: r => r.name == "intro").map(e => e.row.name)
+  assert.eq(names, ("intro",))
+}
+
+// A `where:`-only query is not silently narrowed to slips: it sees every
+// registered note, exactly as `ideas(values: true)` does.
+#context {
+  assert.eq(resolve-slips(where: r => true).len(), ideas(values: true).len())
+}

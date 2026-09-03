@@ -11,6 +11,18 @@
 // (`@rookery/search`'s `a&b`) with no dependency on search: a caller builds
 // the predicate itself with `eval-tag-query(parse-tag-query("a&b").rpn, ..)`
 // and hands it straight to `tags:`.
+//
+// `where:` is the row-shaped counterpart: a predicate over the WHOLE
+// registry row rather than only its tag dictionary, for a selection `tags:`
+// cannot express — by `created`, `page`, `name`, `title`, or `body`. A row
+// (`ideas(values: true)`, `@rookery/core`'s `data.typ`) carries `id`, `name`,
+// `title`, `text`, `label`, `tags` (a flat array of key names), `tags-dict`
+// (the full dictionary, values included), `body`, `href`, `page`, and
+// `created`. `tags:` keeps its narrower one-argument shape — that is what
+// lets `@rookery/search`'s `eval-tag-query` plug into it with no adapter —
+// so a query needing a field off the row reaches for `where:` instead. The
+// two compose: `tags:` runs first, since it is core's own cheap filter, and
+// `where:` narrows whatever survives it.
 
 #import "@rookery/core:0.1.0": ideas
 #import "tags.typ": *
@@ -26,13 +38,26 @@
 // have no boolean operators, so a predicate instead walks every row's
 // `tags-dict` itself. Otherwise `tags`/`match` pass straight to `ideas()`,
 // which validates them — duplicating `_assert-tags`/`_assert-match` here
-// would just be a second copy of the same message.
-#let _slip-rows-from-query(tags, match) = {
-  if type(tags) == function {
+// would just be a second copy of the same message. `tags: none` still goes
+// through `ideas()`, which is what makes a `where:`-only query see the whole
+// corpus rather than an empty one.
+//
+// `where` filters the survivors by the WHOLE row, after `tags`, so its type
+// is checked up front — before either `ideas()` branch runs — so a bad
+// `where:` panics with this message even when the call has no surrounding
+// `#context` to satisfy `ideas()`'s own registry read.
+#let _slip-rows-from-query(tags, match, where) = {
+  assert(
+    where == none or type(where) == function,
+    message: "@rookery/slipshow: `where` must be a function taking a "
+      + "registry row and returning a bool — got " + repr(where),
+  )
+  let rows = if type(tags) == function {
     ideas(values: true).filter(r => tags(r.tags-dict))
   } else {
     ideas(tags: tags, match: match, values: true)
   }
+  if where == none { rows } else { rows.filter(r => where(r)) }
 }
 
 // The three accepted `order` forms, each sorted by a COMPOUND key — the real
@@ -75,6 +100,7 @@
 // Resolves a slipshow's slip list, from either definition route:
 //
 //   #context resolve-slips(tags: "slip")                    // a tag query
+//   #context resolve-slips(where: r => r.page == "methods")  // a row query
 //   resolve-slips(slips: (slip("a")[..], slip("b")[..]))     // an explicit array
 //
 // The two routes return differently shaped entries on purpose — a `"content"`
@@ -82,19 +108,27 @@
 // needs no key-presence guessing to tell them apart:
 //
 //   (kind: "content", content: <item>, tags: <dict>)   // from `slips:`
-//   (kind: "row", row: <ideas() row>, tags: <dict>)     // from `tags:`
+//   (kind: "row", row: <ideas() row>, tags: <dict>)     // from `tags:`/`where:`
 //
-// `tags:` route needs `#context` (it calls `ideas()` through
+// The query route needs `#context` (it calls `ideas()` through
 // `_slip-rows-from-query`); `slips:` does not, since it only reads tags back
-// out of content already in hand.
-#let resolve-slips(slips: none, tags: none, match: "any", order: "slip-order") = {
+// out of content already in hand. `tags:` and `where:` compose — both may be
+// given together — but `slips:` is exclusive with either, since an explicit
+// array has nothing left to filter.
+#let resolve-slips(slips: none, tags: none, where: none, match: "any", order: "slip-order") = {
+  let slips-given = slips != none
+  let query-given = tags != none or where != none
   assert(
-    (slips == none) != (tags == none),
-    message: "@rookery/slipshow: resolve-slips needs exactly one of `slips` "
-      + "or `tags` — got "
-      + (if slips == none and tags == none { "neither" } else { "both" })
+    slips-given != query-given,
+    message: "@rookery/slipshow: resolve-slips needs exactly one of `slips`, "
+      + "`tags`, or `where` — got "
+      + (if slips == none and tags == none and where == none {
+        "none of them"
+      } else {
+        "`slips` together with `tags`/`where`, which conflict"
+      })
       + ". Pass `slips:` for an explicit ordered array of ideas, or `tags:` "
-      + "to query the registry.",
+      + "and/or `where:` to query the registry.",
   )
 
   if slips != none {
@@ -115,6 +149,6 @@
     return slips.map(item => (kind: "content", content: item, tags: slip-tags-of(item)))
   }
 
-  let rows = _sort-rows(_slip-rows-from-query(tags, match), order)
+  let rows = _sort-rows(_slip-rows-from-query(tags, match, where), order)
   rows.map(row => (kind: "row", row: row, tags: row.tags-dict))
 }
