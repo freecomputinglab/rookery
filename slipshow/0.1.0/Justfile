@@ -25,3 +25,17 @@ test-js:
 check: build
     rheo compile demo/rheo
     ./demo/rheo/check.sh
+
+# Every example compiles. One recipe rather than a Justfile per example: the
+# repo root's `build` walks `find . -mindepth 2 -name Justfile` and runs the
+# default recipe in each directory it finds, so a Justfile down here would
+# make a package build shell out to rheo five times.
+examples: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for d in examples/*/; do
+        case "$(basename "$d")" in _*) continue;; esac
+        echo "==> $d"
+        rheo compile "$d"
+        if [ -x "$d/check.sh" ]; then "$d/check.sh"; fi
+    done

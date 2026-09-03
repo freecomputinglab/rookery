@@ -212,3 +212,10 @@ jobs:
       # the package until vite has written it.
       - name: slipshow build, unit fixture and rheo demo
         run: cd slipshow/0.1.0 && just build && just test && just check
+
+      # AFTER the namespace-symlink step, like every rheo demo above: these
+      # example projects import `@rookery/core:0.1.0` by coordinate. AFTER
+      # slipshow's own `just build` above, because `dist/` is gitignored and
+      # rheo cannot resolve the package until vite has written it.
+      - name: slipshow examples compile
+        run: cd slipshow/0.1.0 && just examples
