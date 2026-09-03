@@ -64,11 +64,12 @@ export const previewCache = new Map();
 // inside a note body rather than against anything routine — but a search
 // preview should never run code merely to be looked at.
 export const extractNote = (doc, pageUrl) => {
-  // `h1.idea` ONLY, no attribute alternative: a minted page's own `<h1>`
-  // deliberately carries no `data-rookery` in ANY core, old or current (core's own
-  // demo asserts an exact empty rendering for a titleless note's heading), so
-  // there is no attribute form to widen this to.
-  const h1 = doc.querySelector("h1.idea");
+  // Matches either shape, exactly as the `.idea-head` lookup below does: the
+  // class is a project's configurable `css-prefix:` hook and disappears the
+  // moment a project renames its stem, so `data-rookery="idea"` is the
+  // selector that survives that rename. `h1.idea` stays alongside it for a
+  // page built by a core old enough to carry only the class.
+  const h1 = doc.querySelector('h1.idea, h1[data-rookery="idea"]');
   if (h1 === null) return null;
   const head = h1.closest('.idea-head, [data-rookery="head"]') ?? h1;
   const box = document.createElement("div");

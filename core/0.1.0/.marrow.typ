@@ -274,16 +274,15 @@
         if use-title {
           html.elem(
             "h1",
-            // NO `data-rookery` HERE, deliberately: this page's demo check
-            // (`demo/rheo/check.sh`) asserts an EXACT empty rendering for a
-            // titleless note's heading — `<h1 id="..." class="idea"></h1>`,
-            // nothing more — and a third attribute in any position breaks
-            // that literal match. core.css does not need one either: every
-            // rule that would key on this heading's own role instead keys on
-            // its enclosing `[data-rookery="head"]` (see the banners there),
-            // since a heading direct child of that div is, by construction,
-            // always the idea's own.
-            attrs: (id: id, class: _c("")),
+            // `data-rookery: "idea"` carries the role for a consumer OUTSIDE
+            // this package — `@rookery/search`'s `preview.js` fetches this
+            // page and locates this heading by role, since it cannot rely on
+            // a project's configurable `css-prefix:` class. core.css itself
+            // needs none of it: every rule that keys on this heading's own
+            // role keys on its enclosing `[data-rookery="head"]` instead
+            // (see the banners there), since a heading direct child of that
+            // div is, by construction, always the idea's own.
+            attrs: (id: id, class: _c(""), data-rookery: "idea"),
             // Title in a span, exactly as `#idea` does it — a hook, not a
             // requirement.
             // THE AUTHORED TITLE, so a titleless note's <h1> stays empty exactly as it

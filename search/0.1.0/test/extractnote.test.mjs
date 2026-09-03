@@ -89,6 +89,19 @@ test("extractNote: rookery 0.2.0 shape — no .idea-head wrapper, h1 is a top-le
   assert.equal(box.querySelector(".idea-window-body").textContent.trim(), "Body");
 });
 
+test("extractNote: renamed css-prefix — h1 carries only the project's stem class plus data-rookery, no idea-* class anywhere", () => {
+  const doc = parse(`<!doctype html><body>
+    <div class="maths-head" data-rookery="head">
+      <h1 class="maths" data-rookery="idea">Title</h1>
+    </div>
+    <p>Body</p>
+    <footer class="maths-footer" data-rookery="footer">f</footer>
+  </body>`);
+  const box = extractNote(doc, "https://example.org/x.html");
+  assert.notEqual(box, null);
+  assert.equal(box.querySelector(".idea-window-body").textContent.trim(), "Body");
+});
+
 test("extractNote: no style attribute at all when neither the head nor the h1 carries one", () => {
   const doc = parse(`<!doctype html><body>
     <div class="idea-head"><h1 class="idea">Title</h1></div>

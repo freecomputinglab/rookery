@@ -300,7 +300,10 @@ if [ -f "$dp" ]; then
   #   referring to the note, not a heading to print above the note's own body.
   #   MEASURED before the split — the minted page rendered `<h1>DERIVEDBODY..</h1>`
   #   and then `<p>DERIVEDBODY..</p>`, the same text twice.
-  grep -q '<h1 id="idea:derived-note" class="idea"></h1>' "$dp" ||
+  #   Keyed on `data-rookery="idea"` with `-P` lookaheads rather than one literal
+  #   string, so the three attributes may appear in any order — `[^>]*></h1>`
+  #   right after them is what still proves the heading holds no text node.
+  grep -Pq '<h1(?=[^>]*\bid="idea:derived-note")(?=[^>]*\bclass="idea")(?=[^>]*\bdata-rookery="idea")[^>]*></h1>' "$dp" ||
     note "ideas/derived-note.html <h1> is not empty — a label is being printed as a heading"
   if grep -q '<span class="idea-title">DERIVEDBODY' "$dp"; then
     note "ideas/derived-note.html prints its derived label as a heading"
@@ -476,7 +479,9 @@ n=$(grep -o 'idea-page-refs"><section role="doc-bibliography" class="hanging-ind
 dp="$H/ideas/dt-empty.html"
 [ -f "$dp" ] || note "no minted page at ideas/dt-empty.html"
 if [ -f "$dp" ]; then
-  grep -q '<h1 id="idea:dt-empty" class="idea"></h1>' "$dp" ||
+  # Order-tolerant on the same three attributes as check 12's derived-note
+  # assertion, for the same reason — see the comment there.
+  grep -Pq '<h1(?=[^>]*\bid="idea:dt-empty")(?=[^>]*\bclass="idea")(?=[^>]*\bdata-rookery="idea")[^>]*></h1>' "$dp" ||
     note "ideas/dt-empty.html's <h1> is not empty — an empty body must not gain a heading"
   if grep -q 'idea-title' "$dp"; then
     note "ideas/dt-empty.html prints a derived title span despite having no body to derive one from"
