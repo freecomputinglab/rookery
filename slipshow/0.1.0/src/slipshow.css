@@ -47,9 +47,37 @@
    slip's edge exactly at the viewport edge otherwise) from butting the slip
    straight against the top of the window. */
 .slip {
+  /* The containing block for `.slip-bg` below. */
+  position: relative;
   padding: 3rem 1.5rem;
   margin-bottom: 3rem;
   scroll-margin-top: 1.5rem;
+}
+
+/* AN IMAGE BACKGROUND (`div.slip-bg`, `src/slipshow.typ`'s file header). It
+   fills the slip's own box behind everything else, `object-fit: cover`
+   standing in for the `background-size: cover` a `background-image` would
+   otherwise have gotten. Each of the slip's own children then gets
+   `position: relative; z-index: 1` individually, rather than a stacking
+   context on `.slip` itself, which would sit between `.slipshow`'s zoom
+   transform (`src/camera.js`, applied by `src/slipshow.js`) and its
+   children in a way the camera does not account for. */
+.slip-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.slip-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.slip > :not(.slip-bg) {
+  position: relative;
+  z-index: 1;
 }
 
 /* THE FULLSCREEN CASE. `min-height`, not `height`: a slip whose content is
@@ -69,14 +97,15 @@
   justify-content: center;
 }
 
-/* AN INLINE `background-image`. A colour background (the other case
-   `_background-style` in `src/slipshow.typ` emits) needs nothing here: CSS
-   already paints a `background`/`background-color` across the element's full
-   padding box by default, which is exactly "behind the whole slip, padding
-   included." An image has no such free ride — left to its natural size it
-   tiles or clips arbitrarily — so this is the one case that needs a rule.
-   Matched on the `style` attribute itself, not a class: the Typst side never
-   emits one for a background, only the inline declaration. */
+/* AN INLINE `background-image`, from a source OTHER than this package:
+   `src/slipshow.typ` never emits one itself — a colour or a gradient becomes
+   an inline `background: ..`, an image becomes `div.slip-bg` instead (see
+   its file header). A colour/gradient background needs nothing here: CSS
+   already paints a `background`/`background-color` across the element's
+   full padding box by default, which is exactly "behind the whole slip,
+   padding included." This rule stays for a slip whose `style` carries a
+   `background-image` some other way, matched on the attribute itself so it
+   applies regardless of what set it. */
 .slip[style*="background-image"] {
   background-size: cover;
   background-position: center;
