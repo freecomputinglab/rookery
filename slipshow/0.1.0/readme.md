@@ -280,8 +280,15 @@ the grammar lives there, this package only needs the function shape:
 
 ```typst
 #import "@rookery/search:0.1.0": parse-tag-query, eval-tag-query
-#slipshow(tags: t => eval-tag-query(parse-tag-query("a&b").rpn, t))
+#slipshow(tags: t => eval-tag-query(parse-tag-query("a&b").rpn, t.keys()))
 ```
+
+`t.keys()`, and not `t`: a `tags:` predicate receives the note's tag
+DICTIONARY, while `eval-tag-query` walks an array of tag NAMES (`tags.any(..)`
+in `@rookery/search`'s `tagquery.typ`), and the keys are that array. Handing
+the dictionary straight over fails the compile with `type dictionary has no
+method 'any'` — loudly, at least, rather than quietly selecting the wrong
+notes. `examples/search-order/` is the worked version.
 
 `@rookery/slipshow` does not import `@rookery/search`, and does not need to.
 Without it installed, a project still has explicit orderings (`slips:` with

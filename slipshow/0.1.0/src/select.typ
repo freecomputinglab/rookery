@@ -31,8 +31,10 @@
 // `tags:` also accepts a PREDICATE — a function from a tag dictionary to a
 // bool — as the extension point for a full boolean grammar
 // (`@rookery/search`'s `a&b`) with no dependency on search: a caller builds
-// the predicate itself with `eval-tag-query(parse-tag-query("a&b").rpn, ..)`
-// and hands it straight to `tags:`.
+// the predicate itself with
+// `t => eval-tag-query(parse-tag-query("a&b").rpn, t.keys())` and hands it
+// straight to `tags:`. `t.keys()` because the predicate is handed the tag
+// DICTIONARY while `eval-tag-query` walks an array of tag names.
 //
 // `where:` is the row-shaped counterpart: a predicate over the WHOLE
 // registry row rather than only its tag dictionary, for a selection `tags:`
@@ -40,9 +42,10 @@
 // (`ideas(values: true)`, `@rookery/core`'s `data.typ`) carries `id`, `name`,
 // `title`, `text`, `label`, `tags` (a flat array of key names), `tags-dict`
 // (the full dictionary, values included), `body`, `href`, `page`, and
-// `created`. `tags:` keeps its narrower one-argument shape — that is what
-// lets `@rookery/search`'s `eval-tag-query` plug into it with no adapter —
-// so a query needing a field off the row reaches for `where:` instead. The
+// `created`. `tags:` keeps its narrower one-argument shape — a tag query
+// needs nothing off the row, and the narrow shape is what a grammar like
+// search's slots into — so a query needing a field off the row reaches for
+// `where:` instead. The
 // two compose: `tags:` runs first, since it is core's own cheap filter, and
 // `where:` narrows whatever survives it.
 //
