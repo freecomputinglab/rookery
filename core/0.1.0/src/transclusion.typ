@@ -132,7 +132,7 @@
     // note needs no special case: the tab is there either way, and the title
     // span is simply absent beneath it. `#idea`'s own heading does the same.
     let title-span = if name == none { [] } else {
-      html.elem("span", attrs: (class: "idea-window-title", data-rookery: "window-title"), name)
+      html.elem("span", attrs: (class: _c("window-title"), data-rookery: "window-title"), name)
     }
     // The tab stays INSIDE the `<summary>`, as its first child. Moving it into
     // the `<details>` body would hide the id whenever the window is folded, and
@@ -144,7 +144,7 @@
     // row is back to a tab plus a title.
     let summary = html.elem(
       "summary",
-      attrs: (class: "idea-window-summary", data-rookery: "window-summary"),
+      attrs: (class: _c("window-summary"), data-rookery: "window-summary"),
       _permalink-tab(
         id,
         // Flat tags only, matching `#idea`'s own hat: a valued tag's name alone
@@ -158,8 +158,8 @@
     // `open` is a BOOLEAN html attribute: present means open and there is no
     // value meaning closed, so the attrs dictionary itself has to differ
     // between the two states. `open: "false"` would read as open.
-    let d-attrs = if folded { (class: "idea-window-details", data-rookery: "window-details") } else {
-      (class: "idea-window-details", data-rookery: "window-details", open: "open")
+    let d-attrs = if folded { (class: _c("window-details"), data-rookery: "window-details") } else {
+      (class: _c("window-details"), data-rookery: "window-details", open: "open")
     }
     // `_footnoted(shown)`, not `shown`: a transcluded body carries the origin
     // note's footnote markers, and without a rule of its own here they would be
@@ -186,9 +186,9 @@
     // `limit:`, and a window must not list a footnote or a citation whose
     // reference it truncated away. Both blocks sit INSIDE
     // `.idea-window-body`, so they fold away with the window.
-    html.elem("div", attrs: _themed((class: "idea-window", data-rookery: "window")),
+    html.elem("div", attrs: _themed((class: _c("window"), data-rookery: "window")),
       html.elem("details", attrs: d-attrs,
-        summary + html.elem("div", attrs: (class: "idea-window-body", data-rookery: "window-body"),
+        summary + html.elem("div", attrs: (class: _c("window-body"), data-rookery: "window-body"),
           _footnoted(shown) + _refs-block(_own-cited-keys(shown, windows-claim: windows-claim)))))
   } else {
     // No disclosure in a paged target — nothing to click, so a fold that
@@ -266,7 +266,7 @@
     // Invisible tags drop out here as they do on a note hatched in place —
     // a transcluded card must not name a tag its own card would hide.
     let visible = _visible-tags(v.tags.keys())
-    let cls = ("idea",) + visible.map(l => "idea-tag-" + l)
+    let cls = (_c(""),) + visible.map(l => _c("tag-" + l))
     if _target() == "html" or _target() == "epub" {
       let attrs = (class: cls.join(" "), data-rookery: "idea") + _tags-attr(visible)
       if id != none { attrs = attrs + (id: id) }
@@ -282,11 +282,11 @@
           // title too — see `resolved-title`'s banner in idea.typ for why the
           // derivation is hoisted above the figure to reach both channels.
           (if v.title == none { [] } else {
-            html.elem("span", attrs: (class: "idea-title", data-rookery: "title"), v.title)
+            html.elem("span", attrs: (class: _c("title"), data-rookery: "title"), v.title)
           }),
         ),
       )
-      let box-cls = ("idea-box",) + visible.map(l => "idea-tag-" + l)
+      let box-cls = (_c("box"),) + visible.map(l => _c("tag-" + l))
       // Sweep first, OUTSIDE the bracket: it belongs to the page, claiming
       // prose citations written before this note. The references block goes
       // inside the bracket, so the back-references Typst puts in its entries

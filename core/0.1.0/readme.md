@@ -101,6 +101,7 @@ does all of it in a line, and is the only place anything is configurable:
 #show: rookery.with(
   prefix: "note",                 // ids are now `note:etal`
   note-dir: "ideas",              // ...but minted pages stay at `ideas/`
+  css-prefix: none,               // ...and classes follow `prefix`: `note-title`, not `idea-title`
   window-depth: 2,                // a window inside a window unfurls one level
   theme: (
     link-color: "rgba(230, 140, 0, 0.16)",  // hover background on any link
@@ -110,9 +111,10 @@ does all of it in a line, and is the only place anything is configurable:
 )
 ```
 
-`#show: rookery` does exactly seven things: it publishes the id prefix, the
+`#show: rookery` does exactly eight things: it publishes the id prefix, the
 minted-page directory (`note-dir`, see "Standalone note pages" for how it
-resolves), the nested-window depth, the minted-page template
+resolves), the CSS class stem (`css-prefix`, see just below), the
+nested-window depth, the minted-page template
 (`idea-page-template`, see "Standalone note pages"), the bibliography (see
 "Bibliographies") and the theme, and it installs `link-to-page` (see below and
 "Referencing a note") so `@note:etal` renders the note rather than a bare
@@ -136,6 +138,22 @@ for you). `note-dir` must be `none` (the default) or a non-empty string with
 no `/` or `:` in it — see "Standalone note pages" for what it does and, if you
 already set a custom `prefix`, for a breaking change to read before you
 upgrade.
+
+**`css-prefix`** is the CSS class stem — `<stem>-title`, `<stem>-tag-<tag>`,
+and every other class this package emits. It resolves the same two-step way
+`note-dir` does: `css-prefix:` when you set one, else the resolved `prefix` —
+so `prefix: "note"` alone gets you `note-title`/`note-tag-<tag>` classes, not
+`idea-*`, and setting `css-prefix` explicitly pins the class stem independent
+of the id prefix (keep `idea-*` classes while renaming ids, or the reverse).
+It must be `none` (the default) or a non-empty string usable as a CSS class —
+no whitespace, `.`, `#` or `:`.
+
+**Your OWN stylesheet has to follow the stem you choose.** Rename `prefix`
+with no `css-prefix:` override and every class in your project's CSS that
+targeted `.idea-*` needs the same rename. The package's own styling never
+goes through the class at all, though: `src/core.css` selects the
+`data-rookery="..."` role attributes, which never change — so a renamed stem
+can leave YOUR stylesheet's rules stranded, but it can never unstyle a page.
 
 ### Nested windows, and `window-depth`
 
@@ -299,8 +317,10 @@ file that never applies the template still mints ids with whatever prefix the
 document settled on, which is what keeps a `#window` across that boundary
 resolving instead of panicking on an id nothing registered.
 
-CSS class names are NOT affected: the heading is `idea`/`idea-tag-<tag>` and
-the permalink is `.idea-label` whatever the prefix reads as.
+**CSS class names follow the prefix too, by default** — see `css-prefix`
+above: the heading is `idea`/`idea-tag-<tag>` and the permalink is
+`.idea-label` only where `prefix` reads `idea` (the default) or `css-prefix`
+was set to pin it there deliberately.
 
 ## Flat ids, and why
 
@@ -946,7 +966,9 @@ descendant, so the properties go inline on the outermost `<ul>`. Paged targets
 get Typst's plain nested `list()` instead: there is no `.idea-box` rule there
 for an outline to be in line with.
 
-Override any of it; the classes are the contract: `.idea`, `.idea-box`,
+Override any of it; the classes are the contract (all of them built on the
+resolved `css-prefix`/`prefix` stem — see "Setup" above; assumed here to be
+the default `idea`): `.idea`, `.idea-box`,
 `.idea-title`, `.idea-tab`, `.idea-label`, `.idea-date`, `.idea-tag`, `.idea-tag-<tag>`, `.idea-ref`,
 `.idea-window`, `.idea-window-summary`, `.idea-window-title`,
 `.idea-window-body`, `.idea-window-details`, `.idea-outline`,

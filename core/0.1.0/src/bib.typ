@@ -125,7 +125,7 @@
 #let _refs-block(keys, id: none) = {
   if _bib.final() == none or keys.len() == 0 { return [] }
   if _target() == "html" or _target() == "epub" {
-    let attrs = (class: "idea-references", data-rookery: "references")
+    let attrs = (class: _c("references"), data-rookery: "references")
     if id != none { attrs = attrs + (id: id) }
     html.elem("div", attrs: attrs, _bib-call([References]))
   } else {
@@ -151,7 +151,7 @@
 #let _sweep-block() = {
   if _bib.final() == none { return [] }
   if _target() == "html" or _target() == "epub" {
-    html.elem("div", attrs: (class: "idea-page-refs", data-rookery: "page-refs"), _bib-call(none))
+    html.elem("div", attrs: (class: _c("page-refs"), data-rookery: "page-refs"), _bib-call(none))
   } else {
     _bib-call(none)
   }

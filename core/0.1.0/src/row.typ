@@ -25,6 +25,8 @@
 // `created`-ordered filter panel, and a hand-built table of submissions, none of which
 // agree about what a date means.
 
+#import "state.typ": _c
+
 // A row is HTML-ONLY, deliberately. A paged target has no grid to align and no anchor
 // to click, and every view in this family already keeps a `target() != "html"` branch
 // that builds its own `list(..)`. Reaching this function from one is a bug in the
@@ -82,7 +84,7 @@
     "span",
     attrs: when-attrs
       + (
-        class: (("idea-row-when",) + (if soft { ("soft",) } else { () }) + when-class)
+        class: ((_c("row-when"),) + (if soft { ("soft",) } else { () }) + when-class)
           .join(" "),
         data-rookery: "row-when",
       ),
@@ -91,16 +93,16 @@
     },
   )
   if href == none {
-    html.elem("span", attrs: (class: "idea-row-title", data-rookery: "row-title"), title)
+    html.elem("span", attrs: (class: _c("row-title"), data-rookery: "row-title"), title)
   } else {
-    html.elem("a", attrs: (class: "idea-row-title", href: href, data-rookery: "row-title"), title)
+    html.elem("a", attrs: (class: _c("row-title"), href: href, data-rookery: "row-title"), title)
   }
   // ONE SPAN PER `cells` ENTRY, between the title and the badges — a host
   // institution, a path to a manuscript, whatever a caller's own model has that
   // a reader scans DOWN for rather than reads inside the title. They are content,
   // not data: the row neither formats nor labels them.
   for c in cells {
-    html.elem("span", attrs: (class: "idea-row-cell", data-rookery: "row-cell"), c)
+    html.elem("span", attrs: (class: _c("row-cell"), data-rookery: "row-cell"), c)
   }
   // THE BADGE STRIP, and an empty one is omitted entirely rather than drawn
   // empty: a `<span>` with no children still takes a grid track, which on a
@@ -118,14 +120,14 @@
   if badges.len() > 0 {
     html.elem(
       "span",
-      attrs: (class: "idea-row-badges", data-rookery: "row-badges"),
+      attrs: (class: _c("row-badges"), data-rookery: "row-badges"),
       badges
         .map(b => html.elem(
           "span",
           // `data-rookery-tags` inlined rather than shared with `_tags-attr`
-          // (pure.typ): this file depends on nothing else in the package, and
-          // a badge's tag is always exactly one non-empty name.
-          attrs: (class: "idea-tag idea-tag-" + b.tag, data-rookery: "tag", data-rookery-tags: b.tag),
+          // (pure.typ), which this file otherwise avoids: a badge's tag is
+          // always exactly one non-empty name.
+          attrs: (class: _c("tag") + " " + _c("tag-" + b.tag), data-rookery: "tag", data-rookery-tags: b.tag),
           b.text,
         ))
         .join(),
@@ -169,11 +171,11 @@
     "li",
     attrs: attrs
       + (
-        class: (("idea-row",) + extra + tags.map(t => "idea-tag-" + t)).join(" "),
+        class: ((_c("row"),) + extra + tags.map(t => _c("tag-" + t))).join(" "),
         data-rookery: "row",
       )
       // `data-rookery-tags` inlined rather than shared with `_tags-attr`
-      // (pure.typ): this file depends on nothing else in the package.
+      // (pure.typ), which this file otherwise avoids.
       + (if tags.len() == 0 { (:) } else { (data-rookery-tags: tags.join(" ")) }),
     idea-row-body(
       when: when,

@@ -170,7 +170,7 @@
         "--idea-tag-line: "
           + if "text" in def { def.at("text") } else { def.at("background") },
       )
-      ".idea-tag-" + tag + " { " + decls.join("; ") + " }"
+      "." + _c("tag-" + tag) + " { " + decls.join("; ") + " }"
     })
   if rules.len() == 0 { none } else { "@layer rookery-tags { " + rules.join(" ") + " }" }
 }

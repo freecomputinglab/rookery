@@ -30,9 +30,11 @@
 //
 // Does exactly five things, and deliberately nothing else:
 //
-//   1. publishes `prefix` (so `#idea("etal")` mints `<note:etal>`) and
-//      `note-dir` (where `.marrow.typ` mints that note's own page; `none`,
-//      the default, resolves through `_dir()` in state.typ);
+//   1. publishes `prefix` (so `#idea("etal")` mints `<note:etal>`), `note-dir`
+//      (where `.marrow.typ` mints that note's own page; `none`, the default,
+//      resolves through `_dir()` in state.typ) and `css-prefix` (the class
+//      stem every emitted element wears; `none`, the default, falls back to
+//      `prefix` through `_cls()` in state.typ);
 //   2. publishes `window-depth`, the document-wide transclusion budget (see
 //      `_window-depth` for the whole scale; `1`, the default, renders a
 //      windowed note once and collapses a `#window` nested inside it to its
@@ -103,6 +105,7 @@
 #let rookery(
   prefix: "idea",
   note-dir: none,
+  css-prefix: none,
   window-depth: 1,
   idea-page-template: none,
   bibliography: none,
@@ -129,6 +132,7 @@
   _validate-config(
     prefix,
     note-dir,
+    css-prefix,
     window-depth,
     idea-page-template,
     theme,
@@ -157,6 +161,7 @@
 
   _prefix.update(prefix)
   _note-dir.update(note-dir)
+  _css-prefix.update(css-prefix)
   _window-depth.update(window-depth)
   // Default the style to author-date, and ONLY when the author passed none.
   //
@@ -304,7 +309,7 @@
     let own = _own-cited-keys(doc)
     if own.len() > 0 {
       if _target() == "html" or _target() == "epub" {
-        html.elem("div", attrs: (data-rookery: "page-refs", class: "idea-page-refs"), _bib-call([References]))
+        html.elem("div", attrs: (data-rookery: "page-refs", class: _c("page-refs")), _bib-call([References]))
       } else {
         _bib-call([References])
       }

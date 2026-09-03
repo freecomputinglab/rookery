@@ -41,7 +41,7 @@
   html.elem(
     "a",
     attrs: (
-      class: "idea-label",
+      class: _c("label"),
       href: dest,
       title: if dest.starts-with("#") { "Link to this note" } else { "Open this note's page" },
       data-rookery: "label",
@@ -112,7 +112,7 @@
 // inside one (every caller reads the registry or the prefix to get here).
 #let _permalink-tab(id, href: auto, tags: (), date: none) = html.elem(
   "span",
-  attrs: (class: "idea-tab", data-rookery: "tab"),
+  attrs: (class: _c("tab"), data-rookery: "tab"),
   {
     // ONE PARENTHESISED expression, not three lines of `+ ...`. In a Typst CODE
     // block each line is a statement, so a leading `+` is parsed as UNARY plus
@@ -125,11 +125,11 @@
         + (if shown.len() == 0 { [] } else {
           shown.map(t => html.elem(
             "span",
-            attrs: (class: "idea-tag idea-tag-" + t, data-rookery: "tag") + _tags-attr((t,)),
+            attrs: (class: _c("tag") + " " + _c("tag-" + t), data-rookery: "tag") + _tags-attr((t,)),
             t,
           )).join()
         })
-        + (if date == none { [] } else { html.elem("span", attrs: (class: "idea-date", data-rookery: "date"), date) })
+        + (if date == none { [] } else { html.elem("span", attrs: (class: _c("date"), data-rookery: "date"), date) })
     )
   },
 )
@@ -155,7 +155,7 @@
 // there (checked in the same build).
 #let _head(tab, heading, attrs: (:)) = html.elem(
   "div",
-  attrs: attrs + (class: "idea-head", data-rookery: "head"),
+  attrs: attrs + (class: _c("head"), data-rookery: "head"),
   tab + heading,
 )
 
@@ -192,8 +192,8 @@
   if _target() == "html" or _target() == "epub" {
     html.elem(
       "ul",
-      attrs: _themed((class: "idea-page-list", data-rookery: "page-list")),
-      html.elem("li", attrs: (class: "idea-page-row", data-rookery: "page-row"), row),
+      attrs: _themed((class: _c("page-list"), data-rookery: "page-list")),
+      html.elem("li", attrs: (class: _c("page-row"), data-rookery: "page-row"), row),
     )
   } else {
     // `align(start)` for the reason `_window-content`'s paged branch uses it: a

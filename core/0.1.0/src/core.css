@@ -1093,8 +1093,8 @@ h6[data-rookery="idea"] {
    `_permalink-tab` in lib.typ). An untagged note's tag list is empty either
    way, so it renders no pill regardless of `show-tags`.
 
-   `[data-rookery="tag"]` is this rule's own hook. Each pill also names its tag in
-   `class="idea-tag-<tag>"`, the SAME class rookery already puts on the card and
+   `[data-rookery="tag"]` is this rule's own hook. Each pill also names its tag with
+   the same `idea-tag-<tag>` class rookery already puts on the card and
    the heading — and the same class `@rookery/search` puts on its own
    chips (`.rookery-search-tag`, that package's own stylesheet) — so ONE
    project rule, `[class~="idea-tag-draft"] { ... }`, now styles that tag
@@ -1366,8 +1366,8 @@ a[data-rookery="row-title"]:hover {
    at the note's text margin, for free and by the same declarations the footnotes
    block above it takes. It used to be a SIBLING of the card, which is what made
    this paragraph's last clause false — MEASURED in `demo/pure/build/root.html`,
-   the card closed and then `<div class="idea-references">` opened outside it,
-   flush left. Giving this class a `border-left` or a `padding-left` of its own
+   the card closed and then a sibling `<div>` carrying `idea-references` opened
+   outside it, flush left. Giving this class a `border-left` or a `padding-left` of its own
    would draw a SECOND bar inside the card's, so do not: the fix lives at the
    emission site, and `[data-rookery="page-refs"]` below stays outside on purpose. */
 [data-rookery="references"] {

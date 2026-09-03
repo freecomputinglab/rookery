@@ -395,7 +395,7 @@
     .to-dict()
 }
 
-// The 19 knobs `#show: rookery` accepts, checked before anything is published.
+// The 20 knobs `#show: rookery` accepts, checked before anything is published.
 //
 // Extracted from `rookery` below rather than inlined in it: the function was 158
 // code lines, 13 of them asserts, and a reader asking what `#show: rookery`
@@ -409,6 +409,7 @@
 #let _validate-config(
   prefix,
   note-dir,
+  css-prefix,
   window-depth,
   idea-page-template,
   theme,
@@ -440,6 +441,22 @@
       ),
     message: "@rookery/core: `note-dir` must be `none` or a non-empty string containing "
       + "no `/` or `:` — got " + repr(note-dir),
+  )
+  // A `css-prefix` becomes a CSS class stem (`<stem>-title`, `<stem>-tag-<t>`,
+  // ...), so it is rejected on the same grounds a raw CSS selector would be —
+  // no whitespace, no `.`, no `#`, no `:`.
+  assert(
+    css-prefix == none
+      or (
+        type(css-prefix) == str
+          and css-prefix != ""
+          and not css-prefix.contains(regex("\\s"))
+          and not css-prefix.contains(".")
+          and not css-prefix.contains("#")
+          and not css-prefix.contains(":")
+      ),
+    message: "@rookery/core: `css-prefix` must be `none` or a non-empty string usable as "
+      + "a CSS class stem — no whitespace, `.`, `#` or `:` — got " + repr(css-prefix),
   )
   assert(
     type(window-depth) == int and window-depth >= 0,

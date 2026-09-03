@@ -529,7 +529,7 @@
     // without claiming the "tab" role itself.
     html.elem(
       "h4",
-      attrs: _themed((class: "idea-outline-title idea-tab", data-rookery: "outline-title", data-rookery-tab: "tab")),
+      attrs: _themed((class: _c("outline-title") + " " + _c("tab"), data-rookery: "outline-title", data-rookery-tab: "tab")),
       title-content,
     )
   } else {
@@ -552,8 +552,8 @@
       entries,
       (items, root) => html.elem(
         "ul",
-        attrs: if root { _themed((class: "idea-outline", data-rookery: "outline")) } else {
-          (class: "idea-outline", data-rookery: "outline")
+        attrs: if root { _themed((class: _c("outline"), data-rookery: "outline")) } else {
+          (class: _c("outline"), data-rookery: "outline")
         },
         items.join(),
       ),
@@ -575,7 +575,7 @@
           "li",
           // Invisible tags drop out of an outline row for the same reason they drop
           // out of a card: the class names the tag in the HTML.
-          attrs: (class: (("idea-outline-row",) + visible.map(l => "idea-tag-" + l)).join(" "), data-rookery: "outline-row")
+          attrs: (class: ((_c("outline-row"),) + visible.map(l => _c("tag-" + l))).join(" "), data-rookery: "outline-row")
             + _tags-attr(visible),
           link(e.loc, e.title) + if sub == none { [] } else { sub },
         )

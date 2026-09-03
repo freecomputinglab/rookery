@@ -46,6 +46,27 @@
   let d = _note-dir.final()
   if d != none { d } else if _prefix.final() == "idea" { "ideas" } else { _prefix.final() }
 }
+
+// ---- CSS class stem — configurable, same two-step rule as `_dir()` --------
+//
+// `css-prefix:` if the project set one, else the resolved id `prefix` — so a
+// project that renames `prefix` gets its classes renamed with it, and one that
+// wants the id and the class to diverge sets `css-prefix` to pin the class
+// stem independently. Read with `.final()`, for the same reason as `_prefix`.
+//
+// UNLIKE `_dir()`, there is no singular/plural special case: `idea-title`,
+// `idea-tag-<t>` and every other class this package emits are already
+// singular, so the built-in `idea` prefix yields exactly today's `idea-*`
+// classes with nothing to special-case.
+#let _css-prefix = state("rheo-idea-css-prefix", none)
+#let _cls() = {
+  let c = _css-prefix.final()
+  if c != none { c } else { _prefix.final() }
+}
+// The shape every emit site wants: the bare stem for `idea`/`idea-box`, or
+// `<stem>-<role>` for everything else, tag classes (`_c("tag-" + t)`) included.
+#let _c(role) = if role == "" { _cls() } else { _cls() + "-" + role }
+
 // ---- Window depth — how far a nested `#window` unfurls ---------------------
 //
 // THE SCALE COUNTS LEVELS OF TRANSCLUSION, AND `0` IS NOT THE DEFAULT:
@@ -343,7 +364,7 @@
   if _target() == "html" or _target() == "epub" {
     html.elem(
       "sup",
-      attrs: (class: "idea-fn-ref", id: "fnref-" + tag, data-rookery: "fn-ref"),
+      attrs: (class: _c("fn-ref"), id: "fnref-" + tag, data-rookery: "fn-ref"),
       html.elem("a", attrs: (href: "#fn-" + tag), str(n)),
     )
   } else {
@@ -358,21 +379,21 @@
   if _target() == "html" or _target() == "epub" {
     html.elem(
       "div",
-      attrs: (class: "idea-footnotes", data-rookery: "footnotes"),
-      html.elem("h4", attrs: (class: "idea-footnotes-title", data-rookery: "footnotes-title"), [Footnotes])
+      attrs: (class: _c("footnotes"), data-rookery: "footnotes"),
+      html.elem("h4", attrs: (class: _c("footnotes-title"), data-rookery: "footnotes-title"), [Footnotes])
         + html.elem(
           "ol",
-          attrs: (class: "idea-footnote-list", data-rookery: "footnote-list"),
+          attrs: (class: _c("footnote-list"), data-rookery: "footnote-list"),
           notes
             .enumerate()
             .map(((i, body)) => {
               let tag = str(b) + "-" + str(i + 1)
               html.elem(
                 "li",
-                attrs: (class: "idea-footnote", id: "fn-" + tag, data-rookery: "footnote"),
+                attrs: (class: _c("footnote"), id: "fn-" + tag, data-rookery: "footnote"),
                 html.elem(
                   "a",
-                  attrs: (class: "idea-fn-backlink", href: "#fnref-" + tag, data-rookery: "fn-backlink"),
+                  attrs: (class: _c("fn-backlink"), href: "#fnref-" + tag, data-rookery: "fn-backlink"),
                   "^",
                 )
                   + " "

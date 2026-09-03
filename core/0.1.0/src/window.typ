@@ -380,8 +380,8 @@
     _bracket(
       html.elem(
         "div",
-        attrs: _themed((class: "idea-window idea-window-plain", data-rookery: "window", data-rookery-plain: "plain")),
-        html.elem("div", attrs: (class: "idea-window-body", data-rookery: "window-body"), inner),
+        attrs: _themed((class: _c("window") + " " + _c("window-plain"), data-rookery: "window", data-rookery-plain: "plain")),
+        html.elem("div", attrs: (class: _c("window-body"), data-rookery: "window-body"), inner),
       ),
       WK,
     )

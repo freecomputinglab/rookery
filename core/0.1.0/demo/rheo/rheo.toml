@@ -16,3 +16,15 @@ formats = ["html"]
 # would compile to its own `lib.html`.
 [spine]
 exclude = ["lib.typ"]
+
+# The Typst package cache's `rookery` namespace
+# (`~/.cache/typst/packages/rookery`) is a per-machine convenience symlink,
+# and on a machine running several checkouts side by side it can point
+# anywhere — including a DIFFERENT checkout of this repository than the one
+# this fixture lives in. This override reads `@rookery/*` straight out of
+# THIS repository's own tree instead, so the fixture always exercises the
+# code sitting next to it rather than whatever the cache happens to resolve
+# to. `path` is anchored to this file's own directory, four levels up from
+# `<name>/<version>/`.
+[packages.rookery]
+path = "../../../.."

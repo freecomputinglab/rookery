@@ -340,7 +340,7 @@
       // `idea-tag-<tag>` in the HTML names the tag just as plainly as a pill does,
       // and it is the hook a stylesheet (or a `tags-color` rule) reaches it by.
       // See `_invisible-tags`/`_visible-tags` (state.typ).
-      let cls = ("idea",) + _visible-tags(tags.keys()).map(l => "idea-tag-" + l)
+      let cls = (_c(""),) + _visible-tags(tags.keys()).map(l => _c("tag-" + l))
       // The flat tags — those whose value is `none`. This is what `show-tags:`
       // renders as pills: a valued tag's name alone says nothing useful in a
       // pill (`depends-on` with no dependencies shown), so a package carrying
@@ -378,7 +378,7 @@
             attrs: (id: id, class: cls.join(" "), data-rookery: "idea")
               + _tags-attr(_visible-tags(tags.keys())),
             if ttl == none { [] } else {
-              html.elem("span", attrs: (class: "idea-title", data-rookery: "title"), ttl)
+              html.elem("span", attrs: (class: _c("title"), data-rookery: "title"), ttl)
             },
           ),
         )
@@ -387,7 +387,7 @@
         // so a tag can style the whole card, not just the heading; the
         // heading's own class list (above) is untouched for existing
         // stylesheets.
-        let box-cls = ("idea-box",) + _visible-tags(tags.keys()).map(l => "idea-tag-" + l)
+        let box-cls = (_c("box"),) + _visible-tags(tags.keys()).map(l => _c("tag-" + l))
         _sweep-block()
         // Bracketed so a link written INSIDE this note counts as the note's,
         // not as its page's — see `_edge`.

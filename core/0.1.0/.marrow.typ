@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _show-context, _show-backlinks, _show-title, _plain, _visible-tags, _tags-attr, window
+#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _show-context, _show-backlinks, _show-title, _plain, _visible-tags, _tags-attr, window
 
 #context {
   let registry = _registry.final()
@@ -283,7 +283,7 @@
             // its enclosing `[data-rookery="head"]` (see the banners there),
             // since a heading direct child of that div is, by construction,
             // always the idea's own.
-            attrs: (id: id, class: "idea"),
+            attrs: (id: id, class: _c("")),
             // Title in a span, exactly as `#idea` does it — a hook, not a
             // requirement.
             // THE AUTHORED TITLE, so a titleless note's <h1> stays empty exactly as it
@@ -291,7 +291,7 @@
             // instead (see `rheo-document(title:)` below) — putting it here printed
             // the body twice.
             (if rec.title == none { [] } else {
-              html.elem("span", attrs: (class: "idea-title", data-rookery: "title"), rec.title)
+              html.elem("span", attrs: (class: _c("title"), data-rookery: "title"), rec.title)
             }),
           )
         } else { [] },
@@ -388,7 +388,7 @@
         let section(class, role, title, body) = html.elem(
           "div",
           attrs: (class: class, data-rookery: role),
-          html.elem("h2", attrs: (class: "idea-footer-title", data-rookery: "footer-title"), title) + body,
+          html.elem("h2", attrs: (class: _c("footer-title"), data-rookery: "footer-title"), title) + body,
         )
 
         // Each part is omitted, not left blank, when it has nothing to say —
@@ -401,8 +401,8 @@
         // use this, so Context and the page half of Backlinks cannot drift.
         let page-list(rows) = html.elem(
           "ul",
-          attrs: (class: "idea-page-list", data-rookery: "page-list"),
-          rows.map(r => html.elem("li", attrs: (class: "idea-page-row", data-rookery: "page-row"), r)).join(),
+          attrs: (class: _c("page-list"), data-rookery: "page-list"),
+          rows.map(r => html.elem("li", attrs: (class: _c("page-row"), data-rookery: "page-row"), r)).join(),
         )
 
         // Context reads as one entry under its heading, exactly as a backlink
@@ -416,7 +416,7 @@
         // or not another note happens to enclose it. A window would answer a
         // different question and bury this one.
         let context-part = if origin == none or not use-context { [] } else {
-          section("idea-context", "context", [Context],
+          section(_c("context"), "context", [Context],
             page-list((link(label(id), _handle-title(origin)),)))
         }
 
@@ -459,7 +459,7 @@
               if href == none { shown } else { link(href, shown) }
             }))
           }
-          section("idea-backlinks", "backlinks", [Backlinks], note-rows + page-rows)
+          section(_c("backlinks"), "backlinks", [Backlinks], note-rows + page-rows)
         }
 
         if context-part != [] or backlinks-part != [] {
@@ -467,7 +467,7 @@
             "footer",
             // Themed in its own right: the footer is a SIBLING of the <h1>
             // above, not a descendant, so it inherits nothing from it.
-            attrs: _themed((class: "idea-footer", data-rookery: "footer")),
+            attrs: _themed((class: _c("footer"), data-rookery: "footer")),
             context-part + backlinks-part,
           )
         }
@@ -606,11 +606,11 @@
       // nothing for it to permalink to. `_head` still wraps the heading so the
       // page carries the same `.idea-head` container — and the same themed
       // border — every minted note page does.
-      #_head([], html.elem("h1", attrs: (class: "idea", data-rookery: "idea"), [Ideas]), attrs: _themed((:)))
-      #html.elem("p", attrs: (data-rookery: "index-count", class: "idea-index-count"), [#rows.len() ideas])
+      #_head([], html.elem("h1", attrs: (class: _c(""), data-rookery: "idea"), [Ideas]), attrs: _themed((:)))
+      #html.elem("p", attrs: (data-rookery: "index-count", class: _c("index-count")), [#rows.len() ideas])
       #html.elem(
         "ul",
-        attrs: (data-rookery: "outline", class: "idea-outline"),
+        attrs: (data-rookery: "outline", class: _c("outline")),
         rows
           .map(e => {
             // `created`, the same date the minted page's own hat uses, so one
@@ -628,7 +628,7 @@
               // and is ALREADY a flat array of names — no `.keys()`, do not add one.
               attrs: (data-rookery: "outline-row")
                 + _tags-attr(visible)
-                + (class: (("idea-outline-row",) + visible.map(t => "idea-tag-" + t)).join(" ")),
+                + (class: ((_c("outline-row"),) + visible.map(t => _c("tag-" + t))).join(" ")),
               // The BASENAME, not `e.href`: a sibling under `_dir()`, so no
               // depth arithmetic and no `state("rheo-handle")` read — which at
               // this scope would be the last spine vertebra's, not this page's.
@@ -636,7 +636,7 @@
               // to the note's own name), so there is no branch left here at all.
               link(_note-page(e.id).slug + ".html", e.label)
                 + if when == none { [] } else {
-                  html.elem("span", attrs: (data-rookery: "date", class: "idea-date"), when.display("[year]-[month]-[day]"))
+                  html.elem("span", attrs: (data-rookery: "date", class: _c("date")), when.display("[year]-[month]-[day]"))
                 },
             )
           })
