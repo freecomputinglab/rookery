@@ -8,3 +8,4 @@
 #import "marker.typ": *
 #import "select.typ": *
 #import "slip.typ": *
+#import "slipshow.typ": *
