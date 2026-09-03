@@ -1,1 +1,97 @@
-/* rookery-slipshow — default styling for the scrolling presentation. */
+/* rookery-slipshow — the presentation stylesheet: slip layout, fullscreen
+   slips, and backgrounds. Pinned to the DOM `src/slipshow.typ` emits (read
+   that file's header for the exact markup) and to the camera/scroll behaviour
+   `src/slipshow.js` drives — all three name the same class/attribute/data-*
+   vocabulary and cannot be changed apart.
+
+   This is a SLIP model, not a slide model: there is no fixed slip height
+   anywhere below. A slip is exactly as tall as its content, and the deck is
+   one continuous vertical flow the engine scrolls through rather than a
+   sequence of fixed-size frames.
+
+   A slip's content is a `@rookery/core` card — `[data-rookery="box"]` or
+   `[data-rookery="window"]` — and this file must not restyle a card's own
+   identity (its left rule, its hat). It reaches core only through those role
+   attributes, never through the `.idea-box`/`.idea-window` classes: the
+   classes are a renameable public hook, the attributes are the stable one.
+   Every dimension here is the deck's own — the rhythm between slips, the
+   fullscreen height, a background's sizing — so nothing borrows a
+   `--idea-*` token: those describe a card's chrome, which this file never
+   touches. */
+
+/* THE DECK IS NOT A SCROLL CONTAINER. `src/slipshow.js` scrolls the WINDOW —
+   `window.scrollTo`, `window.scrollY`, `document.documentElement.scrollHeight`
+   — and `src/camera.js` computes its targets in DOCUMENT coordinates, so
+   giving this element a height and `overflow-y` of its own would leave every
+   camera move scrolling a page that no longer scrolls. Slips stack in normal
+   block flow and the page grows to fit them. */
+.slipshow {
+  /* The camera's "focus" action (`src/camera.js`) zooms by scaling this
+     root; transitioned here so a zoom glides like the scroll it pairs with.
+     Turned off under reduced motion below. */
+  transition: transform 0.35s ease;
+}
+
+/* Smooth scrolling belongs to the scrolling element, which is the document —
+   so it goes on the root, and `:has` keeps it to a page that actually carries
+   a deck rather than every page in a rheo project this stylesheet ships to.
+   The engine passes `behavior` to `scrollTo` itself; this covers a scroll it
+   did not start, such as landing on a `#slip-<id>` fragment. */
+:root:has(.slipshow) {
+  scroll-behavior: smooth;
+}
+
+/* ONE SLIP. No fixed height — see the file header — only the rhythm between
+   slips and the padding a background (below) fills. `scroll-margin-top`
+   keeps a programmatic scroll (the engine's `up` and `left` actions land a
+   slip's edge exactly at the viewport edge otherwise) from butting the slip
+   straight against the top of the window. */
+.slip {
+  padding: 3rem 1.5rem;
+  margin-bottom: 3rem;
+  scroll-margin-top: 1.5rem;
+}
+
+/* THE FULLSCREEN CASE. `min-height`, not `height`: a slip whose content is
+   taller than the viewport still shows all of it rather than clipping.
+   `svh` over `vh` for the reason given on `.slipshow` above — a `100vh`
+   fullscreen slip resizes (and visibly jumps) as mobile browser chrome
+   shows and hides during scroll; `svh` is the viewport height with that
+   chrome already accounted for, so it stays put. `vh` first, as the
+   fallback line an `svh`-aware browser overrides. Centered as a flex column
+   so short content sits in the middle of the viewport rather than pinned to
+   the top, which is the point of calling a slip fullscreen at all. */
+.slip.slip-fullscreen {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* AN INLINE `background-image`. A colour background (the other case
+   `_background-style` in `src/slipshow.typ` emits) needs nothing here: CSS
+   already paints a `background`/`background-color` across the element's full
+   padding box by default, which is exactly "behind the whole slip, padding
+   included." An image has no such free ride — left to its natural size it
+   tiles or clips arbitrarily — so this is the one case that needs a rule.
+   Matched on the `style` attribute itself, not a class: the Typst side never
+   emits one for a background, only the inline declaration. */
+.slip[style*="background-image"] {
+  background-size: cover;
+  background-position: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The engine reads this same preference when it picks `scrollTo`'s
+     behaviour (`src/slipshow.js`), but this stylesheet has to stand on its
+     own for the two motions it declares outright: the document's smooth
+     scroll, and the focus-zoom transition. */
+  :root:has(.slipshow) {
+    scroll-behavior: auto;
+  }
+
+  .slipshow {
+    transition: none;
+  }
+}
