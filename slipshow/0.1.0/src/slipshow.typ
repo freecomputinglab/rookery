@@ -87,6 +87,7 @@
 #let slipshow(
   slips: none,
   tags: none,
+  where: none,
   match: "any",
   order: "slip-order",
   enter: "scroll",
@@ -97,10 +98,16 @@
       + ENTERS.join(", ") + " — got " + repr(enter),
   )
 
-  // `resolve-slips` validates `slips`/`tags`/`order` itself (see
+  // `resolve-slips` validates `slips`/`tags`/`where`/`order` itself (see
   // `select.typ`) — duplicating those asserts here would just be a second
   // copy of the same message.
-  let entries = resolve-slips(slips: slips, tags: tags, match: match, order: order)
+  let entries = resolve-slips(
+    slips: slips,
+    tags: tags,
+    where: where,
+    match: match,
+    order: order,
+  )
 
   if target() != "html" {
     // PAGED (PDF): no camera, no deck, nothing to click — the ideas render
