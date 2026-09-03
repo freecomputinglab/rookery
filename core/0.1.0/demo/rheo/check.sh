@@ -488,6 +488,19 @@ if [ -f "$dp" ]; then
   fi
 fi
 
+# 20. A WINDOW WEARS ITS NOTE'S OWN VISIBLE TAGS, not only its card does.
+#     `content/sub/page.typ`'s `#window("plain-note", ...)` (the fixture check 3
+#     above already reads) transcludes a `#note`, which carries the sugar's
+#     prepended `note` tag — so the window wrapper on `sub/page.html`, not just
+#     `plain-note`'s own card, must carry that tag now.
+#
+#     Keyed on `data-rookery-tags`, not on the `idea-tag-note` class: the class
+#     STEM is a project's configurable prefix (see core.css's own theme
+#     header), the attribute name is not, so this is the assertion that
+#     survives a project renaming its stem.
+grep -q 'data-rookery="window" data-rookery-tags="note"' "$H/sub/page.html" ||
+  note "sub/page.html's window of plain-note carries no data-rookery-tags — a window should wear its note's visible tags"
+
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"
   exit 1

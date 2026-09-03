@@ -401,6 +401,13 @@ Three ways, pick by how much ceremony you want:
   the permalink and the date — off by default, same mechanism as `show-date`.
   See "Tags" below.
 
+  The window's own wrapper wears the note's visible tags too, unconditionally
+  — the same `.idea-tag-<key>` classes and the same `data-rookery-tags`
+  attribute its card carries, whether or not `show-tags:` is set. A note
+  transcluded by a `#window` is the note shown in place, so it styles the same
+  way there as it does on its own page; an invisible tag (see "Tags" below)
+  leaves no trace here either.
+
   `depth: 0` renders this window as a LINK to the note's page and transcludes
   nothing; `depth: 1` renders the note and collapses any `#window` written
   inside it; `depth: n` unfurls `n-1` levels of those. `auto` (the default)
@@ -981,9 +988,10 @@ the default `idea`): `.idea`, `.idea-box`,
 `.idea-page-list`, `.idea-page-row`, and around every note's header `.idea-head`.
 
 An outline ROW carries the note's tags too, built the same way `#idea` builds
-them for a note's heading and its card — one convention, three emission sites,
-so a site that styles a todo note in the body can style the same note's row in
-the index. MEASURED: a `todo`-tagged row is
+them for a note's heading, its card and a `#window` of it — one convention,
+four emission sites, so a site that styles a todo note in the body can style
+the same note's row in the index, or its window anywhere else. MEASURED: a
+`todo`-tagged row is
 `<li class="idea-outline-row idea-tag-todo">`, a two-tag note's row is
 `<li class="idea-outline-row idea-tag-phd idea-tag-draft">`, and an untagged
 note's row is exactly `<li class="idea-outline-row">`. Every key appears,
@@ -1083,7 +1091,9 @@ two packages both wanting `depends-on` would silently collide.
 
 Each tag becomes its own `idea-tag-<key>` CSS class on the note's heading and
 card, alongside the base `idea` class — EVERY key, valued tags included — so
-style them in your own stylesheet.
+style them in your own stylesheet. A `#window` transcluding the note wears the
+same classes on its own wrapper, alongside the base `idea-window` class — one
+element per note, the same way the card carries them once.
 
 **`show-tags: true`** on `#idea`/`#window` ALSO renders a note's tags as a row
 of visible pills in the hat — the same `.idea-tab` the id and (with
@@ -1150,7 +1160,7 @@ A `tags-color` KEY has to be usable as a CSS class — a letter or an underscore
 - an **outline row's marker**, the hairline tick off the outline's own rule, through `--idea-tag-line`;
 - **`@rookery/search`'s modal chips**, built in the browser and therefore beyond the reach of anything Typst could write inline.
 
-It deliberately does NOT colour the **card** or the **note's heading**, which stay a rule for your own stylesheet to write. The pill already names the kind beside them, and colouring a note's own title makes the page's typography argue with its prose.
+It deliberately does NOT colour the **card**, the **note's heading**, or a **window's** own wrapper, which all stay a rule for your own stylesheet to write even though all three wear the `.idea-tag-<tag>` class. The pill already names the kind beside them, and colouring a note's own title (or its window) makes the page's typography argue with its prose.
 
 Two consequences worth knowing:
 
@@ -1368,8 +1378,9 @@ It removes, everywhere:
 - the PILL in a note's hat — on a card, in a `#window` summary, and on a minted
   note page (which shows its tags unconditionally, since nothing writes a
   `show-tags:` argument for a page the package mints);
-- the `idea-tag-<tag>` CSS CLASS — on the heading, the card, a transcluded card,
-  and an `ideas/index.html` or `#ideas-outline` row;
+- the `idea-tag-<tag>` CSS CLASS — on the heading, the card, a transcluded
+  card, a `#window`'s own wrapper, and an `ideas/index.html` or
+  `#ideas-outline` row;
 - the generated `.idea-tag-<tag>` rule that a `theme: (tags-color: ..)` entry
   would otherwise emit for it.
 

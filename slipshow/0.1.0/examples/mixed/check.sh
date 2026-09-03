@@ -41,19 +41,33 @@ n=$(grep -o '<section class="slip' "$tagged" | wc -l)
 [ "$n" -eq 10 ] || note "tagged.html: expected 10 sections (corpus.typ tags ten notes 'talk'), found $n"
 
 # 3. tagged.html holds STRICTLY MORE sections than `tags: "slip"` would
-#    select. Core's #window (what a "row" entry renders through) puts no tag
-#    classes on its card at all, so the only DOM signal a #slip's own raw
-#    "slip" tag could leave on this page is one of its PRESENTATION options
-#    reaching the <section> itself — here, `fullscreen: true`'s
-#    `slip-fullscreen` class, carried by exactly one of the ten. Counting
-#    sections with a `slip-` class therefore undercounts the #slip-authored
-#    half but can never overcount it, so a smaller count than the total is
-#    exactly what a deck containing untouched plain ideas looks like from the
-#    rendered HTML.
-total=$(grep -o '<section class="slip' "$tagged" | wc -l)
-optioned=$(grep -o 'class="slip slip-' "$tagged" | wc -l)
-[ "$optioned" -lt "$total" ] ||
-  note "tagged.html: expected fewer slip-optioned sections ($optioned) than the total ($total)"
+#    select. Core's #window — what a "row" entry (every note resolved BY
+#    NAME, which is every note a tag query pulls in) renders through — now
+#    puts its note's own visible tags on the window's wrapper, the same
+#    `data-rookery-tags` a card carries (`@rookery/core`'s readme, "Tags").
+#    That makes a #slip's raw "slip" tag a DIRECT DOM signal on the section
+#    that windows it, not an inference from a presentation option reaching
+#    the <section> the way `fullscreen: true`'s `slip-fullscreen` class used
+#    to be the only proxy for it. Counting `data-rookery-tags` for the exact
+#    tag "slip" (not merely containing it, so "slip-order"/"slip-background"
+#    don't fool a substring match) gives the exact count of #slip-authored
+#    sections — five, out of corpus.typ's ten "talk"-tagged notes — and five
+#    of ten is still strictly fewer than the total, which is what proves this
+#    "talk"-tagged deck holds more sections than a "tags: slip" deck would.
+python3 - "$tagged" <<'PY' || fail=1
+import re, sys
+h = open(sys.argv[1]).read()
+tag_lists = re.findall(r'data-rookery-tags="([^"]*)"', h)
+total = len(tag_lists)
+slip = sum(1 for tags in tag_lists if "slip" in tags.split())
+if slip != 5:
+    print(f"FAIL: tagged.html: expected exactly 5 sections carrying the 'slip' tag via data-rookery-tags, found {slip}")
+    sys.exit(1)
+if not (slip < total):
+    print(f"FAIL: tagged.html: slip-tagged sections ({slip}) is not fewer than the total ({total})")
+    sys.exit(1)
+print(f"  tagged: {slip} of {total} sections carry the slip tag through data-rookery-tags")
+PY
 
 # 4. inline.html: three sections from ideas written inline in `slips:` rather
 #    than named, and the one authored `fullscreen: true` still carries

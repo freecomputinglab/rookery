@@ -127,6 +127,14 @@
   // document degrades to no name rather than panicking.
   let name = rec.at("label", default: none)
 
+  // A WINDOW WEARS THE NOTE'S OWN VISIBLE TAGS, the same set and the same
+  // filter `#idea`'s card uses (`_visible-tags`, state.typ) — an invisible
+  // tag leaves no trace on a card, so it leaves none on the window that
+  // shows the same note either. `_c("tag-" + l)` through the stem helper,
+  // never a hardcoded `idea-tag-`, so a project's configured class prefix
+  // still reaches the window.
+  let visible = _visible-tags(rec.at("tags", default: (:)).keys())
+
   if _target() == "html" or _target() == "epub" {
     // The id leads the summary as the window's own top rule, so a titleless
     // note needs no special case: the tab is there either way, and the title
@@ -186,7 +194,13 @@
     // `limit:`, and a window must not list a footnote or a citation whose
     // reference it truncated away. Both blocks sit INSIDE
     // `.idea-window-body`, so they fold away with the window.
-    html.elem("div", attrs: _themed((class: _c("window"), data-rookery: "window")),
+    // The tag classes and `data-rookery-tags` go on THIS wrapper only — one
+    // element per note, matching how a card (`idea.typ`) carries them once —
+    // not on the summary or the body nested inside it.
+    let win-cls = (_c("window"),) + visible.map(l => _c("tag-" + l))
+    html.elem(
+      "div",
+      attrs: _themed((class: win-cls.join(" "), data-rookery: "window") + _tags-attr(visible)),
       html.elem("details", attrs: d-attrs,
         summary + html.elem("div", attrs: (class: _c("window-body"), data-rookery: "window-body"),
           _footnoted(shown) + _refs-block(_own-cited-keys(shown, windows-claim: windows-claim)))))

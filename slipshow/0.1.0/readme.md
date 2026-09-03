@@ -295,7 +295,16 @@ Every `#slip` option lives in the note's own tag dictionary
 special-casing beyond tags a project already knows how to work with.
 
 **Flat keys** — present or absent, value `none`, render as a pill wherever
-`show-tags: true` is set, and each emits an `.idea-tag-<key>` CSS class:
+`show-tags: true` is set, and each emits an `.idea-tag-<key>` CSS class on
+whatever renders the slip. That is BOTH routes, not only the inline one:
+`_render-slip` (`src/slipshow.typ`) renders an already-rendered `slips:`
+array entry as its own inline `#idea`/`#slip` card, and renders every entry
+resolved BY NAME — a `slips:` array of strings/labels, or the whole
+`tags:`/`where:` query route — through `#window`. A `#window`'s own wrapper
+wears the same `.idea-tag-<key>` classes and the matching
+`data-rookery-tags` its card does, so a deck built from a tag query — the
+common case, and the one every example here uses — carries this class on
+every slip exactly as an explicit inline deck does:
 
 | key | set by |
 | --- | --- |
