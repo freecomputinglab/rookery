@@ -10,3 +10,5 @@ expect_panic() {   # $1 = file, $2 = substring the message must contain
   fi
   case "$out" in *"$2"*) ;; *) echo "FAIL: $1 panicked without '$2':"; echo "$out"; exit 1;; esac
 }
+
+expect_panic test/panic-enter.typ "scroll"
