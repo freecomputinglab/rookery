@@ -60,39 +60,92 @@
   if where == none { rows } else { rows.filter(r => where(r)) }
 }
 
-// The three accepted `order` forms, each sorted by a COMPOUND key — the real
-// key, then the row's `id` — rather than relying on `.sorted()`'s stability:
-// a tie keeps id order, a reader can check that directly, and the build stays
-// reproducible whatever Typst's sort does with equal keys.
-#let _sort-rows(rows, order) = {
+// The four accepted `order` forms, all sorted through `_sort-pairs`:
+//
+//   - an ARRAY of note names/ids — sort by position in that array;
+//   - `"created"` — ascending by the row's `created` field;
+//   - `"slip-order"` (the default) — ascending by the note's `slip-order` tag;
+//   - a FUNCTION — ascending by `order(row)`, over the WHOLE row (the same
+//     shape `where:` sees), so a deck can be ordered by title, priority,
+//     page, body length, a computed score, or any composite of those.
+//
+// A key function and not a comparator, because Typst has no comparator
+// anywhere: `array.sorted` takes only `key:`. `reverse:` is how descending
+// order is reached.
+//
+// Every form treats "no key" — an unmatched array position, no `created`, no
+// `slip-order` tag, a key function returning `none` — the same way: that row
+// sorts LAST, in id order, regardless of `reverse`. `reverse` therefore
+// reverses only the KEYED rows: an undated note is not "first" in a
+// reverse-chronological deck, it is still the note with no date.
+#let _sort-pairs(pairs, reverse) = {
+  // Sort the keyed rows by a COMPOUND key — the real key, then the row's
+  // `id` — rather than relying on `.sorted()`'s stability: a tie keeps id
+  // order, a reader can check that directly, and the build stays
+  // reproducible whatever Typst's sort does with equal keys.
+  let keyed = pairs
+    .filter(p => p.key != none)
+    .sorted(key: p => (p.key, p.row.id))
+    .map(p => p.row)
+  if reverse { keyed = keyed.rev() }
+  keyed + pairs.filter(p => p.key == none).map(p => p.row).sorted(key: row => row.id)
+}
+
+#let _sort-rows(rows, order, reverse) = {
   if type(order) == array {
     // Position in `order`, matched against either `name` or `id` so a caller
     // may write whichever form is at hand; a row named nowhere in `order`
-    // gets the sentinel `order.len()`, which sorts after every named
-    // position and keeps unnamed rows in their incoming (id) order among
+    // is unkeyed (`position` already returns `none`), which keeps unnamed
+    // rows after every named one and in their incoming (id) order among
     // themselves.
-    rows.sorted(key: row => {
-      let pos = order.position(n => n == row.name or n == row.id)
-      (if pos == none { order.len() } else { pos }, row.id)
-    })
+    _sort-pairs(
+      rows.map(row => (key: order.position(n => n == row.name or n == row.id), row: row)),
+      reverse,
+    )
   } else if order == "created" {
-    // `c == none` first, so an undated row sorts last and its placeholder
-    // never has to compare against a real date. `[year][month][day]` and no
-    // time fields: `display()` errors on a field the datetime was not
-    // constructed with, and this shape sorts in date order as a plain string.
-    rows.sorted(key: row => {
-      let c = row.created
-      (c == none, if c == none { "" } else { c.display("[year][month][day]") }, row.id)
-    })
+    // `[year][month][day]` and no time fields: `display()` errors on a field
+    // the datetime was not constructed with, and this shape sorts in date
+    // order as a plain string.
+    _sort-pairs(
+      rows.map(row => (
+        key: if row.created == none { none } else { row.created.display("[year][month][day]") },
+        row: row,
+      )),
+      reverse,
+    )
   } else if order == "slip-order" {
-    rows.sorted(key: row => {
-      let o = order-of(row.tags-dict)
-      (o == none, if o == none { 0 } else { o }, row.id)
-    })
+    _sort-pairs(rows.map(row => (key: order-of(row.tags-dict), row: row)), reverse)
+  } else if type(order) == function {
+    // Call the key function ONCE per row — an author's key function may walk
+    // the note's body — and keep the pair `(key, row)`, rather than sorting a
+    // single compound key that folds `none`-ness into it: Typst cannot
+    // compare values of different types, so a `.sorted()` over a mix of
+    // `none` and a real key would error out rather than merely order oddly.
+    // Partitioning on `none` (in `_sort-pairs`) makes that mixed comparison
+    // impossible instead of merely unlikely.
+    let pairs = rows.map(row => (key: order(row), row: row))
+    let kinds = pairs.map(p => p.key).filter(k => k != none).map(type).dedup()
+    assert(
+      kinds.len() <= 1,
+      message: "@rookery/slipshow: `order`'s key function must return the same "
+        + "type for every note — got " + kinds.map(repr).join(" and ")
+        + ". Typst cannot compare values of different types.",
+    )
+    if kinds.len() == 1 {
+      assert(
+        kinds.at(0) in (int, float, str, datetime),
+        message: "@rookery/slipshow: `order`'s key function must return an "
+          + "int, float, str, or datetime — got " + repr(kinds.at(0))
+          + ". `r.title` is content and cannot be compared this way — use a "
+          + "string field like `r.label` or `r.text` instead.",
+      )
+    }
+    _sort-pairs(pairs, reverse)
   } else {
     panic(
       "@rookery/slipshow: `order` must be an array of note names/ids, "
-        + "\"created\", or \"slip-order\" (the default) — got " + repr(order),
+        + "\"created\", \"slip-order\" (the default), or a function from a "
+        + "registry row to a comparable value — got " + repr(order),
     )
   }
 }
@@ -114,8 +167,21 @@
 // `_slip-rows-from-query`); `slips:` does not, since it only reads tags back
 // out of content already in hand. `tags:` and `where:` compose — both may be
 // given together — but `slips:` is exclusive with either, since an explicit
-// array has nothing left to filter.
-#let resolve-slips(slips: none, tags: none, where: none, match: "any", order: "slip-order") = {
+// array has nothing left to filter. `order:`/`reverse:` sort the query
+// route's rows (see `_sort-rows`); both are refused alongside `slips:` for
+// the same reason.
+#let resolve-slips(
+  slips: none,
+  tags: none,
+  where: none,
+  match: "any",
+  order: "slip-order",
+  reverse: false,
+) = {
+  assert(
+    type(reverse) == bool,
+    message: "@rookery/slipshow: `reverse` must be a bool — got " + repr(reverse),
+  )
   let slips-given = slips != none
   let query-given = tags != none or where != none
   assert(
@@ -137,18 +203,24 @@
       message: "@rookery/slipshow: `slips` must be an array of already-rendered "
         + "ideas — got " + repr(slips),
     )
-    // An explicit array is already ordered by construction; re-sorting it
-    // would be surprising, so `order:` is refused rather than silently
-    // ignored.
+    // An explicit array is already ordered by construction; re-sorting it (or
+    // reversing that order) would be surprising, so `order:`/`reverse:` are
+    // refused rather than silently ignored.
     assert(
       order == "slip-order",
       message: "@rookery/slipshow: `order` and `slips:` conflict — an explicit "
         + "array is already in the order it was written, so `order:` has "
         + "nothing to do. Drop `order:`, or use `tags:` instead of `slips:`.",
     )
+    assert(
+      reverse == false,
+      message: "@rookery/slipshow: `reverse` and `slips:` conflict — an explicit "
+        + "array is already in the order it was written, so `reverse:` has "
+        + "nothing to do. Drop `reverse:`, or use `tags:` instead of `slips:`.",
+    )
     return slips.map(item => (kind: "content", content: item, tags: slip-tags-of(item)))
   }
 
-  let rows = _sort-rows(_slip-rows-from-query(tags, match, where), order)
+  let rows = _sort-rows(_slip-rows-from-query(tags, match, where), order, reverse)
   rows.map(row => (kind: "row", row: row, tags: row.tags-dict))
 }

@@ -62,8 +62,9 @@
   // Five slips registered here: four named by nothing but their auto id or
   // an explicit name, plus `meta-check` below — the positional sink is
   // forwarded. Four more join them further down, for `resolve-slips`'s own
-  // tests, bringing the total to nine.
-  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 9)
+  // tests, plus four for `order:`'s key-function/`reverse:` tests further
+  // down still, bringing the total to thirteen.
+  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 13)
 
   // THE REGRESSION THE `.with()` TRAP WOULD CAUSE: a caller's own `tags:`
   // must MERGE with the `slip` tag, not replace it. If `slip` were missing
@@ -169,4 +170,53 @@
 // registered note, exactly as `ideas(values: true)` does.
 #context {
   assert.eq(resolve-slips(where: r => true).len(), ideas(values: true).len())
+}
+
+// `order:` also accepts a KEY FUNCTION over the whole row, so a deck can be
+// ordered by any metadata a note carries. Three slips whose `label` values
+// sort in a different order than their ids: `where:` narrows the query to
+// exactly this cohort, whatever else in this file also carries `slip`.
+#slip("ord-p", title: [Zeta])[Body]
+#slip("ord-q", title: [Alpha])[Body]
+#slip("ord-r", title: [Mu])[Body]
+
+#let ord-cohort = r => r.name.starts-with("ord-")
+
+#context {
+  // Alphabetical by `label` ("Alpha" < "Mu" < "Zeta"), not by id ("ord-p" <
+  // "ord-q" < "ord-r").
+  let names = resolve-slips(tags: "slip", where: ord-cohort, order: r => r.label)
+    .map(e => e.row.name)
+  assert.eq(names, ("ord-q", "ord-r", "ord-p"))
+
+  // `reverse: true` is the exact reverse of that list.
+  let names-rev = resolve-slips(tags: "slip", where: ord-cohort, order: r => r.label, reverse: true)
+    .map(e => e.row.name)
+  assert.eq(names-rev, ("ord-p", "ord-r", "ord-q"))
+
+  // A key function returning `none` for one note (here, `ord-r`) places that
+  // note last — under `reverse: false` AND `reverse: true` alike, since
+  // `reverse` only reverses the rows that DO have a key.
+  let by-label-none-r = r => if r.name == "ord-r" { none } else { r.label }
+  assert.eq(
+    resolve-slips(tags: "slip", where: ord-cohort, order: by-label-none-r).map(e => e.row.name),
+    ("ord-q", "ord-p", "ord-r"),
+  )
+  assert.eq(
+    resolve-slips(tags: "slip", where: ord-cohort, order: by-label-none-r, reverse: true)
+      .map(e => e.row.name),
+    ("ord-p", "ord-q", "ord-r"),
+  )
+}
+
+// `reverse:` applies to `"created"` too — a reverse-chronological deck is the
+// single most-wanted presentation order there is. `chrono-new` is dated after
+// every other `created` slip in this file, so it must land first; an undated
+// slip (there are several) still lands last, not first.
+#slip("chrono-new", created: datetime(year: 2024, month: 1, day: 1))[Newest]
+
+#context {
+  let entries = resolve-slips(tags: "slip", order: "created", reverse: true)
+  assert.eq(entries.first().row.name, "chrono-new")
+  assert.eq(entries.last().row.created, none)
 }

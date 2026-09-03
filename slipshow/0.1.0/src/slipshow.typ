@@ -90,6 +90,7 @@
   where: none,
   match: "any",
   order: "slip-order",
+  reverse: false,
   enter: "scroll",
 ) = context {
   assert(
@@ -107,6 +108,7 @@
     where: where,
     match: match,
     order: order,
+    reverse: reverse,
   )
 
   if target() != "html" {
