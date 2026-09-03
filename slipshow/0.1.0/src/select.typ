@@ -1,6 +1,28 @@
 // Resolves a slipshow's slip list and its order, from either definition
-// route — an explicit array of already-rendered ideas, or a tag query over
-// the registry. Renders nothing.
+// route — an explicit array (content, note names, or a mix), or a tag query
+// over the registry. Renders nothing.
+//
+// A `slips:` array element is dispatched by Typst TYPE, not guessed: a `str`
+// or `label` is a NAME, resolved against the registry and returned as a
+// `"row"` entry, exactly like the query route below; anything else is
+// already-rendered CONTENT, read directly. This is what lets a computed deck
+// — most importantly one ordered by `@rookery/search`'s ranking, which hands
+// back rows and therefore only names, never rendered content — be expressed
+// as an explicit, exactly-ordered list of notes authored elsewhere.
+//
+// THE NAME ROUTE EXISTS BECAUSE `window(name)` IN THE CONTENT POSITION DOES
+// NOT WORK, and this is worth recording so nobody re-discovers it the hard
+// way: `#window` wraps its whole body in a `context { .. }` block
+// (`core/0.1.0/src/window.typ` line 148), and a Typst `context` block's
+// content is opaque until it is evaluated. `slip-tags-of` (`marker.typ`)
+// walks rendered content looking for a `figure(kind: IK)` marker, finds
+// nothing inside the unevaluated context, and returns `(:)` — so
+// `#slipshow(slips: names.map(n => window(n)))` compiles and renders fine,
+// but every `#slip` option (fullscreen, background, enter, ...) is silently
+// dropped rather than erroring. Passing the bare NAME instead defers
+// rendering — and therefore context evaluation — to `_render-slip`
+// (`slipshow.typ`), by which point the options are read off the registry row
+// directly rather than sniffed out of content.
 //
 // `ideas()` sorts its rows by id (`@rookery/core`'s `data.typ`), which is
 // almost never presentation order, so the query route sorts explicitly here —
@@ -150,26 +172,74 @@
   }
 }
 
+// A registry lookup keyed by both `name` and `id`, built from ONE
+// `ideas(values: true)` call — resolving each `slips:` name against a fresh
+// query would pay that walk once per slip instead of once per deck (`ideas()`
+// resolves the whole registry per call; see its own header, `@rookery/core`'s
+// `data.typ`, line 290). Keyed by both forms so a caller may write whichever
+// is at hand, exactly as `order:`'s array route already allows (`_sort-rows`
+// above).
+#let _slip-lookup() = {
+  let by-key = (:)
+  for row in ideas(values: true) {
+    by-key.insert(row.name, row)
+    by-key.insert(row.id, row)
+  }
+  by-key
+}
+
+// One `slips:` array element, dispatched by Typst type: `str`/`label` is a
+// NAME, resolved through `lookup` into the same shape the query route
+// returns; anything else is CONTENT, read directly as it always has been.
+// `lookup` is `(:)` when the caller's array holds no name at all — see
+// `resolve-slips` below, which then skips the registry read entirely.
+//
+// A name resolving to nothing PANICS rather than being skipped: unlike a
+// dangling `#window` reference (which core answers emptily), a named slip is
+// an assertion about what the presentation contains, and a deck that loses a
+// slide silently is worse than a build that stops.
+#let _resolve-slip-item(item, lookup) = {
+  if type(item) in (str, label) {
+    let n = if type(item) == label { str(item) } else { item }
+    let row = lookup.at(n, default: none)
+    if row == none {
+      panic(
+        "@rookery/slipshow: #slipshow's `slips:` names \"" + n + "\", which is not "
+          + "a registered note. Either the name is misspelled, or the note is "
+          + "authored on a page the spine does not include.",
+      )
+    }
+    (kind: "row", row: row, tags: row.tags-dict)
+  } else {
+    (kind: "content", content: item, tags: slip-tags-of(item))
+  }
+}
+
 // Resolves a slipshow's slip list, from either definition route:
 //
 //   #context resolve-slips(tags: "slip")                    // a tag query
 //   #context resolve-slips(where: r => r.page == "methods")  // a row query
-//   resolve-slips(slips: (slip("a")[..], slip("b")[..]))     // an explicit array
+//   resolve-slips(slips: (slip("a")[..], slip("b")[..]))     // content only
+//   #context resolve-slips(slips: ("a", <b>))                // names only
+//   #context resolve-slips(slips: (slip("title")[..], "a"))  // a mix
 //
-// The two routes return differently shaped entries on purpose — a `"content"`
-// entry is rendered inline, a `"row"` entry via `#window` — so the renderer
-// needs no key-presence guessing to tell them apart:
+// Every route returns entries in one of two shapes — a `"content"` entry is
+// rendered inline, a `"row"` entry via `#window` — so the renderer needs no
+// key-presence guessing to tell them apart:
 //
-//   (kind: "content", content: <item>, tags: <dict>)   // from `slips:`
-//   (kind: "row", row: <ideas() row>, tags: <dict>)     // from `tags:`/`where:`
+//   (kind: "content", content: <item>, tags: <dict>)   // rendered content
+//   (kind: "row", row: <ideas() row>, tags: <dict>)     // a registry row
 //
-// The query route needs `#context` (it calls `ideas()` through
-// `_slip-rows-from-query`); `slips:` does not, since it only reads tags back
-// out of content already in hand. `tags:` and `where:` compose — both may be
-// given together — but `slips:` is exclusive with either, since an explicit
-// array has nothing left to filter. `order:`/`reverse:` sort the query
-// route's rows (see `_sort-rows`); both are refused alongside `slips:` for
-// the same reason.
+// `slips:` produces both shapes, per element (see `_resolve-slip-item`); the
+// query route (`tags:`/`where:`) produces only `"row"`. `#context` is
+// required whenever a registry read happens: always for the query route, and
+// for `slips:` only when its array contains at least one name — a
+// content-only array reads no registry and needs none. `tags:` and `where:`
+// compose — both may be given together — but `slips:` is exclusive with
+// either, since an explicit array has nothing left to filter. `order:`/
+// `reverse:` sort the query route's rows (see `_sort-rows`); both are refused
+// alongside `slips:` for the same reason — the array IS the order, whatever
+// mix of content and names it holds.
 #let resolve-slips(
   slips: none,
   tags: none,
@@ -201,7 +271,7 @@
     assert(
       type(slips) == array,
       message: "@rookery/slipshow: `slips` must be an array of already-rendered "
-        + "ideas — got " + repr(slips),
+        + "ideas and/or note names (as a string or label) — got " + repr(slips),
     )
     // An explicit array is already ordered by construction; re-sorting it (or
     // reversing that order) would be surprising, so `order:`/`reverse:` are
@@ -218,7 +288,11 @@
         + "array is already in the order it was written, so `reverse:` has "
         + "nothing to do. Drop `reverse:`, or use `tags:` instead of `slips:`.",
     )
-    return slips.map(item => (kind: "content", content: item, tags: slip-tags-of(item)))
+    // The registry read is lazy: only when the array actually names a note,
+    // so a content-only array stays exactly as cheap as it was before names
+    // existed, and keeps working with no registry (and no `#context`) at all.
+    let lookup = if slips.any(item => type(item) in (str, label)) { _slip-lookup() } else { (:) }
+    return slips.map(item => _resolve-slip-item(item, lookup))
   }
 
   let rows = _sort-rows(_slip-rows-from-query(tags, match, where), order, reverse)

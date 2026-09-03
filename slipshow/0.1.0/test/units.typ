@@ -63,8 +63,9 @@
   // an explicit name, plus `meta-check` below — the positional sink is
   // forwarded. Four more join them further down, for `resolve-slips`'s own
   // tests, plus four for `order:`'s key-function/`reverse:` tests further
-  // down still, bringing the total to thirteen.
-  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 13)
+  // down still, plus two for the `slips:` NAME route's own tests, bringing
+  // the total to fifteen.
+  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 15)
 
   // THE REGRESSION THE `.with()` TRAP WOULD CAUSE: a caller's own `tags:`
   // must MERGE with the `slip` tag, not replace it. If `slip` were missing
@@ -135,7 +136,7 @@
 // filter works with no `@rookery/search` import anywhere in this package.
 #context {
   let names = resolve-slips(tags: t => "slip-fullscreen" in t).map(e => e.row.name)
-  assert.eq(names, ("meta-check", "intro"))
+  assert.eq(names, ("meta-check", "intro", "slot-a"))
 }
 
 // `order: "created"`: a note with no `created:` sorts after one that has one.
@@ -219,4 +220,35 @@
   let entries = resolve-slips(tags: "slip", order: "created", reverse: true)
   assert.eq(entries.first().row.name, "chrono-new")
   assert.eq(entries.last().row.created, none)
+}
+
+// `resolve-slips` — the `slips:` NAME route: an array element may name an
+// already-authored note instead of carrying its rendered content, resolved
+// through the registry in the array's own order.
+#slip("slot-a", fullscreen: true)[Slot A]
+#slip("slot-b")[Slot B]
+
+#context {
+  // Names resolve in the array's own order, not id order (`slot-a` < `slot-b`
+  // by id, but the array below asks for `slot-b` first).
+  let by-name = resolve-slips(slips: ("slot-b", "slot-a"))
+  assert.eq(by-name.len(), 2)
+  assert.eq(by-name.map(e => e.kind), ("row", "row"))
+  assert.eq(by-name.map(e => e.row.name), ("slot-b", "slot-a"))
+
+  // THE ASSERTION THIS ROUTE EXISTS FOR: the resolved row carries its own
+  // `#slip` options, here `slip-fullscreen` — exactly what the `window(name)`
+  // workaround (see `select.typ`'s header) silently drops instead.
+  assert("slip-fullscreen" in by-name.at(1).tags)
+
+  // A label names a note as well as a plain string.
+  let by-label = resolve-slips(slips: (<slot-b>, <slot-a>))
+  assert.eq(by-label.map(e => e.row.name), ("slot-b", "slot-a"))
+
+  // A mixed array — inline content, then a name — resolves each element by
+  // its own type: `"content"` first, `"row"` second.
+  let title-slip = slip("slot-title")[Title]
+  let mixed = resolve-slips(slips: (title-slip, "slot-a"))
+  assert.eq(mixed.map(e => e.kind), ("content", "row"))
+  assert.eq(mixed.at(1).row.name, "slot-a")
 }
