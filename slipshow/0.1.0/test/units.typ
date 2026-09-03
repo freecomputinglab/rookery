@@ -43,9 +43,9 @@
   assert("slip" in intro.tags-dict)
   assert("slip-fullscreen" in intro.tags-dict)
 
-  // Three slips registered, one of them named by nothing but its auto id —
-  // the positional sink is forwarded.
-  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 3)
+  // Four slips registered: three named by nothing but their auto id or an
+  // explicit name, plus `meta-check` below — the positional sink is forwarded.
+  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 4)
 
   // THE REGRESSION THE `.with()` TRAP WOULD CAUSE: a caller's own `tags:`
   // must MERGE with the `slip` tag, not replace it. If `slip` were missing
@@ -58,4 +58,35 @@
   // A plain `#idea` stays plain — no `slip-*` key leaks onto an unrelated note.
   let plain = by-name("plain")
   assert(plain.tags-dict.keys().filter(k => k.starts-with("slip")).len() == 0)
+}
+
+// `slip-meta`/`slip-tags-of` recover a note's tags from RENDERED content
+// alone — the route a `#slipshow` built from an explicit ordered array
+// needs, since that array holds content rather than registry rows.
+
+// Unplaced content: nothing is registered by merely reading it, so this is a
+// pure content check.
+#assert("slip" in slip-tags-of(slip("a", fullscreen: true)[Body]))
+#assert("slip-fullscreen" in slip-tags-of(slip("a", fullscreen: true)[Body]))
+
+// A plain `#idea` carries no `slip-*` key.
+#assert(slip-tags-of(idea("b")[Body]).keys().filter(k => k.starts-with("slip")).len() == 0)
+
+// Content with no idea in it at all is a legitimate answer, not an error.
+#assert.eq(slip-tags-of([just some text]), (:))
+
+// `slip-meta` hands back the whole payload — title and level, not only tags.
+#let c-meta = slip-meta(slip("c", title: [T])[Body])
+#assert.eq(c-meta.at("title"), [T])
+#assert.eq(c-meta.at("level"), 1)
+
+// The property this file exists for: both definition routes see IDENTICAL
+// options for the same note. Placed for real so `ideas()` can see it, and
+// the same content value read directly for the content-only route.
+#let meta-check = slip("meta-check", fullscreen: true, order: 2)[Meta body]
+#meta-check
+
+#context {
+  let rec = ideas(values: true).find(r => r.name == "meta-check")
+  assert.eq(slip-tags-of(meta-check), rec.tags-dict)
 }
