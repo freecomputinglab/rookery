@@ -1,0 +1,19 @@
+build:
+    pnpm install
+    pnpm run build
+
+# `--features html` is mandatory whatever the output format (`std.target` is
+# gated by the feature and core reads it at import time); `--root .` so the
+# fixture's `#import "/src/lib.typ"` resolves against this package;
+# `--format pdf` into `/dev/null` because typst cannot infer a format from
+# that path and nothing is rendered, only asserted.
+test:
+    typst compile --features html --root . --format pdf test/units.typ /dev/null
+    ./test/panics.sh
+    @echo "units OK"
+
+# Node's own `--test` glob, not a bare directory: `node --test test/` errors
+# on this machine's Node (v24) — it tries to `require` "test" as a module
+# rather than scan the directory.
+test-js:
+    node --test test/*.test.mjs

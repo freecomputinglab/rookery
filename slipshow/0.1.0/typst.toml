@@ -1,0 +1,22 @@
+[package]
+name = "slipshow"
+version = "0.1.0"
+compiler = "0.15.0"
+entrypoint = "src/lib.typ"
+authors = ["The Free Computing Lab <https://freecomputinglab.ohrg.org>"]
+license = "MIT"
+description = "An endlessly scrolling presentation over @rookery/core ideas"
+repository = "https://github.com/freecomputinglab/rookery"
+
+[tool.rheo]
+# Inherited from @rookery/core:0.1.0, which this package imports — see the
+# floor's own comment in core/0.1.0/typst.toml for why it is 0.6.2.
+min_version = "0.6.2"
+
+[tool.rheo.html]
+js_scripts = "dist/lib.js"
+css_stylesheet = "src/slipshow.css"
+
+[tool.rheo.source.html]
+js_scripts = ["src/camera.js", "src/slipshow.js"]
+js_module = true
