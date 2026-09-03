@@ -30,7 +30,9 @@
 //
 // Does exactly five things, and deliberately nothing else:
 //
-//   1. publishes `prefix` (so `#idea("etal")` mints `<note:etal>`);
+//   1. publishes `prefix` (so `#idea("etal")` mints `<note:etal>`) and
+//      `note-dir` (where `.marrow.typ` mints that note's own page; `none`,
+//      the default, resolves through `_dir()` in state.typ);
 //   2. publishes `window-depth`, the document-wide transclusion budget (see
 //      `_window-depth` for the whole scale; `1`, the default, renders a
 //      windowed note once and collapses a `#window` nested inside it to its
@@ -100,6 +102,7 @@
 // visible AT DEFINITION time — `hyperlink` must already exist.
 #let rookery(
   prefix: "idea",
+  note-dir: none,
   window-depth: 1,
   idea-page-template: none,
   bibliography: none,
@@ -124,6 +127,7 @@
 ) = {
   _validate-config(
     prefix,
+    note-dir,
     window-depth,
     idea-page-template,
     theme,
@@ -150,6 +154,7 @@
 
 
   _prefix.update(prefix)
+  _note-dir.update(note-dir)
   _window-depth.update(window-depth)
   // Default the style to author-date, and ONLY when the author passed none.
   //

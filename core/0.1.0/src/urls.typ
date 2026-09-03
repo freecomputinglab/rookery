@@ -20,25 +20,24 @@
 // minted file is `.html` whatever the format. Matching that literal is what
 // keeps the href resolvable.
 //
-// The directory is ONE constant, because the path and the handle mirror each
-// other — `ideas/<slug>.html` <-> `ideas:<slug>` — and only the path was ever
-// built from `_note-file`; `.marrow.typ` spelled the handle's half out by
-// hand. Two literals that must agree, in two files, is a drift waiting to
-// happen, so both now read this.
-#let _IDEA-DIR = "ideas"
-#let _note-file(id) = _IDEA-DIR + "/" + id.trim(_pfx(), at: start) + ".html"
+// The directory is ONE function, `_dir()` (state.typ), because the path and
+// the handle mirror each other — `<dir>/<slug>.html` <-> `<dir>:<slug>` — and
+// only the path was ever built from `_note-file`; `.marrow.typ` spelled the
+// handle's half out by hand. Two literals that must agree, in two files, is a
+// drift waiting to happen, so both now read this.
+#let _note-file(id) = _dir() + "/" + id.trim(_pfx(), at: start) + ".html"
 
 // The three halves of one note page, in one place: the slug, the file
 // `.marrow.typ` mints it to, and the handle it mints it under. `.marrow.typ`
 // used to derive all three itself — `id.trim(_pfx(), at: start)` for the slug,
-// `_note-file(id)` for the path, `_IDEA-DIR + ":" + slug` for the handle — which
+// `_note-file(id)` for the path, `_dir() + ":" + slug` for the handle — which
 // is the mirroring the comment above worries about, spelled out across two
 // files. Now the mirror lives here and marrow reads it.
 //
 // Must be called from inside `context`: `_pfx` reads the prefix state.
 #let _note-page(id) = {
   let slug = id.trim(_pfx(), at: start)
-  (slug: slug, file: _note-file(id), handle: _IDEA-DIR + ":" + slug)
+  (slug: slug, file: _note-file(id), handle: _dir() + ":" + slug)
 }
 
 // Depth-relative href from the CURRENT page to a note's standalone page, or
@@ -109,7 +108,7 @@
   if link-to == "anchor" { return label(id) }
   let c = _rheo-ctx()
   if c == none or c.at("ext", default: none) == none { return label(id) }
-  "rheo-page:" + _IDEA-DIR + ":" + id.trim(_pfx(), at: start)
+  "rheo-page:" + _dir() + ":" + id.trim(_pfx(), at: start)
 }
 // ---- #note-href — where a note's minted page lives, from here -------------
 //

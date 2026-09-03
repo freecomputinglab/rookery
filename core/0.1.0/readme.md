@@ -100,6 +100,7 @@ does all of it in a line, and is the only place anything is configurable:
 #import "@rookery/core:0.1.0": rookery, idea, window
 #show: rookery.with(
   prefix: "note",                 // ids are now `note:etal`
+  note-dir: "ideas",              // ...but minted pages stay at `ideas/`
   window-depth: 2,                // a window inside a window unfurls one level
   theme: (
     link-color: "rgba(230, 140, 0, 0.16)",  // hover background on any link
@@ -109,17 +110,19 @@ does all of it in a line, and is the only place anything is configurable:
 )
 ```
 
-`#show: rookery` does exactly six things: it publishes the id prefix, the
-nested-window depth, the minted-page template (`idea-page-template`, see
-"Standalone note pages"), the bibliography (see "Bibliographies") and the
-theme, and it installs `link-to-page` (see below and "Referencing a note") so
-`@note:etal` renders the note rather than a bare figure number. It sets no
-other styles and wraps `doc` in nothing. It emits nothing of its own either,
-with one exception: a page that cites something outside every idea gets a
-references block after its content, because a citation no bibliography claims
-fails the build. On a document with no notes in it, it is a no-op, and even the
-`ref` rule passes every non-rookery reference straight through. Pass
-`refs: false` to keep the rest and skip that rule.
+`#show: rookery` does exactly seven things: it publishes the id prefix, the
+minted-page directory (`note-dir`, see "Standalone note pages" for how it
+resolves), the nested-window depth, the minted-page template
+(`idea-page-template`, see "Standalone note pages"), the bibliography (see
+"Bibliographies") and the theme, and it installs `link-to-page` (see below and
+"Referencing a note") so `@note:etal` renders the note rather than a bare
+figure number. It sets no other styles and wraps `doc` in nothing. It emits
+nothing of its own either, with one exception: a page that cites something
+outside every idea gets a references block after its content, because a
+citation no bibliography claims fails the build. On a document with no notes
+in it, it is a no-op, and even the `ref` rule passes every non-rookery
+reference straight through. Pass `refs: false` to keep the rest and skip that
+rule.
 
 `ref-target: "page"` (the default) picks `link-to-page`, so `@note:etal` links
 to the note's own minted page. Pass `ref-target: "anchor"` to pick
@@ -129,7 +132,10 @@ always uses. Ignored when `refs: false`, since there is then no installed rule
 for it to configure.
 
 `prefix` must be a non-empty string with no `:` in it (the separator is added
-for you).
+for you). `note-dir` must be `none` (the default) or a non-empty string with
+no `/` or `:` in it — see "Standalone note pages" for what it does and, if you
+already set a custom `prefix`, for a breaking change to read before you
+upgrade.
 
 ### Nested windows, and `window-depth`
 
@@ -1617,7 +1623,7 @@ cite anything"; Typst formats every citation and every entry.
 ## Standalone note pages (rheo only)
 
 Importing this package mints one output page per note automatically, at
-`ideas/<id>.html` — e.g. `ideas/etal.html` for `<idea:etal>`, the prefix
+`<dir>/<id>.html` — e.g. `ideas/etal.html` for `<idea:etal>`, the prefix
 stripped off whatever it is set to — via a package
 `.marrow.typ` that rheo inlines at the bundle root. No `rheo.toml` entry and
 no project file needed. Typst will print `warning: bundle export is
@@ -1625,12 +1631,45 @@ experimental` — expected, not a sign anything is wrong.
 
 This is the part that needs **rheo >= 0.5.2**: inlining a package's
 `.marrow.typ` landed there, and an older rheo passes over it in silence rather
-than failing, so the symptom is not an error but an absence — no `ideas/`
+than failing, so the symptom is not an error but an absence — no minted
 pages, and links into them that resolve to nothing.
 
 Each minted page shows the note's title and permalink id, then its body, then
 a footer with two parts — each omitted, rather than left empty, when it has
 nothing to say.
+
+### Where pages are minted: `note-dir`
+
+`<dir>` above defaults to `"ideas"`, not to the prefix. This is deliberate,
+resolved in order:
+
+1. `note-dir:`, when you set one;
+2. else `"ideas"`, when `prefix` is left at its default `"idea"`;
+3. else `prefix`, verbatim.
+
+It is not simply `dir = prefix`, and not `prefix + "s"` either — pluralizing
+`"maths"` would give you `mathss/`, not `maths/`. So the rule falls back to
+the prefix only when you have actually changed it, and even then hands you
+the prefix as-is:
+
+```typst
+#show: rookery.with(prefix: "maths")
+// no note-dir set -> pages mint at maths/<slug>.html, ids read `maths:<slug>`
+```
+
+**Breaking, if you already set a custom `prefix`.** Before `note-dir`
+existed, every project minted to `ideas/` regardless of `prefix` — the
+directory was a package constant. A project that set `prefix: "note"` (say)
+and expects its pages to stay at `ideas/<slug>.html` must now set
+`note-dir: "ideas"` explicitly:
+
+```typst
+#show: rookery.with(prefix: "note", note-dir: "ideas")
+```
+
+Leaving `note-dir` unset moves every page in such a project to `note/`
+instead. A project that never touched `prefix` is unaffected either way —
+rule 2 above keeps it at `ideas/`.
 
 ### Turning the footer off: `show-context`, `show-backlinks`
 
@@ -1656,10 +1695,12 @@ rookery:
 
 ### A landing page for the whole rookery: `index-page`
 
-`ideas/` is the parent directory of every permalink this package mints, and the
-URL a reader will guess. Rookery mints `ideas/index.html` there by default: a
-heading, a count, and every note in the rookery linked to **its own minted
-page**, carrying its date and its tags. The rows wear `#ideas-outline`'s
+`<dir>/` (see "Where pages are minted: `note-dir`" — `ideas/` unless you set
+`prefix` or `note-dir`) is the parent directory of every permalink this
+package mints, and the URL a reader will guess. Rookery mints
+`<dir>/index.html` there by default: a heading, a count, and every note in the
+rookery linked to **its own minted page**, carrying its date and its tags. The
+rows wear `#ideas-outline`'s
 classes — `.idea-outline`, `.idea-outline-row`, `.idea-tag-<tag>` — so a
 stylesheet that already knows the outline knows this page too, and it needs no
 CSS of its own. They are listed in id order, which is what `#ideas()` returns.

@@ -395,7 +395,7 @@
     .to-dict()
 }
 
-// The 17 knobs `#show: rookery` accepts, checked before anything is published.
+// The 18 knobs `#show: rookery` accepts, checked before anything is published.
 //
 // Extracted from `rookery` below rather than inlined in it: the function was 158
 // code lines, 13 of them asserts, and a reader asking what `#show: rookery`
@@ -408,6 +408,7 @@
 // there is no `#function's` to name.
 #let _validate-config(
   prefix,
+  note-dir,
   window-depth,
   idea-page-template,
   theme,
@@ -424,6 +425,20 @@
     message: "@rookery/core: `prefix` must be a non-empty string containing no `:` "
       + "(the `:` between prefix and name is added for you) — got "
       + repr(prefix),
+  )
+  // Rejects `/` and `:` because both corrupt what is built from this: a `/`
+  // inserts extra directory levels into the minted path, and `:` is the
+  // separator in the rheo handle `<dir>:<slug>` minted alongside it.
+  assert(
+    note-dir == none
+      or (
+        type(note-dir) == str
+          and note-dir != ""
+          and not note-dir.contains("/")
+          and not note-dir.contains(":")
+      ),
+    message: "@rookery/core: `note-dir` must be `none` or a non-empty string containing "
+      + "no `/` or `:` — got " + repr(note-dir),
   )
   assert(
     type(window-depth) == int and window-depth >= 0,

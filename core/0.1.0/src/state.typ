@@ -35,6 +35,17 @@
 // `#hyperlink`, and `.marrow.typ`'s own `#context`.
 #let _prefix = state("rheo-idea-prefix", "idea")
 #let _pfx() = _prefix.final() + ":"
+
+// The minted-page directory: `note-dir:` if the project set one, else `ideas`
+// for the built-in `idea` prefix (the historical directory name, kept for
+// every site that never touched `prefix:`), else the resolved prefix itself.
+// NOT `prefix + "s"` — a project on `prefix: "maths"` gets `maths/`, not
+// `mathss/`. Read with `.final()`, for the same reason as `_prefix` above.
+#let _note-dir = state("rheo-idea-note-dir", none)
+#let _dir() = {
+  let d = _note-dir.final()
+  if d != none { d } else if _prefix.final() == "idea" { "ideas" } else { _prefix.final() }
+}
 // ---- Window depth — how far a nested `#window` unfurls ---------------------
 //
 // THE SCALE COUNTS LEVELS OF TRANSCLUSION, AND `0` IS NOT THE DEFAULT:

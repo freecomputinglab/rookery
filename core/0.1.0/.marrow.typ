@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _IDEA-DIR, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _show-context, _show-backlinks, _plain, _visible-tags, window
+#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _show-context, _show-backlinks, _plain, _visible-tags, window
 
 #context {
   let registry = _registry.final()
@@ -523,7 +523,7 @@
   // listing on a server that allows one). Opt out if a project has its own
   // index and doesn't want a second one published under it.
   //
-  // `_IDEA-DIR`, never the literal "ideas", for the same reason the loop above
+  // `_dir()`, never the literal "ideas", for the same reason the loop above
   // takes its paths from `_note-page` — a project running
   // `#show: rookery.with(prefix: "note")` mints at the paths lib.typ links to,
   // and a hardcoded directory here would put the index somewhere else.
@@ -549,7 +549,7 @@
   // deepest document in the bundle, and a site whose introspection chain is
   // already near Typst's five-iteration cap cannot spare the round. It does not
   // need one. Every minted note page is a SIBLING of this one — both live under
-  // `_IDEA-DIR` — so the correct href is the note's bare file basename, with no
+  // `_dir()` — so the correct href is the note's bare file basename, with no
   // depth arithmetic and no state to read at all. `_note-page` is the same helper
   // the mint loop above takes its paths from, so the rows still cannot drift from
   // what was minted.
@@ -601,7 +601,7 @@
               // Invisible tags drop out here too. `e.tags` is an `ideas()` ROW field
               // and is ALREADY a flat array of names — no `.keys()`, do not add one.
               attrs: (class: (("idea-outline-row",) + _visible-tags(e.tags).map(t => "idea-tag-" + t)).join(" ")),
-              // The BASENAME, not `e.href`: a sibling under `_IDEA-DIR`, so no
+              // The BASENAME, not `e.href`: a sibling under `_dir()`, so no
               // depth arithmetic and no `state("rheo-handle")` read — which at
               // this scope would be the last spine vertebra's, not this page's.
               // `e.label` — an index row NAMES the note. Never empty (it falls back
@@ -616,8 +616,8 @@
       )
     ]
     rheo-document(
-      _IDEA-DIR + "/index.html",
-      handle: _IDEA-DIR + ":index",
+      _dir() + "/index.html",
+      handle: _dir() + ":index",
       format: "html",
       title: "Ideas",
       if tpl == none { page } else { tpl(id: none, note: (:), page) },
