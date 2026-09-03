@@ -4,12 +4,14 @@
 // names without changing all three together.
 //
 //   <div class="slipshow" data-enter="scroll">
-//     <section class="slip [slip-fullscreen] [<slip-class>]"
-//              id="slip-<id>" data-index="0" [data-enter="focus"]
-//              [style="background: #f00" | style="background: linear-gradient(..)"]>
-//       [<div class="slip-bg"><img src="data:image/..;base64,.."></div>]
-//       ...the idea, rendered in full...
-//     </section>
+//     [<div class="slip-row" [data-row="0"]>]
+//       <section class="slip [slip-fullscreen] [<slip-class>]"
+//                id="slip-<id>" data-index="0" [data-enter="focus"]
+//                [style="background: #f00; max-width: 45%"]>
+//         [<div class="slip-bg"><img src="data:image/..;base64,.."></div>]
+//         ...the idea, rendered in full...
+//       </section>
+//     [</div>]
 //     ...
 //   </div>
 //
@@ -41,6 +43,29 @@
 //   only when `slip-background` is an image, and always the section's first
 //   child — `src/slipshow.css` is pinned to that position. Absent for a
 //   colour, a gradient, or no background at all.
+// - `slip-max-width` (a length, ratio, or raw-CSS string) becomes a
+//   `max-width: <v>` declaration in the same `style` attribute as the
+//   background, joined with `; ` when both are present — never `width:`, so
+//   a slip narrower than its cap stays narrow instead of being stretched to
+//   fill it.
+// - `div.slip-row[data-row]` wraps one RUN of consecutive resolved entries
+//   sharing the same `slip-row` tag value (`row-of`, `tags.typ`), so a
+//   stylesheet can lay a run out as a flex row instead of the deck's default
+//   vertical stack. CONSECUTIVE, NOT A GROUP-BY: grouping walks the resolved
+//   order and never reorders it, so two slips both tagged `row: 1` with
+//   something else between them produce TWO separate
+//   `div.slip-row[data-row="1"]` wrappers, not one — ordering is `order:`'s
+//   business, and a renderer that silently coalesced same-numbered rows to
+//   make them contiguous would override a caller's explicit sequence. A
+//   caller wanting one row per index orders so its members sit adjacent. A
+//   run of exactly one slip carrying NO `slip-row` tag (row `none`) gets no
+//   wrapper at all — its `section.slip` sits as a direct child of
+//   `div.slipshow`, exactly as it does with no `row:` in the deck at all,
+//   which is what keeps a deck using no `row:` anywhere byte-identical to
+//   its output before this wrapper existed. A run of one slip that DOES
+//   carry a row value is still wrapped. Two `none`-row slips can never share
+//   a wrapper-free run: an entry with no row is always its own run, even
+//   sitting next to another one.
 // - Exactly one `div.slipshow` is expected per page. Nothing here enforces
 //   that — a page with two decks is an authoring mistake, not a case this
 //   container guards against — and the controller (`src/slipshow.js`) uses
@@ -49,8 +74,9 @@
 // On a paged target the presentation is entirely an HTML concern: `#slipshow`
 // renders the resolved ideas in order with no wrapper element, no page break
 // and no chrome of its own, exactly as if they had been written straight into
-// the document — no background of any kind, image included, is emitted for
-// that target at all.
+// the document — no background, row grouping, or max-width, of any kind, is
+// emitted for that target at all. A row is a screen-layout fact and a PDF
+// has no screen.
 
 #import "@rookery/core:0.1.0": window
 #import "tags.typ": *
@@ -165,6 +191,24 @@
   }
 }
 
+// `slip-max-width` as a CSS declaration, joined into the same inline `style`
+// as `_background-style`. A `length`/`ratio` serializes with `repr()`
+// (`22em`, `45%`); a `str` is the raw-CSS escape hatch (`tags.typ`'s
+// `max-width` docstring) and passes through verbatim. `repr()` already
+// spells a negative number with the ASCII hyphen CSS requires, unlike
+// `str()` — see `_css-num` above — so no extra sanitizing is needed here.
+// `none` when the slip carries no `slip-max-width`.
+#let _max-width-style(tags) = {
+  let mw = max-width-of(tags)
+  if mw == none {
+    none
+  } else if type(mw) == str {
+    "max-width: " + mw
+  } else {
+    "max-width: " + repr(mw)
+  }
+}
+
 // One entry's `<section>` attributes: id, index, class list, and the two
 // optional presentation attributes a slip may override.
 #let _slip-attrs(e, i) = {
@@ -177,9 +221,32 @@
   let attrs = (class: cls.join(" "), id: id, "data-index": str(i))
   let ent = enter-of(e.tags)
   if ent != none { attrs.insert("data-enter", ent) }
-  let style = _background-style(e.tags)
-  if style != none { attrs.insert("style", style) }
+  let decls = (_background-style(e.tags), _max-width-style(e.tags)).filter(d => d != none)
+  if decls.len() > 0 { attrs.insert("style", decls.join("; ")) }
   attrs
+}
+
+// Groups resolved entries into RUNS of consecutive entries sharing the same
+// `slip-row` value (`row-of`), keeping each entry's original index (`i`)
+// alongside it for `_slip-attrs`/`id="slip-<n>"`. `none` never merges with a
+// neighbouring `none`: unlike two equal row numbers, two unrowed slips are
+// not one run of two — see the file header — so an entry whose row is
+// `none` always starts a fresh run of its own.
+#let _row-runs(entries) = {
+  let runs = ()
+  let current = ()
+  let current-row = none
+  for (i, e) in entries.enumerate() {
+    let r = row-of(e.tags)
+    if current.len() == 0 or r == none or r != current-row {
+      if current.len() > 0 { runs.push(current) }
+      current = ()
+    }
+    current.push((i: i, e: e))
+    current-row = r
+  }
+  if current.len() > 0 { runs.push(current) }
+  runs
 }
 
 #let slipshow(
@@ -222,12 +289,23 @@
     "div",
     attrs: (class: "slipshow", "data-enter": enter),
     {
-      for (i, e) in entries.enumerate() {
-        html.elem("section", attrs: _slip-attrs(e, i), {
-          let bg = _background-child(e.tags)
-          if bg != none { bg }
-          _render-slip(e)
-        })
+      let render-section(pair) = html.elem("section", attrs: _slip-attrs(pair.e, pair.i), {
+        let bg = _background-child(pair.e.tags)
+        if bg != none { bg }
+        _render-slip(pair.e)
+      })
+      for run in _row-runs(entries) {
+        let r = row-of(run.first().e.tags)
+        if run.len() == 1 and r == none {
+          // The wrapper-free case (file header): a lone unrowed slip is a
+          // direct child of `div.slipshow`, exactly as every slip was before
+          // `slip-row` existed.
+          render-section(run.first())
+        } else {
+          let attrs = (class: "slip-row")
+          if r != none { attrs.insert("data-row", repr(r)) }
+          html.elem("div", attrs: attrs, { for pair in run { render-section(pair) } })
+        }
       }
     },
   )
