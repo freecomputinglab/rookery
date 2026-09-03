@@ -1,11 +1,12 @@
 // The slipshow controller: finds the deck's slips in the DOM, tracks which
 // one is current, and moves the page there. `src/camera.js` computes WHERE
 // to go from plain numbers; this module measures the DOM, calls it, and
-// applies the result with `window.scrollTo` and a CSS transform for zoom.
-// `src/slipshow.css` owns the deck's layout. All three are pinned to the DOM
-// contract documented at the top of `src/slipshow.typ` — none of the class
-// names, `data-*` attributes or element shapes below can change without
-// changing all three together.
+// applies the result with `window.scrollTo` (or, inside a horizontally
+// overflowing `.slip-row`, that row's own `scrollTo`) and a CSS transform for
+// zoom. `src/slipshow.css` owns the deck's layout. All three are pinned to
+// the DOM contract documented at the top of `src/slipshow.typ` — none of the
+// class names, `data-*` attributes or element shapes below can change
+// without changing all three together.
 //
 // Injected on every page of a rheo project, most of which are not
 // presentations, so absent a `div.slipshow` this file finds nothing and
@@ -29,6 +30,12 @@ const NEXT_KEYS = new Set(["ArrowRight", "ArrowDown", "PageDown", " "]);
 const PREV_KEYS = new Set(["ArrowLeft", "ArrowUp", "PageUp"]);
 
 let deck = null;
+// One flat array in `data-index` order, one current index — a slip's row (if
+// any) is read off `el.closest(".slip-row")` where it matters (`rowEnter`,
+// `apply`) rather than tracked as a second axis of state. Next/previous
+// still mean "the next slip in the deck", whether that slip sits beside the
+// current one or below it, so `Home`, `End`, the hash lookup below and the
+// reduced-motion path all stay one-dimensional with no row/column case.
 let slips = [];
 let currentIndex = 0;
 let currentScale = 1;
@@ -40,11 +47,23 @@ let resizeTimer = null;
 // the current slip rather than stepping past it.
 let started = false;
 
-// A slip's own `data-enter`, else the deck's default, else "scroll" — the
-// same chain `src/slipshow.typ` documents for the attribute's absence
-// meaning "inherit".
+// A slip's own `data-enter`, else "left" for a non-first slip in a row (see
+// `rowEnter`), else the deck's default, else "scroll" — the same chain
+// `src/slipshow.typ` documents for the attribute's absence meaning "inherit",
+// with the row-aware step inserted ahead of the deck default.
 function actionFor(el) {
-  return el.dataset.enter ?? deck.dataset.enter ?? "scroll";
+  return el.dataset.enter ?? rowEnter(el) ?? deck.dataset.enter ?? "scroll";
+}
+
+// A slip inside a `.slip-row` that is not the row's first slip is reached by
+// moving along the row rather than down the page, so it defaults to "left"
+// there instead of falling through to the deck default. The row's first slip
+// is reached by moving down, so it keeps the deck default like a slip
+// outside any row. This is the only place in the package where an action is
+// inferred rather than authored on the slip or configured on the deck.
+function rowEnter(el) {
+  const row = el.closest(".slip-row");
+  return row && row.querySelector(".slip") !== el ? "left" : undefined;
 }
 
 function scrollBehavior() {
@@ -92,7 +111,9 @@ function applyScale(scale, el) {
 // latter, since a resize does not enter a new focus.
 function apply(el, { recordFocus }) {
   const action = actionFor(el);
-  const target = targetFor(action, documentRect(el), currentViewport(), { margin: MARGIN });
+  const rect = documentRect(el);
+  const viewport = currentViewport();
+  const target = targetFor(action, rect, viewport, { margin: MARGIN });
 
   if (recordFocus && action === "focus" && target.scale !== 1) {
     // Saved BEFORE moving: what `unfocus` restores is where the camera was
@@ -101,8 +122,31 @@ function apply(el, { recordFocus }) {
   }
 
   const top = clampTo(target.scrollTop, document.documentElement.scrollHeight, window.innerHeight);
-  const left = clampTo(target.scrollLeft, document.documentElement.scrollWidth, window.innerWidth);
-  window.scrollTo({ top, left, behavior: scrollBehavior() });
+  const behavior = scrollBehavior();
+
+  // Re-checked on every move rather than cached: a row's scrollability
+  // depends on the viewport width (a row that fits at desktop width
+  // overflows on a phone), and `.slip-row` scrolls itself sideways on
+  // overflow (`overflow-x: auto`, `src/slipshow.css`) instead of growing the
+  // page, so `window.scrollTo` cannot reach a slip buried in an overflowing
+  // row at all — the row has to be scrolled directly. The row-local target
+  // reuses `targetFor` with the slip's offset WITHIN the row standing in for
+  // its document `left`, and the row's own width standing in for the
+  // viewport, so the same per-action formula that positions the slip on the
+  // page (left/right/center-x) also positions it inside the row.
+  const row = el.closest(".slip-row");
+  if (row && row.scrollWidth > row.clientWidth) {
+    const rowRect = { top: rect.top, height: rect.height, left: el.offsetLeft - row.offsetLeft, width: rect.width };
+    const rowViewport = { height: viewport.height, width: row.clientWidth, scrollLeft: row.scrollLeft, scrollTop: viewport.scrollTop };
+    const rowTarget = targetFor(action, rowRect, rowViewport, { margin: MARGIN });
+    const left = clampTo(rowTarget.scrollLeft, row.scrollWidth, row.clientWidth);
+    row.scrollTo({ left, behavior });
+    window.scrollTo({ top, behavior });
+  } else {
+    const left = clampTo(target.scrollLeft, document.documentElement.scrollWidth, window.innerWidth);
+    window.scrollTo({ top, left, behavior });
+  }
+
   applyScale(target.scale, el);
 
   // `replaceState`, not a `location.hash` assignment: the latter pushes a
