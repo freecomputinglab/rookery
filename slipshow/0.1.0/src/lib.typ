@@ -6,4 +6,5 @@
 // order — a later bead fills in the list.
 #import "tags.typ": *
 #import "marker.typ": *
+#import "select.typ": *
 #import "slip.typ": *

@@ -43,9 +43,11 @@
   assert("slip" in intro.tags-dict)
   assert("slip-fullscreen" in intro.tags-dict)
 
-  // Four slips registered: three named by nothing but their auto id or an
-  // explicit name, plus `meta-check` below — the positional sink is forwarded.
-  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 4)
+  // Four slips registered here: three named by nothing but their auto id or
+  // an explicit name, plus `meta-check` below — the positional sink is
+  // forwarded. Four more join them further down, for `resolve-slips`'s own
+  // tests, bringing the total to eight.
+  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 8)
 
   // THE REGRESSION THE `.with()` TRAP WOULD CAUSE: a caller's own `tags:`
   // must MERGE with the `slip` tag, not replace it. If `slip` were missing
@@ -89,4 +91,41 @@
 #context {
   let rec = ideas(values: true).find(r => r.name == "meta-check")
   assert.eq(slip-tags-of(meta-check), rec.tags-dict)
+}
+
+// `resolve-slips` — the `slips:` route: an explicit array, returned in that
+// exact order, with no registry read at all.
+#let sel-a = slip("sel-a")[A]
+#let sel-b = slip("sel-b")[B]
+#let sel-content = resolve-slips(slips: (sel-a, sel-b))
+#assert.eq(sel-content.len(), 2)
+#assert.eq(sel-content.at(0), (kind: "content", content: sel-a, tags: slip-tags-of(sel-a)))
+#assert.eq(sel-content.at(1), (kind: "content", content: sel-b, tags: slip-tags-of(sel-b)))
+
+// The `tags:` route, registered for real so `ideas()` can see them: a lower
+// `slip-order` sorts first regardless of id order.
+#slip("sel-ord-second", order: 2)[Second]
+#slip("sel-ord-first", order: 1)[First]
+
+#context {
+  let names = resolve-slips(tags: "slip").map(e => e.row.name)
+  assert(
+    names.position(n => n == "sel-ord-first") < names.position(n => n == "sel-ord-second"),
+  )
+}
+
+// The predicate route: a plain function over a tag dictionary, proving the
+// filter works with no `@rookery/search` import anywhere in this package.
+#context {
+  let names = resolve-slips(tags: t => "slip-fullscreen" in t).map(e => e.row.name)
+  assert.eq(names, ("meta-check", "intro"))
+}
+
+// `order: "created"`: a note with no `created:` sorts after one that has one.
+#slip("sel-dated", created: datetime(year: 2020, month: 1, day: 1))[Dated]
+#slip("sel-undated")[Undated]
+
+#context {
+  let names = resolve-slips(tags: "slip", order: "created").map(e => e.row.name)
+  assert(names.position(n => n == "sel-dated") < names.position(n => n == "sel-undated"))
 }

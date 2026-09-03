@@ -12,3 +12,6 @@ expect_panic() {   # $1 = file, $2 = substring the message must contain
 }
 
 expect_panic test/panic-enter.typ "scroll"
+expect_panic test/panic-neither.typ "exactly one of \`slips\` or \`tags\`"
+expect_panic test/panic-both.typ "exactly one of \`slips\` or \`tags\`"
+expect_panic test/panic-order.typ "conflict"
