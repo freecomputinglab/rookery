@@ -1,0 +1,449 @@
+# @rookery/slipshow
+
+An endlessly scrolling presentation over `@rookery/core` ideas, in the spirit
+of [slipshow](https://github.com/panglesd/slipshow). Each slip is a note:
+`#slip` is an `#idea` variant, so a slide is rendered with core's own card
+styling — the left rule and the tab that carries its permalink — and is
+searchable, windowable and linkable exactly like any other idea in the
+rookery. This package implements the slip MODEL — one continuously scrolling
+document with a camera that moves between fully-rendered slides — with its
+own camera engine, written from scratch. **It does not embed slipshow's own
+JavaScript**, which has no maintained distribution meant to be dropped into
+someone else's page.
+
+**Camera-only, and that is worth saying plainly to a reader who knows
+slipshow already.** A slip is fully rendered the moment it enters the DOM;
+only the viewport moves to it. There is no `pause`, no `reveal`, no
+incremental build of a slip's own content, and no step directives of any
+kind — the camera is the only motion this package has.
+
+**A slipshow is a FLAT ordered list of ideas.** An idea written literally
+inside another's body — a nested `#idea`/`#slip` — is ordinary content: it
+renders as part of the slip that contains it, never as a slip of its own.
+`#slipshow` does not look inside a slip to find more slides.
+
+```typst
+#import "@rookery/core:0.1.0": rookery
+#import "@rookery/slipshow:0.1.0": slip, slipshow
+#show: rookery
+
+#slipshow(slips: (
+  slip("intro", title: [Welcome], fullscreen: true)[The opening slip.],
+  slip("closing")[The last one.],
+))
+```
+
+## Import both packages, in your own files
+
+**A project using slipshow must import `@rookery/core` AND
+`@rookery/slipshow` in its own `.typ` files.** This is the same requirement
+`@rookery/search`'s readme states about itself, and for the identical reason:
+rheo's package asset auto-detection only scans a project's own files for
+package imports, not the packages those files' packages import in turn.
+Importing only `@rookery/slipshow` and reaching core through it does not
+register core with the build.
+
+The cost is not cosmetic here, either. Without a direct import of core,
+core's own `.marrow.typ` never runs and its stylesheet (`src/core.css`) is
+never injected — and that stylesheet is what draws the card identity this
+package's whole pitch rests on: the left rule, the tab, the permalink. A
+slipshow built this way still scrolls and still camera-moves correctly (that
+part is this package's own manifest, injected off the direct
+`@rookery/slipshow` import), but every slip renders as unstyled text with no
+border and no tab.
+
+In practice this is free — a project with `#slip`/`#idea` calls in it already
+imports core to write them. It is stated here because the failure is silent:
+the build succeeds either way.
+
+## `#slip` — a slide is a note
+
+```typst
+#slip(
+  fullscreen: false,
+  background: none,
+  enter: none,
+  order: none,
+  class: none,
+  row: none,
+  max-width: none,
+  tags: none,
+  exclude-tags: (),
+  ..args,
+)
+```
+
+`#slip` is `#idea` plus a handful of presentation options, folded into the
+note's own tag dictionary (`src/tags.typ`'s `slip-tags`) — the only field on
+a rookery record extensible enough to carry them through to a tag-queried
+deck, which never sees the call site itself, only the registry row.
+
+| option | type | default | what it does |
+| --- | --- | --- | --- |
+| `fullscreen` | `bool` | `false` | tags the note `slip-fullscreen`; the stylesheet stretches the slip to at least the viewport height and centers its content in it |
+| `background` | `color`, `gradient`, or `image(..)` content | `none` | this slip's own background — see "Backgrounds" below |
+| `enter` | one of the eight camera actions (see "Keyboard and mouse controls") | `none` (deck default) | overrides `#slipshow`'s deck-wide `enter:` for this one slip |
+| `order` | `int` | `none` | this slip's `slip-order` — the default sort key for a tag-queried deck |
+| `class` | `str` | `none` | appended to the rendered `<section>`'s class list |
+| `row` | `int` | `none` | groups CONSECUTIVE slips sharing the same value into one `div.slip-row[data-row=..]` wrapper |
+| `max-width` | `length`, `ratio`, or a raw-CSS `str` | `none` | a `max-width` declaration on the slip's own `<section>` — never `width`, so a narrower slip stays narrow rather than being stretched to fill the cap |
+| `tags` | any of core's four tag forms | `none` | the caller's own tags, merged in LAST — a caller naming one of `#slip`'s own keys wins outright |
+| `exclude-tags` | array of tag names | `()` | forwarded through to the underlying `#idea` — see below |
+| `..args` | — | — | every other `#idea` argument (`title`, `level`, `created`, `show-date`, `show-tags`, …), forwarded untouched |
+
+`fullscreen`, `enter`, `order`, `class` and `row` are each type-checked at the
+`#slip()` call site and panic naming the bad value. `background` is the one
+exception: it is left untouched here — `#slip`/`slip-tags` have no business
+interpreting a colour, a gradient or an image — and is checked instead where
+it is actually rendered, inside `#slipshow`. A `#slip` call with a bad
+background type therefore builds without complaint; the panic fires when the
+deck renders that slip.
+
+All three of `#idea`'s id forms work identically on `#slip`: a bare body with
+an auto-generated id (`#slip[..]`), a string name (`#slip("intro")[..]`), or
+a label (`#slip(<intro>)[..]`).
+
+**A plain `#idea` is usable in a slipshow too**, and simply takes the deck's
+defaults: no fullscreen, no background, the deck's own `enter:`, and it sorts
+last under the default `slip-order` since it carries no `slip-order` tag at
+all. `#slip` exists only for a note that wants presentation options of its
+own — see `demo/rheo/content/index.typ`'s `plain-note` for a worked example
+of a bare `#idea` tagged `slip` by hand and rendered inside a deck alongside
+notes built with `#slip`.
+
+### `exclude-tags` — pass the same list to `#slip` as to `#idea`
+
+A project excluding tags from a build (`@rookery/core`'s readme, "Excluding
+notes from a build") has to bind BOTH constructors to the same
+`exclude-tags:` list, for the reason core's own `tagged-idea` banner gives:
+`tagged-idea` (which `#slip` is built on) returns a closure that calls the
+`idea` captured in package scope, so binding a project's own `idea` alone
+does not reach a wrapper built with `tagged-idea` — a project's `#slip` would
+go on hatching notes the project meant to exclude. `#slip` takes
+`exclude-tags:` for exactly this reason, and needs the same list `idea`
+itself gets:
+
+```typst
+#import "@rookery/core:0.1.0": idea as _idea
+#import "@rookery/slipshow:0.1.0": slip as _slip
+
+#let EX = ("protected",)
+#let idea = _idea.with(exclude-tags: EX)
+#let slip = _slip.with(exclude-tags: EX)
+```
+
+## `#slipshow` — the deck container
+
+```typst
+#slipshow(
+  slips: none,
+  tags: none,
+  where: none,
+  match: "any",
+  order: "slip-order",
+  reverse: false,
+  enter: "scroll",
+)
+```
+
+`#slipshow` resolves its slip list from exactly ONE of two routes and renders
+the result. Giving neither route, or both, panics naming which:
+
+- **`slips:`** — an explicit, already-ordered array.
+- **`tags:` and/or `where:`** — a query over the registry, sorted by `order:`.
+
+`enter:` is the deck-wide default camera action, one of the eight named in
+"Keyboard and mouse controls" below (`"scroll"` by default); a bad value
+panics naming the valid set.
+
+### The explicit array: `slips:`
+
+An array whose elements may be already-rendered content, note NAMES (a
+string or a label), or a mix of both:
+
+```typst
+#slipshow(slips: (
+  slip("intro", title: [Written in the order it runs], fullscreen: true)[
+    An explicit array is already ordered by construction.
+  ],
+  "a-note-authored-elsewhere",   // resolved against the registry by name
+  slip("centered", enter: "center")[Overrides the deck default for one slip.],
+))
+```
+
+A `str`/label element is looked up against the registry; a name matching
+nothing PANICS rather than being silently skipped, because a named slip is an
+assertion about what the presentation contains — a dropped slide should stop
+the build, not slip through it. Anything else in the array is read as
+content directly, exactly as it always has been.
+
+**`order:` and `reverse:` are refused if given a non-default value alongside
+`slips:`** — an explicit array is already in the order it was written, so
+there is nothing left for either to do. Drop them, or switch to `tags:`/
+`where:` if the deck should be reordered.
+
+**Passing `window(name)` inside a `slips:` array silently drops every
+`#slip` option.** This is worth stating outright because nothing about it
+errors: `#window` wraps its whole body in a `context { .. }` block, and a
+Typst context block's content is opaque until it is evaluated — the code
+that reads a slip's options back out of rendered content finds nothing
+inside the unevaluated context and falls back to no options at all. The deck
+still compiles and renders; `fullscreen`, `background`, `enter` and every
+other `#slip` key are just gone. Pass the bare NAME instead
+(`#slipshow(slips: (n1, n2))`, not `#slipshow(slips: (window(n1),
+window(n2)))`) — a name defers rendering, and therefore defers context
+evaluation, to the point where `#slipshow` reads the note's options straight
+off its registry row rather than sniffing them out of content.
+
+### Querying the registry: `tags:`, `where:`, `match:`
+
+```typst
+// a plain tag, or an array with `match:`
+#slipshow(tags: "slip")
+#slipshow(tags: ("slip", "demo"), match: "all")
+
+// a predicate over the tag dictionary
+#slipshow(tags: t => "slip" in t and "slip-fullscreen" in t)
+
+// a predicate over the WHOLE row — fields `tags:` cannot see
+#slipshow(where: r => r.page == "methods")
+
+// both compose: `tags:` narrows first, `where:` narrows the survivors
+#slipshow(tags: "slip", where: r => r.created != none)
+```
+
+`tags:` is `none`, a plain tag name or array (forwarded straight to core's
+`#ideas(tags:, match:)`, along with `match:`, `"any"` by default), OR a
+**predicate function** taking a note's tag dictionary and returning a bool —
+see "The `a&b` query language" below for what that predicate route is for.
+`match:` is ignored when `tags:` is a function: a predicate walks
+`ideas(values: true)` itself and has no use for it.
+
+`where:` is a predicate over the WHOLE registry row — `id`, `name`, `title`,
+`text`, `label`, `tags` (the flat name array), `tags-dict` (the full
+dictionary), `body`, `href`, `page`, `created` — for a selection `tags:`
+cannot express at all: by date, by page, by title text, by body content.
+`tags:` and `where:` may be given together; `tags:` runs first as core's own
+cheap filter, and `where:` narrows whatever survives it.
+
+### `order:` — four forms, all sorted through the same tie-break
+
+- an **array of note names/ids** — position in that array is the sort key; a
+  row named nowhere in it sorts last, in id order;
+- **`"created"`** — ascending by the row's own `created` date;
+- **`"slip-order"`** (the default) — ascending by the note's own `slip-order`
+  tag (set through `#slip(order: n)`);
+- a **key function** — `row => <comparable>`, called once per row over the
+  WHOLE row (the same shape `where:` sees), returning an `int`, `float`,
+  `str` or `datetime`. Every row's key must be the same type — Typst cannot
+  compare values of different types — and `row.title` (content) is rejected
+  with a hint to use `row.label` or `row.text` instead.
+
+Every form treats "no key" the same way — an unmatched array position, no
+`created`, no `slip-order` tag, a key function returning `none` — as LAST, in
+id order, whatever `reverse:` says: `reverse: true` reverses only the KEYED
+rows, so an undated note in a reverse-chronological deck stays the note with
+no date rather than jumping to the front. `reverse:` is a `bool`, `false` by
+default.
+
+## The `a&b` query language
+
+`tags:` accepting a predicate function is the extension point for a full
+boolean grammar over tags, with no dependency on `@rookery/search` at all —
+the grammar lives there, this package only needs the function shape:
+
+```typst
+#import "@rookery/search:0.1.0": parse-tag-query, eval-tag-query
+#slipshow(tags: t => eval-tag-query(parse-tag-query("a&b").rpn, t))
+```
+
+`@rookery/slipshow` does not import `@rookery/search`, and does not need to.
+Without it installed, a project still has explicit orderings (`slips:` with
+an array, or `order:`'s array/function forms) and core's own `tags:`/
+`match: "any"|"all"` — a predicate is one more way in, not the only one.
+
+## The tag surface
+
+Every `#slip` option lives in the note's own tag dictionary
+(`src/tags.typ`), which is what makes it filterable and stylable with no
+special-casing beyond tags a project already knows how to work with.
+
+**Flat keys** — present or absent, value `none`, render as a pill wherever
+`show-tags: true` is set, and each emits an `.idea-tag-<key>` CSS class:
+
+| key | set by |
+| --- | --- |
+| `slip` | every `#slip` call, and `#idea(tags: ("slip": none))` by hand — the key a deck's `tags:`/`where:` query filters on |
+| `slip-fullscreen` | `#slip(fullscreen: true)` |
+| `slip-enter-<action>` | `#slip(enter: <action>)`, one of the eight camera actions |
+
+**Valued keys** — present-filterable by key, but carry no pill (a valued tag
+never gets one, the same rule core states for a tag like `depends-on`):
+
+| key | set by |
+| --- | --- |
+| `slip-background` | `#slip(background: ..)` |
+| `slip-order` | `#slip(order: ..)` |
+| `slip-class` | `#slip(class: ..)` |
+| `slip-row` | `#slip(row: ..)` |
+| `slip-max-width` | `#slip(max-width: ..)` |
+
+Flat keys are filterable by core's own `#ideas(tags:)`/`#window(tags:)` and
+by `@rookery/search`'s `tags:draft`-style query language exactly like any
+other tag — `tags:slip-fullscreen` finds every fullscreen slip in a rookery
+without this package's help. A project reading these off a tag dictionary
+directly (say, walking `ideas(values: true)` itself to style or list slips)
+can use this package's own accessors rather than re-deriving the key names:
+`is-slip(tags)`, `is-fullscreen(tags)`, `enter-of(tags)`, `background-of(tags)`,
+`order-of(tags)`, `class-of(tags)`, `row-of(tags)`, `max-width-of(tags)` —
+each takes the tag DICTIONARY (`row.tags-dict`), not a note name, the same
+convention `src/tags.typ` uses throughout.
+
+## Keyboard and mouse controls
+
+Reachable from the keyboard and from a click, both bound in
+`src/slipshow.js`:
+
+| input | what it does |
+| --- | --- |
+| `→` / `↓` / `Page Down` / `Space` | advance to the next slip |
+| `←` / `↑` / `Page Up` | go back to the previous slip |
+| `Home` | jump to the first slip |
+| `End` | jump to the last slip |
+| `Esc` | **unfocus** — return the camera to wherever it was before the last `focus` action moved it (a stack, so repeated focuses undo in the reverse order); a no-op if nothing was ever focused |
+| click anywhere inside the deck | advance to the next slip |
+
+Keyboard shortcuts are ignored outright while a modifier (`Ctrl`/`Alt`/
+`Meta`/`Shift`) is held, and while focus sits in an `<input>`, a `<textarea>`
+or any `contenteditable` element — a reader typing into a form on a slip
+keeps their keystrokes.
+
+Two behaviours are worth calling out because they are easy to assume
+otherwise:
+
+- **A click on a link, a `summary`, or a form control does not advance the
+  deck.** The click-ignore list is `a, summary, button, input, select,
+  textarea, label` — real navigation, a queried note's own `#window`
+  disclosure toggle, and ordinary form controls all reach their own handler
+  first, and only a click landing outside all of them advances the camera.
+- **The camera does not move at all on page load unless the URL carries a
+  `#slip-<id>` fragment matching one of the deck's own slip ids.** A page
+  carrying a slipshow usually has its own heading and prose above the deck,
+  and scrolling that out of view before the reader has pressed anything
+  would be the deck taking over a page it only occupies part of. When a
+  matching fragment IS present, the camera runs on load and jumps straight
+  there. Either way, the very first press or click lands the camera on
+  whichever slip is already current (the first slip, or the one the
+  fragment named) rather than skipping past it to the next one.
+
+There is no mouse binding beyond click-to-advance — no click-to-go-back, no
+scroll-wheel binding, no drag. Ordinary scrolling (wheel, trackpad, the
+scrollbar) still works exactly as it does on any page; it simply isn't a
+navigation gesture this package assigns a meaning to.
+
+The camera respects `prefers-reduced-motion: reduce` — a scroll or a
+focus-zoom jumps instead of animating — and every move is clamped to what
+the document can actually show, so a slip near either end of the page never
+computes a target the browser would have to clamp silently on its own.
+
+## Backgrounds
+
+`#slip(background: ..)` takes a Typst VALUE, never a path string:
+
+```typst
+#slip(background: rgb("#eef4ea"))[A solid colour.]
+#slip(background: gradient.linear(blue, purple))[A gradient.]
+#slip(background: image("cover.png"))[An image.]
+```
+
+- A **`color`** becomes an inline `background: <hex>` declaration on the
+  slip's own `<section>`.
+- A **`gradient`** becomes an inline `background: <css-gradient-function>`
+  declaration, translated stop-for-stop and angle-for-angle from Typst's own
+  gradient math — linear, radial and conic all work, and a gradient's colour
+  SPACE carries across too (`oklab`, `oklch`, Typst's `rgb` as CSS `srgb`,
+  and `hsl` all have a direct CSS equivalent and are named explicitly;
+  anything else falls back to plain sRGB interpolation rather than being
+  resampled to fake it).
+- **`image(..)` content** becomes a `div.slip-bg` layer — the section's own
+  first child — wrapping whatever `<img>` Typst's HTML export produces for
+  that image, rather than a CSS declaration at all.
+
+Anything else panics, naming the value it was given; a bare string gets a
+hint pointing at the fix (`background: image("cover.png")`, not
+`background: "cover.png"`).
+
+**Why an image is a layer, and not a CSS `background-image` with a `url(..)`
+pointing at it.** An inline `style` attribute has nowhere to put a project
+image path it could resolve correctly at build time: rheo copies no project
+images into the build unless a `copy` glob names them, rewrites no `url(..)`
+inside a stylesheet, and the page a slip's inline style sits on can be at any
+depth in a site, so one relative URL written once in Typst has no single
+correct value across every page it might end up on. Typst's own HTML export
+already sidesteps all three problems for `#image` — it inlines the image as
+a self-contained base64 `data:` URI with no path at all — so `#slip`'s job
+is only to keep that already-resolved `<img>` where a browser will paint it
+behind the slip's own content, which is what `div.slip-bg` is for.
+**A project needs no `copy` glob for a slip background** — the image is
+never a separate file in the build output at all, it is bytes inside the
+page.
+
+## Customising the CSS
+
+The package stylesheet loads automatically once a project imports
+`@rookery/slipshow` directly (`[tool.rheo.html] css_stylesheet =
+"src/slipshow.css"` in the manifest — see "Import both packages" above for
+why the direct import matters). A project layers its own rules on top the
+ordinary rheo way, in its own `rheo.toml`:
+
+```toml
+[[html.assets]]
+css_stylesheet = "style.css"
+```
+
+— see [rheo's own docs](https://rheo.ohrg.org) for the asset-config
+mechanism itself; a package's `css_stylesheet` is additive, so this is one
+more stylesheet linked alongside it rather than something to replace.
+
+The slip DOM contract — `div.slipshow`, `section.slip`, `div.slip-row
+[data-row]`, `div.slip-bg`, and the `data-enter`/`data-index`/`data-row`
+attributes carried on them — is documented in full at the top of
+`src/slipshow.typ`; that comment is the one place the exact markup is
+pinned, and `src/slipshow.css`/`src/slipshow.js` are both written against
+it.
+
+`src/slipshow.css` reaches a slip's own content — a `#slip`/`#idea` card, or
+a transcluded `#window` — only through core's `[data-rookery="box"]`/
+`[data-rookery="window"]` role attributes, never through the
+`.idea-box`/`.idea-window` classes: the classes are core's renameable public
+hook, the attributes are its stable one. A project's own stylesheet reaching
+into a core element from outside either package should do the same —
+select on `[data-rookery="..."]`, not `.idea-*`. Core's own `--idea-*`
+custom properties (documented in `@rookery/core`'s readme, "The theme") are
+still the tokens to reuse for anything that IS a card's chrome — a slip's
+border, its tab, its label size — where this package's own deck-level rules
+(the rhythm between slips, fullscreen height, background sizing) are new
+dimensions of the deck itself and deliberately do not borrow from them.
+
+## This is a built package
+
+`@rookery/slipshow` resolves through `dist/lib.js` for its JavaScript: an
+edit to `src/camera.js` or `src/slipshow.js` does nothing until `just build`
+runs, the same fact `@rookery/search`'s own readme states about itself. The
+Typst entrypoint and the stylesheet are the opposite — `src/lib.typ` and
+`src/slipshow.css` are read straight out of `src/`, so an edit to `#slip`,
+`#slipshow` or the CSS takes effect immediately, with nothing to rebuild.
+
+## Examples and demo
+
+`examples/` holds a set of complete, runnable rheo projects, one per
+capability — see `examples/readme.md` for the exact shape of each and `just
+examples` to build all of them at once; every one is self-contained and can
+be copied out of this repo and run unchanged.
+
+`demo/rheo/` is this package's own CI fixture: a small rookery exercising
+both definition routes side by side — `index.typ` builds its deck from a tag
+query, `explicit.typ` from an explicit array, `predicate.typ` from a `tags:`
+predicate function — plus the paged-target fallback. `deck.typ` there is the
+realistic dozen-slip presentation this package is built for, worth reading
+end to end for how `#slip`'s options come together on real content.
