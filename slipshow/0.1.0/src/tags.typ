@@ -16,19 +16,27 @@
 // The base key every slip carries.
 #let SLIP-KEY = "slip"
 
-// The camera action set, verbatim: the same five names `src/camera.js`'s
-// `targetFor` accepts. One vocabulary spans this file, the `data-enter`
-// attribute and the engine, which is why the controller can pass the
-// attribute straight through with no translation table. There is no
-// `transition:`/`duration:` in this package — the camera is the only motion.
-#let ENTERS = ("scroll", "up", "down", "center", "focus")
+// The camera action set, verbatim: every name `src/camera.js`'s `targetFor`
+// accepts. One vocabulary spans this file, the `data-enter` attribute and the
+// engine, which is why the controller can pass the attribute straight
+// through with no translation table. The last three move the camera
+// horizontally rather than vertically; `targetFor` also brings a horizontal
+// action's row vertically into view, which is its behaviour to decide, not
+// this file's. There is no `transition:`/`duration:` in this package — the
+// camera is the only motion.
+#let ENTERS = (
+  "scroll", "up", "down", "center", "focus",
+  "left", "right", "center-x",
+)
 
 // The valued keys. Namespaced with a `slip-` prefix per rookery's convention:
-// a key becomes a CSS class fragment, and a bare `background` is generic
-// enough that two packages could both claim it.
+// a key becomes a CSS class fragment, and a bare `background` (or `width`) is
+// generic enough that two packages could both claim it.
 #let BACKGROUND-KEY = "slip-background"
 #let ORDER-KEY = "slip-order"
 #let CLASS-KEY = "slip-class"
+#let ROW-KEY = "slip-row"
+#let MAX-WIDTH-KEY = "slip-max-width"
 
 // A local copy of rookery's four-form tag normalizer, so this module stays a
 // pure function of its arguments. Deliberately NOT an import of core's
@@ -67,6 +75,8 @@
   enter: none,
   order: none,
   class: none,
+  row: none,
+  max-width: none,
 ) = {
   let out = ((SLIP-KEY): none)
 
@@ -105,6 +115,26 @@
     out.insert(CLASS-KEY, class)
   }
 
+  if row != none {
+    assert(
+      type(row) == int,
+      message: "@rookery/slipshow: `row` must be an integer — got " + repr(row),
+    )
+    out.insert(ROW-KEY, row)
+  }
+
+  // Untouched, like `background`: `src/slipshow.typ` turns this into a CSS
+  // declaration, and this file has no business interpreting a length, ratio,
+  // or the raw-CSS `str` escape hatch.
+  if max-width != none {
+    assert(
+      type(max-width) in (length, ratio, str),
+      message: "@rookery/slipshow: `max-width` must be a length, ratio, or string — got "
+        + repr(max-width),
+    )
+    out.insert(MAX-WIDTH-KEY, max-width)
+  }
+
   out + _norm-tags-local(tags)
 }
 
@@ -125,3 +155,5 @@
 #let background-of(tags) = tags.at(BACKGROUND-KEY, default: none)
 #let order-of(tags) = tags.at(ORDER-KEY, default: none)
 #let class-of(tags) = tags.at(CLASS-KEY, default: none)
+#let row-of(tags) = tags.at(ROW-KEY, default: none)
+#let max-width-of(tags) = tags.at(MAX-WIDTH-KEY, default: none)

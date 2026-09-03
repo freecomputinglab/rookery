@@ -8,12 +8,9 @@
 // saved-position stack for `unfocus`).
 
 // The eight action names. `ENTERS` in `src/tags.typ` is the Typst half of the
-// same vocabulary and holds the five vertical ones (`scroll`, `up`, `down`,
-// `center`, `focus`), which is what lets a `data-enter` attribute reach
-// `targetFor` unchanged, with no translation table between an authored tag
-// and this switch. The three horizontal names below (`left`, `right`,
-// `center-x`) are reachable from the controller but not yet authorable as an
-// `enter:` tag.
+// same vocabulary and holds the same eight, which is what lets a `data-enter`
+// attribute reach `targetFor` unchanged, with no translation table between an
+// authored tag and this switch. The two halves cannot be changed apart.
 const ACTIONS = ["scroll", "up", "down", "center", "left", "right", "center-x", "focus"];
 
 // `rect` is the element's position in DOCUMENT coordinates —

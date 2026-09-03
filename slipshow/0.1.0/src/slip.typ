@@ -24,6 +24,8 @@
   enter: none,
   order: none,
   class: none,
+  row: none,
+  max-width: none,
   tags: none,
   exclude-tags: (),
   ..args,
@@ -35,6 +37,8 @@
     enter: enter,
     order: order,
     class: class,
+    row: row,
+    max-width: max-width,
   ),
   ..args,
 )

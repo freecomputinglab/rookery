@@ -16,15 +16,24 @@
 #assert.eq(with-both.at("slip-enter-center"), none)
 
 // VALUED keys carry the value untouched — this file has no business
-// interpreting a colour, gradient, or image.
+// interpreting a colour, gradient, or image. `max-width` is untouched the
+// same way: a ratio arrives as a ratio, not converted to any other unit.
 #assert.eq(slip-tags(background: red).at("slip-background"), red)
+#let with-row-and-width = slip-tags(row: 2, max-width: 45%)
+#assert.eq(with-row-and-width.at("slip-row"), 2)
+#assert.eq(with-row-and-width.at("slip-max-width"), 45%)
 
 // The caller's own `tags:` win outright on a collision.
 #assert.eq(slip-tags(tags: (slip: "mine")).at("slip"), "mine")
 
 // `enter-of` decodes from the key rather than storing the name a second time.
 #assert.eq(enter-of(slip-tags(enter: "focus")), "focus")
+#assert.eq(enter-of(slip-tags(enter: "right")), "right")
 #assert.eq(enter-of((:)), none)
+
+// Row zero is a real row: `row-of` must return it, not treat it as absent
+// the way a truthiness test on `0` would.
+#assert.eq(row-of(slip-tags(row: 0)), 0)
 
 // Reading a registered note's tags back needs the registry, hence the
 // `#context` below; `ideas(values: true)` is what hands back a `tags-dict`
@@ -32,6 +41,7 @@
 #slip("intro", fullscreen: true)[Body]
 #slip[Body]
 #slip("x", tags: ("draft",))[Body]
+#slip("a2", row: 1, max-width: 30em)[Body]
 #idea("plain")[Body]
 
 #context {
@@ -43,11 +53,17 @@
   assert("slip" in intro.tags-dict)
   assert("slip-fullscreen" in intro.tags-dict)
 
-  // Four slips registered here: three named by nothing but their auto id or
+  // `row`/`max-width` survive the registry round trip, which is the whole
+  // reason they are tags rather than ordinary `#slip` arguments.
+  let a2 = by-name("a2")
+  assert("slip-row" in a2.tags-dict)
+  assert("slip-max-width" in a2.tags-dict)
+
+  // Five slips registered here: four named by nothing but their auto id or
   // an explicit name, plus `meta-check` below — the positional sink is
   // forwarded. Four more join them further down, for `resolve-slips`'s own
-  // tests, bringing the total to eight.
-  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 8)
+  // tests, bringing the total to nine.
+  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 9)
 
   // THE REGRESSION THE `.with()` TRAP WOULD CAUSE: a caller's own `tags:`
   // must MERGE with the `slip` tag, not replace it. If `slip` were missing
