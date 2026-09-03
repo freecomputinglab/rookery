@@ -85,7 +85,7 @@ deck, which never sees the call site itself, only the registry row.
 | `enter` | one of the eight camera actions (see "Keyboard and mouse controls") | `none` (deck default) | overrides `#slipshow`'s deck-wide `enter:` for this one slip |
 | `order` | `int` | `none` | this slip's `slip-order` — the default sort key for a tag-queried deck |
 | `class` | `str` | `none` | appended to the rendered `<section>`'s class list |
-| `row` | `int` | `none` | groups CONSECUTIVE slips sharing the same value into one `div.slip-row[data-row=..]` wrapper |
+| `row` | `int` | `none` | groups CONSECUTIVE slips sharing the same value into one `div.slip-row[data-row=..]` wrapper — overridden per-deck by `#slipshow`'s own `row:` key function, below, for a row that is computed rather than authored |
 | `max-width` | `length`, `ratio`, or a raw-CSS `str` | `none` | a `max-width` declaration on the slip's own `<section>` — never `width`, so a narrower slip stays narrow rather than being stretched to fill the cap |
 | `tags` | any of core's four tag forms | `none` | the caller's own tags, merged in LAST — a caller naming one of `#slip`'s own keys wins outright |
 | `exclude-tags` | array of tag names | `()` | forwarded through to the underlying `#idea` — see below |
@@ -142,6 +142,7 @@ itself gets:
   match: "any",
   order: "slip-order",
   reverse: false,
+  row: none,
   enter: "scroll",
 )
 ```
@@ -245,6 +246,31 @@ id order, whatever `reverse:` says: `reverse: true` reverses only the KEYED
 rows, so an undated note in a reverse-chronological deck stays the note with
 no date rather than jumping to the front. `reverse:` is a `bool`, `false` by
 default.
+
+### `row:` — a key function for a COMPUTED row
+
+```typst
+#context {
+  let layer = layer-of(todo-graph())   // @rookery/todos
+  slipshow(tags: "todo", row: r => layer.at(r.name, default: none), order: ..)
+}
+```
+
+Same shape as `order:`'s key-function form — a function called once per row,
+over the WHOLE row — but for GROUPING instead of sorting: its return value
+overrides that note's own `slip-row` tag for the purpose of `div.slip-row`
+wrapping, without touching the note's tags or the deck's order at all.
+`none`, or `row:` left at its default, falls back to the note's own
+`slip-row` tag (set through `#slip(row: n)`); anything but an `int` or `none`
+panics naming `row`.
+
+This is the extension point for a deck whose rows are DERIVED rather than
+authored — a dependency-graph layer, a date bucket, any group-by over a
+field `#slip`'s own `row:` argument cannot see, because that argument only
+ever runs at the call site, never over a note queried back out of the
+registry. `row:` composes with either route (`slips:` as well as `tags:`/
+`where:`): it groups whatever the route resolved, it does not reorder it, so
+a caller still sorts (`order:`) so a row's members sit adjacent.
 
 ## The `a&b` query language
 

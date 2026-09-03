@@ -63,9 +63,9 @@
   // an explicit name, plus `meta-check` below — the positional sink is
   // forwarded. Four more join them further down, for `resolve-slips`'s own
   // tests, plus four for `order:`'s key-function/`reverse:` tests further
-  // down still, plus two for the `slips:` NAME route's own tests, bringing
-  // the total to fifteen.
-  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 15)
+  // down still, plus two for the `slips:` NAME route's own tests, plus five
+  // for `row:`'s own tests, bringing the total to twenty.
+  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 20)
 
   // THE REGRESSION THE `.with()` TRAP WOULD CAUSE: a caller's own `tags:`
   // must MERGE with the `slip` tag, not replace it. If `slip` were missing
@@ -252,3 +252,50 @@
   assert.eq(mixed.map(e => e.kind), ("content", "row"))
   assert.eq(mixed.at(1).row.name, "slot-a")
 }
+
+// `row:` — a key function over the whole row, grouping a query deck the way
+// `examples/dag` groups a `@rookery/todos` DAG layer onto notes that carry
+// no `slip-row` tag of their own. `rk-a`/`rk-b` share a computed row, `rk-c`
+// sits in the next one, so `_row-runs` (`slipshow.typ`) produces two runs.
+#slip("rk-a")[A]
+#slip("rk-b")[B]
+#slip("rk-c")[C]
+
+#let rk-layer = (rk-a: 0, rk-b: 0, rk-c: 1)
+#let rk-cohort = r => r.name.starts-with("rk-") and not r.name.starts-with("rk-none-")
+
+#context {
+  let entries = resolve-slips(
+    tags: "slip", where: rk-cohort, order: r => r.name, row: r => rk-layer.at(r.name),
+  )
+  assert.eq(entries.map(e => e.computed-row), (0, 0, 1))
+  let runs = _row-runs(entries)
+  assert.eq(runs.map(run => run.len()), (2, 1))
+}
+
+// A `row:` function returning `none` for one note takes that slip out of
+// every row: `computed-row` is present AS `none` (not absent — `_apply-row`
+// ran on this entry, it just computed no row), so `_row-runs` gives it a run
+// of its own and `#slipshow` renders it with no `div.slip-row` wrapper, per
+// the same rule an authored `slip-row: none` already follows.
+#slip("rk-none-a")[A]
+#slip("rk-none-b")[B]
+
+#let rk-none-cohort = r => r.name.starts-with("rk-none-")
+
+#context {
+  let entries = resolve-slips(
+    tags: "slip", where: rk-none-cohort, order: r => r.name,
+    row: r => if r.name == "rk-none-b" { none } else { 0 },
+  )
+  assert.eq(entries.map(e => "computed-row" in e), (true, true))
+  assert.eq(entries.at(1).computed-row, none)
+  let runs = _row-runs(entries)
+  assert.eq(runs.map(run => run.len()), (1, 1))
+}
+
+// A `"content"` entry has no registry row to hand `row:` at all, so the
+// function is skipped outright and the entry carries no `computed-row` key —
+// not even `none` — whatever `row:` the deck was given.
+#let rk-content = slip("rk-content")[Loose content]
+#assert("computed-row" not in resolve-slips(slips: (rk-content,), row: r => 0).first())

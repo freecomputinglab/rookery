@@ -45,6 +45,16 @@
 // so a query needing a field off the row reaches for `where:` instead. The
 // two compose: `tags:` runs first, since it is core's own cheap filter, and
 // `where:` narrows whatever survives it.
+//
+// `row:` is `order:`'s key-function shape put to a different use: grouping
+// rather than sorting. A function is called once per `"row"`-kind entry,
+// over the WHOLE registry row, and its result — an `int` or `none` — travels
+// on the entry as `computed-row`, read by `#slipshow`'s `_row-runs`
+// (`slipshow.typ`) ahead of that note's own `slip-row` tag. A `"content"`
+// entry has no registry row to hand the function, so it is skipped entirely
+// and that entry's row stays whatever `slip-tags-of` found on its body.
+// `row:` never reorders anything — see `slipshow.typ`'s header for the
+// consecutive-runs rule it feeds.
 
 #import "@rookery/core:0.1.0": ideas
 #import "tags.typ": *
@@ -172,6 +182,29 @@
   }
 }
 
+// Runs `row` once per `"row"`-kind entry and attaches its result as
+// `computed-row` — present ONLY on the entries the function actually ran on.
+// A `"content"` entry never gets the key at all, and neither does any entry
+// when `row` itself is `none`: `#slipshow`'s `_row-runs` (`slipshow.typ`)
+// tells "no computed row, fall back to the note's own `slip-row` tag" apart
+// from "computed as `none`, this slip joins no row" by that key's presence,
+// not by its value — collapsing the two would make a function that groups
+// most notes but deliberately excludes some indistinguishable from a
+// function never having run on them at all.
+#let _apply-row(entries, row) = {
+  if row == none { return entries }
+  entries.map(e => {
+    if e.kind != "row" { return e }
+    let computed = row(e.row)
+    assert(
+      computed == none or type(computed) == int,
+      message: "@rookery/slipshow: `row`'s key function must return an "
+        + "int or `none` — got " + repr(computed),
+    )
+    e + (computed-row: computed)
+  })
+}
+
 // A registry lookup keyed by both `name` and `id`, built from ONE
 // `ideas(values: true)` call — resolving each `slips:` name against a fresh
 // query would pay that walk once per slip instead of once per deck (`ideas()`
@@ -240,6 +273,11 @@
 // `reverse:` sort the query route's rows (see `_sort-rows`); both are refused
 // alongside `slips:` for the same reason — the array IS the order, whatever
 // mix of content and names it holds.
+//
+// `row:`, unlike `order:`/`reverse:`, is NOT refused alongside `slips:` — it
+// groups, it does not reorder, so it composes with either route the same
+// way (`_apply-row`). A `"row"`-kind entry gains `computed-row` when `row:`
+// runs on it; a `"content"` entry never does.
 #let resolve-slips(
   slips: none,
   tags: none,
@@ -247,10 +285,16 @@
   match: "any",
   order: "slip-order",
   reverse: false,
+  row: none,
 ) = {
   assert(
     type(reverse) == bool,
     message: "@rookery/slipshow: `reverse` must be a bool — got " + repr(reverse),
+  )
+  assert(
+    row == none or type(row) == function,
+    message: "@rookery/slipshow: `row` must be a function taking a registry "
+      + "row and returning an int or `none` — got " + repr(row),
   )
   let slips-given = slips != none
   let query-given = tags != none or where != none
@@ -292,9 +336,9 @@
     // so a content-only array stays exactly as cheap as it was before names
     // existed, and keeps working with no registry (and no `#context`) at all.
     let lookup = if slips.any(item => type(item) in (str, label)) { _slip-lookup() } else { (:) }
-    return slips.map(item => _resolve-slip-item(item, lookup))
+    return _apply-row(slips.map(item => _resolve-slip-item(item, lookup)), row)
   }
 
   let rows = _sort-rows(_slip-rows-from-query(tags, match, where), order, reverse)
-  rows.map(row => (kind: "row", row: row, tags: row.tags-dict))
+  _apply-row(rows.map(row => (kind: "row", row: row, tags: row.tags-dict)), row)
 }

@@ -49,9 +49,11 @@
 //   a slip narrower than its cap stays narrow instead of being stretched to
 //   fill it.
 // - `div.slip-row[data-row]` wraps one RUN of consecutive resolved entries
-//   sharing the same `slip-row` tag value (`row-of`, `tags.typ`), so a
-//   stylesheet can lay a run out as a flex row instead of the deck's default
-//   vertical stack. CONSECUTIVE, NOT A GROUP-BY: grouping walks the resolved
+//   sharing the same row value — the deck's own `row:` key function
+//   (`select.typ`'s `_apply-row`) when it ran on that entry, else the note's
+//   own `slip-row` tag (`row-of`, `tags.typ`) — so a stylesheet can lay a run
+//   out as a flex row instead of the deck's default vertical stack.
+//   CONSECUTIVE, NOT A GROUP-BY: grouping walks the resolved
 //   order and never reorders it, so two slips both tagged `row: 1` with
 //   something else between them produce TWO separate
 //   `div.slip-row[data-row="1"]` wrappers, not one — ordering is `order:`'s
@@ -226,8 +228,16 @@
   attrs
 }
 
+// An entry's row for grouping purposes: `computed-row` (`select.typ`'s
+// `_apply-row`) when `row:` ran on this entry, else its own `slip-row` tag.
+// The two are told apart by the KEY's presence, not its value — a `row:`
+// function that computed `none` for this entry still counts as having run,
+// so that entry joins no row rather than falling back to a tag it might
+// still carry.
+#let _entry-row(e) = if "computed-row" in e { e.computed-row } else { row-of(e.tags) }
+
 // Groups resolved entries into RUNS of consecutive entries sharing the same
-// `slip-row` value (`row-of`), keeping each entry's original index (`i`)
+// row value (`_entry-row`), keeping each entry's original index (`i`)
 // alongside it for `_slip-attrs`/`id="slip-<n>"`. `none` never merges with a
 // neighbouring `none`: unlike two equal row numbers, two unrowed slips are
 // not one run of two — see the file header — so an entry whose row is
@@ -237,7 +247,7 @@
   let current = ()
   let current-row = none
   for (i, e) in entries.enumerate() {
-    let r = row-of(e.tags)
+    let r = _entry-row(e)
     if current.len() == 0 or r == none or r != current-row {
       if current.len() > 0 { runs.push(current) }
       current = ()
@@ -256,6 +266,7 @@
   match: "any",
   order: "slip-order",
   reverse: false,
+  row: none,
   enter: "scroll",
 ) = context {
   assert(
@@ -264,9 +275,9 @@
       + ENTERS.join(", ") + " — got " + repr(enter),
   )
 
-  // `resolve-slips` validates `slips`/`tags`/`where`/`order` itself (see
-  // `select.typ`) — duplicating those asserts here would just be a second
-  // copy of the same message.
+  // `resolve-slips` validates `slips`/`tags`/`where`/`order`/`row` itself
+  // (see `select.typ`) — duplicating those asserts here would just be a
+  // second copy of the same message.
   let entries = resolve-slips(
     slips: slips,
     tags: tags,
@@ -274,6 +285,7 @@
     match: match,
     order: order,
     reverse: reverse,
+    row: row,
   )
 
   if target() != "html" {
@@ -295,7 +307,7 @@
         _render-slip(pair.e)
       })
       for run in _row-runs(entries) {
-        let r = row-of(run.first().e.tags)
+        let r = _entry-row(run.first().e)
         if run.len() == 1 and r == none {
           // The wrapper-free case (file header): a lone unrowed slip is a
           // direct child of `div.slipshow`, exactly as every slip was before

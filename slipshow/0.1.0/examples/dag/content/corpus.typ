@@ -19,10 +19,12 @@
 //   layer 2 (3)  each depends on two layer-1 todos.
 //   layer 3 (2)  each depends on two layer-2 todos.
 //
-// EVERY TODO CARRIES `slip-row`/`slip-max-width` TAGS BY HAND, matching its
-// layer above — see `content/index.typ` for why (route (a) of the two ways
-// to get a computed row onto a slip) and for the assertion that catches this
-// file drifting out of step with the graph it describes.
+// NO TODO CARRIES A ROW TAG: the layer a todo belongs to is derived from the
+// graph above, not authored — `content/index.typ` computes it with
+// `layer-of(todo-graph())` and hands it to `#slipshow` as a `row:` key
+// function. `slip-max-width` stays a tag here, since which layers are worth
+// capping is a presentation choice this file makes, not something the graph
+// derives.
 #import "lib.typ": template, todo
 #show: template
 
@@ -34,7 +36,7 @@ nothing below is rendered specially.
 
 #todo(
   "kickoff", title: [Kick off the retreat], priority: 0,
-  tags: (slip-row: 0, slip-max-width: 18em),
+  tags: (slip-max-width: 18em),
 )[
   Pick a date, book the venue, and tell everyone it is happening.
 ]
@@ -42,7 +44,7 @@ nothing below is rendered specially.
 #todo(
   "retire-legacy", title: [Retire the legacy signup form], priority: 4,
   done: datetime(year: 2026, month: 1, day: 10),
-  tags: (slip-row: 0, slip-max-width: 18em),
+  tags: (slip-max-width: 18em),
 )[
   The old paper signup sheet is finally gone — everyone signs up online now.
 ]
@@ -50,7 +52,7 @@ nothing below is rendered specially.
 #todo(
   "note-onboarding", title: [Draft onboarding notes], priority: 2,
   deps: ("legacy-import",),
-  tags: (slip-row: 0, slip-max-width: 18em),
+  tags: (slip-max-width: 18em),
 )[
   Meant to carry over the attendee list the old signup form kept, but that
   form (`legacy-import`) was never itself a todo in this rookery — a typo or
@@ -60,7 +62,7 @@ nothing below is rendered specially.
 
 #todo(
   "renew-lease", title: [Renew the venue lease], priority: 2,
-  tags: (slip-row: 0, slip-max-width: 18em),
+  tags: (slip-max-width: 18em),
 )[
   The venue's lease on the retreat hall expires the week before the retreat
   does, so this has to close before travel is booked.
@@ -68,7 +70,7 @@ nothing below is rendered specially.
 
 #todo(
   "sync-calendar", title: [Sync the shared calendar], priority: 3,
-  tags: (slip-row: 0, slip-max-width: 18em),
+  tags: (slip-max-width: 18em),
 )[
   Everyone's calendar invite should show the same dates, room, and dial-in.
 ]
@@ -76,7 +78,7 @@ nothing below is rendered specially.
 #todo(
   "audit-logs", title: [Audit the registration logs], priority: 1,
   deps: ("kickoff",),
-  tags: (slip-row: 1, slip-max-width: 24em),
+  tags: (slip-max-width: 24em),
 )[
   Check the registration system for duplicate or bounced signups before
   anyone downstream builds a headcount on top of it.
@@ -85,7 +87,7 @@ nothing below is rendered specially.
 #todo(
   "collect-data", title: [Collect attendee dietary data], priority: 1,
   deps: ("kickoff",),
-  tags: (slip-row: 1, slip-max-width: 24em),
+  tags: (slip-max-width: 24em),
 )[
   A short form asking every attendee about allergies and preferences, closed
   a week before catering needs numbers.
@@ -94,7 +96,7 @@ nothing below is rendered specially.
 #todo(
   "review-budget", title: [Review the catering budget], priority: 3,
   deps: ("kickoff",),
-  tags: (slip-row: 1, slip-max-width: 24em),
+  tags: (slip-max-width: 24em),
 )[
   Last year's per-head catering cost, checked against this year's quote
   before anyone commits to a headcount.
@@ -103,7 +105,7 @@ nothing below is rendered specially.
 #todo(
   "draft-notes", title: [Draft the welcome notes],
   deps: ("kickoff",),
-  tags: (slip-row: 1, slip-max-width: 24em),
+  tags: (slip-max-width: 24em),
 )[
   A page handed out at check-in: schedule, wifi password, where the bathrooms
   are. Nobody has claimed it yet, so it carries no priority at all — and it
@@ -114,7 +116,7 @@ nothing below is rendered specially.
 #todo(
   "compile-summary", title: [Compile the attendee summary], priority: 1,
   deps: ("collect-data", "draft-notes"),
-  tags: (slip-row: 2, slip-max-width: 24em),
+  tags: (slip-max-width: 24em),
 )[
   One page combining the dietary form's results with whatever the welcome
   notes already promise attendees, so catering and the door desk read the
@@ -124,7 +126,7 @@ nothing below is rendered specially.
 #todo(
   "merge-results", title: [Merge the audit and dietary results], priority: 2,
   deps: ("audit-logs", "collect-data"),
-  tags: (slip-row: 2, slip-max-width: 24em),
+  tags: (slip-max-width: 24em),
 )[
   One clean roster: the audited registration list joined against who
   actually answered the dietary form.
@@ -133,7 +135,7 @@ nothing below is rendered specially.
 #todo(
   "publish-report", title: [Publish the budget report], priority: 2,
   deps: ("review-budget", "draft-notes"),
-  tags: (slip-row: 2, slip-max-width: 24em),
+  tags: (slip-max-width: 24em),
 )[
   The reviewed catering budget, written up alongside the welcome notes'
   headcount assumptions, for whoever signs the final cheque.
@@ -142,7 +144,7 @@ nothing below is rendered specially.
 #todo(
   "ship-final", title: [Ship the retreat pack], priority: 0,
   deps: ("merge-results", "publish-report"),
-  tags: (slip-row: 3, slip-max-width: 45%),
+  tags: (slip-max-width: 45%),
 )[
   The roster and the budget report, bundled into one pack and sent to the
   venue and the caterer.
@@ -151,7 +153,7 @@ nothing below is rendered specially.
 #todo(
   "sign-off", title: [Sign off the retreat plan], priority: 2,
   deps: ("compile-summary", "publish-report"),
-  tags: (slip-row: 3, slip-max-width: 45%),
+  tags: (slip-max-width: 45%),
 )[
   A last read of the attendee summary against the budget report before
   travel gets booked against either one.
