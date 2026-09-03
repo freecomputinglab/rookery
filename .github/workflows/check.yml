@@ -205,3 +205,10 @@ jobs:
       # looks correct in the markup — it is only wrong on screen.
       - name: todos rheo demo compiles and asserts
         run: cd todos/0.1.0 && just check
+
+      # AFTER the namespace-symlink step, like every rheo demo above: this
+      # package imports `@rookery/core:0.1.0` by coordinate. AFTER its own
+      # `just build`, because `dist/` is gitignored and rheo cannot resolve
+      # the package until vite has written it.
+      - name: slipshow build, unit fixture and rheo demo
+        run: cd slipshow/0.1.0 && just build && just test && just check

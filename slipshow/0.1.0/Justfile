@@ -17,3 +17,11 @@ test:
 # rather than scan the directory.
 test-js:
     node --test test/*.test.mjs
+
+# Asserts on the OUTPUT. The one thing it exists for is the DOM
+# `src/slipshow.typ` renders: `test/units.typ` proves the tag mapping and
+# `resolve-slips` return the right VALUES, but neither it nor `test-js` can
+# see the markup a real rheo build produces.
+check: build
+    rheo compile demo/rheo
+    ./demo/rheo/check.sh
