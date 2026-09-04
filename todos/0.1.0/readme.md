@@ -440,7 +440,7 @@ A bare `#todo-slipshow()` is the whole todo corpus laid out as an
 `tags:`, or `where:`) defaults it to `tags: "todo"`, the key every todo
 carries.
 
-It feeds `#slipshow` three derived key functions from `todo-slip-keys`, none
+It feeds `#slipshow` four derived key functions from `todo-slip-keys`, none
 of them a tag on any `#todo`:
 
 - **`row:` is the graph LAYER** (`layer-of`, `src/graph.typ`): layer 0 is
@@ -456,11 +456,30 @@ of them a tag on any `#todo`:
 - **`class:` is the status rail** — `todo-slip-ready`, `todo-slip-blocked`
   or `todo-slip-closed`, which colour `@rookery/slipshow`'s rail rather than
   draw a border of their own (see "Styling" below, which sizes that rail).
+- **`edges:` is `blockers-of`** — the todos this one waits on, so a blocked
+  slide's rail is fed by a curve down from each of theirs. See
+  `@rookery/slipshow`'s readme, "The connector curves", for what is drawn.
 
-**A caller's own `row:`/`order:`/`class:` wins outright** when passed to
-`#todo-slipshow` alongside these: the derived dictionary and the caller's
-own named arguments merge with the caller's own keys taking precedence,
-exactly as if the derived ones had never been offered.
+**`edges:` is `blockers-of` and not `deps`, and the difference is the whole
+behaviour.** `blockers-of` keeps the deps that EXIST and are NOT CLOSED, so
+two kinds of dependency draw nothing at all:
+
+- a **satisfied** dep — the same rule `graph-slice` already keeps for the
+  graph view, where an edge into a closed todo would point at a box that is
+  not on the page. On a deck it would point at a greyed-out slide and claim
+  something is waiting on work that is already done.
+- a **dangling** dep — one naming no todo. It can never close, which is
+  exactly why `is-blocked` does not let one block a todo either.
+
+The consequence is the thing to know from a picture of it: **the source of
+every curve is an OPEN todo**, so a curve is green-to-red where the blocker
+is ready and red-to-red where the blocker is itself blocked. There is no
+third colouring, because a closed todo never starts a curve.
+
+**A caller's own `row:`/`order:`/`class:`/`edges:` wins outright** when
+passed to `#todo-slipshow` alongside these: the derived dictionary and the
+caller's own named arguments merge with the caller's own keys taking
+precedence, exactly as if the derived ones had never been offered.
 
 `today:` and `done:` govern how CLOSED todos sort, not whether they appear.
 `today:` reaches `is-ready` the same way it does everywhere else in this
@@ -474,9 +493,9 @@ a mismatched `row:`/`order:` pair causes above, for the identical reason:
 a row's members are no longer adjacent once some of them have been pulled to
 the front or back.
 
-**A slip that is not a todo gets no row, no class, and sorts last.** All
-three derived functions look the note up in the dependency graph first and
-return `none` when it is not there. For `class:` that is lossy in one
+**A slip that is not a todo gets no row, no class, no edges, and sorts
+last.** All four derived functions look the note up in the dependency graph
+first and return `none` when it is not there. For `class:` that is lossy in one
 specific way, worth knowing before mixing an authored slide into a todo
 deck: `class:` overrides a note's `slip-class` tag by KEY PRESENCE, not
 value (`@rookery/slipshow`'s readme, "class: — a key function for a
@@ -488,14 +507,15 @@ above.
 
 **`todo-slip-keys(graph)` is the pure route**, for a caller assembling an
 explicit `slips:` array by hand rather than querying by tag: it returns the
-same `(row:, order:, class:)` dictionary `#todo-slipshow` feeds to
+same `(row:, order:, class:, edges:)` dictionary `#todo-slipshow` feeds to
 `#slipshow` internally. Calling one of its members needs parentheses —
 `(keys.order)(r)`, not `keys.order(r)`, which Typst refuses outright with
 "cannot directly call dictionary keys as functions." `@rookery/slipshow`'s
 own `examples/dag/content/open-only.typ` is the worked case: it slices the
 graph to its open todos, sorts that slice by `keys.order`, names the
-survivors in a `slips:` array, and hands `keys.row` and `keys.class`
-straight to `#slipshow`. That is the one composition `#todo-slipshow` cannot
+survivors in a `slips:` array, and hands `keys.row`, `keys.class` and
+`keys.edges` straight to `#slipshow`. That is the one composition
+`#todo-slipshow` cannot
 do for a caller — `order:` and `slips:` conflict, so the sort has to happen
 on the page, before the array is named.
 

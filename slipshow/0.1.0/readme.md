@@ -503,6 +503,43 @@ are exactly that, and `class:` is the only route by which they reach a
 slide's `<section>` at all — see that package's readme, "Horizontal decks:
 #todo-slipshow".
 
+### `edges:` — a key function for the slides a slide points at
+
+```typst
+#context {
+  let keys = todo-slip-keys(todo-graph())   // @rookery/todos
+  slipshow(tags: "todo", edges: keys.edges, class: keys.class, row: keys.row, order: keys.order)
+}
+```
+
+The third of the computed key functions, and the only one whose result is a
+LIST: a function called once per queried slide, over the WHOLE registry row,
+returning an array of NOTE NAMES — each a `str` or a `label` — or `none`.
+Anything else panics naming `edges`. A label arrives normalized to its string
+form, so `("a", <b>)` and `("a", "b")` are the same answer.
+
+**A name the deck does not show is DROPPED, not an error.** A deck is
+frequently a slice of a corpus — `examples/dag/content/open-only.typ` is
+exactly that — so a slide pointing at a note this deck happens not to show is
+ordinary rather than a mistake, and so is a name that resolves to nothing at
+all. This is deliberately the opposite of `slips:`'s own unknown-name panic
+("The explicit array", above): there a name is an assertion about what the
+deck CONTAINS, here it is a fact about a graph the deck is only a view of.
+
+What reaches the DOM is `data-slip-edges` on the slide's own `<section>`: a
+space-separated list of the ELEMENT IDS of the slides pointed at, already
+restricted to slides this deck shows. It is absent entirely when nothing
+survives the drop — an empty attribute would claim the slide points at
+nothing in particular, which is a different thing from no edges having been
+computed for it. There is no `slip-edges` tag to fall back to and there could
+not be: which slides a slide depends on is a fact about a graph only the
+deck's caller knows.
+
+`edges:` composes with EITHER route, `slips:` included, for the same reason
+`row:` and `class:` do — it neither selects nor reorders anything. What is
+drawn from the attribute is "The connector curves" under "Customising the
+CSS" below.
+
 ## The `a&b` query language
 
 `tags:` accepting a predicate function is the extension point for a full
@@ -767,11 +804,49 @@ border, its tab, its label size — where this package's own deck-level rules
 (the rhythm between slips, fullscreen height, background sizing) are new
 dimensions of the deck itself and deliberately do not borrow from them.
 
+### The connector curves
+
+A deck whose slides declare `edges:` (above) draws them. One curve per edge,
+leaving the BOTTOM of the source slide's left rule and arriving at the TOP of
+the target's, stroked with a gradient running from the source rail's colour
+to the target's. Reading down the deck then reads the graph: the rails are
+the nodes, the curves are the edges.
+
+The colours are whatever the rails already are — each stop is read off its
+endpoint's resolved `border-inline-start-color`, so this package names no
+status here any more than it does on the rule itself. Two properties tune
+the stroke, set the same way as the rule's three:
+
+| property | default | what it does |
+| --- | --- | --- |
+| `--slip-edge-width` | `--slip-rule-width` | the curve's `stroke-width`, so by default a curve is exactly as thick as the rails it joins |
+| `--slip-edge-opacity` | `0.85` | the curve's `opacity` |
+
+**The layer is script-drawn** (`src/edges.js`), so a reader whose JavaScript
+never ran gets the rails and no curves at all: the deck still reads, it just
+does not draw its own graph. Nothing about the markup differs — the
+declaration is in `data-slip-edges` either way.
+
+Two cases where a declared edge is deliberately NOT drawn, both ordinary
+states of a live deck rather than errors:
+
+- **an endpoint the progressive reveal has not shown yet** (`reveal:`,
+  above). A hidden slide has no position, so its curves appear as the reader
+  advances rather than being drawn to empty space.
+- **two endpoints in the same row.** A row is a set of slides that depend on
+  nothing from each other, so a same-row edge means a deck's `row:` and its
+  `edges:` disagree, and a curve doubling back into its own row would assert
+  a shape the layout is already denying.
+
+One known limitation: a `.slip-row` is its own horizontal scroll container
+and this layer spans every row, so a curve crossing a scrolled row is drawn
+in full rather than clipped to it.
+
 ## This is a built package
 
 `@rookery/slipshow` resolves through `dist/lib.js` for its JavaScript: an
-edit to `src/camera.js` or `src/slipshow.js` does nothing until `just build`
-runs, the same fact `@rookery/search`'s own readme states about itself. The
+edit to `src/camera.js`, `src/edges.js` or `src/slipshow.js` does nothing
+until `just build` runs, the same fact `@rookery/search`'s own readme states about itself. The
 Typst entrypoint and the stylesheet are the opposite — `src/lib.typ` and
 `src/slipshow.css` are read straight out of `src/`, so an edit to `#slip`,
 `#slipshow` or the CSS takes effect immediately, with nothing to rebuild.
