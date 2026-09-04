@@ -1,20 +1,25 @@
-// `@rookery/todos`' `layers()` groups a dependency graph into layer 0, 1,
-// 2, .. by longest path — nodes on one layer depend on the layer(s) below
-// and on nothing from each other, which is exactly what belongs BESIDE
-// itself on one screen rather than flattened into a scrolling list. This
-// page is that: one `#slipshow` row per layer, four layers deep (see
-// `content/corpus.typ` for the fourteen todos and the shape they form).
+// `@rookery/todos`' `dfs-of()` walks a dependency graph depth-first: one
+// branch is followed to its end before the next starts, and the todos a
+// single parent releases are emitted together as one group. That is what a
+// deck wants — a todo sits next to the work it unblocks rather than a layer
+// away from it, so the connector curve between them is short. This page is
+// that walk over the fourteen todos in `content/corpus.typ`: `kickoff` and
+// the four unrelated todos stack down the screen, and the four things
+// `kickoff` releases span one row beside each other.
+//
+// `content/across.typ` is the same graph with `direction: "across"`, the one
+// option that changes any of this.
 //
 // THE WHOLE PAGE IS ONE `#todo-slipshow` CALL. The row each slide joins, the
-// within-layer order (priority then name, unprioritised last) and the
-// status rail (ready/blocked/closed) all come straight from
-// `todo-slip-keys` inside `@rookery/todos`' `deck.typ` — this page hands it
-// nothing but the tag query selecting every todo, and has no `row:`/
-// `order:`/`class:` of its own to keep in sync with the graph.
+// sibling order (priority then name, unprioritised last) and the status rail
+// (ready/blocked/closed) all come straight from `todo-slip-keys` inside
+// `@rookery/todos`' `deck.typ` — this page hands it nothing but the tag query
+// selecting every todo, and has no `row:`/`order:`/`class:` of its own to
+// keep in sync with the graph.
 //
 // TWO WRAPPER-BASED ROUTES WERE TRIED FIRST AND BOTH FAILED, worth recording
 // so nobody re-discovers it the hard way. Wrapping every todo inline —
-// `slip(name, row: layer.at(name))[#window(name)]` — collides: the todo's
+// `slip(name, row: group.at(name))[#window(name)]` — collides: the todo's
 // own name is already registered under `idea:<name>`, and a second
 // registration under that id with different tags panics as a duplicate
 // (`core/0.1.0/src/idea.typ`'s `_registry.update`). Dropping to an auto id
@@ -32,6 +37,6 @@
 #import "lib.typ": template, todo-slipshow
 #show: template
 
-= Organizing the retreat, horizontally
+= Organizing the retreat, down the screen
 
 #todo-slipshow(tags: "todo")

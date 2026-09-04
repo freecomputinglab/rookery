@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Asserts on the LAYOUT this example exists to prove — one `div.slip-row`
-# per graph layer, the wide layer's four members in priority-then-name
-# order, and a `max-width` on every slip sharing a row with another —
-# rather than merely that the build succeeded. Modelled on
-# `search/0.1.0/demo/rheo/check.sh` and `../ordering/check.sh`: greps for
-# what a grep can express, a python3 heredoc for the rest.
+# Asserts on the LAYOUT this example exists to prove — the depth-first block
+# sequence each page emits, the one row holding the four todos `kickoff`
+# releases, in priority-then-name order, and a `max-width` on every slip
+# sharing a row with another — rather than merely that the build succeeded.
+# Modelled on `search/0.1.0/demo/rheo/check.sh` and `../ordering/check.sh`:
+# greps for what a grep can express, a python3 heredoc for the rest.
 #
 # Run through `just examples`, which builds this package and compiles every
 # example first — `@rookery/todos` is a SIBLING package with its own build
@@ -15,7 +15,7 @@ H=build/html
 fail=0
 note() { echo "FAIL: $*"; fail=1; }
 
-for f in index open-only wide; do
+for f in index across open-only wide; do
   [ -f "$H/$f.html" ] || note "no page at $H/$f.html"
 done
 
@@ -42,73 +42,128 @@ def deck(page):
         sys.exit(1)
     return m.group(0)
 
-def rows(html):
-    # One entry per `div.slip-row`, in document order: its `data-row` value
-    # and the `id`s of the `section.slip` elements inside it. Splitting on
-    # the wrapper's own opening tag keeps a row's sections from leaking into
-    # its neighbour's.
-    segs = re.split(r'(?=<div class="slip-row")', html)
-    out = []
-    for s in segs:
-        m = re.match(r'<div class="slip-row" data-row="(\d+)"', s)
-        if not m:
-            continue
-        ids = re.findall(r'<section class="slip[^"]*" id="([^"]+)"', s)
-        out.append((m.group(1), ids))
+TAGS = (r'<div class="slip-row" data-row="(\d+)"|<div\b|</div>'
+        r'|<section class="slip[^"]*" id="([^"]+)"')
+
+def blocks(html):
+    # Every `div.slip-row` and every `section.slip` that is NOT inside one, in
+    # document order: `("row", data-row, ids)` or `("bare", None, [id])`.
+    #
+    # NESTING IS TRACKED, NOT SPLIT ON. A deck now mixes bare slides in among
+    # its rows, and splitting the markup on the wrapper's opening tag would
+    # sweep every later bare slide into whichever row preceded it. The opening
+    # `div.slipshow` itself matches the bare-`<div>` alternative, so depth
+    # starts at 1 inside the deck and a row's own depth is what closes it.
+    out, depth, rowdepth = [], 0, None
+    for m in re.finditer(TAGS, html):
+        s = m.group(0)
+        if s.startswith('<div class="slip-row"'):
+            depth += 1
+            rowdepth = depth
+            out.append(("row", m.group(1), []))
+        elif s.startswith('<div'):
+            depth += 1
+        elif s == '</div>':
+            if depth == rowdepth:
+                rowdepth = None
+            depth -= 1
+        elif rowdepth is not None:
+            out[-1][2].append(m.group(2))
+        else:
+            out.append(("bare", None, [m.group(2)]))
     return out
 
-# 1 & 2. Four layers, numbered 0-3, and the wide layer (row 1) holds exactly
-#    the four todos that all depend on `kickoff` and on nothing else.
-idx = rows(deck("index"))
-if len(idx) != 4:
-    print(f"FAIL: index.html: expected 4 div.slip-row, found {len(idx)}"); bad = 1
-else:
-    check("index.html row numbering", [r for r, _ in idx], ["0", "1", "2", "3"])
-    check("index.html row 1 count", len(idx[1][1]), 4)
+def rows(html):
+    return [(r, ids) for kind, r, ids in blocks(html) if kind == "row"]
 
-    # 3. Priority then name, unprioritised last: `audit-logs`/`collect-data`
-    #    share priority 1 (name breaks the tie), `review-budget` is
-    #    priority 3, and `draft-notes` carries no priority at all — the
-    #    corpus's one deliberately unprioritised todo in this layer
-    #    (`content/corpus.typ`) — so it must still come last, not first.
+def seq(html):
+    # The same sequence with the `slip-idea:` prefix and the row number
+    # dropped — the row NUMBERS are group ids `dfs-of` mints and nothing
+    # reads them as an index, so pinning them would assert an implementation
+    # detail rather than a layout.
+    return [
+        (kind, [i.removeprefix("slip-idea:") for i in ids])
+        for kind, _, ids in blocks(html)
+    ]
+
+# 1. THE DEPTH-FIRST SEQUENCE, block by block. `kickoff` stacks on its own,
+#    the four todos it releases share ONE row, and each of those four is then
+#    followed down its own branch before the next dependency-free todo starts
+#    — `merge-results` and `ship-final` are `audit-logs`' branch, not a layer.
+#    The four remaining dependency-free todos come last, in priority-then-name
+#    order (`note-onboarding` 2, `renew-lease` 2, `sync-calendar` 3,
+#    `retire-legacy` 4), each stacking on its own.
+INDEX_SEQ = [
+    ("bare", ["kickoff"]),
+    ("row", ["audit-logs", "collect-data", "review-budget", "draft-notes"]),
+    ("bare", ["merge-results"]),
+    ("bare", ["ship-final"]),
+    ("bare", ["compile-summary"]),
+    ("bare", ["sign-off"]),
+    ("bare", ["publish-report"]),
+    ("bare", ["note-onboarding"]),
+    ("bare", ["renew-lease"]),
+    ("bare", ["sync-calendar"]),
+    ("bare", ["retire-legacy"]),
+]
+check("index.html block sequence", seq(deck("index")), INDEX_SEQ)
+
+# 2. The one row's ORDER: priority then name, unprioritised last.
+#    `audit-logs`/`collect-data` share priority 1 (name breaks the tie),
+#    `review-budget` is priority 3, and `draft-notes` carries no priority at
+#    all — the corpus's one deliberately unprioritised sibling
+#    (`content/corpus.typ`) — so it must still come last, not first. Pinned
+#    separately from the sequence above because it is the tie-break rule
+#    `dfs-of` shares with `layers()`, not a fact about the walk.
+idx = rows(deck("index"))
+if len(idx) != 1:
+    print(f"FAIL: index.html: expected 1 div.slip-row, found {len(idx)}"); bad = 1
+else:
     check(
-        "index.html row 1 id sequence (priority, then name, unprioritised last)",
-        idx[1][1],
+        "index.html row id sequence (priority, then name, unprioritised last)",
+        idx[0][1],
         ["slip-idea:audit-logs", "slip-idea:collect-data",
          "slip-idea:review-budget", "slip-idea:draft-notes"],
     )
 
+# 3. `across.html` is the same graph under `direction: "across"`, and the one
+#    difference is the top: the five todos with nothing blocking them span a
+#    single row instead of stacking, and everything they release is laid out
+#    exactly as it is on `index.html`.
+ACROSS_SEQ = [
+    ("row", ["kickoff", "note-onboarding", "renew-lease", "sync-calendar",
+             "retire-legacy"]),
+    ("row", ["audit-logs", "collect-data", "review-budget", "draft-notes"]),
+    ("bare", ["merge-results"]),
+    ("bare", ["ship-final"]),
+    ("bare", ["compile-summary"]),
+    ("bare", ["sign-off"]),
+    ("bare", ["publish-report"]),
+]
+check("across.html block sequence", seq(deck("across")), ACROSS_SEQ)
+
 # 4. Every section sharing a row with another carries a `max-width` in its
 #    inline `style` — a multi-slip row with no cap is four full-width slips
 #    scrolled one at a time, not the layout this example is proving.
-if len(idx) == 4:
-    for row, ids in idx:
+for page in ("index", "across"):
+    html = deck(page)
+    for row, ids in rows(html):
         if len(ids) <= 1:
             continue
-        html = deck("index")
         for id in ids:
             sec = re.search(
                 r'<section class="slip[^"]*" id="' + re.escape(id) + r'"[^>]*>', html,
             )
             if sec is None or "max-width" not in sec.group(0):
-                note(f"index.html: {id} (row {row}) carries no max-width")
+                note(f"{page}.html: {id} (row {row}) carries no max-width")
 
 # 5. `open-only.html` drops exactly the one closed todo (`retire-legacy`,
-#    `content/corpus.typ`) and nothing else, and the remaining layers are
-#    still contiguous and still numbered from 0 — `graph-slice` narrows a
-#    layer, it does not renumber the ones around it.
-oo = rows(deck("open-only"))
-idx_total = sum(len(ids) for _, ids in idx) if len(idx) == 4 else None
-oo_total = sum(len(ids) for _, ids in oo)
-if idx_total is not None:
-    check("open-only.html has exactly one fewer section than index.html",
-          oo_total, idx_total - 1)
-check("open-only.html row numbering (still contiguous from 0)",
-      [r for r, _ in oo], ["0", "1", "2", "3"])
-all_ids = [i for _, ids in oo for i in ids]
-if "slip-idea:retire-legacy" in all_ids:
-    print("FAIL: open-only.html: the closed todo (retire-legacy) is still present")
-    bad = 1
+#    `content/corpus.typ`) and nothing else. `graph-slice` narrows the graph;
+#    it does not disturb the walk over what is left, so the sequence is
+#    `index.html`'s with that one bare block removed.
+check("open-only.html block sequence",
+      seq(deck("open-only")),
+      [b for b in INDEX_SEQ if b != ("bare", ["retire-legacy"])])
 
 # 6. `wide.html` is the deliberately overdone case: one row, eight slips,
 #    each capped at 20em so the row overflows and scrolls horizontally
@@ -119,19 +174,7 @@ if len(wide) != 1:
 else:
     check("wide.html row 0 section count", len(wide[0][1]), 8)
 
-# 7. Every layer's member count, matching the corpus's own shape
-#    (`content/corpus.typ`): layer 0 is `kickoff` plus four unrelated todos,
-#    layer 1 the four that all depend on `kickoff` alone, layer 2 three,
-#    layer 3 two. Row 1's count is already pinned above (the id sequence
-#    check); this is the regression that matters most through the rewrite to
-#    `#todo-slipshow` — the same `div.slip-row` layout, member-for-member,
-#    with none of it authored on the page any more.
-if len(idx) == 4:
-    check("index.html row 0 count", len(idx[0][1]), 5)
-    check("index.html row 2 count", len(idx[2][1]), 3)
-    check("index.html row 3 count", len(idx[3][1]), 2)
-
-# 8. The status rail: `todo-slip-keys`'s `class:` function (`todos/0.1.0/
+# 7. The status rail: `todo-slip-keys`'s `class:` function (`todos/0.1.0/
 #    src/deck.typ`) mints `todo-slip-ready`/`-blocked`/`-closed` straight
 #    onto each slide's own `<section>` — the classes `todos.css`'s
 #    `.todo-slip-ready`/`-blocked`/`-closed` rules key on.
@@ -154,28 +197,29 @@ for name in ("kickoff", "renew-lease", "sync-calendar"):
 for name in ("audit-logs", "collect-data", "review-budget", "draft-notes"):
     has_class("index", idx_classes, "slip-idea:" + name, "todo-slip-blocked")
 
-# 9. A DANGLING DEP DOES NOT BLOCK (`is-blocked`, `todos/0.1.0/src/
+# 8. A DANGLING DEP DOES NOT BLOCK (`is-blocked`, `todos/0.1.0/src/
 #    graph.typ`): `note-onboarding`'s one dep names `legacy-import`, which is
 #    not itself a todo, so it resolves to nothing rather than a blocker —
-#    the one assertion here that pins that rule from the deck side.
+#    the one assertion here that pins that rule from the deck side. It is the
+#    same rule that makes `note-onboarding` a root of the walk above.
 has_class("index", idx_classes, "slip-idea:note-onboarding", "todo-slip-ready")
 if "todo-slip-blocked" in idx_classes.get("slip-idea:note-onboarding", []):
     print("FAIL: index.html: note-onboarding carries todo-slip-blocked despite its one dep being dangling")
     bad = 1
 
-# 10. `open-only.html` composes `todo-slip-keys` by hand (`content/
-#     open-only.typ`) rather than through `#todo-slipshow`, and the same
-#     ready/blocked classes land there too — proof the keys work standalone
-#     on the `slips:` route. `todo-slip-closed` cannot appear on this page:
-#     the one closed todo, `retire-legacy`, is exactly what
-#     `graph-slice(closed: false)` drops (check 5, above).
+# 9. `open-only.html` composes `todo-slip-keys` by hand (`content/
+#    open-only.typ`) rather than through `#todo-slipshow`, and the same
+#    ready/blocked classes land there too — proof the keys work standalone
+#    on the `slips:` route. `todo-slip-closed` cannot appear on this page:
+#    the one closed todo, `retire-legacy`, is exactly what
+#    `graph-slice(closed: false)` drops (check 5, above).
 oo_classes = section_classes(deck("open-only"))
 for name in ("kickoff", "renew-lease", "sync-calendar", "note-onboarding"):
     has_class("open-only", oo_classes, "slip-idea:" + name, "todo-slip-ready")
 for name in ("audit-logs", "collect-data", "review-budget", "draft-notes"):
     has_class("open-only", oo_classes, "slip-idea:" + name, "todo-slip-blocked")
 
-# 11. THE CONNECTOR EDGES. `todo-slip-keys`'s `edges:` function (`todos/
+# 10. THE CONNECTOR EDGES. `todo-slip-keys`'s `edges:` function (`todos/
 #     0.1.0/src/deck.typ`) hands `#slipshow` the todos BLOCKING each one, and
 #     `#slipshow` resolves them to the element ids of the slides showing them
 #     (`data-slip-edges`, `slipshow/0.1.0/src/slipshow.typ`'s header).
@@ -201,8 +245,9 @@ def section_edges(html):
 idx_edges = section_edges(deck("index"))
 oo_edges = section_edges(deck("open-only"))
 
-# A layer-1 slide depends on `kickoff` alone; a layer-2 one on two todos, and
-# the attribute keeps them in `deps` order rather than sorting them.
+# A slide `kickoff` releases depends on it alone; one further down the branch
+# on two todos, and the attribute keeps them in `deps` order rather than
+# sorting them.
 check("index.html audit-logs edges", idx_edges.get("slip-idea:audit-logs"),
       ["slip-idea:kickoff"])
 check("index.html merge-results edges (in deps order)",
@@ -216,7 +261,7 @@ if "slip-idea:kickoff" in idx_edges:
           f"{idx_edges['slip-idea:kickoff']} despite depending on nothing")
     bad = 1
 
-# THE DECK-SIDE TWIN OF CHECK 9. `note-onboarding`'s one dep is dangling, so
+# THE DECK-SIDE TWIN OF CHECK 8. `note-onboarding`'s one dep is dangling, so
 # it is not a blocker and draws no curve either — the pair pins that rule from
 # both directions, the class and the edge.
 if "slip-idea:note-onboarding" in idx_edges:
@@ -246,10 +291,12 @@ check("open-only.html merge-results edges",
       ["slip-idea:audit-logs", "slip-idea:collect-data"])
 
 if not bad:
-    print("  index: 4 layers, row 1 in priority/name order, every row max-width'd")
+    print("  index: depth-first sequence, one sibling row in priority/name order")
+    print("  across: the dependency-free todos span one row, the rest unchanged")
+    print("  index/across: every multi-slip row is max-width'd")
     print("  index: status rail matches the graph, including the dangling-dep case")
     print("  index: connector edges are the open deps, and every id names a slide")
-    print("  open-only: one fewer section, layers still contiguous, same rail")
+    print("  open-only: one fewer section, same walk, same rail")
     print("  wide: one row, eight sections")
 sys.exit(bad)
 PY

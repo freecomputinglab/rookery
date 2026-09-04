@@ -1,9 +1,9 @@
 // The same deck as `content/index.typ`, over `graph-slice(graph, closed:
-// false)` instead of a bare tag query — proof that the layering is DERIVED
-// from the graph rather than hardcoded on this page. `retire-legacy` is the
-// corpus's one closed todo (`content/corpus.typ`), sitting alone in layer 0
-// alongside four open siblings, so removing it narrows that layer by one
-// without emptying it or disturbing the other three.
+// false)` instead of a bare tag query — proof that the walk is DERIVED from
+// the graph rather than hardcoded on this page. `retire-legacy` is the
+// corpus's one closed todo (`content/corpus.typ`), one of the five with
+// nothing blocking it, so removing it takes one block out of the sequence and
+// leaves every other slide exactly where the unsliced deck puts it.
 //
 // `graph-slice` hands back rows and edges, not names, and `#slipshow`'s
 // `slips:` wants an ordered array of names (or content) — `order:`/
@@ -19,10 +19,10 @@
 // `deck.typ`) returns the same four key functions `#todo-slipshow` feeds
 // `#slipshow` on `content/index.typ`, computed once here into `keys` and
 // reused for the sort, the row grouping, the status rail and the connector
-// curves — `layer-of` runs on the FULL graph inside it, closed todos
-// included, so a slice's row numbers agree with the unsliced deck's. The
-// slice takes no edge with it either: the one todo it drops is closed, and a
-// closed todo blocks nothing.
+// curves — `dfs-of` runs on the FULL graph inside it, closed todos included,
+// so a slice's sequence agrees with the unsliced deck's. The slice takes no
+// edge with it either: the one todo it drops is closed, and a closed todo
+// blocks nothing.
 #import "lib.typ": template, todo-graph, graph-slice, todo-slip-keys, slipshow
 #show: template
 

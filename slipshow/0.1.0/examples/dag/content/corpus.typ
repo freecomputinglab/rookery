@@ -1,30 +1,31 @@
 // Fourteen todos, each with a PINNED name, telling one story — organizing a
 // retreat — so the graph below is shaped like a real project's rather than a
-// synthetic chain. `layers(todo-graph())` groups them into four layers, and
-// this file's shape decides what those layers look like:
+// synthetic chain. It is four levels deep, and this file's shape is what
+// every page reading it renders:
 //
-//   layer 0 (5)  `kickoff` and four unrelated standalone todos beside it —
+//   level 0 (5)  `kickoff` and four unrelated standalone todos beside it —
 //                one CLOSED (`retire-legacy`), one with a DANGLING dep
 //                (`note-onboarding`, which names a note that does not
 //                exist — see `@rookery/todos`' `graph.typ` line 62 for why
-//                that is not an error), and two ordinary open todos.
-//   layer 1 (4)  `audit-logs`, `collect-data`, `review-budget`, and
+//                that is not an error), and two ordinary open todos. None of
+//                the five is blocked, so these are the walk's roots and the
+//                todos `direction: "across"` puts in one row.
+//   level 1 (4)  `audit-logs`, `collect-data`, `review-budget`, and
 //                `draft-notes` all depend on `kickoff` and on nothing from
-//                each other — the WIDE layer this whole example exists to
-//                prove, so several unrelated todos releasing off one root
-//                sit BESIDE each other rather than in a list. Priorities
-//                1, 1, 3 and none (unprioritised) so within-layer ordering
-//                — priority then name, unprioritised last — is visible
-//                rather than accidental.
-//   layer 2 (3)  each depends on two layer-1 todos.
-//   layer 3 (2)  each depends on two layer-2 todos.
+//                each other — the WIDE sibling group this whole example
+//                exists to prove, so several unrelated todos releasing off
+//                one parent sit BESIDE each other rather than in a list.
+//                Priorities 1, 1, 3 and none (unprioritised) so the sibling
+//                ordering — priority then name, unprioritised last — is
+//                visible rather than accidental.
+//   level 2 (3)  each depends on two level-1 todos.
+//   level 3 (2)  each depends on two level-2 todos.
 //
-// NO TODO CARRIES A ROW TAG: the layer a todo belongs to is derived from the
-// graph above, not authored — `content/index.typ` computes it with
-// `layer-of(todo-graph())` and hands it to `#slipshow` as a `row:` key
-// function. `slip-max-width` stays a tag here, since which layers are worth
-// capping is a presentation choice this file makes, not something the graph
-// derives.
+// NO TODO CARRIES A ROW TAG: the row a todo joins is derived from the graph
+// above, not authored — `content/index.typ` is one `#todo-slipshow` call and
+// nothing else. `slip-max-width` stays a tag here, since which todos are
+// worth capping is a presentation choice this file makes, not something the
+// graph derives.
 #import "lib.typ": template, todo
 #show: template
 
