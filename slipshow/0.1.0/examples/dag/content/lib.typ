@@ -12,7 +12,7 @@
 // to interpret otherwise. There is no `slip-row` tag to hide alongside it —
 // every row here comes from `#slipshow`'s `row:`, not from a tag on `#todo`.
 #import "@rookery/core:0.1.0": rookery, window
-#import "@rookery/todos:0.1.0": todo, todo-graph, graph-slice, layer-of, layers, priority-of
+#import "@rookery/todos:0.1.0": todo, todo-graph, graph-slice, layer-of, layers, priority-of, todo-slip-keys, todo-slipshow
 #import "@rookery/slipshow:0.1.0": slip, slipshow
 
 #let template(doc) = {

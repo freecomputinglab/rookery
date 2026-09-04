@@ -119,9 +119,66 @@ if len(wide) != 1:
 else:
     check("wide.html row 0 section count", len(wide[0][1]), 8)
 
+# 7. Every layer's member count, matching the corpus's own shape
+#    (`content/corpus.typ`): layer 0 is `kickoff` plus four unrelated todos,
+#    layer 1 the four that all depend on `kickoff` alone, layer 2 three,
+#    layer 3 two. Row 1's count is already pinned above (the id sequence
+#    check); this is the regression that matters most through the rewrite to
+#    `#todo-slipshow` — the same `div.slip-row` layout, member-for-member,
+#    with none of it authored on the page any more.
+if len(idx) == 4:
+    check("index.html row 0 count", len(idx[0][1]), 5)
+    check("index.html row 2 count", len(idx[2][1]), 3)
+    check("index.html row 3 count", len(idx[3][1]), 2)
+
+# 8. The status rail: `todo-slip-keys`'s `class:` function (`todos/0.1.0/
+#    src/deck.typ`) mints `todo-slip-ready`/`-blocked`/`-closed` straight
+#    onto each slide's own `<section>` — the classes `todos.css`'s
+#    `.todo-slip-ready`/`-blocked`/`-closed` rules key on.
+def section_classes(html):
+    return {
+        id: cls.split()
+        for cls, id in re.findall(r'<section class="([^"]*)" id="([^"]+)"', html)
+    }
+
+def has_class(page, classes, id, cls):
+    global bad
+    if cls not in classes.get(id, []):
+        print(f"FAIL: {page}.html: {id} missing class {cls!r}, has {classes.get(id)}")
+        bad = 1
+
+idx_classes = section_classes(deck("index"))
+has_class("index", idx_classes, "slip-idea:retire-legacy", "todo-slip-closed")
+for name in ("kickoff", "renew-lease", "sync-calendar"):
+    has_class("index", idx_classes, "slip-idea:" + name, "todo-slip-ready")
+for name in ("audit-logs", "collect-data", "review-budget", "draft-notes"):
+    has_class("index", idx_classes, "slip-idea:" + name, "todo-slip-blocked")
+
+# 9. A DANGLING DEP DOES NOT BLOCK (`is-blocked`, `todos/0.1.0/src/
+#    graph.typ`): `note-onboarding`'s one dep names `legacy-import`, which is
+#    not itself a todo, so it resolves to nothing rather than a blocker —
+#    the one assertion here that pins that rule from the deck side.
+has_class("index", idx_classes, "slip-idea:note-onboarding", "todo-slip-ready")
+if "todo-slip-blocked" in idx_classes.get("slip-idea:note-onboarding", []):
+    print("FAIL: index.html: note-onboarding carries todo-slip-blocked despite its one dep being dangling")
+    bad = 1
+
+# 10. `open-only.html` composes `todo-slip-keys` by hand (`content/
+#     open-only.typ`) rather than through `#todo-slipshow`, and the same
+#     ready/blocked classes land there too — proof the keys work standalone
+#     on the `slips:` route. `todo-slip-closed` cannot appear on this page:
+#     the one closed todo, `retire-legacy`, is exactly what
+#     `graph-slice(closed: false)` drops (check 5, above).
+oo_classes = section_classes(deck("open-only"))
+for name in ("kickoff", "renew-lease", "sync-calendar", "note-onboarding"):
+    has_class("open-only", oo_classes, "slip-idea:" + name, "todo-slip-ready")
+for name in ("audit-logs", "collect-data", "review-budget", "draft-notes"):
+    has_class("open-only", oo_classes, "slip-idea:" + name, "todo-slip-blocked")
+
 if not bad:
     print("  index: 4 layers, row 1 in priority/name order, every row max-width'd")
-    print("  open-only: one fewer section, layers still contiguous")
+    print("  index: status rail matches the graph, including the dangling-dep case")
+    print("  open-only: one fewer section, layers still contiguous, same rail")
     print("  wide: one row, eight sections")
 sys.exit(bad)
 PY
