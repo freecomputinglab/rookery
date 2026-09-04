@@ -513,6 +513,12 @@ rather than by out-specifying a selector: `--todo-ready-color`,
 `--todo-blocked-color`, `--todo-stale-color`, `--todo-muted-color`,
 `--todo-graph-line`, `--todo-graph-edge-color`.
 
+`#todo-slipshow` slides wear `todo-slip-ready`, `todo-slip-blocked` and
+`todo-slip-closed` (from `todo-slip-keys`'s `class:` function), which colour
+`@rookery/slipshow`'s rail rather than draw a border of their own —
+`--todo-slip-rule-width` (default `4px`) and `--todo-slip-rule-gap` (default
+`0.5rem`) size that rail.
+
 Rows and graph nodes also wear the note's own `.idea-tag-<key>` classes, so
 `.idea-tag-todo-p0` styles a critical todo on its card, in a list row, and in
 the graph alike.

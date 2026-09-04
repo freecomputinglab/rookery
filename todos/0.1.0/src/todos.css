@@ -197,6 +197,39 @@
     --todo-row-line: var(--todo-stale-color, goldenrod);
   }
 
+  /* Colours `@rookery/slipshow`'s rail (`.slip`'s `border-inline-start`) rather
+   * than drawing a border of its own: a slip's card is BARE by default, and
+   * even where it carries one, `core.css`'s border rule is UNLAYERED and beats
+   * anything written in this layer regardless of specificity (core.css's own
+   * comment on that rule says so, and says MEASURED). The three class names
+   * are minted by `todo-slip-keys`'s `class:` function in `src/deck.typ` and
+   * appear nowhere else, so no `.slip`/`.slipshow` scoping is needed here. */
+  .todo-slip-ready,
+  .todo-slip-blocked,
+  .todo-slip-closed {
+    --slip-rule-width: var(--todo-slip-rule-width, 4px);
+    --slip-rule-gap: var(--todo-slip-rule-gap, 0.5rem);
+  }
+
+  .todo-slip-ready {
+    --slip-rule-color: var(--todo-ready-color, seagreen);
+  }
+
+  .todo-slip-blocked {
+    --slip-rule-color: var(--todo-blocked-color, indianred);
+  }
+
+  /* Opacity rather than a recolour, the same reasoning as the card rule
+   * above: a closed todo is receded, not hidden. Hover restores it. */
+  .todo-slip-closed {
+    --slip-rule-color: var(--todo-muted-color, var(--idea-id-color, gray));
+    opacity: var(--todo-closed-opacity, 0.55);
+  }
+
+  .todo-slip-closed:hover {
+    opacity: 1;
+  }
+
   /* Priority reads as weight, not colour: a p0 row should stand out in a list
    * a reader is scanning, without competing with the status channel above. */
   .todo-row[data-rookery-tags~="todo-p0"] .todo-row-title {
