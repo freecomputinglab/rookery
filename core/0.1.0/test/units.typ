@@ -20,7 +20,7 @@
   _bib, _bib-keys, _blocks, _body-plain, _body-text, _cite-scan, _dedup-tag,
   _is-inline, _join, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _own-cited-keys, _plain, _resolve-excluded, _resolve-tags-color, _sort-ids,
-  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of,
+  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _inert, _no-content,
   footnote, idea, note-href, note-path,
   tag-index, window,
 )
@@ -494,6 +494,18 @@
 // changes nothing there.
 #assert(_blank(parbreak()))
 #assert(_heading-only((parbreak(), heading(depth: 2)[A heading])))
+
+// `_inert`/`_no-content`: rheo appends a trailing `context` child to every page
+// body, which renders nothing yet is not whitespace — so it used to mint one
+// bodyless note per page. Such a group is emitted unwrapped, never dropped: the
+// postamble has to survive.
+#assert(_inert([#context none]))
+#assert(_inert(metadata(1)))
+#assert(not _inert(text("word")))
+#assert(not _inert(heading(depth: 2)[A heading]))
+#assert(_no-content(([#context none], [ ])))
+#assert(_no-content((metadata(1), parbreak())))
+#assert(not _no-content(([#context none], text("word"))))
 
 // `_level-of`: a markup heading carries `depth` and no `level`, while a
 // `separator:` spec written `heading(level: 2)[]` carries `level` and no

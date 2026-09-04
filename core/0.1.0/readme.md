@@ -572,6 +572,7 @@ actually has, and that decides everything:
 | a heading alone | **passed through unchanged, not a note** |
 | whitespace at the edges of a `[..]` body | dropped |
 | a group holding nothing but whitespace and paragraph breaks | dropped |
+| a group holding nothing an author wrote (a `context` or `metadata` node alone) | passed through unchanged, not a note |
 
 A heading is structure: it names the run of notes under it, and wrapping it would
 give you a card whose entire body is a title. A heading with prose beside it in

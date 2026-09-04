@@ -106,6 +106,13 @@
 //      dropped or they mint empty notes.
 //   4. A single-paragraph body is not a sequence at all and has no `.children`.
 //      `c.has("children")` is the test.
+//   5. NOT EVERY CHILD WAS WRITTEN BY THE AUTHOR. A body handed to `#ideate` as
+//      a document show rule inside a rheo project ends with a trailing `context`
+//      child — rheo's own page postamble, appended to every page. It renders
+//      nothing, but it is not whitespace either, so fact 3's filter lets it
+//      through and it used to mint one bodyless note per page. A group with
+//      nothing an author wrote in it is emitted UNWRAPPED rather than minted or
+//      dropped: dropping it would delete the postamble.
 
 #import "base.typ": *
 #import "idea.typ": *
@@ -141,6 +148,39 @@
   let real = group.filter(c => not _blank(c))
   real.len() == 1 and real.first().func() == heading
 }
+
+// A REFERENCE VALUE FOR THE CONTEXT ELEMENT, and there is no other way to get
+// one: `context` is a Typst KEYWORD, not a function, so it cannot be named the
+// way `text` or `metadata` can. Building one piece of content out of it and
+// asking for its `.func()` yields the element function, which then compares
+// equal to any context child. MEASURED: `[#context none].func()` reprs as
+// `context`, and equals the `.func()` of a real context child.
+#let _ctx-fn = [#context none].func()
+
+// Emits nothing on its own and carries nothing an author wrote. Not blank — it
+// has to survive — but not a note either.
+//
+// FACT 5, the one that is not about markup at all. A body handed to `#ideate`
+// as a DOCUMENT SHOW RULE inside a rheo project ends with a trailing `context`
+// child that the author never typed: rheo appends its own page postamble to
+// every page. MEASURED on `waterline`'s `weeknotes.typ`, whose children ended
+// `.. | parbreak | context | space` — so the final group was `(context, space)`,
+// which `_blank` alone reads as non-blank, and every page in that build minted
+// one extra note whose entire visible content was the empty `page-refs` block
+// `#idea` emits for everything (`bib.typ`'s `_sweep-block`). An anonymous,
+// bodyless note that a tag query returned beside the real ones.
+//
+// `metadata` is here for the same reason and needs no trick, being an ordinary
+// function: `metadata(1).func() == metadata`.
+#let _inert(c) = {
+  let f = c.func()
+  f == _ctx-fn or f == metadata
+}
+
+// Has this group anything an author wrote in it? THE ANSWER DECIDES EMIT VS
+// MINT, not emit vs drop — see the emit loop for why the group still has to be
+// rendered.
+#let _no-content(group) = group.all(c => _blank(c) or _inert(c))
 
 // A heading's level lives in one of TWO different fields, MEASURED on typst
 // 0.15.1, depending on how the heading was written:
@@ -245,11 +285,28 @@
   }
   groups.push(current)
 
+  // THE ORDER OF THESE THREE TESTS IS LOAD-BEARING.
+  //
+  // The all-blank skip stays FIRST, and it is the only one that DROPS. Fact 3's
+  // stray whitespace is an artefact of the markup rather than anything an author
+  // wrote, so re-emitting it would put the artefact back.
+  //
+  // The no-content test is SECOND and EMITS rather than drops, which is the
+  // whole point of separating it from the one above. The obvious fix for fact 5
+  // — teach `_blank` about `context` so the all-blank skip catches it — is
+  // WRONG: that `continue` discards the group, and the trailing context is
+  // rheo's own page postamble. Losing it would silently break whatever it
+  // registers. So the group is rendered exactly as written, just not wrapped in
+  // a note nobody wrote.
+  //
+  // `_heading-only` is LAST and has the same shape for the same reason: a
+  // heading names the run of notes under it and is emitted bare rather than
+  // becoming a card whose entire body is a title.
   for group in groups {
-    // Fact 3: a whitespace-only group is an artefact of the markup, not a
-    // paragraph the author wrote.
     if group.all(_blank) { continue }
-    if _heading-only(group) {
+    if _no-content(group) {
+      group.join()
+    } else if _heading-only(group) {
       group.join()
     } else {
       mint(group.join())
