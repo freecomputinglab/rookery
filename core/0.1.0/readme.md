@@ -571,6 +571,7 @@ actually has, and that decides everything:
 | a figure, a code block, a raw block | one note |
 | a heading alone | **passed through unchanged, not a note** |
 | whitespace at the edges of a `[..]` body | dropped |
+| a group holding nothing but whitespace and paragraph breaks | dropped |
 
 A heading is structure: it names the run of notes under it, and wrapping it would
 give you a card whose entire body is a title. A heading with prose beside it in
@@ -579,9 +580,48 @@ the same paragraph is not heading-only and does become a note.
 `#ideate` works on ONE level — the paragraphs of the body it was handed. It does
 not descend into them.
 
+### Choosing what starts a note
+
+By default `#ideate` splits on `parbreak()` — every paragraph is a note, as
+above. Pass `separator:` to split on a heading instead, so every section is a
+note rather than every paragraph:
+
+```typst
+#ideate[..]                                  // default: split on parbreak
+#ideate(separator: heading(level: 2)[])[..]  // every `==` starts a note
+```
+
+which is most useful as the show-rule form, the case that motivated the
+argument at all:
+
+```typst
+#show: rookery
+#show: ideate.with(separator: heading(level: 2)[], tags: "weeknotes")
+```
+
+**The empty body is not optional.** `heading(level: 2)` on its own is illegal
+Typst (`error: missing argument: body`) — `heading` takes its body
+positionally — so the spelling is `heading(level: 2)[]`, empty brackets
+included. That is the natural thing to try first, and Typst's own compiler
+rejects it before `#ideate` ever sees it; no `#ideate` error message can catch
+this one, because the compile never reaches `#ideate`'s code.
+
+In heading mode, the matching heading **starts** the group that follows it
+rather than being discarded — the opposite of parbreak's rule. `== rookery`
+plus the bullets under it is one note, with the heading as its first line, not
+the last line of whatever preceded it. Content before the first matching
+heading is still a note of its own, an ordinary preamble. A heading of a
+different level (`===` while `separator:` asked for level 2) is not a
+separator and stays put, and `parbreak` itself is ordinary content in heading
+mode too — a section with three paragraphs in it is still exactly one note.
+
+Anything else passed as `separator:` — `heading` with no level, `pagebreak`,
+`line`, `raw`, `heading.with(level: 2)`, `heading.where(level: 2)` — fails
+`#ideate`'s own check with a panic naming both accepted forms.
+
 ### Its two inverted defaults
 
-`ideate(body, show-frame: false, show-id: false, ..args)`.
+`ideate(body, separator: parbreak, show-frame: false, show-id: false, ..args)`.
 
 Both invert `#idea`'s own defaults, and that inversion is most of the reason the
 function is worth having: an inferred note is not one anybody named, so a frame

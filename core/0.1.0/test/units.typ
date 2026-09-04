@@ -20,7 +20,7 @@
   _bib, _bib-keys, _blocks, _body-plain, _body-text, _cite-scan, _dedup-tag,
   _is-inline, _join, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _own-cited-keys, _plain, _resolve-excluded, _resolve-tags-color, _sort-ids,
-  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only,
+  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of,
   footnote, idea, note-href, note-path,
   tag-index, window,
 )
@@ -475,11 +475,11 @@
 // `_project(none, ..)` is the no-index case and merges into nothing.
 #assert.eq(_project(none, _tags-a), (:))
 
-// ---- #ideate's two pure predicates ---------------------------------------
+// ---- #ideate's three pure predicates -------------------------------------
 //
 // `#ideate` itself cannot be asserted here — this fixture compiles to a PAGED
-// target, where it is a deliberate passthrough — but the two decisions that
-// shape its output are pure functions of one content value, so they can be.
+// target, where it is a deliberate passthrough — but the decisions that shape
+// its output are pure functions of one content value, so they can be.
 //
 // `_blank`: the whitespace children a `[..]` body carries at its edges, which
 // would otherwise mint an empty note per block.
@@ -487,6 +487,21 @@
 #assert(_blank(text("   ")))
 #assert(not _blank(text("word")))
 #assert(not _blank(heading(depth: 2)[A heading]))
+// A PARBREAK IS BLANK, and heading mode is what needs it: there a parbreak is
+// ordinary content, so the blank line before a body's first `==` forms a group
+// of one parbreak that used to mint a note holding nothing but a paragraph
+// break. In parbreak mode the separator never lands inside a group, so this
+// changes nothing there.
+#assert(_blank(parbreak()))
+#assert(_heading-only((parbreak(), heading(depth: 2)[A heading])))
+
+// `_level-of`: a markup heading carries `depth` and no `level`, while a
+// `separator:` spec written `heading(level: 2)[]` carries `level` and no
+// `depth`. One helper reads both sides or the comparison matches nothing.
+#assert.eq(_level-of(heading(depth: 2)[Markup two]), 2)
+#assert.eq(_level-of(heading(depth: 3)[Markup three]), 3)
+#assert.eq(_level-of(heading(level: 2)[Explicit two]), 2)
+#assert.eq(_level-of(heading(level: 2)[]), 2)
 
 // `_heading-only`: a group that is nothing but a heading is structure, not a
 // note. Surrounding whitespace does not change that; a heading with prose
