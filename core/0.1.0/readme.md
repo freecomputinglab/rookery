@@ -424,6 +424,60 @@ minted page's `<title>` all keep reading the derived `label`, because that is
 what a note is CALLED. This is a per-window display switch, not a change to the
 note's name.
 
+### `foldable:` — a slide is not a disclosure
+
+`foldable:` is on `#window` alone and `true` by default. `false` renders the
+window with no disclosure at all: no `<details>`, no `<summary>`, nothing to
+click and nothing that can hide the body.
+
+It is not the same switch as `folded:`, and the pair is easy to conflate:
+
+- **`folded:`** sets the INITIAL state of a disclosure that exists. A reader can
+  still open or close it.
+- **`foldable:`** decides whether there is a disclosure to begin with. `folded:`
+  is inert once this is `false`, the same way it is already inert at `depth: 0`
+  and on a paged target.
+
+For a window that IS the thing being read rather than a pointer to it — a
+[`@rookery/slipshow`](../../slipshow/0.1.0) slide, where a stray click that
+folded the slide shut would be a bug and never an intention. The summary row
+keeps its id and its title and stops advertising a click; the permalink inside
+it is still a link and still navigates.
+
+### `reserve-title:` — the blank line a titleless summary keeps
+
+`reserve-title:` is on `#window` alone and `true` by default. It governs one
+thing: the blank line a summary with NO title reserves where a title would have
+gone. `false` drops it.
+
+**It does nothing to a window whose note has a title.** The reservation only
+ever applied to a summary with no title span, so a titled window keeps its
+ordinary spacing whichever way this is set — including when it is also
+`foldable: false`.
+
+Reaching for it means you are already passing `show-label: false`: with the
+default `show-label: true` a summary is essentially never titleless, because the
+derived label stands in (see above). The pair `show-label: false` +
+`reserve-title: false` is a slide — a titleless note renders as its body with a
+bare id above it and no dead space between them, and a titled one renders with
+its title and the normal spacing.
+
+The reserved line exists for good reason everywhere else: two folded windows
+side by side, one titled and one not, measured 26.02px against 8.02px, and the
+short one read as cramped rather than as a smaller variant of its neighbour.
+Keep it wherever windows sit in a row.
+
+### `show-background:` — the hover tint, on its own switch
+
+`show-background:` is on `#window` alone, `true` by default, and `false` drops
+the window's hover tint.
+
+It is independent of [`show-frame:`](#dropping-a-notes-frame), which takes the
+left rule and the indent and leaves the tint alone. Both directions are wanted:
+a slipshow slide asks for `show-frame: false` and KEEPS the tint, because the
+frame is decoration and the tint is the slide answering a pointer. Nothing
+implies anything else here — three switches, three decisions.
+
 ### `backlink:` — a view is not a reference
 
 ```typst
@@ -1181,6 +1235,11 @@ An `<a>` inside a `<summary>` does not break the toggle — only an `<a>` around
 the whole summary does, which is why the body of a window is never wrapped in
 one. There is no trailing "→" either: it was a second navigational affordance
 competing with the permalink for the same click.
+
+[`foldable: false`](#foldable--a-slide-is-not-a-disclosure) spends the first of
+those two rules rather than bending it: there is no disclosure, so the summary
+does nothing at all and stops offering a pointer. The second rule is untouched —
+the permalink is still the only link, and still the whole click budget.
 
 `src/core.css` carries just enough to make this read correctly — the
 permalink grey and light, the disclosure marker hidden (the summary is

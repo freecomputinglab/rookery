@@ -95,7 +95,7 @@
 //
 // Must be called from inside a `context` block: `_permalink` reads the page
 // handle and the prefix state. Both callers already are.
-#let _window-content(id, rec, shown, folded, show-date, show-tags, show-frame: true, show-id: true, show-label: true, windows-claim: false) = {
+#let _window-content(id, rec, shown, folded, show-date, show-tags, show-frame: true, show-id: true, show-label: true, foldable: true, reserve-title: true, show-background: true, windows-claim: false) = {
   // `created`, matching `#idea`'s own hat. There was an `updated` field here
   // until 0.6.0 and this hat showed it, on the argument that a reader wants to
   // know when a note was last touched. Core no longer answers that: a
@@ -171,9 +171,19 @@
     // `.idea-window-date` is gone with it: a date is the same object on a card and
     // on a window, so it wears the same class in the same place, and the summary
     // row is back to a tab plus a title.
+    // `div` rather than `summary` when nothing can toggle: a `<summary>` outside
+    // a `<details>` is not a control, and leaving the tag behind would promise a
+    // click that does nothing. THE ROLE IS UNCHANGED either way, so every
+    // `[data-rookery="window-summary"]` rule in core.css still dresses this row.
+    //
+    // `data-rookery-no-title-reserve` only when `reserve-title` is off, exactly
+    // as `data-rookery-bare` is emitted only when the frame is off: an attribute
+    // present with a falsy VALUE would still match the `:not([...])` gate in
+    // core.css and switch the reservation off for everyone.
     let summary = html.elem(
-      "summary",
-      attrs: (class: _c("window-summary"), data-rookery: "window-summary"),
+      if foldable { "summary" } else { "div" },
+      attrs: (class: _c("window-summary"), data-rookery: "window-summary")
+        + (if reserve-title { (:) } else { ("data-rookery-no-title-reserve": "none") }),
       _permalink-tab(
         id,
         // Flat tags only, matching `#idea`'s own hat: a valued tag's name alone
@@ -185,10 +195,20 @@
         show-id: show-id,
       ) + title-span,
     )
-    // `open` is a BOOLEAN html attribute: present means open and there is no
+    // `open` is a BOOLEAN html attribute: present means present and there is no
     // value meaning closed, so the attrs dictionary itself has to differ
     // between the two states. `open: "false"` would read as open.
-    let d-attrs = if folded { (class: _c("window-details"), data-rookery: "window-details") } else {
+    //
+    // A NON-FOLDABLE WINDOW KEEPS `open`, on a `div`, and that is load-bearing
+    // rather than tidy: three rules in core.css key the FOLDED look off
+    // `[data-rookery="window-details"]:not([open])`, and a bare `div` matches
+    // that selector. Carrying `open` puts it on the unfolded side of every one
+    // of them, which is what a window with no disclosure is. `folded` is
+    // therefore inert here — the same inertness it already has on the `depth: 0`
+    // link path and in the paged branch below.
+    let d-attrs = if folded and foldable {
+      (class: _c("window-details"), data-rookery: "window-details")
+    } else {
       (class: _c("window-details"), data-rookery: "window-details", open: "open")
     }
     // `_footnoted(shown)`, not `shown`: a transcluded body carries the origin
@@ -224,13 +244,17 @@
       "div",
       // `data-rookery-bare` only when the frame is off, exactly as `idea.typ`
       // emits it on a card: an attribute present with a falsy VALUE would still
-      // match the `[data-rookery-bare]` selector in `core.css`.
+      // match the `[data-rookery-bare]` selector in `core.css`. The other two
+      // ride the same rule for the same reason — `data-rookery-static` is what
+      // core.css keys the pointer cursor off, `data-rookery-no-bg` the tint.
       attrs: _themed(
         (class: win-cls.join(" "), data-rookery: "window")
           + (if show-frame { (:) } else { ("data-rookery-bare": "bare") })
+          + (if foldable { (:) } else { ("data-rookery-static": "static") })
+          + (if show-background { (:) } else { ("data-rookery-no-bg": "none") })
           + _tags-attr(visible),
       ),
-      html.elem("details", attrs: d-attrs,
+      html.elem(if foldable { "details" } else { "div" }, attrs: d-attrs,
         summary + html.elem("div", attrs: (class: _c("window-body"), data-rookery: "window-body"),
           _footnoted(shown) + _refs-block(_own-cited-keys(shown, windows-claim: windows-claim)))))
   } else {
@@ -432,6 +456,9 @@
           show-frame: v.at("show-frame", default: true),
           show-id: v.at("show-id", default: true),
           show-label: v.at("show-label", default: true),
+          foldable: v.at("foldable", default: true),
+          reserve-title: v.at("reserve-title", default: true),
+          show-background: v.at("show-background", default: true),
           windows-claim: depth - 1 > 1,
         ),
         WK,

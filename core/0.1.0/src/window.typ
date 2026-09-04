@@ -78,6 +78,28 @@
   // For a window that RENDERS a note rather than referring to it — see
   // `_window-content`'s own comment on `name`.
   show-label: true,
+  // `false` renders this window with NO disclosure at all — no `<details>`, no
+  // `<summary>`, nothing to click and nothing that can hide the body. For a
+  // window that IS the thing being read rather than a reference to it: a
+  // slipshow's slide, where a stray click that folded the slide shut would be
+  // a bug and never an intention.
+  //
+  // Distinct from `folded`, which sets the initial state of a disclosure that
+  // exists. `folded` is inert when this is `false` — see `_window-content`.
+  foldable: true,
+  // `false` drops the blank line a TITLELESS window's summary reserves where
+  // its title would have gone (`core.css`'s titleless-reservation rule). On a
+  // slide that line is dead space above the body.
+  //
+  // NO EFFECT on a window whose note has a title: the reservation only ever
+  // applied to a summary with no title span, so a titled window keeps its
+  // ordinary spacing whatever this says.
+  reserve-title: true,
+  // `false` drops the window's hover tint. Independent of `show-frame`, which
+  // takes the left rule and the indent and leaves the tint alone — a slide
+  // wants the frame gone and the tint kept, which is why these are two
+  // switches and not one.
+  show-background: true,
   // Whether this window COUNTS AS A LINK from wherever it sits to the note it
   // shows. `true` is right for what a window usually is — you wrote it in a
   // note's prose, so that note refers to this one. `false` is for a DERIVED
@@ -105,6 +127,20 @@
   _assert-limit(limit, "#window's")
   _assert-tags(tags, "#window's")
   _assert-match(match, "#window's")
+  assert(
+    type(foldable) == bool,
+    message: "@rookery/core: #window's `foldable` must be a bool — got " + repr(foldable),
+  )
+  assert(
+    type(reserve-title) == bool,
+    message: "@rookery/core: #window's `reserve-title` must be a bool — got "
+      + repr(reserve-title),
+  )
+  assert(
+    type(show-background) == bool,
+    message: "@rookery/core: #window's `show-background` must be a bool — got "
+      + repr(show-background),
+  )
   assert(
     sort == auto or sort == "date" or sort == "lexicographic",
     message: "@rookery/core: #window's `sort` must be auto, \"date\" or "
@@ -269,6 +305,9 @@
       show-frame: show-frame,
       show-id: show-id,
       show-label: show-label,
+      foldable: foldable,
+      reserve-title: reserve-title,
+      show-background: show-background,
       limit: limit,
     ))
 
@@ -308,7 +347,7 @@
     // its links must not read as links from whatever page is showing it.
     _bracket(
       figure(kind: WK, supplement: none, [
-        #marker#_window-content(id, rec, shown, folded, show-date, show-tags, show-frame: show-frame, show-id: show-id, show-label: show-label, windows-claim: d > 1)
+        #marker#_window-content(id, rec, shown, folded, show-date, show-tags, show-frame: show-frame, show-id: show-id, show-label: show-label, foldable: foldable, reserve-title: reserve-title, show-background: show-background, windows-claim: d > 1)
       ]),
       WK,
     )

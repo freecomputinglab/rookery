@@ -837,7 +837,11 @@ h6[data-rookery="idea"] {
   padding-bottom: 2px;
 }
 
-[data-rookery="window"]:hover {
+/* `:not([data-rookery-no-bg])` is `#window`'s `show-background: false`. It is a
+   switch of its own rather than part of the frame: a slipshow slide asks for
+   `show-frame: false` and keeps this tint, because the frame is decoration and
+   the tint is the slide answering a pointer. */
+[data-rookery="window"]:not([data-rookery-no-bg]):hover {
   background-color: var(--idea-fold-color, rgba(0, 100, 255, 0.05));
 }
 
@@ -916,6 +920,14 @@ h6[data-rookery="idea"] {
   align-items: baseline;
   list-style: none;
   cursor: pointer;
+}
+
+/* A summary row that cannot toggle must not advertise a click. `#window`'s
+   `foldable: false` emits `data-rookery-static`, and the row is a plain `div`
+   there rather than a `<summary>` — the permalink inside it keeps its own
+   pointer, since that is still a real link. */
+[data-rookery="window"][data-rookery-static] [data-rookery="window-summary"] {
+  cursor: default;
 }
 
 /* Its own line above the title, not another item in the title's row. */
@@ -1090,8 +1102,14 @@ h6[data-rookery="idea"] {
    this is presentation, and the Typst side has no reason to know about it.
    `:not(:has(...))` so the reservation appears ONLY where the title is absent —
    `:has()` is already load-bearing in this stylesheet (see `figure:has(>
-   [data-rookery="box"])`), so it is not a new dependency. */
-[data-rookery="window-summary"]:not(:has(> [data-rookery="window-title"]))::after {
+   [data-rookery="box"])`), so it is not a new dependency.
+
+   `:not([data-rookery-no-title-reserve])` is `#window`'s `reserve-title:
+   false`, for a window that is READ rather than scanned — a slipshow slide,
+   where the reserved line is dead space above the body and there is no row
+   beside it to match heights with. A TITLED summary is untouched by the switch,
+   since this rule never applied to one. */
+[data-rookery="window-summary"]:not([data-rookery-no-title-reserve]):not(:has(> [data-rookery="window-title"]))::after {
   content: "";
   flex-basis: 100%;
   min-block-size: 1lh;
