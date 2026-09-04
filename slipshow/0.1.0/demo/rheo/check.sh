@@ -70,6 +70,10 @@ deck_chrome() {
 
 deck_chrome index 5
 deck_chrome predicate 2
+# The ARRAY route reaches the same shape by the other half of the mechanism:
+# `#slip` binds those defaults at its own call site, because its slips were
+# rendered before any deck existed and nothing downstream can reach inside them.
+deck_chrome explicit 3
 
 # 3. deck.html carries exactly two fullscreen bookends — the opening and
 #    closing slips, and nothing else on that page.

@@ -28,8 +28,33 @@
   max-width: none,
   tags: none,
   exclude-tags: (),
+  // CORE'S OWN TWO CHROME SWITCHES, with their defaults INVERTED here — the
+  // same inversion `#slipshow` makes for a queried slip, and it has to be made
+  // twice because the two routes render at different times. `#slipshow` renders
+  // a QUERIED slip itself and can pass whatever it likes; an explicit-array slip
+  // was already rendered at THIS call site, long before any deck saw it, so
+  // nothing downstream can reach inside it. Setting the default here is what
+  // makes the array route agree with the query route.
+  //
+  // It also settles the double render: a `#slip` written on a page appears
+  // twice in the common fixture — once inline where it was authored, once
+  // inside the deck that queries it back — and binding the defaults on the
+  // constructor makes those two copies look the same.
+  //
+  // NO DUPLICATE-ARGUMENT HAZARD from passing these alongside `..args`: Typst
+  // binds a named argument to a matching named PARAMETER first, and only what
+  // matches nothing reaches the sink. So `#slip("x", show-frame: true)` binds
+  // the parameter and wins over the default, exactly as it should.
+  //
+  // TWO, NOT THREE. `show-label` is a `#window` argument and has nothing to do
+  // here: a card already prints the authored title alone (`@rookery/core`'s
+  // `idea.typ`), so there is no derived label for a `#slip` to suppress.
+  show-frame: false,
+  show-id: false,
   ..args,
 ) = (tagged-idea(SLIP-KEY, exclude-tags: exclude-tags))(
+  show-frame: show-frame,
+  show-id: show-id,
   tags: slip-tags(
     tags: tags,
     fullscreen: fullscreen,
