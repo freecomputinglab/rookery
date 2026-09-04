@@ -426,6 +426,94 @@ same shape `#panel` takes for `facet-rows:`; a line whose groups are all absent 
 `facets:` is dropped, so narrowing one argument needs no edit to the other. Every
 group on one unlabelled line is `pill-rows: ((facets: ("epic", "tag", "state", "priority")),)`.
 
+## Horizontal decks: #todo-slipshow
+
+```typst
+#import "@rookery/slipshow:0.1.0": slipshow
+#import "@rookery/todos:0.1.0": todo-slipshow
+
+#todo-slipshow()
+```
+
+A bare `#todo-slipshow()` is the whole todo corpus laid out as an
+`@rookery/slipshow` deck: naming no selection of its own (no `slips:`,
+`tags:`, or `where:`) defaults it to `tags: "todo"`, the key every todo
+carries.
+
+It feeds `#slipshow` three derived key functions from `todo-slip-keys`, none
+of them a tag on any `#todo`:
+
+- **`row:` is the graph LAYER** (`layer-of`, `src/graph.typ`): layer 0 is
+  everything unblocked, and layer *n* is everything the layers below it
+  release — so several todos released by the same parent, with nothing else
+  blocking them, land in the same row, side by side.
+- **`order:` sorts layer, then priority, then name**, folded into one
+  comparable key. This is what keeps a layer's members ADJACENT:
+  `@rookery/slipshow` groups CONSECUTIVE resolved entries into a row and
+  never reorders them, so `row:` with no matching `order:` fragments every
+  layer into singleton rows of one. The two are a matched set for exactly
+  this reason.
+- **`class:` is the status rail** — `todo-slip-ready`, `todo-slip-blocked`
+  or `todo-slip-closed`, which colour `@rookery/slipshow`'s rail rather than
+  draw a border of their own (see "Styling" below, which sizes that rail).
+
+**A caller's own `row:`/`order:`/`class:` wins outright** when passed to
+`#todo-slipshow` alongside these: the derived dictionary and the caller's
+own named arguments merge with the caller's own keys taking precedence,
+exactly as if the derived ones had never been offered.
+
+`today:` and `done:` govern how CLOSED todos sort, not whether they appear.
+`today:` reaches `is-ready` the same way it does everywhere else in this
+package. `done:` is one of `"inline"` (the default), `"first"`, or `"last"`:
+`"inline"` reads the DAG straight down, so a closed todo sorts exactly where
+its layer and priority put it, beside its still-open siblings; `"first"`/
+`"last"` instead sort closedness ahead of everything else, pulling every
+closed todo out of its graph position to one end of the deck — and
+therefore FRAGMENTING every row it was part of, the identical fragmentation
+a mismatched `row:`/`order:` pair causes above, for the identical reason:
+a row's members are no longer adjacent once some of them have been pulled to
+the front or back.
+
+**A slip that is not a todo gets no row, no class, and sorts last.** All
+three derived functions look the note up in the dependency graph first and
+return `none` when it is not there. For `class:` that is lossy in one
+specific way, worth knowing before mixing an authored slide into a todo
+deck: `class:` overrides a note's `slip-class` tag by KEY PRESENCE, not
+value (`@rookery/slipshow`'s readme, "class: — a key function for a
+COMPUTED class") — so `none` here means "no class," not "leave the tag
+alone," and a non-todo slip loses whatever `slip-class` it was authored
+with. A deck mixing one classed, non-todo slide in among its todos should
+pass its own `class:` to `#todo-slipshow`, which wins outright by the rule
+above.
+
+**`todo-slip-keys(graph)` is the pure route**, for a caller assembling an
+explicit `slips:` array by hand rather than querying by tag: it returns the
+same `(row:, order:, class:)` dictionary `#todo-slipshow` feeds to
+`#slipshow` internally. Calling one of its members needs parentheses —
+`(keys.order)(r)`, not `keys.order(r)`, which Typst refuses outright with
+"cannot directly call dictionary keys as functions." `@rookery/slipshow`'s
+own `examples/dag/content/open-only.typ` is the worked case: it slices the
+graph to its open todos, sorts that slice by `keys.order`, names the
+survivors in a `slips:` array, and hands `keys.row` and `keys.class`
+straight to `#slipshow`. That is the one composition `#todo-slipshow` cannot
+do for a caller — `order:` and `slips:` conflict, so the sort has to happen
+on the page, before the array is named.
+
+**A project using `#todo-slipshow` must import `@rookery/slipshow:0.1.0` in
+its own `.typ` files, or the deck gets no CSS and no JS at all.** rheo's
+package-asset detection scans only a project's own imports, never a
+package's internal ones — the same requirement `@rookery/slipshow`'s own
+readme states about itself ("Import both packages, in your own files").
+`@rookery/search`'s readme names the identical risk for `#filter-panel` fed
+rows from `@rookery/timeline`, and deliberately avoids it by design — "no
+edge between the two packages" ("The date column, and rows from
+elsewhere"). `#todo-slipshow` has no such luxury: it wraps `#slipshow`
+directly, so the requirement lands here the same way regardless. The
+failure is silent either way: the deck still compiles and every slip still
+shows, in document order, but with neither `slipshow.css`'s styling nor
+`slipshow.js`'s camera — no row layout, no card chrome, no keyboard or
+click navigation at all.
+
 ## Derived, never stored
 
 `blocked`, `ready` and `stale` are questions about the graph and the calendar as

@@ -467,6 +467,42 @@ registry. `row:` composes with either route (`slips:` as well as `tags:`/
 `where:`): it groups whatever the route resolved, it does not reorder it, so
 a caller still sorts (`order:`) so a row's members sit adjacent.
 
+### `class:` — a key function for a COMPUTED class
+
+```typst
+#context {
+  let keys = todo-slip-keys(todo-graph())   // @rookery/todos
+  slipshow(tags: "todo", class: keys.class, row: keys.row, order: keys.order)
+}
+```
+
+`class:`'s shape is `row:`'s, redirected: a function called once per row,
+over the WHOLE row, but for a slip's CLASS LIST instead of its grouping. It
+returns a `str` or `none`; anything else panics naming `class`. A
+SPACE-SEPARATED string is several classes, since the result is appended to
+the rendered `<section>`'s class list and joined into that one `class`
+attribute verbatim (`_slip-attrs`, `src/slipshow.typ`).
+
+The two share their override rule too, worth restating precisely: `class:`
+beats a note's own `slip-class` tag by KEY PRESENCE, not value, exactly as
+`row:` beats `slip-row` one section above. A `class:` function that computes
+`none` for a note means "no class" — not "fall back to whatever tag it
+carries" — because the key lands on every entry the function actually ran
+on, and `#slipshow`'s `_entry-class` (`slipshow.typ`) tells "ran and said
+none" apart from "never ran" by that presence alone. Leave `class:` at its
+default and a note's own `slip-class` tag renders untouched.
+
+`class:` composes with EITHER route, `slips:` included, unlike `order:`/
+`reverse:` — which `slips:` refuses outright (see "The explicit array"
+above) — because it neither selects nor reorders anything an explicit
+array would otherwise conflict over.
+
+This exists for a class that cannot be a tag because it is derived from
+something outside the note itself. `@rookery/todos`' `ready` and `blocked`
+are exactly that, and `class:` is the only route by which they reach a
+slide's `<section>` at all — see that package's readme, "Horizontal decks:
+#todo-slipshow".
+
 ## The `a&b` query language
 
 `tags:` accepting a predicate function is the extension point for a full
