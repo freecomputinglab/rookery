@@ -24,3 +24,10 @@ exclude = ["lib.typ"]
 # `style.css`'s own comment.
 [[html.assets]]
 css_stylesheet = "./style.css"
+
+# The Typst cache's `rookery` namespace is a per-machine symlink that can
+# point at a different checkout of this repo, so this reads `@rookery/*` out
+# of this tree instead. See `slipshow/0.1.0/demo/rheo/rheo.toml` for the full
+# argument.
+[packages.rookery]
+path = "../../../.."

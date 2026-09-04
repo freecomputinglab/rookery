@@ -24,20 +24,40 @@ done
 # 2. The package's assets were copied in by rheo's own package-asset detection,
 #    which scans a project's `.typ` files for `@rheo/<pkg>` imports. `dist/` is
 #    gitignored, so a missing file here usually means `just build` was skipped.
-for a in rookery/search/lib.js rookery/search/search.css; do
-  [ -f "$H/$a" ] || note "asset not copied to $a (did you run 'just build'?)"
-done
+#
+#    NO JavaScript FILENAME IS NAMED, here or in 3. This package declares its
+#    scripts twice in `typst.toml` — `[tool.rheo.html]`'s single vite bundle
+#    (`dist/lib.js`) and `[tool.rheo.source.html]`'s fourteen unbundled modules
+#    — and which of the two rheo injects depends on how the package was
+#    RESOLVED: from a directory on disk (what a `path` override is) it serves
+#    the source list, as a built package it serves the bundle. Both are wanted
+#    shipping shapes, so a check that greps for `lib.js` is a check the fixture
+#    can only ever be run one of those two ways. The contract this asserts
+#    instead is the shape-independent one: SOME search JavaScript was copied
+#    under `rookery/search/`, and every page links it at that page's own
+#    prefix. `search.css` is the same file either way and is still named.
+js=$(find "$H/rookery/search" -maxdepth 1 -name '*.js' -printf '%f\n' 2>/dev/null | sort)
+[ -n "$js" ] || note "no .js copied under rookery/search/ (did you run 'just build'?)"
+[ -f "$H/rookery/search/search.css" ] ||
+  note "asset not copied to rookery/search/search.css (did you run 'just build'?)"
 
 # 3. Both assets are LINKED from every page, at the right depth-relative
 #    prefix — `rheo/...` at the root, `../rheo/...` one level down. This is the
 #    assertion a root-only fixture cannot make, and getting it wrong ships a
 #    site whose search silently never loads on its inner pages.
-grep -q '"rookery/search/lib.js"' "$H/index.html" ||
-  note "index.html does not link lib.js at the root-relative prefix"
+links_js() { # page prefix — is one of the copied .js files linked at this prefix?
+  local page=$1 prefix=$2 f
+  for f in $js; do
+    if grep -q "\"$prefix$f\"" "$page"; then return 0; fi
+  done
+  return 1
+}
+links_js "$H/index.html" "rookery/search/" ||
+  note "index.html does not link the search JS at the root-relative prefix"
 grep -q '"rookery/search/search.css"' "$H/index.html" ||
   note "index.html does not link search.css at the root-relative prefix"
-grep -q '"../rookery/search/lib.js"' "$H/sub/page.html" ||
-  note "sub/page.html does not link lib.js at the depth-relative prefix"
+links_js "$H/sub/page.html" "../rookery/search/" ||
+  note "sub/page.html does not link the search JS at the depth-relative prefix"
 grep -q '"../rookery/search/search.css"' "$H/sub/page.html" ||
   note "sub/page.html does not link search.css at the depth-relative prefix"
 
