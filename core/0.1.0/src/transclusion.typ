@@ -95,7 +95,7 @@
 //
 // Must be called from inside a `context` block: `_permalink` reads the page
 // handle and the prefix state. Both callers already are.
-#let _window-content(id, rec, shown, folded, show-date, show-tags, show-frame: true, show-id: true, windows-claim: false) = {
+#let _window-content(id, rec, shown, folded, show-date, show-tags, show-frame: true, show-id: true, show-label: true, windows-claim: false) = {
   // `created`, matching `#idea`'s own hat. There was an `updated` field here
   // until 0.6.0 and this hat showed it, on the argument that a reader wants to
   // know when a note was last touched. Core no longer answers that: a
@@ -125,7 +125,28 @@
   //
   // `.at` with a default, so a record written by an older rookery in the same
   // document degrades to no name rather than panicking.
-  let name = rec.at("label", default: none)
+  //
+  // `show-label: false` PICKS THE OTHER FIELD, and the two are genuinely
+  // different things (see `#idea`'s title-vs-label banner in idea.typ): `label`
+  // is the derived name — the authored title where there is one, else the body's
+  // own first sixty characters — and `title` is only ever the AUTHORED one,
+  // `none` on a note nobody titled. So this is the switch between "name this
+  // window somehow" and "name it only if its author did".
+  //
+  // Wanted where a window is not a reference but a RENDERING — a slipshow's
+  // slide, say, where a derived label sits directly above the very first line it
+  // was derived from and prints it twice. The cost, stated in the readme: a
+  // TITLELESS note's summary is then empty, and an empty summary on a `folded:
+  // true` window is a disclosure control nobody can recognise.
+  //
+  // TYPE DIFFERENCE IS DELIBERATE and needs no conversion: `label` is a str,
+  // `title` is content, and both arms below take either — the HTML span wraps it
+  // and the paged head passes it to `strong`.
+  let name = if show-label {
+    rec.at("label", default: none)
+  } else {
+    rec.at("title", default: none)
+  }
 
   // A WINDOW WEARS THE NOTE'S OWN VISIBLE TAGS, the same set and the same
   // filter `#idea`'s card uses (`_visible-tags`, state.typ) — an invisible
@@ -410,6 +431,7 @@
           // framed window.
           show-frame: v.at("show-frame", default: true),
           show-id: v.at("show-id", default: true),
+          show-label: v.at("show-label", default: true),
           windows-claim: depth - 1 > 1,
         ),
         WK,

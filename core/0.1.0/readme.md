@@ -393,6 +393,37 @@ chip is it. A note written `#idea[..]` and rendered with `show-id: false` theref
 has an id nothing on the page reveals, so nobody can write a `#window` for it. Give
 a note a name (`#idea("x")[..]`) if it should stay linkable, or leave `show-id` on.
 
+### `show-label:` — an authored title, or nothing
+
+`show-label:` is on `#window` alone, `true` by default, and it chooses which of a
+record's TWO name fields the summary shows:
+
+- **`label`** (the default) — the derived name: the authored title where there is
+  one, else the first sixty characters of the note's own body.
+- **`title`** (`show-label: false`) — the AUTHORED title only, and nothing at all
+  for a note nobody titled.
+
+The default is right for what a window usually is: a REFERENCE to another note,
+whose summary is the clickable thing that names it, and which is often written
+`folded: true` with nothing but that summary showing. A derived name is exactly
+what that case wants.
+
+**It is wrong where a window RENDERS a note rather than referring to it.** An
+unfolded window sits directly above the body its label was derived from, so an
+untitled note prints its own first line twice — once as the summary and once as
+the first line of the prose beneath it. That is the case
+[`@rookery/slipshow`](../../slipshow/0.1.0) hits on every slide.
+
+**The trap: `show-label: false` with `folded: true`.** A titleless note then has an
+empty summary, which is a disclosure control with nothing in it — nobody can
+recognise it or click it with intent. Use the pair only where the notes are known
+to be titled, or leave the window unfolded.
+
+Nothing outside `#window` changes: `#ideas-outline`, `@rookery/search` and a
+minted page's `<title>` all keep reading the derived `label`, because that is
+what a note is CALLED. This is a per-window display switch, not a change to the
+note's name.
+
 **Both switches ride the nested-note payload.** A note written inside another
 note's body is rebuilt from a `#metadata` record when its parent is transcluded or
 minted, never from the original call site, so `show-frame` and `show-id` are stored
@@ -482,7 +513,12 @@ Three ways, pick by how much ceremony you want:
   `show-frame: false` drops the window's left rule and indent, the same switch
   `#idea` takes for a card, and leaves the summary, the disclosure and the body
   exactly as they were. `show-id: false` drops the permalink from the summary,
-  the same switch again. See "Dropping a note's frame" below for both.
+  the same switch again. See "Dropping a note's frame" above for both.
+
+  `show-label: false` names this window only if its note carries an AUTHORED
+  title, instead of falling back to the label derived from the note's first
+  line — see "`show-label:` — an authored title, or nothing" above. It is a
+  `#window` argument only: a card already prints the authored title alone.
 
   The window's own wrapper wears the note's visible tags too, unconditionally
   — the same `.idea-tag-<key>` classes and the same `data-rookery-tags`

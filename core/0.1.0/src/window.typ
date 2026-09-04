@@ -73,6 +73,11 @@
   // `show-tags`/`show-date` also off the summary keeps only its title, and with
   // no title it keeps nothing — see `_permalink-tab` (permalink.typ).
   show-id: true,
+  // `false` names this window only if its note carries an AUTHORED title,
+  // instead of falling back to the label derived from the note's first line.
+  // For a window that RENDERS a note rather than referring to it — see
+  // `_window-content`'s own comment on `name`.
+  show-label: true,
   depth: auto,
   tags: none,
   match: "any",
@@ -236,6 +241,7 @@
       show-tags: show-tags,
       show-frame: show-frame,
       show-id: show-id,
+      show-label: show-label,
       limit: limit,
     ))
 
@@ -275,7 +281,7 @@
     // its links must not read as links from whatever page is showing it.
     _bracket(
       figure(kind: WK, supplement: none, [
-        #marker#_window-content(id, rec, shown, folded, show-date, show-tags, show-frame: show-frame, show-id: show-id, windows-claim: d > 1)
+        #marker#_window-content(id, rec, shown, folded, show-date, show-tags, show-frame: show-frame, show-id: show-id, show-label: show-label, windows-claim: d > 1)
       ]),
       WK,
     )
