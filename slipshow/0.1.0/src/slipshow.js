@@ -43,9 +43,10 @@ let currentScale = 1;
 let focusStack = [];
 let reducedMotion = false;
 let resizeTimer = null;
-// Whether the camera has run at all. False until the first navigation on a
-// deck opened without a `#slip-<id>` fragment, so that first press lands on
-// the current slip rather than stepping past it.
+// Whether the reader has entered the deck. False until the first navigation
+// on a deck opened without a `#slip-<id>` fragment, so that first press
+// lands on the current slip rather than stepping past it. Flips back to
+// false in `stop()`, when a backwards press off slip 0 leaves the deck.
 let started = false;
 // Whether this deck hides the slips the reader has not reached yet
 // (`data-reveal="progressive"`, the default — see `src/slipshow.typ`'s
@@ -53,14 +54,29 @@ let started = false;
 let revealing = false;
 
 // The index of the LAST slip a progressive deck should be showing, given the
-// two pieces of state that decide it. `-1` — show nothing — before the camera
-// has run, which is what makes a deck open empty: `started` is false until the
-// reader's first press, so a freshly loaded page has no current slip yet
-// rather than a current slip of 0. Exported for `test/reveal.test.mjs`; the
-// off-by-one here is the whole behaviour, and it is the one part of the reveal
-// that can be tested without a DOM.
+// two pieces of state that decide it. `-1` — show nothing — whenever `started`
+// is false: before the reader's first press, and again after `stop()` sends
+// them back out, so the deck is exactly as empty leaving as it was arriving.
+// Exported for `test/reveal.test.mjs`; the off-by-one here is the whole
+// behaviour, and it is the one part of the reveal that can be tested without
+// a DOM.
 export function revealThrough(hasStarted, index) {
   return hasStarted ? index : -1;
+}
+
+// True when a requested index would enter a not-yet-started deck: any index
+// at or past `currentIndex` (a forward press, `Home`, `End`, a fragment
+// landing), never one before it — a backwards press on an unentered deck
+// stays a no-op rather than entering the deck.
+export function entersDeck(hasStarted, currentIndex, index) {
+  return !hasStarted && index >= currentIndex;
+}
+
+// True when a requested index would exit an already-started deck: a
+// backwards press off slip 0, and only there — the one case `goTo`'s ordinary
+// clamp would otherwise swallow, leaving `started` stuck true forever.
+export function exitsDeck(hasStarted, currentIndex, index) {
+  return hasStarted && index < 0 && currentIndex === 0;
 }
 
 // Puts `slip-revealed` on every slip up to `revealThrough`'s answer and takes
@@ -195,14 +211,42 @@ function apply(el, { recordFocus }) {
 
 function goTo(index) {
   if (!started) {
+    if (!entersDeck(started, currentIndex, index)) return;
     started = true;
     apply(slips[currentIndex], { recordFocus: true });
+    return;
+  }
+  if (exitsDeck(started, currentIndex, index)) {
+    stop();
     return;
   }
   const clamped = Math.min(Math.max(index, 0), slips.length - 1);
   if (clamped === currentIndex) return;
   currentIndex = clamped;
   apply(slips[currentIndex], { recordFocus: true });
+}
+
+// Leaves the deck: undoes `started`, collapses the reveal back to nothing,
+// and scrolls to the deck's own top edge instead of past slip 0.
+// `syncReveal()` runs BEFORE the `getBoundingClientRect()` read below, same
+// as `apply` (see its comment) — it is what collapses every slip back to
+// `display: none`, so the rect measures where the deck's top will land once
+// empty, not where it sat while slip 0 was still shown. The `replaceState`
+// carries no fragment, so a reload lands above the deck instead of
+// re-entering it at `#slip-<id>` (`init` reads that fragment back).
+function stop() {
+  started = false;
+  focusStack = [];
+  currentIndex = 0;
+  syncReveal();
+  applyScale(1, slips[0]);
+  history.replaceState(null, "", location.pathname + location.search);
+  const top = clampTo(
+    deck.getBoundingClientRect().top + window.scrollY - MARGIN,
+    document.documentElement.scrollHeight,
+    window.innerHeight,
+  );
+  window.scrollTo({ top, behavior: scrollBehavior() });
 }
 
 // Re-targets the current slip without changing it — a resize can change its

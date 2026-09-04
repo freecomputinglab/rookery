@@ -8,7 +8,7 @@
 // `typeof document !== "undefined"`, so `init` never runs here.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { revealThrough } from "../src/slipshow.js";
+import { revealThrough, entersDeck, exitsDeck } from "../src/slipshow.js";
 
 test("before the first press nothing is revealed, whatever the index says", () => {
   assert.equal(revealThrough(false, 0), -1);
@@ -24,4 +24,28 @@ test("the first press reveals the current slip and no more", () => {
 test("the boundary is the current slip, so going back re-hides", () => {
   assert.equal(revealThrough(true, 5), 5);
   assert.equal(revealThrough(true, 2), 2);
+});
+
+test("a forward press enters an unstarted deck", () => {
+  assert.equal(entersDeck(false, 0, 1), true);
+});
+
+test("a backwards press on an unentered deck does nothing", () => {
+  assert.equal(entersDeck(false, 0, -1), false);
+});
+
+test("a Home press, or a fragment landing, still enters even at the current index", () => {
+  assert.equal(entersDeck(false, 3, 3), true);
+});
+
+test("a backwards press off slip 0 leaves a started deck", () => {
+  assert.equal(exitsDeck(true, 0, -1), true);
+});
+
+test("an ordinary backwards step does not leave the deck", () => {
+  assert.equal(exitsDeck(true, 3, 2), false);
+});
+
+test("a deck already out cannot be exited again", () => {
+  assert.equal(exitsDeck(false, 0, -1), false);
 });
