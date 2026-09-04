@@ -133,6 +133,13 @@ back — and the two copies should look the same. Pass `show-frame: true` /
 already prints the authored title alone, so there is no derived label for a
 `#slip` to suppress.
 
+`foldable` and `reserve-title` are absent for the same reason, and it is the
+same reason twice: both are `#window` arguments, and an authored `#slip` renders
+as a CARD, which has no disclosure and no summary row at all — so there is
+nothing to make unfoldable and no reserved title line to drop. They apply to the
+queried route, where `#slipshow` renders each slip through `#window`, and that
+is where the deck sets them.
+
 All three of `#idea`'s id forms work identically on `#slip`: a bare body with
 an auto-generated id (`#slip[..]`), a string name (`#slip("intro")[..]`), or
 a label (`#slip(<intro>)[..]`).
@@ -182,6 +189,8 @@ itself gets:
   show-frame: false,
   show-id: false,
   show-label: false,
+  foldable: false,
+  reserve-title: false,
   backlink: false,
 )
 ```
@@ -199,8 +208,30 @@ panics naming the valid set.
 `reveal:` is the progressive reveal, `true` by default — see its own section
 below.
 
-`show-frame:`, `show-id:` and `show-label:` are `@rookery/core`'s own chrome
-switches with their defaults inverted — see "A slip wears no card chrome" below.
+`show-frame:`, `show-id:`, `show-label:`, `foldable:` and `reserve-title:` are
+`@rookery/core`'s own chrome switches with their defaults inverted — see "A slip
+wears no card chrome" below.
+
+`foldable: false` and `reserve-title: false` are the two that make a slip read
+as a slide rather than as a reference to a note:
+
+- **`foldable: false`** — a slide is not a disclosure. There is no
+  `<details>`/`<summary>`, so nothing can fold a slide shut under a stray click
+  and the summary row stops offering a pointer. The `[idea:<name>]` permalink
+  inside it is still a link and still navigates. Pass `foldable: true` for a
+  deck you want to collapse.
+- **`reserve-title: false`** — no blank line above a titleless slide. Because
+  this deck also sets `show-label: false`, a note with no AUTHORED title has a
+  genuinely empty summary, and the line core reserves for a title there is dead
+  space above the body. **A slide whose note DOES have a title still shows it,
+  with core's ordinary spacing** — the reservation only ever applied to a
+  summary with no title at all. Either way the slide is not foldable; the two
+  switches are independent.
+
+The hover tint is deliberately LEFT ALONE, at core's `show-background: true`. It
+is how a slide answers a pointer, and it is independent of `show-frame`, which
+this deck does turn off — so there is no `show-background` argument here, since
+its only value would be core's default.
 
 `backlink:` is core's own too, also inverted: a deck does not count as a link to
 the notes it shows — see "A deck is not a reference" below.

@@ -121,15 +121,23 @@
 // its `auto` default (1): show this note, collapse anything windowed inside
 // it to a permalink.
 //
-// THE THREE CHROME FLAGS DEFAULT TO CORE'S OWN VALUES HERE, not to the deck's,
-// so a call that forgets to pass them renders a plain `@rookery/core` window
+// EVERY CHROME FLAG DEFAULTS TO CORE'S OWN VALUE HERE, not to the deck's,
+// so a call that forgets to pass one renders a plain `@rookery/core` window
 // rather than silently inheriting a presentation decision from a deck that is
 // not in scope. `#slipshow` passes its own at both call sites.
 //
 // They reach the QUERY route only. An array entry is content that was rendered
 // at its own `#slip(..)` call site, long before this deck existed, so there is
 // nothing left here to configure — see the readme's note under `slips:`.
-#let _render-slip(e, show-frame: true, show-id: true, show-label: true, backlink: true) = {
+#let _render-slip(
+  e,
+  show-frame: true,
+  show-id: true,
+  show-label: true,
+  foldable: true,
+  reserve-title: true,
+  backlink: true,
+) = {
   if e.kind == "content" {
     e.content
   } else {
@@ -138,6 +146,8 @@
       show-frame: show-frame,
       show-id: show-id,
       show-label: show-label,
+      foldable: foldable,
+      reserve-title: reserve-title,
       backlink: backlink,
     )
   }
@@ -323,6 +333,19 @@
   show-frame: false,
   show-id: false,
   show-label: false,
+  // A slide is READ, not scanned, and both of these invert core's default for
+  // that reason. `foldable: false` because a stray click that folded a slide
+  // shut would be a bug and never an intention; `reserve-title: false` because
+  // this deck also sets `show-label: false`, so a TITLELESS note's summary
+  // genuinely has no title and the line core reserves for one is dead space
+  // above the body. A note that HAS a title still shows it, with the ordinary
+  // spacing, and is still not foldable.
+  foldable: false,
+  reserve-title: false,
+  // NO `show-background` HERE, deliberately. Core's default is `true` and a
+  // slide wants the tint — it is how the slide answers a pointer, and it is
+  // independent of `show-frame`, which this deck does turn off. A pass-through
+  // whose only value is the default would be a knob with nothing behind it.
   backlink: false,
 ) = context {
   assert(
@@ -341,13 +364,16 @@
     message: "@rookery/slipshow: `reveal` must be a bool — got " + repr(reveal),
   )
 
-  // THE THREE CHROME FLAGS, all `false` where `@rookery/core`'s own defaults are
+  // THE CHROME FLAGS, all `false` where `@rookery/core`'s own defaults are
   // `true`. That inversion is the whole argument: a slip's `<section>` is
   // already the visual unit, so the note's card frame inside it reads as a frame
   // around a frame; the `[idea:47]` permalink above every slide is machinery a
-  // reader of a deck has no use for; and a note with no authored title has its
+  // reader of a deck has no use for; a note with no authored title has its
   // own first line derived into a label and printed directly above that same
-  // first line. A deck that wants any of them back passes `true`.
+  // first line; a slide that folds shut under a stray click is never what the
+  // click meant; and the line core reserves for a missing title is dead space
+  // once `show-label: false` has left the summary genuinely titleless. A deck
+  // that wants any of them back passes `true`.
   assert(
     type(show-frame) == bool,
     message: "@rookery/slipshow: `show-frame` must be a bool — got " + repr(show-frame),
@@ -359,6 +385,15 @@
   assert(
     type(show-label) == bool,
     message: "@rookery/slipshow: `show-label` must be a bool — got " + repr(show-label),
+  )
+  assert(
+    type(foldable) == bool,
+    message: "@rookery/slipshow: `foldable` must be a bool — got " + repr(foldable),
+  )
+  assert(
+    type(reserve-title) == bool,
+    message: "@rookery/slipshow: `reserve-title` must be a bool — got "
+      + repr(reserve-title),
   )
 
   // `backlink: false` BY DEFAULT, inverting core's own. A deck is a VIEW of
@@ -397,6 +432,8 @@
         show-frame: show-frame,
         show-id: show-id,
         show-label: show-label,
+        foldable: foldable,
+        reserve-title: reserve-title,
         backlink: backlink,
       )
     }
@@ -419,6 +456,8 @@
           show-frame: show-frame,
           show-id: show-id,
           show-label: show-label,
+          foldable: foldable,
+          reserve-title: reserve-title,
           backlink: backlink,
         )
       })
