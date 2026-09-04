@@ -12,10 +12,19 @@ JavaScript**, which has no maintained distribution meant to be dropped into
 someone else's page.
 
 **Camera-only, and that is worth saying plainly to a reader who knows
-slipshow already.** A slip is fully rendered the moment it enters the DOM;
-only the viewport moves to it. There is no `pause`, no `reveal`, no
-incremental build of a slip's own content, and no step directives of any
-kind — the camera is the only motion this package has.
+slipshow already.** A slip is fully rendered the moment it is shown; only the
+viewport moves within it. There is no `pause`, no incremental build of a
+slip's own content, and no step directives of any kind — the camera is the
+only motion this package has.
+
+**A deck does reveal itself one slip at a time, though, and that is the
+default.** A slipshow opens EMPTY: no slip is on the page until the reader
+presses for one, and each advance brings exactly one more into the document,
+so the page grows as the presentation runs. This is a whole-slip reveal and
+not slipshow's own `pause` — the boundary is always "everything up to the
+current slip", never a point inside one — and going back takes slips away
+again rather than leaving a trail. `#slipshow(reveal: false)` renders the
+whole deck up front instead; see "`reveal:`" below.
 
 **A slipshow is a FLAT ordered list of ideas.** An idea written literally
 inside another's body — a nested `#idea`/`#slip` — is ordinary content: it
@@ -144,6 +153,7 @@ itself gets:
   reverse: false,
   row: none,
   enter: "scroll",
+  reveal: true,
 )
 ```
 
@@ -156,6 +166,53 @@ the result. Giving neither route, or both, panics naming which:
 `enter:` is the deck-wide default camera action, one of the eight named in
 "Keyboard and mouse controls" below (`"scroll"` by default); a bad value
 panics naming the valid set.
+
+`reveal:` is the progressive reveal, `true` by default — see its own section
+below.
+
+### `reveal:` — the deck opens empty
+
+```typst
+#slipshow(tags: "slip")                 // opens empty, one slip per advance
+#slipshow(tags: "slip", reveal: false)  // the whole deck rendered up front
+```
+
+By default a slipshow shows **no slips at all** when the page loads, and
+reveals them one at a time as the reader advances: the first press puts up the
+first slip, the second press the second, and so on. The boundary is always the
+CURRENT slip — `←` and `Home` hide what they move back past rather than leaving
+it on the page, and `End` reveals the whole deck at once because that is where
+the current slip now is. Opening on a `#slip-<id>` fragment reveals everything
+up to and including the slip it names, so a permalink into the middle of a deck
+still lands on a page with the run-up to it in place.
+
+**A hidden slip is `display: none` and takes up no room**, so a page carrying a
+deck is exactly as long as the slips currently on it. That is the point rather
+than an implementation detail: the alternative — hiding a slip in place —
+leaves a twenty-slip deck opening as one screen of content and nineteen screens
+of blank page, and every camera target the engine computes is measured against
+a document that is mostly nothing.
+
+Three consequences worth knowing before turning it on for a deck, or off:
+
+- **Click-to-advance cannot START a revealing deck.** The click handler is
+  bound to `div.slipshow`, which has no area at all while the deck is empty, so
+  the first move has to come from the keyboard (`→`, `↓`, `Space`, …). Click
+  works normally from the first slip onwards. Listening on the document instead
+  would let a click on a page's own heading or margin scroll a reader into a
+  deck they had not asked to enter, which is the same thing the load-time
+  camera rule below refuses to do.
+- **The hiding is done by the controller, not by the markup.** `#slipshow`
+  renders the identical DOM either way and only sets `data-reveal` on the deck
+  root; `src/slipshow.js` adds a `slipshow-revealing` class at startup and a
+  `slip-revealed` class per revealed slip, and `src/slipshow.css` hides on
+  those. So a reader whose JavaScript never ran — a blocked script, an EPUB
+  reader that executes none — gets the whole deck rendered rather than a blank
+  page with no key that would fill it.
+- **A PDF prints every slip**, `reveal:` or not: the paged branch has no camera
+  to have arrived at one, exactly as it has no rows and no backgrounds.
+
+`reveal:` is a `bool`; anything else panics naming it.
 
 ### The explicit array: `slips:`
 
@@ -355,6 +412,11 @@ Reachable from the keyboard and from a click, both bound in
 | `Esc` | **unfocus** — return the camera to wherever it was before the last `focus` action moved it (a stack, so repeated focuses undo in the reverse order); a no-op if nothing was ever focused |
 | click anywhere inside the deck | advance to the next slip |
 
+On a revealing deck (the default) every one of these also brings the deck up
+to wherever it lands: forwards reveals, backwards hides again, and `End`
+reveals the lot. Only the click has a starting condition — an empty deck has
+nothing to click, so the first move is a keypress. See "`reveal:`" above.
+
 Keyboard shortcuts are ignored outright while a modifier (`Ctrl`/`Alt`/
 `Meta`/`Shift`) is held, and while focus sits in an `<input>`, a `<textarea>`
 or any `contenteditable` element — a reader typing into a form on a slip
@@ -376,7 +438,9 @@ otherwise:
   matching fragment IS present, the camera runs on load and jumps straight
   there. Either way, the very first press or click lands the camera on
   whichever slip is already current (the first slip, or the one the
-  fragment named) rather than skipping past it to the next one.
+  fragment named) rather than skipping past it to the next one — and on a
+  revealing deck that press is also what puts that slip on the page in the
+  first place.
 
 There is no mouse binding beyond click-to-advance — no click-to-go-back, no
 scroll-wheel binding, no drag. Ordinary scrolling (wheel, trackpad, the
@@ -448,11 +512,19 @@ mechanism itself; a package's `css_stylesheet` is additive, so this is one
 more stylesheet linked alongside it rather than something to replace.
 
 The slip DOM contract — `div.slipshow`, `section.slip`, `div.slip-row
-[data-row]`, `div.slip-bg`, and the `data-enter`/`data-index`/`data-row`
-attributes carried on them — is documented in full at the top of
-`src/slipshow.typ`; that comment is the one place the exact markup is
-pinned, and `src/slipshow.css`/`src/slipshow.js` are both written against
-it.
+[data-row]`, `div.slip-bg`, and the
+`data-enter`/`data-reveal`/`data-index`/`data-row` attributes carried on them
+— is documented in full at the top of `src/slipshow.typ`; that comment is the
+one place the exact markup is pinned, and `src/slipshow.css`/
+`src/slipshow.js` are both written against it.
+
+Two classes in that contract are written at RUNTIME rather than by the Typst
+side, and a project's own stylesheet can style on them: `slipshow-revealing`
+on the deck root, meaning the controller is alive and the reveal is in force,
+and `slip-revealed` on each slip up to the current one. Overriding
+`.slipshow-revealing .slip:not(.slip-revealed)` is how a project changes what
+an unreached slip looks like — dimmed instead of gone, say — rather than
+turning the feature off, which is `reveal: false`'s job.
 
 `src/slipshow.css` reaches a slip's own content — a `#slip`/`#idea` card, or
 a transcluded `#window` — only through core's `[data-rookery="box"]`/

@@ -10,7 +10,13 @@
 
 = Deck built from an explicit array
 
-#slipshow(slips: (
+// `reveal: false` is this page's second job: it is the ONE deck in this
+// fixture that opts out of the progressive reveal, so `check.sh` has a
+// `data-reveal="all"` root to assert against alongside the three that take
+// the default. A three-slip deck on a page about how the array route reads
+// its options back is also the case where showing everything at once costs a
+// reader least.
+#slipshow(reveal: false, slips: (
   slip("intro", title: [Written in the order it runs], fullscreen: true)[
     An explicit array is already ordered by construction, so `#slipshow`
     refuses an `order:` argument here rather than silently ignoring it.

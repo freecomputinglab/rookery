@@ -25,18 +25,26 @@ pdf="$P/rheo.pdf"
 #    authored note on it. The two definition routes (`index.typ`'s tag query,
 #    `explicit.typ`'s array, `predicate.typ`'s predicate, `deck.typ`'s array)
 #    all have to produce this same DOM shape (`src/slipshow.typ`'s header).
+#    The third argument is the deck's `data-reveal` — always present on the
+#    root, `progressive` unless the page passed `reveal: false`. Asserting it
+#    HERE and not only that the attribute exists is what pins the default:
+#    the reveal is otherwise invisible to a check on markup, since the hiding
+#    itself is two runtime classes (`src/slipshow.js`'s `syncReveal`) and no
+#    slip is rendered any differently for it.
 check_page() {
-  local file=$1 want=$2
+  local file=$1 want=$2 reveal=${3:-progressive}
   local path="$H/$file.html"
   local divs secs
   divs=$(grep -o '<div class="slipshow"' "$path" | wc -l)
   [ "$divs" -eq 1 ] || note "$file.html: expected 1 div.slipshow, found $divs"
   secs=$(grep -o '<section class="slip' "$path" | wc -l)
   [ "$secs" -eq "$want" ] || note "$file.html: expected $want section.slip, found $secs"
+  grep -q "data-reveal=\"$reveal\"" "$path" ||
+    note "$file.html: expected the deck to carry data-reveal=\"$reveal\""
 }
 
 check_page index 5
-check_page explicit 3
+check_page explicit 3 all
 check_page predicate 2
 check_page deck 12
 

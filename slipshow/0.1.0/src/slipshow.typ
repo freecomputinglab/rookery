@@ -3,7 +3,7 @@
 // `src/slipshow.js` are both pinned to. Nothing downstream can change these
 // names without changing all three together.
 //
-//   <div class="slipshow" data-enter="scroll">
+//   <div class="slipshow" data-enter="scroll" data-reveal="progressive">
 //     [<div class="slip-row" [data-row="0"]>]
 //       <section class="slip [slip-fullscreen] [<slip-class>]"
 //                id="slip-<id>" data-index="0" [data-enter="focus"]
@@ -15,6 +15,17 @@
 //     ...
 //   </div>
 //
+// - `data-reveal` on the root is `"progressive"` (the default) or `"all"`,
+//   from `#slipshow`'s own `reveal:` argument, and is always present. Under
+//   `"progressive"` the controller hides every slip the reader has not
+//   reached yet — the deck opens EMPTY and each advance brings one more slip
+//   into the page. The hiding is done with two classes the controller adds at
+//   runtime, `slipshow-revealing` on the root and `slip-revealed` on each
+//   slip up to the current one, and NOT by this file: a deck must render its
+//   whole content for a reader whose JavaScript never ran, so the markup here
+//   is identical under either value and only the attribute differs. See
+//   `src/slipshow.css`'s reveal section for the pair of rules, and
+//   `src/slipshow.js`'s `syncReveal`.
 // - `data-enter` on the root is the DECK-WIDE default, taken from
 //   `#slipshow`'s own `enter:` argument, and is always present. A `<section>`
 //   carries `data-enter` of its own ONLY when that slip's `#slip(enter: ..)`
@@ -78,7 +89,9 @@
 // and no chrome of its own, exactly as if they had been written straight into
 // the document — no background, row grouping, or max-width, of any kind, is
 // emitted for that target at all. A row is a screen-layout fact and a PDF
-// has no screen.
+// has no screen. Progressive reveal is the same kind of fact and goes the
+// same way: a PDF prints every slip, `reveal:` or not, since there is no
+// camera there to have arrived at one.
 
 #import "@rookery/core:0.1.0": window
 #import "tags.typ": *
@@ -268,11 +281,22 @@
   reverse: false,
   row: none,
   enter: "scroll",
+  reveal: true,
 ) = context {
   assert(
     enter in ENTERS,
     message: "@rookery/slipshow: `enter` must be one of "
       + ENTERS.join(", ") + " — got " + repr(enter),
+  )
+
+  // A BOOL RATHER THAN THE TWO ATTRIBUTE SPELLINGS, because there are exactly
+  // two states and `reveal: false` reads better at a call site than
+  // `reveal: "all"`. The attribute keeps the words: `data-reveal="all"` says
+  // what it means in a DOM inspector, where a bare `data-reveal="false"`
+  // would leave a reader wondering what was false about it.
+  assert(
+    type(reveal) == bool,
+    message: "@rookery/slipshow: `reveal` must be a bool — got " + repr(reveal),
   )
 
   // `resolve-slips` validates `slips`/`tags`/`where`/`order`/`row` itself
@@ -299,7 +323,11 @@
 
   html.elem(
     "div",
-    attrs: (class: "slipshow", "data-enter": enter),
+    attrs: (
+      class: "slipshow",
+      "data-enter": enter,
+      "data-reveal": if reveal { "progressive" } else { "all" },
+    ),
     {
       let render-section(pair) = html.elem("section", attrs: _slip-attrs(pair.e, pair.i), {
         let bg = _background-child(pair.e.tags)

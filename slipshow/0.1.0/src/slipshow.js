@@ -1,7 +1,8 @@
 // The slipshow controller: finds the deck's slips in the DOM, tracks which
-// one is current, and moves the page there. `src/camera.js` computes WHERE
-// to go from plain numbers; this module measures the DOM, calls it, and
-// applies the result with `window.scrollTo` (or, inside a horizontally
+// one is current, reveals the deck up to it, and moves the page there.
+// `src/camera.js` computes WHERE to go from plain numbers; this module
+// measures the DOM, calls it, and applies the result with
+// `window.scrollTo` (or, inside a horizontally
 // overflowing `.slip-row`, that row's own `scrollTo`) and a CSS transform for
 // zoom. `src/slipshow.css` owns the deck's layout. All three are pinned to
 // the DOM contract documented at the top of `src/slipshow.typ` — none of the
@@ -46,6 +47,35 @@ let resizeTimer = null;
 // deck opened without a `#slip-<id>` fragment, so that first press lands on
 // the current slip rather than stepping past it.
 let started = false;
+// Whether this deck hides the slips the reader has not reached yet
+// (`data-reveal="progressive"`, the default — see `src/slipshow.typ`'s
+// header). Read once at init.
+let revealing = false;
+
+// The index of the LAST slip a progressive deck should be showing, given the
+// two pieces of state that decide it. `-1` — show nothing — before the camera
+// has run, which is what makes a deck open empty: `started` is false until the
+// reader's first press, so a freshly loaded page has no current slip yet
+// rather than a current slip of 0. Exported for `test/reveal.test.mjs`; the
+// off-by-one here is the whole behaviour, and it is the one part of the reveal
+// that can be tested without a DOM.
+export function revealThrough(hasStarted, index) {
+  return hasStarted ? index : -1;
+}
+
+// Puts `slip-revealed` on every slip up to `revealThrough`'s answer and takes
+// it off the rest. A no-op on a `data-reveal="all"` deck, so every caller can
+// call it unconditionally.
+//
+// IDEMPOTENT AND WHOLE-DECK, rather than adding the one class that changed:
+// going backwards has to take classes OFF again — the deck's rule is "nothing
+// beyond the active slip", not "everything visited so far" — and a `Home` or a
+// fragment landing can move the boundary by any number of slips at once.
+function syncReveal() {
+  if (!revealing) return;
+  const through = revealThrough(started, currentIndex);
+  slips.forEach((s, i) => s.classList.toggle("slip-revealed", i <= through));
+}
 
 // A slip's own `data-enter`, else "left" for a non-first slip in a row (see
 // `rowEnter`), else the deck's default, else "scroll" — the same chain
@@ -110,6 +140,14 @@ function applyScale(scale, el) {
 // whichever slip is already current — `recordFocus` is false for the
 // latter, since a resize does not enter a new focus.
 function apply(el, { recordFocus }) {
+  // FIRST, and before a single measurement: a slip the reveal is about to
+  // show is `display: none` until this runs, so its rect is all zeroes and
+  // the document is shorter than it is about to be. Both `documentRect`
+  // below and the `scrollHeight` clamp further down read layout, which
+  // flushes the class change synchronously, so the numbers they get are the
+  // ones the reader will see.
+  syncReveal();
+
   const action = actionFor(el);
   const rect = documentRect(el);
   const viewport = currentViewport();
@@ -211,6 +249,13 @@ function onKeydown(event) {
   }
 }
 
+// BOUND ON THE DECK, which on a progressive deck has no area at all until
+// the first slip is up — so click-to-advance cannot be what STARTS such a
+// deck, and the first move has to come from the keyboard. That is the
+// trade the empty opening buys, and the alternative is worse: listening on
+// the document instead would let a click on a page's own heading or margin
+// scroll a deck the reader had not asked to enter, which is exactly what
+// the load-time camera rule below refuses to do.
 function onClick(event) {
   if (event.target.closest(CLICK_IGNORE_SELECTOR)) return;
   goTo(currentIndex + 1);
@@ -232,6 +277,26 @@ function init() {
   if (slips.length === 0) return;
 
   reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // THE HIDING IS TURNED ON FROM HERE, not from the stylesheet's own
+  // selectors, and that is deliberate: `slipshow-revealing` is the marker
+  // that this controller is alive, so a reader whose JavaScript never ran (a
+  // script blocked, an EPUB reader that executes none) gets the whole deck
+  // rendered rather than a page that is permanently empty and has no key
+  // that would fill it.
+  //
+  // A missing `data-reveal` reads as progressive, matching `#slipshow`'s own
+  // default: the Typst side always writes the attribute, so the only markup
+  // without one is older than this file, and defaulting the other way would
+  // silently opt such a page out of the behaviour it is about to be rebuilt
+  // with anyway.
+  revealing = deck.dataset.reveal !== "all";
+  if (revealing) {
+    deck.classList.add("slipshow-revealing");
+    // With `started` still false this reveals NOTHING, which is the point:
+    // the deck occupies no height at all until the reader's first press.
+    syncReveal();
+  }
 
   // A `#slip-<id>` fragment is a request to open the deck there, so the
   // camera runs on load. WITHOUT one it does not: a page carrying a deck

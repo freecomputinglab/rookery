@@ -1,5 +1,6 @@
 /* rookery-slipshow — the presentation stylesheet: slip layout, row layout,
-   fullscreen slips, and backgrounds. Pinned to the DOM `src/slipshow.typ`
+   fullscreen slips, backgrounds, and the progressive reveal that keeps a
+   deck empty until the reader walks into it. Pinned to the DOM `src/slipshow.typ`
    emits (read that file's header for the exact markup) and to the
    camera/scroll behaviour `src/slipshow.js` drives — all three name the
    same class/attribute/data-* vocabulary and cannot be changed apart.
@@ -174,6 +175,34 @@
    it in this file, not by being more specific. */
 .slip-row > .slip-fullscreen {
   min-height: 0;
+}
+
+/* PROGRESSIVE REVEAL (`data-reveal="progressive"`, `src/slipshow.typ`'s
+   header). Two rules, and both hang off `.slipshow-revealing` — a class
+   `src/slipshow.js` adds to the deck root at init and this file never sees
+   otherwise. That indirection is the whole safety story: the attribute alone
+   would hide the deck for a reader whose JavaScript never ran, and since
+   nothing else could then bring a slip back, the page would be permanently
+   blank. Hiding only once the controller has announced itself means no JS
+   gets the whole deck rendered, exactly as it did before this existed.
+
+   `display: none`, not `visibility` or `opacity`: an unreached slip must take
+   up NO ROOM, or a deck of twenty opens as one screen of content followed by
+   nineteen screens of blank page, and every camera target the engine computes
+   is measured against a document that is mostly nothing. */
+.slipshow-revealing .slip:not(.slip-revealed) {
+  display: none;
+}
+
+/* A ROW WHOSE SLIPS ARE ALL STILL HIDDEN goes too, and it has to be said
+   separately because a row is not a slip: an empty `.slip-row` still
+   contributes its own `gap`, and one containing a fullscreen slip still
+   matches `.slip-row:has(> .slip-fullscreen)` above — `:has` tests the DOM,
+   which a `display: none` child is still in — so it would hold a whole
+   viewport of blank page open for a slip nobody has reached. The moment any
+   one of its slips is revealed the row comes back with it. */
+.slipshow-revealing .slip-row:not(:has(> .slip-revealed)) {
+  display: none;
 }
 
 /* AN INLINE `background-image`, from a source OTHER than this package:
