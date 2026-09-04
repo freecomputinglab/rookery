@@ -16,3 +16,11 @@ formats = ["html"]
 # would compile to its own `lib.html`.
 [spine]
 exclude = ["lib.typ"]
+
+# THE FIXTURE STYLESHEET, and it is load-bearing rather than cosmetic. It sets
+# `display` on `.panel-row` from an UNLAYERED rule, which is what every real
+# consuming project does and what defeats this package's own layered hide rule.
+# `check.sh` asserts the thing that still works under that pressure. See
+# `style.css`'s own comment.
+[[html.assets]]
+css_stylesheet = "./style.css"

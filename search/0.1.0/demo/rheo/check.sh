@@ -226,6 +226,58 @@ grep -q 'data-panel-tags=" demo-a "' "$FP" || note "the one-pill row's tags are 
 grep -q 'data-panel-tags="  "' "$FP" || note "the no-pills row should carry an empty padded list"
 # THE ROW IS ROOKERY'S. If this fails, the panel is drawing its own markup again.
 grep -q 'class="idea-row panel-row' "$FP" || note "filter-panel rows are not #idea-row"
+
+# AND THE ATTRIBUTE, NOT ONLY THE CLASS — this is the assertion that says a
+# filter-panel actually HIDES anything, and it is separate from the class check
+# above because the class is not what does the hiding.
+#
+# `wirePanel` (src/panel.js) sets `row.el.hidden = true` on every excluded row,
+# and a row stays on screen anyway unless some rule turns `[hidden]` into
+# `display: none`. This package ships one — `.panel-row[hidden]`, src/search.css
+# — but it sits inside `@layer search`, and an UNLAYERED author rule beats every
+# layered one whatever its specificity. `style.css` next door is exactly such a
+# rule, deliberately, so in this fixture the package's own hide rule LOSES.
+#
+# What still hides the row is @rookery/core's `[data-rookery="row"][hidden]`,
+# which is unlayered and (0,2,0), and it reaches these rows only because
+# `#filter-panel` builds them out of `#idea-row` rather than markup of its own
+# (see core's `row.typ`, which records that this is where `#filter-panel` and
+# `#panel` diverge). So the guarantee is a joint property of two packages, and
+# these two assertions are its guard: the attribute must be on every row, and
+# core's rule must stay out of a layer.
+python3 - "$FP" "$H" <<'HIDE' || fail=1
+import re, sys
+page, built = sys.argv[1], sys.argv[2]
+ok = True
+html = open(page).read()
+# BOTH CLASSES, and that narrowing is the point rather than belt-and-braces.
+# `#panel` wraps its own `render:` output in a plain `<li class="panel-row">`
+# and carries no `data-rookery`, so it has the same weakness — a real one, and
+# a separate change, since core keys its own grid template on that attribute.
+# This assertion is scoped to `#filter-panel`, whose rows ARE `#idea-row`s and
+# therefore wear both classes.
+rows = [r for r in re.findall(r'<li\b[^>]*>', html)
+        if 'panel-row' in r and 'idea-row' in r]
+if not rows:
+    print('FAIL: no filter-panel <li> rows found at all'); ok = False
+for r in rows:
+    if 'data-rookery="row"' not in r:
+        print('FAIL: a filter-panel row carries no data-rookery="row"; pressing '
+              'a pill will update the count and hide nothing')
+        print('      ' + r[:160])
+        ok = False
+        break
+core = open(built + '/rookery/core/core.css').read()
+if '[data-rookery="row"][hidden]' not in core:
+    print('FAIL: core.css no longer hides [data-rookery="row"][hidden]; a filtered '
+          'filter-panel row will stay on screen')
+    ok = False
+if re.search(r'(?m)^@layer\b', core):
+    print('FAIL: core.css opened an @layer; its [hidden] rule would then lose to '
+          "a project's own unlayered rule and hide nothing")
+    ok = False
+sys.exit(0 if ok else 1)
+HIDE
 grep -q 'class="idea-row-badges"' "$FP" || note "no shared badge strip in the filter panel"
 grep -q 'class="idea-tag idea-tag-demo-a"' "$FP" || note "a pill tag did not become a chip on its row"
 
