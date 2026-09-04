@@ -1,6 +1,8 @@
 // The slipshow controller: finds the deck's slips in the DOM, tracks which
 // one is current, reveals the deck up to it, and moves the page there.
-// `src/camera.js` computes WHERE to go from plain numbers; this module
+// `src/camera.js` computes WHERE to go from plain numbers; `src/edges.js`
+// draws the connector curves between slip rails, and is called from here
+// whenever what it drew could have moved; this module
 // measures the DOM, calls it, and applies the result with
 // `window.scrollTo` (or, inside a horizontally
 // overflowing `.slip-row`, that row's own `scrollTo`) and a CSS transform for
@@ -14,6 +16,7 @@
 // returns silently rather than throwing or logging.
 
 import { targetFor, clampTo, unfocusTarget } from "./camera.js";
+import { redraw } from "./edges.js";
 
 // Gap kept between a slip's edge and the viewport edge when the camera
 // scrolls or zooms to it.
@@ -209,11 +212,20 @@ function apply(el, { recordFocus }) {
   history.replaceState(null, "", "#" + el.id);
 }
 
+// The connector layer (`src/edges.js`), redrawn wherever what it drew could
+// have moved: a reveal change (a slide appearing or disappearing moves every
+// slide below it), a resize, and a row scrolling itself sideways. An
+// early-returning no-op path needs none — nothing moved.
+function redrawEdges() {
+  if (deck) redraw(deck);
+}
+
 function goTo(index) {
   if (!started) {
     if (!entersDeck(started, currentIndex, index)) return;
     started = true;
     apply(slips[currentIndex], { recordFocus: true });
+    redrawEdges();
     return;
   }
   if (exitsDeck(started, currentIndex, index)) {
@@ -224,6 +236,7 @@ function goTo(index) {
   if (clamped === currentIndex) return;
   currentIndex = clamped;
   apply(slips[currentIndex], { recordFocus: true });
+  redrawEdges();
 }
 
 // Leaves the deck: undoes `started`, collapses the reveal back to nothing,
@@ -247,6 +260,7 @@ function stop() {
     window.innerHeight,
   );
   window.scrollTo({ top, behavior: scrollBehavior() });
+  redrawEdges();
 }
 
 // Re-targets the current slip without changing it — a resize can change its
@@ -307,7 +321,10 @@ function onClick(event) {
 
 function onResize() {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(reposition, RESIZE_DEBOUNCE_MS);
+  resizeTimer = setTimeout(() => {
+    reposition();
+    redrawEdges();
+  }, RESIZE_DEBOUNCE_MS);
 }
 
 function init() {
@@ -357,6 +374,14 @@ function init() {
   document.addEventListener("keydown", onKeydown);
   deck.addEventListener("click", onClick);
   window.addEventListener("resize", onResize);
+
+  // A row scrolling sideways moves its slides' rails under curves anchored
+  // outside it, and a row's scroll reaches no other listener here.
+  for (const row of deck.querySelectorAll(".slip-row")) {
+    row.addEventListener("scroll", redrawEdges, { passive: true });
+  }
+
+  redrawEdges();
 }
 
 if (typeof document !== "undefined") {

@@ -18,5 +18,7 @@ js_scripts = "dist/lib.js"
 css_stylesheet = "src/slipshow.css"
 
 [tool.rheo.source.html]
-js_scripts = ["src/camera.js", "src/slipshow.js"]
+# Dependency-first: `slipshow.js` imports both of the others, so a git-ref
+# build that serves this list unbundled must load them ahead of it.
+js_scripts = ["src/camera.js", "src/edges.js", "src/slipshow.js"]
 js_module = true
