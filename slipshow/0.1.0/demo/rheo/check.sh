@@ -75,6 +75,20 @@ deck_chrome predicate 2
 # rendered before any deck existed and nothing downstream can reach inside them.
 deck_chrome explicit 3
 
+# 2c. A DECK ANNOUNCES NOTHING. `#slipshow`'s `backlink:` defaults to false, so
+#     a deck contributes nothing to the backlinks graph — the notes it shows do
+#     not list the deck's page among their Backlinks.
+#
+#     `crossdeck.typ` is the only page here that can see this, and its own
+#     comment says why: every other deck queries notes authored on its own page,
+#     and a page that MINTS a note is already that note's Context rather than a
+#     backlink, so those pages give the same footer whatever `backlink:` says.
+#     `crossdeck.typ` decks `index.typ`'s `opener` by NAME instead. Flip it to
+#     `backlink: true` and the section appears — that is this check's control.
+[ -f "$H/crossdeck.html" ] || note "no page at $H/crossdeck.html"
+grep -q 'Crossdeck' "$H/ideas/opener.html" &&
+  note "ideas/opener.html: the deck on crossdeck.typ announced itself as a backlink"
+
 # 3. deck.html carries exactly two fullscreen bookends — the opening and
 #    closing slips, and nothing else on that page.
 full=$(grep -o 'class="slip slip-fullscreen' "$H/deck.html" | wc -l)

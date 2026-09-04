@@ -37,6 +37,12 @@
 //   on them are core's, and a deck passing `true` gets core's ordinary card
 //   back. An explicit-array entry is already-rendered content and is not
 //   reachable from here; it carries whatever its own `#slip(..)` asked for.
+// - A QUERIED SLIP ALSO ANNOUNCES NOTHING. `backlink:` defaults to `false` and
+//   rides the same route, so a deck contributes nothing to the backlinks graph:
+//   the notes it shows do not list this page among their Backlinks. Nothing is
+//   visible in the markup either way — the flag travels inside the announce
+//   marker `#window` emits, which is emitted whatever its value (see
+//   `@rookery/core`'s `window.typ` for why).
 // - `data-enter` on the root is the DECK-WIDE default, taken from
 //   `#slipshow`'s own `enter:` argument, and is always present. A `<section>`
 //   carries `data-enter` of its own ONLY when that slip's `#slip(enter: ..)`
@@ -123,11 +129,17 @@
 // They reach the QUERY route only. An array entry is content that was rendered
 // at its own `#slip(..)` call site, long before this deck existed, so there is
 // nothing left here to configure — see the readme's note under `slips:`.
-#let _render-slip(e, show-frame: true, show-id: true, show-label: true) = {
+#let _render-slip(e, show-frame: true, show-id: true, show-label: true, backlink: true) = {
   if e.kind == "content" {
     e.content
   } else {
-    window(e.row.id, show-frame: show-frame, show-id: show-id, show-label: show-label)
+    window(
+      e.row.id,
+      show-frame: show-frame,
+      show-id: show-id,
+      show-label: show-label,
+      backlink: backlink,
+    )
   }
 }
 
@@ -311,6 +323,7 @@
   show-frame: false,
   show-id: false,
   show-label: false,
+  backlink: false,
 ) = context {
   assert(
     enter in ENTERS,
@@ -348,6 +361,18 @@
     message: "@rookery/slipshow: `show-label` must be a bool — got " + repr(show-label),
   )
 
+  // `backlink: false` BY DEFAULT, inverting core's own. A deck is a VIEW of
+  // notes that already live somewhere else — `demo/rheo/content/index.typ` says
+  // as much about the tag-query route: "always an additional view onto content
+  // that already lives somewhere, never its only home" — so nobody wrote a link
+  // here, and letting a deck announce puts a page nobody linked from into the
+  // Backlinks of every note it shows. A deck whose whole point IS to point at
+  // those notes passes `true`.
+  assert(
+    type(backlink) == bool,
+    message: "@rookery/slipshow: `backlink` must be a bool — got " + repr(backlink),
+  )
+
   // `resolve-slips` validates `slips`/`tags`/`where`/`order`/`row` itself
   // (see `select.typ`) — duplicating those asserts here would just be a
   // second copy of the same message.
@@ -367,7 +392,13 @@
     // `target()` reports EPUB as "html", so an EPUB build takes the deck
     // branch below like a real HTML build does, not this one.
     for e in entries {
-      _render-slip(e, show-frame: show-frame, show-id: show-id, show-label: show-label)
+      _render-slip(
+        e,
+        show-frame: show-frame,
+        show-id: show-id,
+        show-label: show-label,
+        backlink: backlink,
+      )
     }
     return
   }
@@ -383,7 +414,13 @@
       let render-section(pair) = html.elem("section", attrs: _slip-attrs(pair.e, pair.i), {
         let bg = _background-child(pair.e.tags)
         if bg != none { bg }
-        _render-slip(pair.e, show-frame: show-frame, show-id: show-id, show-label: show-label)
+        _render-slip(
+          pair.e,
+          show-frame: show-frame,
+          show-id: show-id,
+          show-label: show-label,
+          backlink: backlink,
+        )
       })
       for run in _row-runs(entries) {
         let r = _entry-row(run.first().e)

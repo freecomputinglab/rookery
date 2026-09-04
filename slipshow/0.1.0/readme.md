@@ -182,6 +182,7 @@ itself gets:
   show-frame: false,
   show-id: false,
   show-label: false,
+  backlink: false,
 )
 ```
 
@@ -200,6 +201,9 @@ below.
 
 `show-frame:`, `show-id:` and `show-label:` are `@rookery/core`'s own chrome
 switches with their defaults inverted — see "A slip wears no card chrome" below.
+
+`backlink:` is core's own too, also inverted: a deck does not count as a link to
+the notes it shows — see "A deck is not a reference" below.
 
 ### A slip wears no card chrome
 
@@ -233,6 +237,37 @@ does the hiding. `#slipshow` only chooses different defaults and forwards them.
 way to discover an AUTO-GENERATED id. A deck of unnamed notes rendered with
 `show-id: false` therefore has no ids a reader can copy into a `#window` or a
 `#slip-<id>` fragment. Give the slips explicit names if they should be linkable.
+
+### A deck is not a reference
+
+```typst
+#slipshow(tags: "slip")                   // announces nothing, the default
+#slipshow(tags: "slip", backlink: true)   // the deck page counts as a link
+```
+
+A queried slip is transcluded through `#window`, and a `#window` normally
+announces the note it shows: you wrote it in a note's prose, so that note links
+to this one. A deck is not that. It is a VIEW of notes that already live
+somewhere else — `demo/rheo/content/index.typ` puts it as "always an additional
+view onto content that already lives somewhere, never its only home" — and
+nobody wrote a link at all. Left announcing, a page of twenty queried notes puts
+itself in twenty notes' Backlinks.
+
+So `backlink:` is `false` here where core's own default is `true`. A deck whose
+whole point IS to point at those notes — an index page, a reading list — passes
+`true`.
+
+**Nothing about this is visible in the markup**, which is worth saying because it
+makes the behaviour hard to check by eye. The flag travels inside the announce
+marker `#window` emits, and that marker is emitted whatever its value: a third
+reader needs it to know a nested window will claim the enclosing note's
+citations. `@rookery/core`'s readme has the full account under "`backlink:` — a
+view is not a reference".
+
+**The array route is unaffected**, and not because it opts out: an entry that is
+already-rendered `#slip(..)` content never went through `#window`, so it never
+announced anything in the first place. An entry given by NAME does go through
+`#window` and follows the deck.
 
 ### `reveal:` — the deck opens empty
 
