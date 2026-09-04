@@ -314,23 +314,119 @@
   layer
 }
 
+// The sort key for a list of sibling nodes: priority ascending, then name,
+// with an unprioritised node last. `layers` and `dfs-of` both order by it, and
+// it matches `layout.js`'s `rows()` and the list views, so the drawn graph and
+// a deck built from the same data agree about sequence.
+#let _rank(r) = (
+  if r.at("priority", default: none) == none { 9 } else { r.priority },
+  r.name,
+)
+
 // Groups `graph.nodes.values()` into an array of arrays by `layer-of(graph)`,
-// index = layer, layer 0 first — the nodes on the same layer are exactly the
-// notes a horizontal slipshow wants side by side: several todos depending on
-// the same parent and on nothing from each other. Within a layer, ties break
-// by priority then name, with an unprioritised node last, matching
-// `layout.js`'s `rows()` and the list views, so the drawn graph and a deck
-// built from the same data agree about sequence.
+// index = layer, layer 0 first — the nodes on the same layer are the notes the
+// drawn graph puts on one line: several todos depending on the same parent and
+// on nothing from each other.
 #let layers(graph) = {
   let layer = layer-of(graph)
   let max-layer = layer.values().fold(-1, (m, l) => calc.max(m, l))
   range(max-layer + 1).map(l => graph.nodes
     .values()
     .filter(r => layer.at(r.name) == l)
-    .sorted(key: r => (
-      if r.at("priority", default: none) == none { 9 } else { r.priority },
-      r.name,
-    )))
+    .sorted(key: _rank))
+}
+
+// ---- dfs-of — a deck's reading order, depth-first -------------------------
+//
+// A depth-first walk of the graph `layer-of` layers, returning
+// `(order: (name -> int), group: (name -> int))` — a node's position in the
+// emitted sequence, and the id of the contiguous run of siblings it was
+// emitted with. Both carry one entry per node in `graph.nodes`.
+//
+// DEPTH-FIRST IS WHAT KEEPS A CONNECTOR CURVE SHORT. Reading the graph layer
+// by layer puts every other node of a layer between a todo and the ones it
+// releases; following one branch to its end puts them beside each other.
+//
+// A GROUP IS THE TODOS ONE PARENT RELEASES, emitted adjacently so
+// `#slipshow`'s `_row-runs` — which groups CONSECUTIVE entries and never
+// reorders — can lay them out side by side. Group ids are distinct ints;
+// nothing reads one as an index.
+//
+// `roots-together` is the one thing the two deck directions disagree about:
+// with it the dependency-free nodes are a single group and span a row,
+// without it each is a group of one and they stack. Everything they release
+// is emitted identically either way. A root is a node with no dependency
+// INSIDE the graph, so a todo whose only dep dangles is one — the same rule
+// that makes a dangling dep no layering input and no blocker.
+//
+// Iterative with an explicit worklist rather than recursive, for the reason
+// `find-cycle` and `layer-of` above both give: Typst has a recursion depth
+// limit and a rookery is not bounded in size. Taking from the front of that
+// worklist and pushing onto the front is what makes the walk depth-first;
+// pushing onto the back instead is the layering `layer-of` already provides.
+#let dfs-of(graph, roots-together: false) = {
+  assert-acyclic(graph)
+
+  // Name -> the names that DEPEND on it, the reverse of `graph.edges`, whose
+  // pairs run from a todo to what it depends on. Every edge has both ends in
+  // `graph.nodes` (`todo-graph` sorts a dangling dep into `unresolved`
+  // instead), so no membership check is needed on either side.
+  let kids = (:)
+  for name in graph.nodes.keys() { kids.insert(name, ()) }
+  let has-dep = (:)
+  for e in graph.edges {
+    kids.insert(e.at(1), kids.at(e.at(1)) + (e.at(0),))
+    has-dep.insert(e.at(0), true)
+  }
+
+  let ranked = names => names.map(n => graph.nodes.at(n)).sorted(key: _rank).map(r => r.name)
+  let roots = ranked(graph.nodes.keys().filter(n => n not in has-dep))
+
+  let order = (:)
+  let group = (:)
+  let g = 0
+  let i = 0
+
+  if roots-together {
+    for n in roots {
+      order.insert(n, i)
+      group.insert(n, g)
+      i += 1
+    }
+  }
+
+  for r in roots {
+    if not roots-together {
+      g += 1
+      order.insert(r, i)
+      group.insert(r, g)
+      i += 1
+    }
+    let worklist = (r,)
+    while worklist.len() > 0 {
+      let m = worklist.remove(0)
+      // Unvisited at EXPANSION time, not at queue time: a todo released by two
+      // parents is emitted once, under whichever of them expands first.
+      let fresh = ranked(kids.at(m).filter(k => k not in order))
+      if fresh.len() > 0 {
+        g += 1
+        for k in fresh {
+          order.insert(k, i)
+          group.insert(k, g)
+          i += 1
+        }
+        worklist = fresh + worklist
+      }
+    }
+  }
+
+  // A node reachable from no root cannot exist in an acyclic graph, and a deck
+  // that silently lost a slide would be worse than a build that stops.
+  assert(
+    order.len() == graph.nodes.len(),
+    message: "@rookery/todos: dfs-of did not reach every node",
+  )
+  (order: order, group: group)
 }
 
 // ---- #todo-graph-view — the DAG, as a page element ------------------------

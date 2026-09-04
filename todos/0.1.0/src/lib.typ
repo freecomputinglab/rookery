@@ -28,7 +28,7 @@
 // package — see `panel.typ`'s own header for why the edge now exists.
 #import "panel.typ": *
 
-// AFTER `graph.typ`, whose `layer-of`/`is-ready`/`is-blocked` it projects, and
+// AFTER `graph.typ`, whose `dfs-of`/`is-ready`/`is-blocked` it projects, and
 // placed beside `panel.typ` above: the two are this package's only imports of
 // another package's names, and it is the same reasoning both times — see
 // `deck.typ`'s own header for the @rookery/slipshow edge.

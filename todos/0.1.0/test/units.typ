@@ -303,6 +303,39 @@
 #let tied = g(rowp("lo", priority: 3), rowp("hi", priority: 1), rowp("none-pri"))
 #assert.eq(layers(tied).at(0).map(r => r.name), ("hi", "lo", "none-pri"))
 
+// ---- dfs-of — the deck's reading order ------------------------------------
+
+// A branch is followed to its end before the next one starts, and the todos
+// one parent releases are emitted adjacently as a single group.
+#let walk = dfs-of(dag)
+#assert.eq(walk.order, (a: 0, b: 1, c: 2, d: 3))
+#assert.eq(walk.group.at("b"), walk.group.at("c"))
+#assert.ne(walk.group.at("a"), walk.group.at("b"))
+
+// `d` depends on both `b` and `c`, and is emitted ONCE — under `b`, the first
+// of the two to expand.
+#assert.eq(walk.order.len(), 4)
+
+// Depth-first and not layer by layer: `a`'s whole branch lands before the next
+// dependency-free todo, even though `z` shares `a`'s layer.
+#let two-roots = g(row("a"), row("z"), row("a2", deps: ("a",)))
+#assert.eq(dfs-of(two-roots).order, (a: 0, a2: 1, z: 2))
+
+// `roots-together` is the only thing the two deck directions disagree about:
+// the dependency-free todos become one group, and are emitted before anything
+// they release.
+#let together = dfs-of(two-roots, roots-together: true)
+#assert.eq(together.order, (a: 0, z: 1, a2: 2))
+#assert.eq(together.group.at("a"), together.group.at("z"))
+
+// A dangling dep names nothing that could hold a todo back, so `a` is a root
+// here exactly as it is layer 0 above.
+#assert.eq(dfs-of(dangling).order.at("a"), 0)
+
+// Sibling lists carry `layers`' own tie-break: priority ascending, then name,
+// unprioritised last.
+#assert.eq(dfs-of(tied).order, (hi: 0, lo: 1, "none-pri": 2))
+
 // ---- todo-slip-keys — the @rookery/slipshow key functions -----------------
 //
 // Each of the four functions reads only `r.name` off the row `#slipshow`
@@ -310,16 +343,34 @@
 // `ideas(values: true)` registry row here.
 #let reg(name) = (name: name)
 
-// Layer 0 vs layer 1. `(dk.row)(..)`, not `dk.row(..)`: Typst refuses to call
-// a dictionary value with method syntax, since a stored key could collide
-// with a built-in method name.
+// A chain has no sibling group anywhere in it: every slip is a group of one,
+// and a group of one gets no row, so the whole deck stacks. `(dk.row)(..)`,
+// not `dk.row(..)`: Typst refuses to call a dictionary value with method
+// syntax, since a stored key could collide with a built-in method name.
 #let sk-chain = g(row("a"), row("b", deps: ("a",)))
 #let dk = todo-slip-keys(sk-chain)
-#assert.eq((dk.row)(reg("a")), 0)
-#assert.eq((dk.row)(reg("b")), 1)
+#assert.eq((dk.row)(reg("a")), none)
+#assert.eq((dk.row)(reg("b")), none)
 
-// The zero-padded order key sorts correctly across a ten-layer graph — a
-// plain `str(layer)` would put "10" before "2".
+// Two todos released by the same parent share a row, which is the one thing
+// that spans horizontally whatever the direction.
+#let dkf = todo-slip-keys(g(row("a"), row("b", deps: ("a",)), row("c", deps: ("a",))))
+#assert.eq((dkf.row)(reg("a")), none)
+#assert.ne((dkf.row)(reg("b")), none)
+#assert.eq((dkf.row)(reg("b")), (dkf.row)(reg("c")))
+
+// `direction:` decides only what the dependency-free todos do: stack by
+// default, span one row under `"across"`.
+#let sk-roots = g(row("a"), row("b"))
+#let dkd = todo-slip-keys(sk-roots)
+#assert.eq((dkd.row)(reg("a")), none)
+#assert.eq((dkd.row)(reg("b")), none)
+#let dka = todo-slip-keys(sk-roots, direction: "across")
+#assert.ne((dka.row)(reg("a")), none)
+#assert.eq((dka.row)(reg("a")), (dka.row)(reg("b")))
+
+// The zero-padded order key sorts correctly across an eleven-slip deck — a
+// plain `str(position)` would put "10" before "2".
 #let names10 = range(11).map(i => "n" + str(i))
 #let chain10 = g(..names10.enumerate().map(((i, n)) => if i == 0 {
   rowp(n)
@@ -329,7 +380,7 @@
 #let dk10 = todo-slip-keys(chain10)
 #assert.eq(names10.sorted(key: n => (dk10.order)(reg(n))), names10)
 
-// Within a layer, an unprioritised todo sorts after a p3 sibling.
+// Among siblings, an unprioritised todo sorts after a p3 one.
 #let samelayer = g(rowp("p3", priority: 3), rowp("none-pri"))
 #let dks = todo-slip-keys(samelayer)
 #assert.eq(

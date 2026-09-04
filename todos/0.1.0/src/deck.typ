@@ -1,7 +1,7 @@
 // `#todo-slipshow` — the todo graph, laid out as an `@rookery/slipshow` deck.
 //
 // THIS FILE IS THE ONE IMPORT EDGE TO @rookery/slipshow, and it mirrors
-// `panel.typ`'s edge to @rookery/search for the same reason: `layer-of`,
+// `panel.typ`'s edge to @rookery/search for the same reason: `dfs-of`,
 // `is-ready` and `is-blocked` derive in THIS package and nowhere else
 // (`graph.typ`), so a deck that cannot read them is the thing every
 // consuming site hand-rolls — see `slipshow/0.1.0/examples/dag/content/
@@ -13,19 +13,24 @@
 // for `#filter-panel`.
 //
 // `todo-slip-keys`' `row:` AND `order:` ARE A MATCHED PAIR, not two
-// independent options. `order:` sorts by layer first precisely so
-// `#slipshow`'s `_row-runs` — which groups CONSECUTIVE entries and never
-// reorders — sees each layer's members adjacent; passing `row:` with no such
-// `order:` fragments every layer into singleton rows instead of a horizontal
-// run.
+// independent options. `order:` is the depth-first position `dfs-of`
+// (`graph.typ`) emits, precisely so `#slipshow`'s `_row-runs` — which groups
+// CONSECUTIVE entries and never reorders — sees each sibling group adjacent;
+// passing `row:` with no such `order:` fragments every group into singleton
+// rows instead of a horizontal run.
+//
+// `direction:` decides the one thing the two deck shapes disagree about:
+// `"down"` (the default) gives every dependency-free todo a group of its own
+// so they stack, `"across"` makes them one group so they span a row. The
+// todos a single parent releases share a row in both.
 
 #import "@rookery/slipshow:0.1.0": slipshow
 #import "graph.typ": *
 #import "tags.typ": *
 
 // Zero-pads `s` with leading zeros to width `w`. Typst has no string-repeat
-// operator, and without this a layer count past nine breaks `order`'s sort:
-// the plain string "10" sorts before "2".
+// operator, and without this a deck of more than nine slips breaks `order`'s
+// sort: the plain string "10" sorts before "2".
 #let _pad(s, w) = {
   let out = s
   while out.len() < w { out = "0" + out }
@@ -33,7 +38,7 @@
 }
 
 // The four `#slipshow` key functions (`row:`, `order:`, `class:`, `edges:`) a
-// horizontal todo deck needs, each over an `ideas(values: true)` REGISTRY
+// todo deck needs, each over an `ideas(values: true)` REGISTRY
 // ROW — the shape `#slipshow` hands a key function. A registry row carries
 // `id`, `name`, `title`, `text`, `label`, `tags`, `tags-dict`, `body`,
 // `href`, `page` and `created`; it does NOT carry `deps`, `closed` or
@@ -50,26 +55,44 @@
 // means "no class", not "leave the tag alone", and a key function has no way
 // to say the latter. A deck mixing an authored, classed slide in among its
 // todos passes its own `class:` to `#todo-slipshow`, which wins outright.
-#let todo-slip-keys(graph, today: none, done: "inline") = {
+#let todo-slip-keys(graph, today: none, done: "inline", direction: "down") = {
   assert(
     done in ("inline", "first", "last"),
     message: "@rookery/todos: `done` must be \"inline\", \"first\", or "
       + "\"last\" — got " + repr(done),
   )
+  assert(
+    direction in ("down", "across"),
+    message: "@rookery/todos: `direction` must be \"down\" or \"across\" — got "
+      + repr(direction),
+  )
 
-  // Computed ONCE, not per call: `layer-of` walks the whole graph, and every
+  // Computed ONCE, not per call: the walk covers the whole graph, and every
   // slip in the deck asks it the same question.
-  let layer = layer-of(graph)
-  let max-layer = layer.values().fold(0, (m, l) => calc.max(m, l))
-  let width = str(max-layer).len()
+  let walk = dfs-of(graph, roots-together: direction == "across")
+  let width = str(walk.order.len()).len()
 
-  let row(r) = layer.at(r.name, default: none)
+  // Group id -> member count. Dictionary keys are strings in Typst, so the
+  // int id is stringified to index this and nothing else.
+  let sizes = (:)
+  for (_, gid) in walk.group {
+    sizes.insert(str(gid), sizes.at(str(gid), default: 0) + 1)
+  }
+
+  // A GROUP OF ONE GETS NO ROW. `#slipshow` gives a `none`-row entry no
+  // `div.slip-row` wrapper at all (`slipshow.typ`), which is what makes a
+  // "down" deck stack: every dependency-free todo is its own group there, and
+  // so is the only todo a parent releases.
+  let row(r) = {
+    let gid = walk.group.at(r.name, default: none)
+    if gid == none or sizes.at(str(gid)) == 1 { return none }
+    gid
+  }
 
   let order(r) = {
     let n = graph.nodes.at(r.name, default: none)
     if n == none { return none }
-    let p = if n.priority == none { "9" } else { str(n.priority) }
-    let key = _pad(str(layer.at(r.name)), width) + p + r.name
+    let key = _pad(str(walk.order.at(r.name)), width)
     if done == "inline" { return key }
     // `first`/`last` sort by closedness before anything else: a "0" prefix
     // sorts ahead of a "1" one, so which digit a closed note gets is what
@@ -124,9 +147,9 @@
 // a call site does not compose them by hand. `..args` takes only named
 // arguments — `#slipshow` itself has no positional parameter for them to
 // fill — and
-// `today:`/`done:` are this wrapper's own, consumed by `todo-slip-keys`
-// rather than forwarded: `#slipshow` has neither parameter.
-#let todo-slipshow(..args, today: none, done: "inline") = context {
+// `today:`/`done:`/`direction:` are this wrapper's own, consumed by
+// `todo-slip-keys` rather than forwarded: `#slipshow` has none of the three.
+#let todo-slipshow(..args, today: none, done: "inline", direction: "down") = context {
   assert(
     args.pos().len() == 0,
     message: "@rookery/todos: #todo-slipshow takes only named arguments — "
@@ -136,7 +159,7 @@
 
   let graph = todo-graph()
   assert-acyclic(graph)
-  let keys = todo-slip-keys(graph, today: today, done: done)
+  let keys = todo-slip-keys(graph, today: today, done: done, direction: direction)
 
   // `resolve-slips` refuses `order:` alongside `slips:` outright — an
   // explicit array is already in the order it was written — so the derived
