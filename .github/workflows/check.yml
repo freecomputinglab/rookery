@@ -39,36 +39,54 @@ jobs:
       # Pinned to the OLDEST rheo the four manifests declare as their floor, NOT
       # to the newest rheo: the point is that the DECLARED floor is the floor
       # actually tested, so a package that reaches for a newer surface fails
-      # here instead of on a user's machine. Nothing in rheo reads `min_version`
-      # yet, so this step is the only thing enforcing it.
+      # here instead of on a user's machine. rheo reads `min_version` itself and
+      # refuses a package above the running version, so this step and that check
+      # have to agree — if they drift, one of them is testing a fiction.
       #
-      # `core` declares `[tool.rheo] min_version = "0.6.0"` because it REQUIRES
-      # a 0.6.0 surface: `_resolve-dest` (`core/0.1.0/src/urls.typ`) emits a
-      # reserved `rheo-page:<handle>` link dest, and only rheo 0.6.0 rewrites it
-      # into a depth-correct href. Under 0.5.2 the dest passes straight through
-      # and every page ships a literal `href="rheo-page:ideas:<slug>"`, which is
-      # what `core/0.1.0/demo/rheo/check.sh` catches.
+      # All four declare `min_version = "0.6.2"`, and NOT because the Typst
+      # surface moved — it has not since 0.6.0. Three requirements stack up.
+      #
+      # 0.6.0: `_resolve-dest` (`core/0.1.0/src/urls.typ`) emits a reserved
+      # `rheo-page:<handle>` link dest that only 0.6.0 and later rewrite into a
+      # depth-correct href; `core/0.1.0/demo/rheo/check.sh` catches the literal an
+      # older rheo ships instead.
+      #
+      # 0.6.1: where rheo learned to resolve a namespace it does not ship, via the
+      # `[packages.<ns>]` table a project needs to say where `@rookery` comes from
+      # at all — so no older rheo can consume this family under its own namespace.
+      #
+      # 0.6.2: 0.6.1 still located packages by probing Typst's directory layout in
+      # the two places that read a package's `.marrow.typ`, and a package fetched
+      # from a ref lives at a path keyed by its resolved commit, which no probe
+      # matches. Every page this family mints from marrow went missing, on a build
+      # that succeeded and warned about nothing. Since every consumer currently
+      # tracks the `0.1.0` branch rather than a release, that is the ordinary case
+      # here, not an edge one.
       #
       # Pinned URL AND pinned digest, for the same auditability reason the
       # Typst step gives: a re-uploaded asset fails this step rather than
       # silently changing what CI tested.
-      - name: Install rheo 0.6.0 (the declared min_version floor)
+      - name: Install rheo 0.6.2 (the declared min_version floor)
         run: |
           set -euo pipefail
-          # Digest of the v0.6.0 rheo-x86_64-unknown-linux-gnu.zip asset, published
-          # 2026-08-24. Read back with:
-          #   gh release view v0.6.0 --repo freecomputinglab/rheo --json assets
+          # Digest of the v0.6.2 rheo-x86_64-unknown-linux-gnu.zip asset, published
+          # 2026-08-30. Read it back with (note the exact asset name: matching on
+          # "linux-gnu.zip" also catches the aarch64 build, and `digest` comes back
+          # "sha256:"-prefixed, which `sha256sum -c` will not accept):
+          #   gh release view v0.6.2 --repo freecomputinglab/rheo --json assets \
+          #     --jq '.assets[] | select(.name == "rheo-x86_64-unknown-linux-gnu.zip") | .digest' \
+          #     | cut -d: -f2
           # BUMP THIS IN THE SAME EDIT AS THE URL BELOW: the `sha256sum -c` is what
           # makes a re-uploaded or wrong-version asset fail here rather than silently
           # changing what CI tested.
-          sha256="05c40231acaaf58fd0e3cba0b40e1c1d1a939bfe6bea8e775868dbf6f9c79d7f"
+          sha256="ab71c5e4fea2ff05381f19e9ff11003e311e03974dcfd663a52b05569eceaa71"
           curl -fsSL -o rheo.zip \
-            https://github.com/freecomputinglab/rheo/releases/download/v0.6.0/rheo-x86_64-unknown-linux-gnu.zip
+            https://github.com/freecomputinglab/rheo/releases/download/v0.6.2/rheo-x86_64-unknown-linux-gnu.zip
           echo "$sha256  rheo.zip" | sha256sum -c -
           unzip -q rheo.zip -d rheo-bin
           chmod +x rheo-bin/rheo
           echo "$PWD/rheo-bin" >> "$GITHUB_PATH"
-          rheo-bin/rheo --version   # must print: rheo 0.6.0
+          rheo-bin/rheo --version   # must print: rheo 0.6.2
 
       # First, because it is the cheapest failure in the repo and the one that
       # silently ships a broken release: a version directory cut by copying and
@@ -127,6 +145,12 @@ jobs:
       # (CLAUDE.md, "Build"). `demo/pure` is plain `typst compile`, so it runs
       # anywhere. `just build`, not a hand-copied subset of its `typst compile`
       # lines, so a new root added to the Justfile is gated in CI automatically.
+      #
+      # What's left here is what the rheo demo's own native-Typst build (below)
+      # cannot cover: `excluded.typ`'s `--input` pair (`rheo compile` forwards no
+      # `--input` at all) and `root-prefix.typ`/`theme.typ`'s non-default
+      # `prefix:`/`theme:`, which is document-wide state and cannot share a
+      # document with content that hardcodes the default.
       - name: core pure demo compiles and checks, HTML and PDF
         run: cd core/0.1.0/demo/pure && just build
 
@@ -139,6 +163,14 @@ jobs:
       # `.marrow.typ` needs `@rookery/core:0.1.0` to resolve from the cache.
       - name: core rheo demo compiles and asserts, under the declared floor
         run: cd core/0.1.0/demo/rheo && just check
+
+      # The same content compiled a SECOND way, plain `typst compile`, no
+      # rheo — one document, one compile pass, no minted pages — and asserted
+      # by `check-native.sh`, not merely compiled. AFTER the namespace-symlink
+      # step, for the same reason as the rheo build above: the content
+      # imports `@rookery/core:0.1.0` by coordinate.
+      - name: core rheo demo's rookery compiles and asserts without rheo too
+        run: cd core/0.1.0/demo/rheo && just check-typst
 
       # search's own rheo fixture. Its `check.sh` asserts what neither the
       # `node --test` suite nor the parity harness can see: that rheo copied
@@ -173,3 +205,17 @@ jobs:
       # looks correct in the markup — it is only wrong on screen.
       - name: todos rheo demo compiles and asserts
         run: cd todos/0.1.0 && just check
+
+      # AFTER the namespace-symlink step, like every rheo demo above: this
+      # package imports `@rookery/core:0.1.0` by coordinate. AFTER its own
+      # `just build`, because `dist/` is gitignored and rheo cannot resolve
+      # the package until vite has written it.
+      - name: slipshow build, unit fixture and rheo demo
+        run: cd slipshow/0.1.0 && just build && just test && just check
+
+      # AFTER the namespace-symlink step, like every rheo demo above: these
+      # example projects import `@rookery/core:0.1.0` by coordinate. AFTER
+      # slipshow's own `just build` above, because `dist/` is gitignored and
+      # rheo cannot resolve the package until vite has written it.
+      - name: slipshow examples compile
+        run: cd slipshow/0.1.0 && just examples

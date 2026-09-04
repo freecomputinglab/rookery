@@ -1,0 +1,49 @@
+default:
+    @echo "rookery-bibtex: pure Typst package, entrypoint is src/lib.typ directly — nothing to build"
+
+# Unit fixture for the parser, the title/key derivations and the field view,
+# plus the rendered `all()` sweep fixture. No runner for the unit half:
+# `assert.eq` inside `test/units.typ` fails the compile with a line number,
+# and a passing compile is the green light — the same shape `@rookery/core`
+# and `@rookery/timeline` use. The rendered half (`test/sweep.typ`) compiles
+# to HTML and `test/check.sh` greps what came out.
+#
+# `--root .` so a fixture's `#import "/src/lib.typ"` resolves against THIS
+# package. `--features html` for parity with this repo's other Justfiles.
+# `--format pdf` with a `/dev/null` output for `units.typ` because typst
+# cannot infer a format from that path, and nothing there is rendered — only
+# asserted.
+#
+# `sweep*.typ`'s stderr is captured and grepped for `did not converge`: a
+# sweep that calls the CLAIMING `citation` from inside its own loop reads its
+# own write in the same pass, and Typst's state resolution oscillates and
+# gives up with exactly that warning while still exiting 0 — a silently
+# incomplete bibliography on a build that only warns. `all()` is built to
+# avoid it (see `src/claim.typ`), and `keywords: "existing"` reads the tag
+# registry mid-sweep for the same reason (see `src/lib.typ`) — this is what
+# would catch a regression in either: `typst compile` alone would not, since
+# the warning does not fail the build.
+#
+# `sweep-all.typ`/`sweep-existing.typ` are separate documents, not two calls
+# in `sweep.typ`, because a second `all()` call is a compile error — each
+# needs its own `bibtex(..)` and its own vertebra.
+test:
+    typst compile --features html --root . --format pdf test/units.typ /dev/null
+    @echo "units OK"
+    # `mkdir` first: unlike `rheo`, `typst compile` does not create its output
+    # directory and fails with "No such file or directory" on a fresh checkout,
+    # since `test/build/` is gitignored and never committed.
+    mkdir -p test/build
+    typst compile --features html --format html --root . test/sweep.typ test/build/sweep.html 2>test/build/sweep.stderr
+    cat test/build/sweep.stderr >&2
+    ! grep -q "did not converge" test/build/sweep.stderr
+    typst compile --features html --format html --root . test/sweep-existing.typ test/build/sweep-existing.html 2>test/build/sweep-existing.stderr
+    cat test/build/sweep-existing.stderr >&2
+    ! grep -q "did not converge" test/build/sweep-existing.stderr
+    typst compile --features html --format html --root . test/sweep-all.typ test/build/sweep-all.html 2>test/build/sweep-all.stderr
+    cat test/build/sweep-all.stderr >&2
+    ! grep -q "did not converge" test/build/sweep-all.stderr
+    typst compile --features html --format html --root . test/fields.typ test/build/fields.html 2>test/build/fields.stderr
+    cat test/build/fields.stderr >&2
+    ! grep -q "did not converge" test/build/fields.stderr
+    ./test/check.sh

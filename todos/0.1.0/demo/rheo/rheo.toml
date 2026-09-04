@@ -1,0 +1,15 @@
+version = "0.6.0"
+title = "@rookery/todos demo"
+
+# `lib.typ` is shared setup applied by the vertebra, not a page of its own.
+# Without this it compiles to its own empty `lib.html` — the same exclusion
+# @rookery/core's demo carries for the same reason.
+[spine]
+exclude = ["lib.typ"]
+
+# The Typst cache's `rookery` namespace is a per-machine symlink that can
+# point at a different checkout of this repo, so this reads `@rookery/*` out
+# of this tree instead. See `slipshow/0.1.0/demo/rheo/rheo.toml` for the full
+# argument.
+[packages.rookery]
+path = "../../../.."

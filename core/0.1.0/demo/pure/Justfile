@@ -1,0 +1,75 @@
+default:
+    @echo "demo/pure: run 'just watch' to live-rebuild root.typ as HTML, or 'just build' to compile every root"
+
+# --features html is required always (epic decision 8) — see root.typ. `mkdir`
+# first: unlike `rheo watch`, `typst watch` does not create its output
+# directory and fails with "No such file or directory" on a fresh checkout
+# (build/ is gitignored, never committed).
+watch:
+    mkdir -p build
+    typst watch --features html --format html --root ../.. root.typ build/root.html
+
+# Compiles every root in this demo, HTML and PDF, both with --features html
+# (mandatory regardless of format — see root.typ). The repo-root
+# .github/workflows/check.yml runs THIS RECIPE ("rookery pure demo compiles",
+# `cd core/0.1.0/demo/pure && just build`), so a root added here is picked up
+# by CI with no second edit. It did once invoke `typst compile` directly, which
+# is why this comment used to warn that both needed updating — it no longer does.
+#
+# `excluded.typ` is HTML ONLY, deliberately: it asserts nothing about the
+# paged target, and a PDF line would double its runtime for no coverage.
+# `root.typ` and `root-prefix.typ` are built both ways because the paged
+# branch is exactly what they are testing.
+#
+# `excluded.typ` IS COMPILED TWICE, and that pair is the only test in this repo
+# that can make its point: the SAME source file, one `--input` apart. The file
+# declares `private` excluded, so the first compile drops those notes and the
+# second (`--input rookery-include=private`) puts them back — exactly the
+# dev-vs-CD split the feature exists for. `rheo compile` forwards no `--input`
+# today (see `_resolve-excluded`, src/base.typ), so `demo/rheo` cannot vary the
+# env half at all and this is where that half is covered.
+#
+# Comments belong in THIS header, not inside the recipe body: `just` echoes a
+# `#` line in a body as if it were a command, so an explanation written there is
+# printed to the user on every build.
+build:
+    mkdir -p build
+    typst compile --features html --format html --root ../.. root.typ build/root.html
+    typst compile --features html --root ../.. root.typ build/root.pdf
+    typst compile --features html --format html --root ../.. root-prefix.typ build/root-prefix.html
+    typst compile --features html --root ../.. root-prefix.typ build/root-prefix.pdf
+    typst compile --features html --format html --root ../.. excluded.typ build/excluded.html
+    typst compile --features html --format html --root ../.. --input rookery-include=private excluded.typ build/excluded-dev.html
+    @just check
+
+# Greps on what `build` produced. The assertions live here rather than as
+# `assert`s inside `excluded.typ` because what it claims is about the OUTPUT —
+# that a string is absent from the HTML — and a Typst `assert` cannot see its
+# own rendering. Same reason `demo/rheo/check.sh` exists.
+check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    fail=0
+    note() { echo "FAIL: $*"; fail=1; }
+
+    # 1. An excluded note is ABSENT, not hidden: neither its body nor its id
+    #    appears anywhere. Covers the plain form, a `tagged-idea` wrapper, and a
+    #    VALUED tag — three ways in, one gate.
+    if grep -qE 'DROPBODY|idea:gone' build/excluded.html; then
+      note "excluded note leaked into build/excluded.html"
+    fi
+    # 2. The surviving note is untouched.
+    grep -q 'idea:keeper' build/excluded.html || note "keeper missing from excluded.html"
+    grep -q KEEPBODY build/excluded.html || note "keeper body missing from excluded.html"
+    # 3. `#ideas()` sees one note — the assertion that also covers the registry,
+    #    and through it every minted page, the search index and the feeds beacon.
+    grep -q 'count=1' build/excluded.html || note "ideas() count is not 1 in excluded.html"
+    # 4. Graceful degradation: `#hyperlink` keeps its body as plain text (deleting
+    #    it would break the author's sentence), and nothing panicked getting here.
+    grep -q 'HLBODY' build/excluded.html || note "hyperlink body dropped in excluded.html"
+    # 5. THE DEV BUILD, same file, one --input apart: the notes come back.
+    grep -q DROPBODY build/excluded-dev.html || note "rookery-include did not restore the excluded notes"
+    grep -q 'count=4' build/excluded-dev.html || note "ideas() count is not 4 in excluded-dev.html"
+
+    if [ "$fail" -ne 0 ]; then exit 1; fi
+    echo "demo/pure OK"

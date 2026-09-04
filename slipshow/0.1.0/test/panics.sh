@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+# Proves a panic where Typst has no `try`/`catch`: a case can only be shown
+# to panic by a compile that fails. One case per file — a panic aborts the
+# whole compile, so a second case in the same file would never run.
+set -e
+
+expect_panic() {   # $1 = file, $2 = substring the message must contain
+  if out=$(typst compile --features html --root . --format pdf "$1" /dev/null 2>&1); then
+    echo "FAIL: $1 compiled, expected a panic"; exit 1
+  fi
+  case "$out" in *"$2"*) ;; *) echo "FAIL: $1 panicked without '$2':"; echo "$out"; exit 1;; esac
+}
+
+expect_panic test/panic-enter.typ "scroll"
+expect_panic test/panic-reveal.typ "\`reveal\` must be a bool"
+expect_panic test/panic-neither.typ "exactly one of \`slips\`, \`tags\`, or \`where\`"
+expect_panic test/panic-both.typ "exactly one of \`slips\`, \`tags\`, or \`where\`"
+expect_panic test/panic-order.typ "conflict"
+expect_panic test/panic-row-type.typ "row"
+expect_panic test/panic-max-width-type.typ "max-width"
+expect_panic test/panic-slips-where.typ "conflict"
+expect_panic test/panic-where-type.typ "where"
+expect_panic test/panic-order-type.typ "label"
+expect_panic test/panic-order-mixed.typ "different types"
+expect_panic test/panic-slips-unknown.typ "nope"
+expect_panic test/panic-row-fn-type.typ "row"
+expect_panic test/panic-class-fn-type.typ "class"
+expect_panic test/panic-edges-fn-type.typ "edges"
