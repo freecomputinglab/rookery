@@ -49,17 +49,39 @@
   scroll-behavior: smooth;
 }
 
-/* ONE SLIP. No fixed height — see the file header — only the rhythm between
-   slips and the padding a background (below) fills. `scroll-margin-top`
-   keeps a programmatic scroll (the engine's `up` and `left` actions land a
-   slip's edge exactly at the viewport edge otherwise) from butting the slip
-   straight against the top of the window. */
+/* ONE SLIP. No fixed height — see the file header — and, by default, no
+   spacing of its own either: a slip is exactly its card, and the rhythm
+   between two slips is whatever `@rookery/core` already gives two cards in a
+   column. This package used to add `3rem 1.5rem` of padding and another
+   `3rem` between slips, which on a deck the reader walks into one slip at a
+   time reads as a page of empty space with a note somewhere in it — the
+   generous frame was sized for a deck that showed everything at once.
+
+   TWO CUSTOM PROPERTIES RATHER THAN TWO LITERALS, because zero is a default
+   and not a decree: a deck that wants the old airy frame back sets
+   `--slip-pad: 3rem 1.5rem; --slip-gap: 3rem` on `.slipshow` in its own
+   stylesheet, and one that wants a little breathing room sets something
+   smaller. They are declared here, on the element that uses them, rather than
+   on a `:root` block: a project overriding them scopes the override to its
+   own deck that way instead of to every page in the site.
+
+   `padding` IS WHAT A BACKGROUND FILLS (see the background rules below), so a
+   slip with `background:` set now paints exactly its card's own box with no
+   surround. That is the honest reading of zero padding rather than an
+   oversight — a deck wanting a coloured band around its content is a deck
+   wanting `--slip-pad`.
+
+   `scroll-margin-top` stays a real number, and matters MORE at zero padding
+   than it did at `3rem`: the engine's `up` and `left` actions land a slip's
+   top edge exactly at the viewport edge, and with no padding left to stand in
+   for it the card would otherwise butt straight against the top of the
+   window. */
 .slip {
   /* The containing block for `.slip-bg` below. */
   position: relative;
-  padding: 3rem 1.5rem;
-  margin-bottom: 3rem;
-  scroll-margin-top: 1.5rem;
+  padding: var(--slip-pad, 0);
+  margin-bottom: var(--slip-gap, 0);
+  scroll-margin-top: var(--slip-scroll-margin, 1.5rem);
 }
 
 /* A ROW (`div.slip-row[data-row]`, `src/slipshow.typ`'s file header): a run

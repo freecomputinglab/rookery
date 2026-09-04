@@ -511,6 +511,39 @@ css_stylesheet = "style.css"
 mechanism itself; a package's `css_stylesheet` is additive, so this is one
 more stylesheet linked alongside it rather than something to replace.
 
+### A slip's own spacing
+
+**A slip has no padding and no margin by default**: it is exactly its card,
+and the rhythm between two slips is whatever `@rookery/core` already gives two
+cards in a column. Three custom properties move that, set on `.slipshow` (or
+anywhere above the slips) in a project's own stylesheet:
+
+| property | default | what it does |
+| --- | --- | --- |
+| `--slip-pad` | `0` | the slip's own `padding`, and therefore how far a `background:` extends past its content |
+| `--slip-gap` | `0` | the slip's `margin-bottom` — the space between one slip and the next |
+| `--slip-scroll-margin` | `1.5rem` | how far above the viewport's top edge a programmatic scroll lands a slip |
+
+```css
+/* the airy frame this package shipped before decks opened empty */
+.slipshow {
+  --slip-pad: 3rem 1.5rem;
+  --slip-gap: 3rem;
+}
+```
+
+The default is zero because a progressive deck (`reveal:`, above) is walked
+one slip at a time: a frame sized for a page showing every slip at once reads,
+on a page showing exactly one, as a screen of empty space with a note
+somewhere in it. `--slip-scroll-margin` is the one that stays a real number,
+and it matters MORE at zero padding — the `up` and `left` camera actions land
+a slip's top edge at the viewport edge, and with no padding standing in for it
+the card would butt straight against the top of the window.
+
+A row's own internal spacing is separate and unchanged: `.slip-row`'s `gap`
+reads core's `--idea-pad`, since several cards side by side want the rhythm a
+themed project already gives a card's content beside its rule.
+
 The slip DOM contract — `div.slipshow`, `section.slip`, `div.slip-row
 [data-row]`, `div.slip-bg`, and the
 `data-enter`/`data-reveal`/`data-index`/`data-row` attributes carried on them
