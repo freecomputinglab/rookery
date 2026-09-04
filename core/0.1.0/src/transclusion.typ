@@ -95,7 +95,7 @@
 //
 // Must be called from inside a `context` block: `_permalink` reads the page
 // handle and the prefix state. Both callers already are.
-#let _window-content(id, rec, shown, folded, show-date, show-tags, show-frame: true, windows-claim: false) = {
+#let _window-content(id, rec, shown, folded, show-date, show-tags, show-frame: true, show-id: true, windows-claim: false) = {
   // `created`, matching `#idea`'s own hat. There was an `updated` field here
   // until 0.6.0 and this hat showed it, on the argument that a reader wants to
   // know when a note was last touched. Core no longer answers that: a
@@ -161,6 +161,7 @@
           rec.at("tags", default: (:)).pairs().filter(p => p.at(1) == none).map(p => p.at(0))
         } else { () },
         date: date,
+        show-id: show-id,
       ) + title-span,
     )
     // `open` is a BOOLEAN html attribute: present means open and there is no
@@ -294,8 +295,11 @@
       // Tab before the heading, and the `id == none` guard travels with it: an
       // auto-numbered nested note has no id to show, so it gets no tab either
       // and its card simply has no top rule.
+      //
+      // `.at(.., default: true)`, not a bare field access: an IK payload minted
+      // before `show-id` existed carries no such key, and core's default is on.
       let header = _head(
-        if id == none { [] } else { _permalink-tab(id) },
+        if id == none { [] } else { _permalink-tab(id, show-id: v.at("show-id", default: true)) },
         html.elem(
           "h" + str(v.level + 1),
           attrs: attrs,
@@ -319,7 +323,14 @@
       _bracket(
         html.elem(
           "div",
-          attrs: _themed((class: box-cls.join(" "), data-rookery: "box") + _tags-attr(visible)),
+          // `show-frame` off the payload too, same `.at` default as `show-id`
+          // above: a nested note rebuilt here must wear the frame its own call
+          // site asked for, not the package default.
+          attrs: _themed(
+            (class: box-cls.join(" "), data-rookery: "box")
+              + (if v.at("show-frame", default: true) { (:) } else { ("data-rookery-bare": "bare") })
+              + _tags-attr(visible),
+          ),
           header + _footnoted(v.body) + _refs-block(_own-cited-keys(v.body, windows-claim: depth > 1)),
         ),
         IK,
@@ -398,6 +409,7 @@
           // is `true`, so a marker minted before this key existed must read as a
           // framed window.
           show-frame: v.at("show-frame", default: true),
+          show-id: v.at("show-id", default: true),
           windows-claim: depth - 1 > 1,
         ),
         WK,

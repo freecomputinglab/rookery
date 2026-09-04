@@ -36,7 +36,13 @@
 // `data-rookery-bare`, and a more-specific rule in `core.css`; see the comment
 // on `data-rookery-plain` there for why a downstream stylesheet cannot do this
 // from outside the package.
-#let idea(level: 1, title: none, tags: (), exclude-tags: (), created: none, show-date: false, show-tags: false, show-frame: true, show-context: auto, show-backlinks: auto, show-title: auto, ..args) = {
+//
+// `show-id: false` DROPS THE PERMALINK from the hat. With `show-tags` and
+// `show-date` both already off by default, that leaves the tab empty and the hat
+// disappears entirely — see `_permalink-tab` (permalink.typ) for how, and the
+// readme for the cost: a permalink is the ONLY way to discover an
+// AUTO-GENERATED id, so a note that wants to be linkable wants a name too.
+#let idea(level: 1, title: none, tags: (), exclude-tags: (), created: none, show-date: false, show-tags: false, show-frame: true, show-id: true, show-context: auto, show-backlinks: auto, show-title: auto, ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
   // below and further down at render time — str has no `.map`, so the error
@@ -182,7 +188,13 @@
     // `title` is the AUTHORED one — `_flatten`'s IK rule PRINTS it as a heading, so
     // it must never be the derived label (see the banner above). `label` rides
     // along for `#ideas-outline`, which NAMES rather than renders.
-    #metadata((body: body, title: title, label: note-label, named: named, base: base, level: level, tags: tags))
+    // `show-frame`/`show-id` ride along for the same reason every other field
+    // here does: `_flatten`'s IK rule rebuilds this note's card from THIS
+    // payload, never from the call site, so a presentation switch missing from
+    // it is silently lost the moment the note is shown nested inside a
+    // transcluded or minted parent — the card would come back framed and
+    // permalinked when its author asked for neither.
+    #metadata((body: body, title: title, label: note-label, named: named, base: base, level: level, tags: tags, show-frame: show-frame, show-id: show-id))
     // counter.step() RETURNS CONTENT: emit it here, never inside a code block
     // whose value is used, or it silently turns the id into content.
     #if not named { counter("rheo-ideas-seq").step() }
@@ -380,7 +392,7 @@
         // `h*.idea:empty` in the stylesheet is what keeps it from taking any space,
         // and it now applies to a dated titleless note as well.
         let header = _head(
-          _permalink-tab(id, tags: if show-tags { flat-tags } else { () }, date: date),
+          _permalink-tab(id, tags: if show-tags { flat-tags } else { () }, date: date, show-id: show-id),
           html.elem(
             "h" + str(level + 1),
             attrs: (id: id, class: cls.join(" "), data-rookery: "idea")

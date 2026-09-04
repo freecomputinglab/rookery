@@ -18,14 +18,16 @@ is how you discover a generated id in order to paste it into a `#window`.
 ```
 
 Full signature: `idea(level: 1, title: none, tags: (), exclude-tags: (),
-created: none, show-date: false, show-tags: false, show-frame: true, ..args)`, where
+created: none, show-date: false, show-tags: false, show-frame: true, show-id: true,
+..args)`, where
 the sink accepts the body alone, `(name, body)`, or `(<name>, body)` — the name
 may be a string or a Typst label, identically.
 
 `show-frame: false` drops the card's BOX — its left rule and the indent that goes
 with it — and nothing else: the note still registers, still carries its tags and
-its anchor, still renders its hat and its body. See "Dropping a note's frame"
-below.
+its anchor, still renders its hat and its body. `show-id: false` drops the
+`[idea:<name>]` permalink from the hat. See "Dropping a note's frame" below for
+both.
 
 ## 0.1.0
 
@@ -332,6 +334,9 @@ was set to pin it there deliberately.
 ```typst
 #idea("bare", show-frame: false)[A note with no left rule and no indent.]
 #window("bare", show-frame: false)
+
+#idea("quiet", show-id: false)[A note with no permalink, and so no hat at all.]
+#window("quiet", show-id: false)
 ```
 
 `show-frame:` is on both `#idea` and `#window`, `true` by default, and it governs
@@ -364,6 +369,36 @@ asked not to wear its frame" and applies to a card as well.
 
 A project styling on it should select on the attribute
 (`[data-rookery-bare]`), which is stable, rather than on any class.
+
+### `show-id:` — and the whole hat with it
+
+`show-id:` is on `#idea` and `#window` too, `true` by default, and it drops the
+`[idea:<name>]` permalink — the chip that leads a card's hat and a window's
+summary.
+
+**On an ordinary note that also takes the whole hat away, and that is the point.**
+A tab holds three things and all three are optional: the permalink, the tag pills
+(`show-tags:`, off by default) and the date (`show-date:`, off by default). Turn
+the permalink off on a note that has neither of the others and the tab has nothing
+in it, and `[data-rookery="tab"]:empty { display: none }` in `src/core.css`
+collapses it — the same trick `h*.idea:empty` plays for a titleless note's
+heading. The `<span>` is still emitted: it is the element every other tab rule is
+written against, and it comes straight back the moment a pill or a date is turned
+on. So `#idea("x", show-id: false, show-tags: true, ..)` still shows its pills, in
+a tab, exactly where they were.
+
+**The cost, and it is a real one: a permalink is the ONLY way to discover an
+AUTO-GENERATED id.** There is no `show heading` rule and no template hook — the
+chip is it. A note written `#idea[..]` and rendered with `show-id: false` therefore
+has an id nothing on the page reveals, so nobody can write a `#window` for it. Give
+a note a name (`#idea("x")[..]`) if it should stay linkable, or leave `show-id` on.
+
+**Both switches ride the nested-note payload.** A note written inside another
+note's body is rebuilt from a `#metadata` record when its parent is transcluded or
+minted, never from the original call site, so `show-frame` and `show-id` are stored
+on that record and read back with a default of `true`. A nested `#idea(show-id:
+false)` therefore stays bare when its parent is windowed, and a record written
+before these keys existed reads as an ordinary framed, permalinked note.
 
 ## Flat ids, and why
 
@@ -446,7 +481,8 @@ Three ways, pick by how much ceremony you want:
 
   `show-frame: false` drops the window's left rule and indent, the same switch
   `#idea` takes for a card, and leaves the summary, the disclosure and the body
-  exactly as they were. See "Dropping a note's frame" below.
+  exactly as they were. `show-id: false` drops the permalink from the summary,
+  the same switch again. See "Dropping a note's frame" below for both.
 
   The window's own wrapper wears the note's visible tags too, unconditionally
   — the same `.idea-tag-<key>` classes and the same `data-rookery-tags`

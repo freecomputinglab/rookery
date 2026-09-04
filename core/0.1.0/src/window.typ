@@ -69,6 +69,10 @@
   // window's left rule and indent and leaves everything else — the summary, the
   // disclosure, the body — exactly as it was. See `#idea`'s own comment.
   show-frame: true,
+  // `false` omits the `[idea:<name>]` permalink from the summary. With
+  // `show-tags`/`show-date` also off the summary keeps only its title, and with
+  // no title it keeps nothing — see `_permalink-tab` (permalink.typ).
+  show-id: true,
   depth: auto,
   tags: none,
   match: "any",
@@ -231,6 +235,7 @@
       show-date: show-date,
       show-tags: show-tags,
       show-frame: show-frame,
+      show-id: show-id,
       limit: limit,
     ))
 
@@ -270,7 +275,7 @@
     // its links must not read as links from whatever page is showing it.
     _bracket(
       figure(kind: WK, supplement: none, [
-        #marker#_window-content(id, rec, shown, folded, show-date, show-tags, show-frame: show-frame, windows-claim: d > 1)
+        #marker#_window-content(id, rec, shown, folded, show-date, show-tags, show-frame: show-frame, show-id: show-id, windows-claim: d > 1)
       ]),
       WK,
     )

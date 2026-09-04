@@ -379,6 +379,24 @@
   margin: 0;
 }
 
+/* THE SAME TRICK ONE ELEMENT UP, for a tab rather than a heading. A tab holds
+   three things and every one of them is optional: the permalink
+   (`show-id: false` drops it), the tag pills (`show-tags:`, off by default) and
+   the date (`show-date:`, off by default). Turn the permalink off on an ordinary
+   note and nothing is left, so the tab has to collapse or a note asked for no
+   hat still wears an empty band where one used to be. `#idea`/`#window` keep
+   emitting the `<span>` in that state deliberately — it is the element every
+   other tab rule in this file is written against, and it comes back the moment a
+   pill or a date is turned on.
+
+   `:empty` matches an element with no children AND no text, which is exactly the
+   condition — a tab with pills has element children, a tab with a date likewise.
+   Placed AFTER every other `[data-rookery="tab"]` rule in this file so it wins on
+   source order; none of them sets `display`, so it needs no extra specificity. */
+[data-rookery="tab"]:empty {
+  display: none;
+}
+
 /* THE LINK HOVER — every link rookery is responsible for, which is what makes
    the permalink and an `@idea:other` reference read as the same kind of thing:
 
