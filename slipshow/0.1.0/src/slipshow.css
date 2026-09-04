@@ -75,11 +75,25 @@
    than it did at `3rem`: the engine's `up` and `left` actions land a slip's
    top edge exactly at the viewport edge, and with no padding left to stand in
    for it the card would otherwise butt straight against the top of the
-   window. */
+   window.
+
+   A FOURTH, OPT-IN AXIS: `border-inline-start`/`padding-inline-start` below
+   open a left-rule channel with no colour of its own, defaulting to `0`
+   width, `transparent` colour and `0` gap, so a deck setting none of the
+   three renders byte-identical to a slip with no rule at all. `-inline-start`
+   rather than `left`, matching every other directional value in this file.
+   It lives on the slip and not on the card inside it because the card's own
+   border belongs to `@rookery/core`, and `core.css` is unlayered throughout —
+   its own comment on that border rule (marked MEASURED) is why a downstream
+   package's layered rule can never beat one there regardless of specificity.
+   A slip carries no border of its own to fight, so the channel opens here
+   instead, for a consuming package to set the colour on. */
 .slip {
   /* The containing block for `.slip-bg` below. */
   position: relative;
   padding: var(--slip-pad, 0);
+  border-inline-start: var(--slip-rule-width, 0) solid var(--slip-rule-color, transparent);
+  padding-inline-start: var(--slip-rule-gap, 0);
   margin-bottom: var(--slip-gap, 0);
   scroll-margin-top: var(--slip-scroll-margin, 1.5rem);
 }

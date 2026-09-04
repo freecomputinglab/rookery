@@ -678,6 +678,27 @@ and it matters MORE at zero padding — the `up` and `left` camera actions land
 a slip's top edge at the viewport edge, and with no padding standing in for it
 the card would butt straight against the top of the window.
 
+### A slip's own left rule
+
+A slip also carries an opt-in left-rule channel, three more custom properties
+set the same way as the three above:
+
+| property | default | what it does |
+| --- | --- | --- |
+| `--slip-rule-width` | `0` | the slip's own `border-inline-start-width` |
+| `--slip-rule-color` | `transparent` | the slip's own `border-inline-start-color` |
+| `--slip-rule-gap` | `0` | `padding-inline-start`, the space between the rule and the slip's content |
+
+All three default to inert, so a deck setting none of them renders
+byte-identical to a slip with no rule at all. This package sets no colour and
+names no status here — a consuming package such as `@rookery/todos` sets the
+three to colour a slip's edge by its own vocabulary (`ready`/`blocked`/etc.),
+which is otherwise unreachable: the card inside a slip has its own left
+border, owned by `@rookery/core`, and `core.css` is unlayered throughout, so a
+downstream package's layered rule can never beat one there regardless of
+specificity (see that file's own comment on its border rule, marked
+MEASURED).
+
 A row's own internal spacing is separate and unchanged: `.slip-row`'s `gap`
 reads core's `--idea-pad`, since several cards side by side want the rhythm a
 themed project already gives a card's content beside its rule.
