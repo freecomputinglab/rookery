@@ -302,3 +302,59 @@
 )
 #let tied = g(rowp("lo", priority: 3), rowp("hi", priority: 1), rowp("none-pri"))
 #assert.eq(layers(tied).at(0).map(r => r.name), ("hi", "lo", "none-pri"))
+
+// ---- todo-slip-keys — the @rookery/slipshow key functions -----------------
+//
+// Each of the three functions reads only `r.name` off the row `#slipshow`
+// would hand it, so a bare `(name: ..)` dict stands in for an
+// `ideas(values: true)` registry row here.
+#let reg(name) = (name: name)
+
+// Layer 0 vs layer 1. `(dk.row)(..)`, not `dk.row(..)`: Typst refuses to call
+// a dictionary value with method syntax, since a stored key could collide
+// with a built-in method name.
+#let sk-chain = g(row("a"), row("b", deps: ("a",)))
+#let dk = todo-slip-keys(sk-chain)
+#assert.eq((dk.row)(reg("a")), 0)
+#assert.eq((dk.row)(reg("b")), 1)
+
+// The zero-padded order key sorts correctly across a ten-layer graph — a
+// plain `str(layer)` would put "10" before "2".
+#let names10 = range(11).map(i => "n" + str(i))
+#let chain10 = g(..names10.enumerate().map(((i, n)) => if i == 0 {
+  rowp(n)
+} else {
+  rowp(n, deps: (names10.at(i - 1),))
+}))
+#let dk10 = todo-slip-keys(chain10)
+#assert.eq(names10.sorted(key: n => (dk10.order)(reg(n))), names10)
+
+// Within a layer, an unprioritised todo sorts after a p3 sibling.
+#let samelayer = g(rowp("p3", priority: 3), rowp("none-pri"))
+#let dks = todo-slip-keys(samelayer)
+#assert.eq(
+  ("p3", "none-pri").sorted(key: n => (dks.order)(reg(n))),
+  ("p3", "none-pri"),
+)
+
+// The three class strings, and the real fourth case — an open, unblocked
+// todo deferred past `today` — which gets no class at all.
+#let TODAY = d(2026, 9, 1)
+#let classes = g(
+  row("done", closed: true),
+  row("open-dep"),
+  row("blocked", deps: ("open-dep",)),
+  row("ready"),
+  row("deferred", tags: entries(scheduled: d(2026, 12, 1))),
+)
+#let dkc = todo-slip-keys(classes, today: TODAY)
+#assert.eq((dkc.class)(reg("done")), "todo-slip-closed")
+#assert.eq((dkc.class)(reg("blocked")), "todo-slip-blocked")
+#assert.eq((dkc.class)(reg("ready")), "todo-slip-ready")
+#assert.eq((dkc.class)(reg("deferred")), none)
+
+// A registry row absent from `graph.nodes` — a slip that is not a todo —
+// gets `none` from all three functions.
+#assert.eq((dkc.row)(reg("ghost")), none)
+#assert.eq((dkc.order)(reg("ghost")), none)
+#assert.eq((dkc.class)(reg("ghost")), none)

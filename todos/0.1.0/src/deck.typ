@@ -1,0 +1,132 @@
+// `#todo-slipshow` — the todo graph, laid out as an `@rookery/slipshow` deck.
+//
+// THIS FILE IS THE ONE IMPORT EDGE TO @rookery/slipshow, and it mirrors
+// `panel.typ`'s edge to @rookery/search for the same reason: `layer-of`,
+// `is-ready` and `is-blocked` derive in THIS package and nowhere else
+// (`graph.typ`), so a deck that cannot read them is the thing every
+// consuming site hand-rolls — see `slipshow/0.1.0/examples/dag/content/
+// index.typ`, which composes them by hand into an `order:`/`row:` pair. This
+// costs every OTHER consumer of this package nothing: asset shipping follows
+// a project's own imports, not a package's internal ones, so a project using
+// `#todo-slipshow` still imports `@rookery/slipshow` itself to get that
+// package's CSS and JS, exactly as it already must import @rookery/search
+// for `#filter-panel`.
+//
+// `todo-slip-keys`' THREE FUNCTIONS ARE A MATCHED SET, not three independent
+// options. `order:` sorts by layer first precisely so `#slipshow`'s
+// `_row-runs` — which groups CONSECUTIVE entries and never reorders — sees
+// each layer's members adjacent; passing `row:` with no such `order:`
+// fragments every layer into singleton rows instead of a horizontal run.
+
+#import "@rookery/slipshow:0.1.0": slipshow
+#import "graph.typ": *
+#import "tags.typ": *
+
+// Zero-pads `s` with leading zeros to width `w`. Typst has no string-repeat
+// operator, and without this a layer count past nine breaks `order`'s sort:
+// the plain string "10" sorts before "2".
+#let _pad(s, w) = {
+  let out = s
+  while out.len() < w { out = "0" + out }
+  out
+}
+
+// The three `#slipshow` key functions (`row:`, `order:`, `class:`) a
+// horizontal todo deck needs, each over an `ideas(values: true)` REGISTRY
+// ROW — the shape `#slipshow` hands a key function. A registry row carries
+// `id`, `name`, `title`, `text`, `label`, `tags`, `tags-dict`, `body`,
+// `href`, `page` and `created`; it does NOT carry `deps`, `closed` or
+// `priority`, which only the `todos()` rows inside `graph.nodes` have. So
+// every function below looks the note up by name first and returns `none`
+// when it is absent — which is what a slip that is not a todo gets: no row,
+// no class, and no sort key, so it joins no row and sorts last regardless of
+// `reverse:` (`select.typ`'s `_sort-pairs`).
+//
+// A NON-TODO SLIP IN ONE OF THESE DECKS THEREFORE LOSES ITS OWN `slip-class`
+// TAG, and that is the one place these keys are lossy. `class:` overrides a
+// tag by KEY PRESENCE rather than value (`select.typ`'s `_apply-class`), and
+// the key lands on every queried entry the function ran on — so `none` here
+// means "no class", not "leave the tag alone", and a key function has no way
+// to say the latter. A deck mixing an authored, classed slide in among its
+// todos passes its own `class:` to `#todo-slipshow`, which wins outright.
+#let todo-slip-keys(graph, today: none, done: "inline") = {
+  assert(
+    done in ("inline", "first", "last"),
+    message: "@rookery/todos: `done` must be \"inline\", \"first\", or "
+      + "\"last\" — got " + repr(done),
+  )
+
+  // Computed ONCE, not per call: `layer-of` walks the whole graph, and every
+  // slip in the deck asks it the same question.
+  let layer = layer-of(graph)
+  let max-layer = layer.values().fold(0, (m, l) => calc.max(m, l))
+  let width = str(max-layer).len()
+
+  let row(r) = layer.at(r.name, default: none)
+
+  let order(r) = {
+    let n = graph.nodes.at(r.name, default: none)
+    if n == none { return none }
+    let p = if n.priority == none { "9" } else { str(n.priority) }
+    let key = _pad(str(layer.at(r.name)), width) + p + r.name
+    if done == "inline" { return key }
+    // `first`/`last` sort by closedness before anything else: a "0" prefix
+    // sorts ahead of a "1" one, so which digit a closed note gets is what
+    // decides whether it leads or trails the deck.
+    let closed-digit = if done == "first" { "0" } else { "1" }
+    let open-digit = if done == "first" { "1" } else { "0" }
+    (if n.closed { closed-digit } else { open-digit }) + key
+  }
+
+  let class(r) = {
+    let n = graph.nodes.at(r.name, default: none)
+    if n == none { return none }
+    if n.closed { "todo-slip-closed" }
+    else if is-blocked(n, graph) { "todo-slip-blocked" }
+    else if is-ready(n, graph, today: today) { "todo-slip-ready" }
+    // A fourth, real case that stays unstyled: an open todo neither blocked
+    // nor ready is one DEFERRED past `today` by @rookery/timeline's
+    // `scheduled` stage (see `is-ready`), and it gets no class rather than a
+    // fourth colour.
+    else { none }
+  }
+
+  (row: row, order: order, class: class)
+}
+
+// `#slipshow`, fed the todo graph's own `row:`/`order:`/`class:` so a call
+// site does not compose them by hand. `..args` takes only named arguments —
+// `#slipshow` itself has no positional parameter for them to fill — and
+// `today:`/`done:` are this wrapper's own, consumed by `todo-slip-keys`
+// rather than forwarded: `#slipshow` has neither parameter.
+#let todo-slipshow(..args, today: none, done: "inline") = context {
+  assert(
+    args.pos().len() == 0,
+    message: "@rookery/todos: #todo-slipshow takes only named arguments — "
+      + "#slipshow itself takes none positionally.",
+  )
+  let named = args.named()
+
+  let graph = todo-graph()
+  assert-acyclic(graph)
+  let keys = todo-slip-keys(graph, today: today, done: done)
+
+  // `resolve-slips` refuses `order:` alongside `slips:` outright — an
+  // explicit array is already in the order it was written — so the derived
+  // `order:` has to be dropped before an otherwise-legal `slips:` call
+  // panics on it. `row:` and `class:` stay: both compose with `slips:`.
+  if "slips" in named {
+    let _ = keys.remove("order")
+  }
+
+  // No selection named at all is the whole todo corpus, as a DAG deck.
+  if "slips" not in named and "tags" not in named and "where" not in named {
+    named.insert("tags", TODO-KEY)
+  }
+
+  // ONE dictionary, not two spreads: `+` is right-wins, so a caller's own
+  // `row:`/`order:`/`class:` overrides the derived one, and two separate
+  // `..keys, ..named` spreads would instead be a duplicate-argument error
+  // the moment a caller named any of the same keys.
+  slipshow(..(keys + named))
+}

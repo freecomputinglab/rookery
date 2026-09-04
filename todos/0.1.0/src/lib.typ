@@ -28,6 +28,12 @@
 // package — see `panel.typ`'s own header for why the edge now exists.
 #import "panel.typ": *
 
+// AFTER `graph.typ`, whose `layer-of`/`is-ready`/`is-blocked` it projects, and
+// placed beside `panel.typ` above: the two are this package's only imports of
+// another package's names, and it is the same reasoning both times — see
+// `deck.typ`'s own header for the @rookery/slipshow edge.
+#import "deck.typ": *
+
 // LAST, and the order is as load-bearing here as it is above. `skin.typ`
 // star-imports @rookery/timeline and shadows `window`; importing it last means
 // that shadowed `window` is what this module exports, where importing it earlier
