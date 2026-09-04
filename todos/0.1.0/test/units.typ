@@ -305,7 +305,7 @@
 
 // ---- todo-slip-keys — the @rookery/slipshow key functions -----------------
 //
-// Each of the three functions reads only `r.name` off the row `#slipshow`
+// Each of the four functions reads only `r.name` off the row `#slipshow`
 // would hand it, so a bare `(name: ..)` dict stands in for an
 // `ideas(values: true)` registry row here.
 #let reg(name) = (name: name)
@@ -353,8 +353,43 @@
 #assert.eq((dkc.class)(reg("ready")), "todo-slip-ready")
 #assert.eq((dkc.class)(reg("deferred")), none)
 
+// `edges` — the todos a slide's own rail is fed FROM, and `blockers-of`'s
+// two silences are what make it right. Every case below is over one graph:
+// `open-dep` and `other-dep` are open, `shut` is closed, `nowhere` names
+// nothing.
+#let edg = g(
+  row("open-dep"),
+  row("other-dep"),
+  row("shut", closed: true),
+  row("waiting", deps: ("open-dep",)),
+  row("satisfied", deps: ("shut",)),
+  row("dangling", deps: ("nowhere",)),
+  row("two-deps", deps: ("other-dep", "open-dep")),
+)
+#let dke = todo-slip-keys(edg)
+#assert.eq((dke.edges)(reg("waiting")), ("open-dep",))
+
+// A CLOSED dep draws no curve: it would point at a greyed-out slide and say
+// something is waiting on work that is done.
+#assert.eq((dke.edges)(reg("satisfied")), ())
+
+// A DANGLING dep draws none either — it names nothing that could ever close,
+// the same reason `is-blocked` does not let one block a todo.
+#assert.eq((dke.edges)(reg("dangling")), ())
+
+// Two open deps come back in `deps` order, not sorted.
+#assert.eq((dke.edges)(reg("two-deps")), ("other-dep", "open-dep"))
+
 // A registry row absent from `graph.nodes` — a slip that is not a todo —
-// gets `none` from all three functions.
+// gets `none` from all four functions.
+//
+// `none` VERSUS `()` IS A REAL DISTINCTION for `edges` and the two lines
+// below pin it: `none` means "this slide is not a todo, compute no edges for
+// it", `()` means "this todo is blocked by nothing". `#slipshow` drops an
+// empty array to no attribute at all, so the two render alike today — but
+// they are different claims and either side could come to tell them apart.
 #assert.eq((dkc.row)(reg("ghost")), none)
 #assert.eq((dkc.order)(reg("ghost")), none)
 #assert.eq((dkc.class)(reg("ghost")), none)
+#assert.eq((dke.edges)(reg("ghost")), none)
+#assert.eq((dke.edges)(reg("open-dep")), ())

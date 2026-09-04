@@ -12,11 +12,12 @@
 // package's CSS and JS, exactly as it already must import @rookery/search
 // for `#filter-panel`.
 //
-// `todo-slip-keys`' THREE FUNCTIONS ARE A MATCHED SET, not three independent
-// options. `order:` sorts by layer first precisely so `#slipshow`'s
-// `_row-runs` — which groups CONSECUTIVE entries and never reorders — sees
-// each layer's members adjacent; passing `row:` with no such `order:`
-// fragments every layer into singleton rows instead of a horizontal run.
+// `todo-slip-keys`' `row:` AND `order:` ARE A MATCHED PAIR, not two
+// independent options. `order:` sorts by layer first precisely so
+// `#slipshow`'s `_row-runs` — which groups CONSECUTIVE entries and never
+// reorders — sees each layer's members adjacent; passing `row:` with no such
+// `order:` fragments every layer into singleton rows instead of a horizontal
+// run.
 
 #import "@rookery/slipshow:0.1.0": slipshow
 #import "graph.typ": *
@@ -31,7 +32,7 @@
   out
 }
 
-// The three `#slipshow` key functions (`row:`, `order:`, `class:`) a
+// The four `#slipshow` key functions (`row:`, `order:`, `class:`, `edges:`) a
 // horizontal todo deck needs, each over an `ideas(values: true)` REGISTRY
 // ROW — the shape `#slipshow` hands a key function. A registry row carries
 // `id`, `name`, `title`, `text`, `label`, `tags`, `tags-dict`, `body`,
@@ -91,12 +92,38 @@
     else { none }
   }
 
-  (row: row, order: order, class: class)
+  // The todos this one WAITS ON, as `#slipshow`'s `edges:` — so a blocked
+  // slide's rail is fed by a curve down from each dependency's.
+  //
+  // `blockers-of` (`graph.typ`) IS EXACTLY THE RIGHT READER and `n.deps` is
+  // not: it keeps the deps that exist AND are still open, which is what makes
+  // both silences below correct.
+  //
+  //   - A SATISFIED dependency draws no curve. `graph-slice` keeps that same
+  //     rule for the graph view — an edge into a closed todo would point at a
+  //     box that is not on the page — and here it would point at a greyed-out
+  //     slide and claim something is waiting on work that is already done.
+  //   - A DANGLING dep draws none either: it names nothing that could ever
+  //     close, which is the same reason `is-blocked` does not let one block a
+  //     todo.
+  //
+  // The source of every curve is therefore an OPEN todo, and that is why a
+  // curve is only ever green-to-red or red-to-red: `class` gives an open,
+  // unblocked blocker `todo-slip-ready` and an open, blocked one
+  // `todo-slip-blocked`.
+  let edges(r) = {
+    let n = graph.nodes.at(r.name, default: none)
+    if n == none { return none }
+    blockers-of(n, graph)
+  }
+
+  (row: row, order: order, class: class, edges: edges)
 }
 
-// `#slipshow`, fed the todo graph's own `row:`/`order:`/`class:` so a call
-// site does not compose them by hand. `..args` takes only named arguments —
-// `#slipshow` itself has no positional parameter for them to fill — and
+// `#slipshow`, fed the todo graph's own `row:`/`order:`/`class:`/`edges:` so
+// a call site does not compose them by hand. `..args` takes only named
+// arguments — `#slipshow` itself has no positional parameter for them to
+// fill — and
 // `today:`/`done:` are this wrapper's own, consumed by `todo-slip-keys`
 // rather than forwarded: `#slipshow` has neither parameter.
 #let todo-slipshow(..args, today: none, done: "inline") = context {
@@ -114,7 +141,8 @@
   // `resolve-slips` refuses `order:` alongside `slips:` outright — an
   // explicit array is already in the order it was written — so the derived
   // `order:` has to be dropped before an otherwise-legal `slips:` call
-  // panics on it. `row:` and `class:` stay: both compose with `slips:`.
+  // panics on it. `row:`, `class:` and `edges:` stay: all three compose with
+  // `slips:`, since none of them selects or reorders anything.
   if "slips" in named {
     let _ = keys.remove("order")
   }
@@ -125,8 +153,8 @@
   }
 
   // ONE dictionary, not two spreads: `+` is right-wins, so a caller's own
-  // `row:`/`order:`/`class:` overrides the derived one, and two separate
-  // `..keys, ..named` spreads would instead be a duplicate-argument error
-  // the moment a caller named any of the same keys.
+  // `row:`/`order:`/`class:`/`edges:` overrides the derived one, and two
+  // separate `..keys, ..named` spreads would instead be a duplicate-argument
+  // error the moment a caller named any of the same keys.
   slipshow(..(keys + named))
 }
