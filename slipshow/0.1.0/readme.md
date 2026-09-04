@@ -154,6 +154,9 @@ itself gets:
   row: none,
   enter: "scroll",
   reveal: true,
+  show-frame: false,
+  show-id: false,
+  show-label: false,
 )
 ```
 
@@ -169,6 +172,42 @@ panics naming the valid set.
 
 `reveal:` is the progressive reveal, `true` by default — see its own section
 below.
+
+`show-frame:`, `show-id:` and `show-label:` are `@rookery/core`'s own chrome
+switches with their defaults inverted — see "A slip wears no card chrome" below.
+
+### A slip wears no card chrome
+
+```typst
+#slipshow(tags: "slip")                      // bare slips, the default
+#slipshow(tags: "slip", show-frame: true)    // put the card's rule back
+```
+
+A queried slip is transcluded through `#window`, so it arrives as a full
+`@rookery/core` card unless told otherwise. Inside a presentation all of that
+card's chrome is noise, so `#slipshow` passes three of core's own arguments with
+their defaults **inverted**:
+
+| argument | here | in core | what `false` drops |
+| --- | --- | --- | --- |
+| `show-frame` | `false` | `true` | the card's left rule and its indent |
+| `show-id` | `false` | `true` | the `[idea:<name>]` permalink, and with it the whole hat |
+| `show-label` | `false` | `true` | the title derived from a note's first line; an AUTHORED title still shows |
+
+The reasoning, one line each: a slip's `<section>` is already the visual unit, so
+a card frame inside it reads as a frame around a frame; the `[idea:47]` chip above
+every slide is machinery a reader of a deck has no use for; and an untitled note's
+derived label sits directly above the very first line it was derived from, so the
+slide prints that line twice.
+
+**These are core's knobs, not this package's.** Nothing here draws or hides any of
+it — `@rookery/core`'s readme documents what each one does and its own stylesheet
+does the hiding. `#slipshow` only chooses different defaults and forwards them.
+
+**One cost, inherited from core and worth repeating:** the permalink is the ONLY
+way to discover an AUTO-GENERATED id. A deck of unnamed notes rendered with
+`show-id: false` therefore has no ids a reader can copy into a `#window` or a
+`#slip-<id>` fragment. Give the slips explicit names if they should be linkable.
 
 ### `reveal:` — the deck opens empty
 
@@ -234,6 +273,13 @@ nothing PANICS rather than being silently skipped, because a named slip is an
 assertion about what the presentation contains — a dropped slide should stop
 the build, not slip through it. Anything else in the array is read as
 content directly, exactly as it always has been.
+
+**The three chrome arguments reach the tag-query route only.** An entry in a
+`slips:` array that is already-rendered `#slip(..)` content was rendered before
+`#slipshow` ever saw it, so a deck-level setting cannot reach inside it; such a
+slip carries whatever its own `#slip(..)` call asked for (which is bare by
+default too — see `#slip` above). An entry given by NAME goes through `#window`
+like any queried slip and does follow the deck.
 
 **`order:` and `reverse:` are refused if given a non-default value alongside
 `slips:`** — an explicit array is already in the order it was written, so

@@ -26,6 +26,17 @@
 //   is identical under either value and only the attribute differs. See
 //   `src/slipshow.css`'s reveal section for the pair of rules, and
 //   `src/slipshow.js`'s `syncReveal`.
+// - A QUERIED SLIP IS TRANSCLUDED WITH CORE'S CHROME OFF. `#slipshow`'s
+//   `show-frame:`, `show-id:` and `show-label:` all default to `false` here,
+//   inverting `@rookery/core`'s own defaults, and are passed straight to the
+//   `#window` each queried slip is rendered by. So the markup inside a
+//   `<section class="slip">` is a `[data-rookery="window"]` carrying
+//   `data-rookery-bare`, with an empty `[data-rookery="tab"]` and a summary
+//   holding a title only where the note's author wrote one. Nothing in THIS
+//   package draws or hides any of that — the attributes and the rules that act
+//   on them are core's, and a deck passing `true` gets core's ordinary card
+//   back. An explicit-array entry is already-rendered content and is not
+//   reachable from here; it carries whatever its own `#slip(..)` asked for.
 // - `data-enter` on the root is the DECK-WIDE default, taken from
 //   `#slipshow`'s own `enter:` argument, and is always present. A `<section>`
 //   carries `data-enter` of its own ONLY when that slip's `#slip(enter: ..)`
@@ -103,7 +114,22 @@
 // (`core/0.1.0/src/window.typ`/`transclusion.typ`) — and no `depth:` beyond
 // its `auto` default (1): show this note, collapse anything windowed inside
 // it to a permalink.
-#let _render-slip(e) = if e.kind == "content" { e.content } else { window(e.row.id) }
+//
+// THE THREE CHROME FLAGS DEFAULT TO CORE'S OWN VALUES HERE, not to the deck's,
+// so a call that forgets to pass them renders a plain `@rookery/core` window
+// rather than silently inheriting a presentation decision from a deck that is
+// not in scope. `#slipshow` passes its own at both call sites.
+//
+// They reach the QUERY route only. An array entry is content that was rendered
+// at its own `#slip(..)` call site, long before this deck existed, so there is
+// nothing left here to configure — see the readme's note under `slips:`.
+#let _render-slip(e, show-frame: true, show-id: true, show-label: true) = {
+  if e.kind == "content" {
+    e.content
+  } else {
+    window(e.row.id, show-frame: show-frame, show-id: show-id, show-label: show-label)
+  }
+}
 
 // A degree value as a bare CSS number (no unit): `str()` on a negative
 // number spells its sign with Unicode's proper minus (U+2212), which a CSS
@@ -282,6 +308,9 @@
   row: none,
   enter: "scroll",
   reveal: true,
+  show-frame: false,
+  show-id: false,
+  show-label: false,
 ) = context {
   assert(
     enter in ENTERS,
@@ -297,6 +326,26 @@
   assert(
     type(reveal) == bool,
     message: "@rookery/slipshow: `reveal` must be a bool — got " + repr(reveal),
+  )
+
+  // THE THREE CHROME FLAGS, all `false` where `@rookery/core`'s own defaults are
+  // `true`. That inversion is the whole argument: a slip's `<section>` is
+  // already the visual unit, so the note's card frame inside it reads as a frame
+  // around a frame; the `[idea:47]` permalink above every slide is machinery a
+  // reader of a deck has no use for; and a note with no authored title has its
+  // own first line derived into a label and printed directly above that same
+  // first line. A deck that wants any of them back passes `true`.
+  assert(
+    type(show-frame) == bool,
+    message: "@rookery/slipshow: `show-frame` must be a bool — got " + repr(show-frame),
+  )
+  assert(
+    type(show-id) == bool,
+    message: "@rookery/slipshow: `show-id` must be a bool — got " + repr(show-id),
+  )
+  assert(
+    type(show-label) == bool,
+    message: "@rookery/slipshow: `show-label` must be a bool — got " + repr(show-label),
   )
 
   // `resolve-slips` validates `slips`/`tags`/`where`/`order`/`row` itself
@@ -317,7 +366,9 @@
     // exactly as they would outside a slipshow, in the resolved order.
     // `target()` reports EPUB as "html", so an EPUB build takes the deck
     // branch below like a real HTML build does, not this one.
-    for e in entries { _render-slip(e) }
+    for e in entries {
+      _render-slip(e, show-frame: show-frame, show-id: show-id, show-label: show-label)
+    }
     return
   }
 
@@ -332,7 +383,7 @@
       let render-section(pair) = html.elem("section", attrs: _slip-attrs(pair.e, pair.i), {
         let bg = _background-child(pair.e.tags)
         if bg != none { bg }
-        _render-slip(pair.e)
+        _render-slip(pair.e, show-frame: show-frame, show-id: show-id, show-label: show-label)
       })
       for run in _row-runs(entries) {
         let r = _entry-row(run.first().e)

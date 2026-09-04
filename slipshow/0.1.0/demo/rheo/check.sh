@@ -48,6 +48,29 @@ check_page explicit 3 all
 check_page predicate 2
 check_page deck 12
 
+# 2b. A QUERIED SLIP WEARS NO CARD CHROME. `#slipshow`'s `show-frame`/`show-id`/
+#     `show-label` all default to false, so every slip the tag-query route
+#     resolves is transcluded through a `#window` carrying `data-rookery-bare`,
+#     and no `[idea:` permalink survives INSIDE the deck. Scoped to the deck and
+#     not to the page: `index.typ` also authors those five notes inline, and
+#     those copies are ordinary cards that keep their permalinks.
+deck_chrome() {
+  local file=$1 want=$2
+  local path="$H/$file.html"
+  local deck bare perms
+  deck=$(sed 's/.*<div class="slipshow"/<div class="slipshow"/' "$path")
+  # `|| true` on both: this script runs under `set -o pipefail`, and `grep`
+  # exits 1 when it matches nothing — which for the permalink count is the
+  # PASSING case, so without it a correct deck aborts the whole check.
+  bare=$(printf '%s' "$deck" | grep -o 'data-rookery-bare' | wc -l || true)
+  [ "$bare" -eq "$want" ] || note "$file.html: expected $want bare wrappers in the deck, found $bare"
+  perms=$(printf '%s' "$deck" | grep -o 'idea-label' | wc -l || true)
+  [ "$perms" -eq 0 ] || note "$file.html: expected no permalink inside the deck, found $perms"
+}
+
+deck_chrome index 5
+deck_chrome predicate 2
+
 # 3. deck.html carries exactly two fullscreen bookends — the opening and
 #    closing slips, and nothing else on that page.
 full=$(grep -o 'class="slip slip-fullscreen' "$H/deck.html" | wc -l)
