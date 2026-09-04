@@ -849,6 +849,36 @@ h6[data-rookery="idea"] {
   background-color: transparent;
 }
 
+/* `#idea(show-frame: false)` / `#window(show-frame: false)`: a note that keeps
+   everything it has — its hat, its title, its body, its tags — and gives up only
+   the BOX, the left rule and the indent that go with it. A presentation is the
+   case this exists for: `@rookery/slipshow` puts each slip in a `<section>` of
+   its own, and a card's frame inside that reads as a frame around a frame.
+
+   THE SAME TWO-ATTRIBUTE TRICK as `data-rookery-plain` directly above, for the
+   same cascade reason — read that comment for the full argument. In short: this
+   file is unlayered throughout, unlayered CSS beats layered CSS regardless of
+   specificity, so a project cannot win this from its own stylesheet no matter
+   how it writes the selector. Being more specific WITHIN this sheet is the only
+   move available, and it has to live here.
+
+   A SEPARATE ATTRIBUTE from `data-rookery-plain` rather than a second value of
+   it, because the two are different jobs on different elements: `plain` says
+   "`#idea-body` rendered a bare body, do not draw a box around it", and applies
+   to a window only; `bare` says "this note was asked not to wear its frame",
+   and applies to a card as well. A note can be neither, either, or — for a
+   plain window — effectively both.
+
+   `padding-left`, not `padding`: the box's own vertical padding is not part of
+   the frame, and zeroing all four sides here would collapse a note against
+   whatever sits above it. `data-rookery-plain` above DOES zero all four, and
+   that is right there — it is embedding a body inside someone else's box. */
+[data-rookery="box"][data-rookery-bare],
+[data-rookery="window"][data-rookery-bare] {
+  border-left: none;
+  padding-left: 0;
+}
+
 /* Marker hidden in both spellings — `::marker` for standards-mode browsers,
    `::-webkit-details-marker` for older WebKit, and `list-style: none` on the
    summary itself, which is what actually suppresses it in Safari. The summary

@@ -28,7 +28,15 @@
 // Defined after `_outbound` above because it calls it at registration time, and
 // a `#let` closure captures the scope visible AT DEFINITION time.
 
-#let idea(level: 1, title: none, tags: (), exclude-tags: (), created: none, show-date: false, show-tags: false, show-context: auto, show-backlinks: auto, show-title: auto, ..args) = {
+// `show-frame: false` DROPS THE CARD'S BOX — its left rule and the indent that
+// goes with it — and nothing else: the note still registers, still carries its
+// tags and its anchor, still renders its hat and its body. It is a per-note
+// switch, where `rule-width`/`border-color`/`pad` in the theme move the frame
+// for the whole document. The mechanism is a second attribute,
+// `data-rookery-bare`, and a more-specific rule in `core.css`; see the comment
+// on `data-rookery-plain` there for why a downstream stylesheet cannot do this
+// from outside the package.
+#let idea(level: 1, title: none, tags: (), exclude-tags: (), created: none, show-date: false, show-tags: false, show-frame: true, show-context: auto, show-backlinks: auto, show-title: auto, ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
   // below and further down at render time — str has no `.map`, so the error
@@ -405,8 +413,13 @@
         _bracket(
           html.elem(
             "div",
+            // `data-rookery-bare` ONLY when the frame is off — an unconditional
+            // attribute with a `"false"` value would still match
+            // `[data-rookery-bare]`, and a card that keeps its frame has to emit
+            // exactly the markup it emitted before this argument existed.
             attrs: _themed(
               (class: box-cls.join(" "), data-rookery: "box")
+                + (if show-frame { (:) } else { ("data-rookery-bare": "bare") })
                 + _tags-attr(_visible-tags(tags.keys())),
             ),
             header + _footnoted(body) + _refs-block(_own-cited-keys(body)),

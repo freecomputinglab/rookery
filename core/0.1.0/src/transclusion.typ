@@ -95,7 +95,7 @@
 //
 // Must be called from inside a `context` block: `_permalink` reads the page
 // handle and the prefix state. Both callers already are.
-#let _window-content(id, rec, shown, folded, show-date, show-tags, windows-claim: false) = {
+#let _window-content(id, rec, shown, folded, show-date, show-tags, show-frame: true, windows-claim: false) = {
   // `created`, matching `#idea`'s own hat. There was an `updated` field here
   // until 0.6.0 and this hat showed it, on the argument that a reader wants to
   // know when a note was last touched. Core no longer answers that: a
@@ -200,7 +200,14 @@
     let win-cls = (_c("window"),) + visible.map(l => _c("tag-" + l))
     html.elem(
       "div",
-      attrs: _themed((class: win-cls.join(" "), data-rookery: "window") + _tags-attr(visible)),
+      // `data-rookery-bare` only when the frame is off, exactly as `idea.typ`
+      // emits it on a card: an attribute present with a falsy VALUE would still
+      // match the `[data-rookery-bare]` selector in `core.css`.
+      attrs: _themed(
+        (class: win-cls.join(" "), data-rookery: "window")
+          + (if show-frame { (:) } else { ("data-rookery-bare": "bare") })
+          + _tags-attr(visible),
+      ),
       html.elem("details", attrs: d-attrs,
         summary + html.elem("div", attrs: (class: _c("window-body"), data-rookery: "window-body"),
           _footnoted(shown) + _refs-block(_own-cited-keys(shown, windows-claim: windows-claim)))))
@@ -386,6 +393,11 @@
           v.folded,
           v.show-date,
           v.at("show-tags", default: false),
+          // `.at(.., default: true)` for the same reason `show-tags` above uses
+          // one, but defaulting the OTHER way: core's default for `show-frame`
+          // is `true`, so a marker minted before this key existed must read as a
+          // framed window.
+          show-frame: v.at("show-frame", default: true),
           windows-claim: depth - 1 > 1,
         ),
         WK,

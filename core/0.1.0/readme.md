@@ -18,9 +18,14 @@ is how you discover a generated id in order to paste it into a `#window`.
 ```
 
 Full signature: `idea(level: 1, title: none, tags: (), exclude-tags: (),
-created: none, show-date: false, show-tags: false, ..args)`, where
+created: none, show-date: false, show-tags: false, show-frame: true, ..args)`, where
 the sink accepts the body alone, `(name, body)`, or `(<name>, body)` — the name
 may be a string or a Typst label, identically.
+
+`show-frame: false` drops the card's BOX — its left rule and the indent that goes
+with it — and nothing else: the note still registers, still carries its tags and
+its anchor, still renders its hat and its body. See "Dropping a note's frame"
+below.
 
 ## 0.1.0
 
@@ -322,6 +327,44 @@ above: the heading is `idea`/`idea-tag-<tag>` and the permalink is
 `.idea-label` only where `prefix` reads `idea` (the default) or `css-prefix`
 was set to pin it there deliberately.
 
+## Dropping a note's frame
+
+```typst
+#idea("bare", show-frame: false)[A note with no left rule and no indent.]
+#window("bare", show-frame: false)
+```
+
+`show-frame:` is on both `#idea` and `#window`, `true` by default, and it governs
+exactly one thing: the box a note wears — its `border-left` and the
+`padding-left` that goes with it. Everything else is untouched. The note still
+registers, still carries its tags and its classes, still renders its hat, its
+title, its body, its footnotes and its references, and a window still opens and
+closes.
+
+**It is a per-note switch, not a theme setting.** `rule-width`, `border-color`
+and `pad` (see "The theme" above) move the frame for the WHOLE document, which is
+what you want when a site's notes should read lighter or heavier. This is for the
+one note, or the one view, where the frame is wrong while every other note on the
+site keeps it — a presentation being the case it was added for.
+[`@rookery/slipshow`](../../slipshow/0.1.0) puts each slip in a `<section>` of its
+own, and a card's frame inside that reads as a frame around a frame.
+
+**The mechanism, because a project may need to know it.** The Typst side emits a
+second attribute, `data-rookery-bare`, on the note's `[data-rookery="box"]` or
+`[data-rookery="window"]` wrapper, and `src/core.css` carries the matching
+override. **A project cannot do this from its own stylesheet**, however it writes
+the selector: `core.css` is unlayered throughout, unlayered CSS beats layered CSS
+regardless of specificity, so a downstream rule can never outrank
+`[data-rookery="box"] { border-left: .. }` here. Winning requires being more
+specific within this sheet, which is why the switch lives in the package. It is
+the same trick `#idea-body` uses with `data-rookery-plain`, and the two are
+deliberately separate attributes: `plain` means "a bare body was rendered, do not
+draw a box around it" and applies to windows only; `bare` means "this note was
+asked not to wear its frame" and applies to a card as well.
+
+A project styling on it should select on the attribute
+(`[data-rookery-bare]`), which is stable, rather than on any class.
+
 ## Flat ids, and why
 
 `#idea("etal")` is the Typst label `<idea:etal>` everywhere — no handle or
@@ -400,6 +443,10 @@ Three ways, pick by how much ceremony you want:
   `show-tags: true` shows the note's tags as a row of pills in the hat, between
   the permalink and the date — off by default, same mechanism as `show-date`.
   See "Tags" below.
+
+  `show-frame: false` drops the window's left rule and indent, the same switch
+  `#idea` takes for a card, and leaves the summary, the disclosure and the body
+  exactly as they were. See "Dropping a note's frame" below.
 
   The window's own wrapper wears the note's visible tags too, unconditionally
   — the same `.idea-tag-<key>` classes and the same `data-rookery-tags`
