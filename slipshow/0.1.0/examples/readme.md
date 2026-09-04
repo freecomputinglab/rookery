@@ -2,9 +2,10 @@
 
 Five rheo projects, one per capability: a deck composed through
 `@rookery/search`, a mixed `#idea`/`#slip` deck, backgrounds and fullscreen,
-metadata-driven ordering, and a `@rookery/todos` dependency DAG presented
-horizontally. Each is both an EXAMPLE — copy one to start a presentation of
-your own — and a TEST — CI compiles every one of them.
+metadata-driven ordering, and a `@rookery/todos` dependency DAG walked
+depth-first, in both deck directions. Each is both an EXAMPLE — copy one to
+start a presentation of your own — and a TEST — CI compiles every one of
+them.
 
 ## Shape
 

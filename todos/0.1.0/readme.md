@@ -426,7 +426,7 @@ same shape `#panel` takes for `facet-rows:`; a line whose groups are all absent 
 `facets:` is dropped, so narrowing one argument needs no edit to the other. Every
 group on one unlabelled line is `pill-rows: ((facets: ("epic", "tag", "state", "priority")),)`.
 
-## Horizontal decks: #todo-slipshow
+## Decks: #todo-slipshow
 
 ```typst
 #import "@rookery/slipshow:0.1.0": slipshow
@@ -436,23 +436,31 @@ group on one unlabelled line is `pill-rows: ((facets: ("epic", "tag", "state", "
 ```
 
 A bare `#todo-slipshow()` is the whole todo corpus laid out as an
-`@rookery/slipshow` deck: naming no selection of its own (no `slips:`,
-`tags:`, or `where:`) defaults it to `tags: "todo"`, the key every todo
-carries.
+`@rookery/slipshow` deck, read depth-first and stacking down the screen:
+naming no selection of its own (no `slips:`, `tags:`, or `where:`) defaults
+it to `tags: "todo"`, the key every todo carries.
 
 It feeds `#slipshow` four derived key functions from `todo-slip-keys`, none
 of them a tag on any `#todo`:
 
-- **`row:` is the graph LAYER** (`layer-of`, `src/graph.typ`): layer 0 is
-  everything unblocked, and layer *n* is everything the layers below it
-  release — so several todos released by the same parent, with nothing else
-  blocking them, land in the same row, side by side.
-- **`order:` sorts layer, then priority, then name**, folded into one
-  comparable key. This is what keeps a layer's members ADJACENT:
-  `@rookery/slipshow` groups CONSECUTIVE resolved entries into a row and
-  never reorders them, so `row:` with no matching `order:` fragments every
-  layer into singleton rows of one. The two are a matched set for exactly
-  this reason.
+- **`row:` is the SIBLING GROUP** (`dfs-of`, `src/graph.typ`): the todos one
+  parent releases are a group, and a group of two or more shares a row, side
+  by side. A group of ONE gets no row at all — a lone slip needs no wrapper —
+  so a chain of todos each releasing the next stacks all the way down.
+  `layer-of` and `layers` are still what `#todo-graph-view` lays the DRAWN
+  graph out with; a deck does not use them.
+- **`order:` is the DEPTH-FIRST position** in that same walk, zero-padded so
+  it sorts as a string. Depth-first is what keeps a connector curve short: one
+  branch is followed to its end before the next starts, so a todo sits beside
+  the work it unblocks instead of a layer away from it. It is also what keeps
+  a group's members ADJACENT: `@rookery/slipshow` groups CONSECUTIVE resolved
+  entries into a row and never reorders them, so `row:` with no matching
+  `order:` fragments every group into singleton rows of one. The two are a
+  matched set for exactly this reason.
+  Sibling lists are sorted by priority, then name, unprioritised last — the
+  same tie-break `layers()` uses, so the drawn graph and a deck built from the
+  same data agree about sequence. Priority therefore decides sequence within a
+  row without being part of the sort key.
 - **`class:` is the status rail** — `todo-slip-ready`, `todo-slip-blocked`
   or `todo-slip-closed`, which colour `@rookery/slipshow`'s rail rather than
   draw a border of their own (see "Styling" below, which sizes that rail).
@@ -481,11 +489,21 @@ passed to `#todo-slipshow` alongside these: the derived dictionary and the
 caller's own named arguments merge with the caller's own keys taking
 precedence, exactly as if the derived ones had never been offered.
 
+**`direction:` decides what the todos that share no parent do, and nothing
+else.** `"down"` (the default) gives every dependency-free todo a group of its
+own, so they stack one under the next; `"across"` makes them a single group,
+so they span one row at the top of the deck. Everything they release is laid
+out identically either way — because **several todos released by the same
+parent always share a row, in both directions**. That is the rule
+`direction:` does not touch. `@rookery/slipshow`'s
+`examples/dag/content/index.typ` and `across.typ` are the same corpus under
+each.
+
 `today:` and `done:` govern how CLOSED todos sort, not whether they appear.
 `today:` reaches `is-ready` the same way it does everywhere else in this
 package. `done:` is one of `"inline"` (the default), `"first"`, or `"last"`:
 `"inline"` reads the DAG straight down, so a closed todo sorts exactly where
-its layer and priority put it, beside its still-open siblings; `"first"`/
+the walk and its priority put it, beside its still-open siblings; `"first"`/
 `"last"` instead sort closedness ahead of everything else, pulling every
 closed todo out of its graph position to one end of the deck — and
 therefore FRAGMENTING every row it was part of, the identical fragmentation

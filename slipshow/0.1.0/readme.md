@@ -500,7 +500,7 @@ array would otherwise conflict over.
 This exists for a class that cannot be a tag because it is derived from
 something outside the note itself. `@rookery/todos`' `ready` and `blocked`
 are exactly that, and `class:` is the only route by which they reach a
-slide's `<section>` at all — see that package's readme, "Horizontal decks:
+slide's `<section>` at all — see that package's readme, "Decks:
 #todo-slipshow".
 
 ### `edges:` — a key function for the slides a slide points at
