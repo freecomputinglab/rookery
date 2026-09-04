@@ -1344,6 +1344,24 @@ a[data-rookery="row-title"]:hover {
   margin-bottom: 0.5em;
 }
 
+/* A CONTAINER-START MARGIN, which is nobody's spacing. A transcluded body opens
+   with whatever block the note itself opens with, and the user agent gives that
+   block a top margin — `1em` for a heading, the same for a paragraph — so a
+   note beginning with `== Problem` renders its heading pushed down off the
+   window's own top edge, with the gap reading as part of the window rather than
+   as space between two blocks.
+
+   `> :first-child` rather than a list of headings: a body opening with a
+   paragraph or a list carries the same UA margin and the same argument against
+   it, and the block that happens to come first is not the note's business.
+
+   Only the FIRST child, and only its TOP: the margins BETWEEN a body's blocks
+   are ordinary text rhythm and stay. The footnote and reference blocks are
+   appended after the body, so they are never this selector's match. */
+[data-rookery="window-body"] > :first-child {
+  margin-top: 0;
+}
+
 /* ---- Footnotes — an idea's own, not the page's ----------------------------
    `#footnote` inside an idea numbers against THAT idea and lists its bodies
    here, at the end of the idea, so two notes on one page may each carry a

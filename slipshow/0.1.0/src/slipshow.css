@@ -162,6 +162,33 @@
   z-index: 1;
 }
 
+/* A SLIDE'S WINDOW OWES ITS FIGURE NOTHING. `@rookery/core`'s `#window` wraps
+   itself in a Typst `figure`, and two things put a box around that figure which
+   a slip does not want:
+
+     - the user agent's own `figure { margin: 1em 40px }`. Core zeroes the left
+       and right of it for a window, which leaves the `1em` top and bottom.
+     - core's `padding-top` on the same figure, reserving room for a window's
+       LIFTED ID so it cannot overflow upward into whatever precedes it.
+
+   Neither earns its space here. `<section class="slip">` is already the spacing
+   unit — it is what the camera scrolls to and what `.slip-row` lays out — so a
+   second box inside it only pushes the content off its own top edge. And a
+   slide has no id to clear: `#slipshow` sets `show-id: false`, which leaves the
+   tab emitted but empty.
+
+   `.slipshow .slip figure`, NOT `.slip figure`, and the second class is
+   load-bearing. Core's rule is `figure:has(> [data-rookery="window"])`, scoring
+   (0,1,1) because `:has()` takes its argument's specificity — exactly what a
+   bare `.slip figure` scores too, which would leave the winner to stylesheet
+   order. That order is a property of a consuming project's package list rather
+   than of anything this package controls, so the tie is broken here instead:
+   (0,2,1) wins wherever the two sheets land. */
+.slipshow .slip figure {
+  margin: 0;
+  padding: 0;
+}
+
 /* THE FULLSCREEN CASE. `min-height`, not `height`: a slip whose content is
    taller than the viewport still shows all of it rather than clipping.
    `svh` over `vh` for the reason given on `.slipshow` above — a `100vh`
