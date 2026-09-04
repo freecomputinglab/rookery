@@ -28,24 +28,43 @@
 //
 // ---- Choosing what starts a note: `separator:` ---------------------------
 //
-// `separator:` decides where one note ends and the next begins. Two values are
-// accepted, and nothing else:
+// `separator:` decides where one note ends and the next begins. Five spellings
+// are accepted, and nothing else:
 //
-//   #ideate[..]                                  // default: split on parbreak
-//   #ideate(separator: heading(level: 2)[])[..]  // each `==` starts a note
+//   par                       every paragraph is a note (the default)
+//   parbreak                  the same thing; the previous default, kept working
+//   heading.where(level: 2)   every `==` starts a note — the bracket-free form
+//   heading(level: 2)[]       the same, as an element; nothing to parse
+//   none                      nothing splits: the whole body is ONE note
 //
-// also as a show rule, which is the case that motivated this argument at all —
-// a weeknotes-style document where every `==` section, not every paragraph, is
-// the unit worth minting as a note:
+//   #ideate[..]                                         // default: by paragraph
+//   #ideate(separator: heading.where(level: 2))[..]     // each `==` starts one
+//   #ideate(separator: none)[..]                        // the block is one note
 //
-//   #show: ideate.with(separator: heading(level: 2)[], tags: "weeknotes")
+// also as a show rule, which is the case that motivated the argument at all — a
+// weeknotes-style document where every `==` section, not every paragraph, is the
+// unit worth minting as a note:
 //
-// THE EMPTY BODY IS NOT OPTIONAL. `heading(level: 2)` alone is illegal Typst
-// (`error: missing argument: body`) — `heading` takes its body positionally,
-// so the separator spec a caller writes is `heading(level: 2)[]`, empty
-// brackets and all. This is the obvious thing to get wrong; Typst's own
-// compiler reports the failure, not this file, so the panic added for every
-// other bad `separator:` can't even fire for this particular mistake.
+//   #show: ideate.with(separator: heading.where(level: 2), tags: "weeknotes")
+//
+// `par` NAMES THE SPLIT; IT DOES NOT CHANGE IT. There is no `par` element in a
+// markup content tree (fact 1 below), so both par-mode spellings still split on
+// `parbreak`. `par` is the honest name for what a caller is asking for and
+// `parbreak` is the mechanism underneath; they are distinct values, so both are
+// accepted by identity.
+//
+// `heading(level: 2)` BARE IS ILLEGAL TYPST — `error: missing argument: body`,
+// since `heading` takes its body positionally. It is the first thing anyone
+// tries, and it is exactly what `heading.where(level: 2)` exists to give them.
+// Two consequences worth stating, because both look like oversights:
+//
+//   - Typst's own compiler reports that failure, not this file, so the panic
+//     below cannot fire for this particular mistake however well it is worded.
+//   - It cannot be fixed here either. The only route would be exporting a
+//     `heading` of our own with an optional body, shadowing the element for
+//     everyone who star-imports this package — and MEASURED, that breaks every
+//     consumer's show rule outright: `#show heading: ..` over a plain function
+//     is `error: only element functions can be used as selectors`.
 //
 // A heading's level lives in one of TWO different fields depending on how it
 // was written, MEASURED on typst 0.15.1 (see `_level-of` below):
@@ -62,7 +81,7 @@
 // `level` to nothing and match no heading ever, so both sides go through
 // `_level-of`, which checks `level` first and falls back to `depth`.
 //
-// PARBREAK DISCARDS ITS SEPARATOR; HEADING KEEPS IT. In parbreak mode the
+// PAR MODE DISCARDS ITS SEPARATOR; HEADING KEEPS IT. In par mode the
 // `parbreak()` between two paragraphs belongs to neither and is thrown away.
 // In heading mode the matching heading STARTS the group that follows it
 // instead: `== rookery` plus the bullets under it is one note, with the
@@ -200,13 +219,54 @@
 // `level` if present, else `depth`, else `1`.
 #let _level-of(h) = h.at("level", default: h.at("depth", default: 1))
 
+// The same level, read off a SELECTOR instead — `heading.where(level: 2)`, which
+// is the bracket-free spelling and Typst's own idiom for naming a heading level.
+//
+// BY PARSING `repr`, WHICH IS NOT LAZINESS. A selector has no accessors at all:
+// `type(heading.where(level: 2))` is `selector`, and `.at("level")` fails outright
+// with `type selector has no method 'at'`. `repr()` is the only way in, MEASURED
+// on typst 0.15.1 across every form worth trying:
+//
+//   heading.where(level: 2)                  -> `heading.where(level: 2)`
+//   heading.where(depth: 2)                  -> `heading.where(depth: 2)`
+//   heading.where(level: 10)                 -> `heading.where(level: 10)`
+//   heading.where(level: 2, outlined: true)  -> `heading.where(level: 2, outlined: true)`
+//   figure.where(kind: image)                -> `figure.where(kind: image)`
+//   heading.where(level: 2).or(..level 3..)  -> `selector.or(heading.where(level: 3), heading.where(level: 2))`
+//   selector(heading)                        -> `heading`
+//
+// Only the first three name a level, and the regex below matches exactly those —
+// asserted in `test/units.typ`, so a Typst release that changes `repr`'s format
+// fails the suite rather than silently mis-splitting somebody's deck.
+//
+// THE REST ARE REFUSED RATHER THAN GUESSED AT, and the last two say why that is
+// not pedantry: `.or(..)` REORDERS its operands in the repr, so no honest reading
+// of it survives, and `selector(heading)` reprs as a bare `heading` carrying no
+// level at all.
+#let _sel-level(sel) = {
+  let r = repr(sel)
+  let m = r.match(regex("^heading\.where\((level|depth): (\d+)\)$"))
+  if m == none {
+    panic(
+      "ideate: `separator:` took the selector `"
+        + r
+        + "`, which does not name a plain heading level. Write "
+        + "`heading.where(level: 2)` — one field, `level` or `depth`, holding a "
+        + "whole number. A selector over another element, one carrying extra "
+        + "fields, or one built with `.or(..)` cannot name a level and is refused "
+        + "rather than guessed at.",
+    )
+  }
+  int(m.captures.at(1))
+}
+
 // WRAPPED IN `context`, and it has to be: the paged passthrough below asks
 // which target this is, and `_target()` reads `std.target()`, which Typst only
 // answers inside a context block. Everything else here is pure content
 // arithmetic — no state, no query, no layout — so the block introduces no
 // convergence risk of its own; `#idea` does its own registration inside a
 // context of its own already, and nesting one more changes nothing about that.
-#let ideate(body, separator: parbreak, show-frame: false, show-id: false, ..args) = context {
+#let ideate(body, separator: par, show-frame: false, show-id: false, ..args) = context {
   // A PAGED TARGET GETS THE MARKUP IT WAS GIVEN. No note is minted, nothing is
   // wrapped, and `#ideas()` in that build sees nothing from here — a PDF of a
   // block of prose should be that block of prose. The same shape
@@ -222,30 +282,53 @@
   // split, or a caller only discovers the typo on the one body that happens to
   // have more than one paragraph in it.
   //
-  // Two shapes are accepted:
-  //   - the function `parbreak` itself (the default) — compares equal by
-  //     identity, since a function is an ordinary comparable value here.
-  //   - a `content` value whose `.func()` is `heading` — i.e. an actual heading
-  //     element, not the function or a selector. `heading(level: 2)` alone is
-  //     ILLEGAL Typst (`missing argument: body`, since `heading` takes its body
-  //     positionally) and never reaches here; Typst's own compiler rejects it
-  //     before this code runs. `heading.with(level: 2)` is a `function` whose
-  //     bound arguments cannot be read back, and `heading.where(level: 2)` is a
-  //     `selector` with no readable level either — neither is a `content`, so
-  //     both fall into the panic below along with everything else.
-  let heading-mode = type(separator) == content and separator.func() == heading
-  let parbreak-mode = type(separator) == function and separator == parbreak
-  if not (heading-mode or parbreak-mode) {
+  // Five spellings, four modes:
+  //
+  //   par                       every paragraph is a note (the default)
+  //   parbreak                  the same thing; the previous default, kept working
+  //   heading.where(level: 2)   every `==` starts a note — the bracket-free form
+  //   heading(level: 2)[]       the same, as an element; nothing to parse
+  //   none                      nothing splits: the whole body is ONE note
+  //
+  // `par` NAMES THE SPLIT, IT DOES NOT CHANGE IT. There is no `par` element in a
+  // markup content tree (fact 1) — MEASURED, `[One.\n\nTwo.]` holds
+  // `space, text, parbreak, text, space` and no `par` anywhere — so both par-mode
+  // spellings still split on `parbreak`. `par` is simply the honest name for what
+  // a caller is asking for; `parbreak` is the mechanism underneath. They are
+  // distinct values (`par == parbreak` is `false`), so both can be accepted by
+  // identity.
+  //
+  // `heading(level: 2)` BARE IS ILLEGAL TYPST and never reaches here: `heading`
+  // takes its body positionally, so it fails at the call site with `missing
+  // argument: body`. That is what the selector form is FOR. It cannot be fixed
+  // here either — the only way would be exporting a `heading` of our own with an
+  // optional body, which shadows the element for everyone star-importing this
+  // package, and MEASURED that breaks every consumer's `#show heading:` rule with
+  // `only element functions can be used as selectors`. `heading.with(level: 2)`
+  // is a `function` whose bound arguments cannot be read back, so it stays
+  // unsupported too.
+  //
+  // Classified ONCE, before even the single-paragraph early return below: a bad
+  // separator must be rejected even when there is nothing to split, or a caller
+  // only discovers the typo on the one body that happens to have two paragraphs.
+  let none-mode = separator == none
+  let heading-elem = type(separator) == content and separator.func() == heading
+  let heading-sel = type(separator) == selector
+  let heading-mode = heading-elem or heading-sel
+  let par-mode = type(separator) == function and (separator == par or separator == parbreak)
+  if not (none-mode or heading-mode or par-mode) {
     panic(
-      "ideate: `separator:` must be either `parbreak` (the default — every "
-        + "paragraph becomes a note) or a heading element carrying a level, "
-        + "written `heading(level: 2)[]`. Note the empty body: `heading(level: 2)` "
-        + "on its own is illegal Typst (`missing argument: body`), since `heading` "
-        + "takes its body positionally. Got: "
+      "ideate: `separator:` must be one of `par` (the default — every paragraph "
+        + "becomes a note), `parbreak` (the same thing), `heading.where(level: 2)` "
+        + "or `heading(level: 2)[]` (every heading of that level starts a note), or "
+        + "`none` (nothing splits — the whole body is one note). Note the empty "
+        + "body on that fourth form: `heading(level: 2)` on its own is illegal "
+        + "Typst (`missing argument: body`), since `heading` takes its body "
+        + "positionally — which is what `heading.where(level: 2)` is for. Got: "
         + repr(separator),
     )
   }
-  let want = if heading-mode { _level-of(separator) }
+  let want = if heading-elem { _level-of(separator) } else if heading-sel { _sel-level(separator) }
 
   // `show-frame`/`show-id` default to FALSE here, inverting `#idea`'s own
   // defaults. That inversion is most of the reason this function is worth
@@ -258,32 +341,46 @@
   // Fact 4: one paragraph, no sequence, nothing to split.
   if not body.has("children") { return mint(body) }
 
-  // Split into groups. In parbreak mode (fact 1) the separator is discarded
-  // and the new group starts empty — unchanged from before `separator:`
-  // existed. In heading mode the rule is the OPPOSITE: the separator STARTS
-  // its group rather than being discarded, because `== rookery` and the
-  // bullets under it are one note, with the heading as its first line. So on
-  // a match the child goes into the fresh group, not the one being closed.
-  // Content before the first matching heading is a preamble group like any
-  // other — it is not dropped or treated specially. A heading of a
-  // non-matching level, and `parbreak` itself, are ordinary content in
-  // heading mode: a section with three paragraphs in it is ONE note.
-  let groups = ()
-  let current = ()
-  for child in body.children {
-    let is-separator = if heading-mode {
-      child.func() == heading and _level-of(child) == want
-    } else {
-      child.func() == parbreak
+  // Split into groups. In par mode (fact 1) the separator is `parbreak` and is
+  // DISCARDED, the new group starting empty — unchanged from before `separator:`
+  // existed. In heading mode the rule is the OPPOSITE: the separator STARTS its
+  // group rather than being discarded, because `== rookery` and the bullets under
+  // it are one note, with the heading as its first line. So on a match the child
+  // goes into the fresh group, not the one being closed. Content before the first
+  // matching heading is a preamble group like any other — it is not dropped or
+  // treated specially. A heading of a non-matching level, and `parbreak` itself,
+  // are ordinary content in heading mode: a section with three paragraphs in it
+  // is ONE note.
+  //
+  // `none` MODE NEVER ENTERS THE LOOP: one group holding every child, handed to
+  // the same emit rules below. Nothing needs a separate mint path — a single
+  // group with content in it is minted, which is the whole of what `none` means.
+  //
+  // One honest consequence, and it is worth stating rather than discovering: in
+  // `none` mode the trailing `context` postamble of fact 5 sits INSIDE the note
+  // rather than beside it, there being only one group and that group having
+  // content. It renders nothing, it is what `#ideate` did for every note before
+  // `_no-content` existed, and leaving it in place beats reordering an author's
+  // children to hoist it out.
+  let groups = if none-mode { (body.children,) } else {
+    let groups = ()
+    let current = ()
+    for child in body.children {
+      let is-separator = if heading-mode {
+        child.func() == heading and _level-of(child) == want
+      } else {
+        child.func() == parbreak
+      }
+      if is-separator {
+        groups.push(current)
+        current = if heading-mode { (child,) } else { () }
+      } else {
+        current.push(child)
+      }
     }
-    if is-separator {
-      groups.push(current)
-      current = if heading-mode { (child,) } else { () }
-    } else {
-      current.push(child)
-    }
+    groups.push(current)
+    groups
   }
-  groups.push(current)
 
   // THE ORDER OF THESE THREE TESTS IS LOAD-BEARING.
   //

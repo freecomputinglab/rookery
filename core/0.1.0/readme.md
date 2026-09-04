@@ -583,32 +583,66 @@ not descend into them.
 
 ### Choosing what starts a note
 
-By default `#ideate` splits on `parbreak()` — every paragraph is a note, as
-above. Pass `separator:` to split on a heading instead, so every section is a
-note rather than every paragraph:
+`separator:` says where one note ends and the next begins. Five spellings are
+accepted:
+
+| `separator:` | what starts a note |
+| --- | --- |
+| `par` | every paragraph — the default |
+| `parbreak` | the same thing; the previous default, still accepted |
+| `heading.where(level: 2)` | every `==` — the bracket-free spelling |
+| `heading(level: 2)[]` | the same, as an element; nothing to parse |
+| `none` | nothing splits — the whole body is ONE note |
 
 ```typst
-#ideate[..]                                  // default: split on parbreak
-#ideate(separator: heading(level: 2)[])[..]  // every `==` starts a note
+#ideate[..]                                      // default: by paragraph
+#ideate(separator: heading.where(level: 2))[..]  // every `==` starts a note
+#ideate(separator: none)[..]                     // the whole block is one note
 ```
 
-which is most useful as the show-rule form, the case that motivated the
+The heading form is most useful as a show rule, the case that motivated the
 argument at all:
 
 ```typst
 #show: rookery
-#show: ideate.with(separator: heading(level: 2)[], tags: "weeknotes")
+#show: ideate.with(separator: heading.where(level: 2), tags: "weeknotes")
 ```
 
-**The empty body is not optional.** `heading(level: 2)` on its own is illegal
-Typst (`error: missing argument: body`) — `heading` takes its body
-positionally — so the spelling is `heading(level: 2)[]`, empty brackets
-included. That is the natural thing to try first, and Typst's own compiler
-rejects it before `#ideate` ever sees it; no `#ideate` error message can catch
-this one, because the compile never reaches `#ideate`'s code.
+**`par` names the split; it does not change it.** There is no `par` element in a
+markup content tree — Typst builds paragraphs at layout time — so both par-mode
+spellings still split on `parbreak()`. `par` is the honest name for what you are
+asking for, `parbreak` the mechanism underneath.
+
+**`heading(level: 2)` on its own is illegal Typst** — `error: missing argument:
+body`, since `heading` takes its body positionally. It is the first thing anyone
+tries, and `heading.where(level: 2)` is what it exists to give you. Two things
+follow, and both look like oversights until you know why:
+
+- Typst's own compiler rejects it before `#ideate` is reached, so no error
+  message of ours can catch this particular mistake however well worded.
+- It cannot be fixed on our side either. The only route would be exporting a
+  `heading` of our own with an optional body, which shadows the element for
+  everyone star-importing this package — and that breaks every consumer's show
+  rule: `#show heading: ..` over a plain function is `error: only element
+  functions can be used as selectors`.
+
+The element form `heading(level: 2)[]` stays supported and needs no string
+parsing, so reach for it if you would rather not depend on `repr()`'s format: a
+selector has no accessors at all, so reading a level back out of
+`heading.where(level: 2)` means parsing its `repr`. That parse is asserted in the
+test suite, so a Typst release that changes the format fails the suite rather
+than silently mis-splitting a document. A selector over another element, one
+carrying extra fields, or one built with `.or(..)` is refused with a panic rather
+than guessed at.
+
+**`separator: none`** wraps everything in one note — it is `#idea` with
+`#ideate`'s inverted defaults and its `tags:`, which is what turns a whole page
+into a single note without writing `#idea` by hand. In this mode a trailing
+`context` or `metadata` node ends up inside the note rather than beside it, there
+being only one group; it renders nothing.
 
 In heading mode, the matching heading **starts** the group that follows it
-rather than being discarded — the opposite of parbreak's rule. `== rookery`
+rather than being discarded — the opposite of par mode's rule. `== rookery`
 plus the bullets under it is one note, with the heading as its first line, not
 the last line of whatever preceded it. Content before the first matching
 heading is still a note of its own, an ordinary preamble. A heading of a
@@ -622,7 +656,7 @@ Anything else passed as `separator:` — `heading` with no level, `pagebreak`,
 
 ### Its two inverted defaults
 
-`ideate(body, separator: parbreak, show-frame: false, show-id: false, ..args)`.
+`ideate(body, separator: par, show-frame: false, show-id: false, ..args)`.
 
 Both invert `#idea`'s own defaults, and that inversion is most of the reason the
 function is worth having: an inferred note is not one anybody named, so a frame

@@ -20,7 +20,7 @@
   _bib, _bib-keys, _blocks, _body-plain, _body-text, _cite-scan, _dedup-tag,
   _is-inline, _join, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _own-cited-keys, _plain, _resolve-excluded, _resolve-tags-color, _sort-ids,
-  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _inert, _no-content,
+  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content,
   footnote, idea, note-href, note-path,
   tag-index, window,
 )
@@ -514,6 +514,15 @@
 #assert.eq(_level-of(heading(depth: 3)[Markup three]), 3)
 #assert.eq(_level-of(heading(level: 2)[Explicit two]), 2)
 #assert.eq(_level-of(heading(level: 2)[]), 2)
+
+// `_sel-level`: the bracket-free `heading.where(level: 2)` spelling. A selector
+// has NO accessors — `.at("level")` is `type selector has no method 'at'` — so
+// its level can only be read out of `repr()`. These assertions are what make
+// that parse safe: a Typst release that changes `repr`'s format fails here,
+// rather than silently mis-splitting somebody's document.
+#assert.eq(_sel-level(heading.where(level: 2)), 2)
+#assert.eq(_sel-level(heading.where(depth: 3)), 3)
+#assert.eq(_sel-level(heading.where(level: 10)), 10)
 
 // `_heading-only`: a group that is nothing but a heading is structure, not a
 // note. Surrounding whitespace does not change that; a heading with prose
