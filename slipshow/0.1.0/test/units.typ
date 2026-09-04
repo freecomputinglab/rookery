@@ -64,8 +64,9 @@
   // forwarded. Four more join them further down, for `resolve-slips`'s own
   // tests, plus four for `order:`'s key-function/`reverse:` tests further
   // down still, plus two for the `slips:` NAME route's own tests, plus five
-  // for `row:`'s own tests, bringing the total to twenty.
-  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 20)
+  // for `row:`'s own tests, plus two for `class:`'s own tests, bringing the
+  // total to twenty-two.
+  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 22)
 
   // THE REGRESSION THE `.with()` TRAP WOULD CAUSE: a caller's own `tags:`
   // must MERGE with the `slip` tag, not replace it. If `slip` were missing
@@ -299,3 +300,45 @@
 // not even `none` — whatever `row:` the deck was given.
 #let rk-content = slip("rk-content")[Loose content]
 #assert("computed-row" not in resolve-slips(slips: (rk-content,), row: r => 0).first())
+
+// `class:` — the same computed key-function shape as `row:`, but for the
+// section's class list rather than its grouping. `cls-a`/`cls-b` each carry
+// an authored `slip-class` tag that a computed class either overrides
+// outright (`cls-a`) or beats with a computed `none` (`cls-b`) rather than
+// falling through to it.
+#slip("cls-a", class: "tag-cls")[A]
+#slip("cls-b", class: "tag-cls-b")[B]
+
+#let cls-cohort = r => r.name.starts-with("cls-")
+
+#context {
+  let entries = resolve-slips(
+    tags: "slip", where: cls-cohort, order: r => r.name,
+    class: r => if r.name == "cls-b" { none } else { "computed-cls" },
+  )
+  assert.eq(entries.map(e => e.row.name), ("cls-a", "cls-b"))
+  assert.eq(entries.at(0).computed-class, "computed-cls")
+  assert.eq(_entry-class(entries.at(0)), "computed-cls")
+
+  // `computed-class` is present AS `none` (`_apply-class` ran on this entry,
+  // it just computed no class), so `_entry-class` returns `none` rather than
+  // falling through to the note's own `slip-class` tag.
+  assert.eq(entries.at(1).computed-class, none)
+  assert.eq(_entry-class(entries.at(1)), none)
+}
+
+// An entry with no `computed-class` key at all — `class:` never given — falls
+// through to its own `slip-class` tag, the same rule `_entry-row` follows for
+// `slip-row` when `row:` never ran.
+#context {
+  let entries = resolve-slips(tags: "slip", where: cls-cohort, order: r => r.name)
+  assert.eq(entries.map(e => "computed-class" in e), (false, false))
+  assert.eq(_entry-class(entries.at(0)), "tag-cls")
+  assert.eq(_entry-class(entries.at(1)), "tag-cls-b")
+}
+
+// A `"content"` entry has no registry row to hand `class:` at all, so the
+// function is skipped outright and the entry carries no `computed-class`
+// key — not even `none` — whatever `class:` the deck was given.
+#let cls-content = slip("cls-content")[Loose content]
+#assert("computed-class" not in resolve-slips(slips: (cls-content,), class: r => "x").first())

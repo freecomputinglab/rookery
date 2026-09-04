@@ -58,15 +58,21 @@
 //   name it by, and `select.typ`'s array route hands back only rendered
 //   `content` plus `tags` — no label or base — so `<id>` falls back to the
 //   slip's position instead: `slip-<n>`.
-// - `slip-fullscreen` and a `slip-class` value are appended to the section's
-//   class list; a background is never a class. A `color` becomes
-//   `background: <hex>` via `.to-hex()`; a `gradient` becomes
-//   `background: <css-gradient-function>` (`_gradient-css`); either is an
-//   inline `style` attribute on the `<section>`. `image(..)` content instead
-//   becomes `div.slip-bg` below — an inline `style` cannot carry an `<img>`,
-//   and typst's own HTML export already turns an `#image(..)` element into a
-//   self-contained base64 `data:` URI with no path for this package to
-//   resolve or rewrite. Any other `slip-background` value panics.
+// - `slip-fullscreen` and a class value are appended to the section's class
+//   list; a background is never a class. The class value is the deck's own
+//   `class:` key function (`_entry-class`) when it ran on that entry, else
+//   the note's own `slip-class` tag — told apart by KEY PRESENCE, not value,
+//   so a `class:` that computes `none` for a note means "no class", not
+//   "fall back to its tag". A SPACE-SEPARATED string is several classes,
+//   since `_slip-attrs` joins the class list verbatim into the one `class`
+//   attribute. A `color` becomes `background: <hex>` via `.to-hex()`; a
+//   `gradient` becomes `background: <css-gradient-function>`
+//   (`_gradient-css`); either is an inline `style` attribute on the
+//   `<section>`. `image(..)` content instead becomes `div.slip-bg` below —
+//   an inline `style` cannot carry an `<img>`, and typst's own HTML export
+//   already turns an `#image(..)` element into a self-contained base64
+//   `data:` URI with no path for this package to resolve or rewrite. Any
+//   other `slip-background` value panics.
 // - `div.slip-bg`: a slip's background LAYER rather than declaration, present
 //   only when `slip-background` is an image, and always the section's first
 //   child — `src/slipshow.css` is pinned to that position. Absent for a
@@ -272,6 +278,16 @@
   }
 }
 
+// An entry's class for `_slip-attrs` below: `computed-class` (`select.typ`'s
+// `_apply-class`) when `class:` ran on this entry, else its own `slip-class`
+// tag. Told apart by the KEY's presence, not its value, the same rule
+// `_entry-row` further down applies to `computed-row`: a `class:` function
+// that computed `none` for this entry still counts as having run, so that
+// entry gets no class rather than falling back to a tag it might still
+// carry. Defined here, ahead of `_slip-attrs`, rather than beside
+// `_entry-row`, because a Typst closure only sees names bound above it.
+#let _entry-class(e) = if "computed-class" in e { e.computed-class } else { class-of(e.tags) }
+
 // One entry's `<section>` attributes: id, index, class list, and the two
 // optional presentation attributes a slip may override.
 #let _slip-attrs(e, i) = {
@@ -279,7 +295,7 @@
   let cls = (
     "slip",
     ..if is-fullscreen(e.tags) { ("slip-fullscreen",) } else { () },
-    ..if class-of(e.tags) != none { (class-of(e.tags),) } else { () },
+    ..if _entry-class(e) != none { (_entry-class(e),) } else { () },
   )
   let attrs = (class: cls.join(" "), id: id, "data-index": str(i))
   let ent = enter-of(e.tags)
@@ -328,6 +344,7 @@
   order: "slip-order",
   reverse: false,
   row: none,
+  class: none,
   enter: "scroll",
   reveal: true,
   show-frame: false,
@@ -408,9 +425,9 @@
     message: "@rookery/slipshow: `backlink` must be a bool — got " + repr(backlink),
   )
 
-  // `resolve-slips` validates `slips`/`tags`/`where`/`order`/`row` itself
-  // (see `select.typ`) — duplicating those asserts here would just be a
-  // second copy of the same message.
+  // `resolve-slips` validates `slips`/`tags`/`where`/`order`/`row`/`class`
+  // itself (see `select.typ`) — duplicating those asserts here would just be
+  // a second copy of the same message.
   let entries = resolve-slips(
     slips: slips,
     tags: tags,
@@ -419,6 +436,7 @@
     order: order,
     reverse: reverse,
     row: row,
+    class: class,
   )
 
   if target() != "html" {

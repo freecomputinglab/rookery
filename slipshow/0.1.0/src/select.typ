@@ -208,6 +208,26 @@
   })
 }
 
+// `class:`'s counterpart to `_apply-row` above, same shape and same
+// key-presence rule: `computed-class` lands ONLY on the entries the function
+// ran on, so `#slipshow`'s `_entry-class` (`slipshow.typ`) can tell "no
+// computed class, fall back to the note's own `slip-class` tag" apart from
+// "computed as `none`, this slip gets no class at all" by that key's
+// presence rather than its value.
+#let _apply-class(entries, class) = {
+  if class == none { return entries }
+  entries.map(e => {
+    if e.kind != "row" { return e }
+    let computed = class(e.row)
+    assert(
+      computed == none or type(computed) == str,
+      message: "@rookery/slipshow: `class`'s key function must return a str or "
+        + "`none` — got " + repr(computed),
+    )
+    e + (computed-class: computed)
+  })
+}
+
 // A registry lookup keyed by both `name` and `id`, built from ONE
 // `ideas(values: true)` call — resolving each `slips:` name against a fresh
 // query would pay that walk once per slip instead of once per deck (`ideas()`
@@ -280,7 +300,9 @@
 // `row:`, unlike `order:`/`reverse:`, is NOT refused alongside `slips:` — it
 // groups, it does not reorder, so it composes with either route the same
 // way (`_apply-row`). A `"row"`-kind entry gains `computed-row` when `row:`
-// runs on it; a `"content"` entry never does.
+// runs on it; a `"content"` entry never does. `class:` composes with either
+// route for the same reason — it neither selects nor reorders — and gains
+// `computed-class` on the same `"row"`-only terms (`_apply-class`).
 #let resolve-slips(
   slips: none,
   tags: none,
@@ -289,6 +311,7 @@
   order: "slip-order",
   reverse: false,
   row: none,
+  class: none,
 ) = {
   assert(
     type(reverse) == bool,
@@ -298,6 +321,11 @@
     row == none or type(row) == function,
     message: "@rookery/slipshow: `row` must be a function taking a registry "
       + "row and returning an int or `none` — got " + repr(row),
+  )
+  assert(
+    class == none or type(class) == function,
+    message: "@rookery/slipshow: `class` must be a function taking a registry "
+      + "row and returning a str or `none` — got " + repr(class),
   )
   let slips-given = slips != none
   let query-given = tags != none or where != none
@@ -339,9 +367,9 @@
     // so a content-only array stays exactly as cheap as it was before names
     // existed, and keeps working with no registry (and no `#context`) at all.
     let lookup = if slips.any(item => type(item) in (str, label)) { _slip-lookup() } else { (:) }
-    return _apply-row(slips.map(item => _resolve-slip-item(item, lookup)), row)
+    return _apply-class(_apply-row(slips.map(item => _resolve-slip-item(item, lookup)), row), class)
   }
 
   let rows = _sort-rows(_slip-rows-from-query(tags, match, where), order, reverse)
-  _apply-row(rows.map(row => (kind: "row", row: row, tags: row.tags-dict)), row)
+  _apply-class(_apply-row(rows.map(row => (kind: "row", row: row, tags: row.tags-dict)), row), class)
 }
