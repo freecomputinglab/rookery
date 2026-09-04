@@ -424,6 +424,48 @@ minted page's `<title>` all keep reading the derived `label`, because that is
 what a note is CALLED. This is a per-window display switch, not a change to the
 note's name.
 
+### `backlink:` — a view is not a reference
+
+```typst
+#window("etal")                    // a reference: this counts as a link
+#window("etal", backlink: false)   // a rendering: it does not
+```
+
+A `#window` normally IS a reference. You wrote it in a note's prose, so that note
+links to the one it transcludes, and `etal`'s Backlinks should say so.
+`backlink:` is `true` by default for exactly that reason.
+
+**A DERIVED view is not a reference.** A deck, an index, a preview pane: the
+window renders a note it selected by query, and nobody wrote a link at all. Left
+announcing, a page of twenty queried notes puts itself in twenty notes'
+Backlinks, and a call site that runs once per note on EVERY page of a site — a
+search preview — would make every page "link" to every note in the rookery. That
+last case is why [`#idea-body`](#idea-body--one-notes-body-rendered) exists;
+`backlink: false` is the same escape without giving up the chrome, the disclosure
+or the body.
+
+**What it does NOT do: stop the marker being emitted.** `#window` announces its
+targets in a `metadata` element up front — the figure it eventually builds lives
+inside a `context` block and does not exist yet when the graph is walked — and
+THREE things read that marker, only two of which are backlinks:
+
+| reader | what it wants | reads `backlink:`? |
+| --- | --- | --- |
+| `_outbound` (`src/links.typ`) | the note-level graph | yes |
+| `_page-outbound` / `_page-links` (`src/outline.typ`) | the page-level graph | yes |
+| `_cite-scan` (`src/bib.typ`) | that a nested window will CLAIM some of the enclosing note's citations | **no** |
+
+So the flag rides inside the marker's payload rather than gating its emission.
+Skipping the element would silently break citation partitioning in any note that
+cites something and windows something — the enclosing note would claim citations
+the window is about to render itself.
+
+`_page-outbound` is worth one more sentence, because its case is not symmetric:
+reaching the marker there both counts as a page link AND stops the walk, so that
+the transcluded body's own links belong to that note rather than to the host
+page. `backlink: false` drops only the first. The walk still stops, or a deck
+page would inherit every link inside every note it shows.
+
 **Both switches ride the nested-note payload.** A note written inside another
 note's body is rebuilt from a `#metadata` record when its parent is transcluded or
 minted, never from the original call site, so `show-frame` and `show-id` are stored
@@ -519,6 +561,10 @@ Three ways, pick by how much ceremony you want:
   title, instead of falling back to the label derived from the note's first
   line — see "`show-label:` — an authored title, or nothing" above. It is a
   `#window` argument only: a card already prints the authored title alone.
+
+  `backlink: false` renders the note without COUNTING as a link to it, so this
+  window contributes nothing to the note's Backlinks — see "`backlink:` — a view
+  is not a reference" above.
 
   The window's own wrapper wears the note's visible tags too, unconditionally
   — the same `.idea-tag-<key>` classes and the same `data-rookery-tags`

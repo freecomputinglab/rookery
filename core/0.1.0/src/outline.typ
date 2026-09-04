@@ -91,7 +91,16 @@
   if f == metadata {
     let v = node.value
     if type(v) != dictionary { return out }
-    if "rookery-window" in v { return v.rookery-window }
+    // AN EMPTY ARRAY, NOT A FALL-THROUGH, when the window does not count as a
+    // link. Reaching this marker does two jobs at once (see the comment above):
+    // it counts as a page link AND it stops the walk, so whatever the
+    // transcluded body links to belongs to that note rather than to this page.
+    // `backlink: false` drops only the first. Descending instead would make a
+    // page inherit every link inside every note it renders — the exact opposite
+    // of what the flag is for.
+    if "rookery-window" in v {
+      return if v.at("backlink", default: true) { v.rookery-window } else { () }
+    }
     if "rookery-link" in v { return (v.rookery-link,) }
     return out
   }
@@ -142,6 +151,9 @@
   for el in query(<rookery-window-mark>) {
     let v = el.value
     if type(v) != dictionary { continue }
+    // `backlink: false` — a derived view, not a reference. `.at` with a default
+    // of `true` so a marker minted before the key reads as an ordinary window.
+    if not v.at("backlink", default: true) { continue }
     let handle = state("rheo-handle").at(el.location())
     if type(handle) != str or not _is-vertebra(handle) { continue }
     let seen = out.at(handle, default: ())

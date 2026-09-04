@@ -78,6 +78,16 @@
   // For a window that RENDERS a note rather than referring to it — see
   // `_window-content`'s own comment on `name`.
   show-label: true,
+  // Whether this window COUNTS AS A LINK from wherever it sits to the note it
+  // shows. `true` is right for what a window usually is — you wrote it in a
+  // note's prose, so that note refers to this one. `false` is for a DERIVED
+  // view: a deck, an index, a preview, where the window renders a note rather
+  // than pointing at it, and where letting it announce would fill every note's
+  // Backlinks with pages nobody wrote a link on.
+  //
+  // It does NOT stop the announce marker being emitted — see the comment on the
+  // marker itself below, which is load-bearing.
+  backlink: true,
   depth: auto,
   tags: none,
   match: "any",
@@ -156,7 +166,24 @@
   // context instead was tried and REVERTED — it made a document with minted
   // pages fail to converge in five attempts, because the value observed
   // depended on where the surrounding layout had got to.
-  [#metadata((rookery-window: ids)) <rookery-window-mark>]
+  // `backlink` RIDES THE PAYLOAD; the element is emitted either way, and that
+  // is not a detail to tidy later. THREE readers walk this marker and only two
+  // of them are backlinks:
+  //
+  //   - `_outbound` (links.typ) — the NOTE-level graph. Respects `backlink`.
+  //   - `_page-outbound`/`_page-links` (outline.typ) — the PAGE-level graph, by
+  //     content walk and by `query` respectively. Both respect `backlink`.
+  //   - `_cite-scan` (bib.typ) — which needs only the marker's PRESENCE, to know
+  //     a nested window is going to CLAIM some of the enclosing note's
+  //     citations and render them itself. It must keep seeing this marker
+  //     whatever `backlink` says: its own comment records that scanning for the
+  //     WK figure instead "missed every window and left the empty heading in
+  //     place", because that figure is built inside a `context` and does not
+  //     exist at scan time.
+  //
+  // So skipping the emission for `backlink: false` would silently break
+  // citation partitioning in any note that cites anything and windows anything.
+  [#metadata((rookery-window: ids, backlink: backlink)) <rookery-window-mark>]
 
   context {
   let reg = _registry.final()

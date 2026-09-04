@@ -50,7 +50,13 @@
   // an unevaluated `context` block and that figure does not exist yet, which
   // is exactly why `#window` announces its targets in a `metadata` element up
   // front (see `window`). Bare names, so the prefix goes back on here.
+  //
+  // `backlink: false` on the window means it renders the note without REFERRING
+  // to it (a deck, an index, a preview), so it contributes nothing here.
+  // `.at(.., default: true)`, not a bare field access: a marker minted before
+  // that key existed carries none, and core's default is on.
   if f == metadata and type(node.value) == dictionary and "rookery-window" in node.value {
+    if not node.value.at("backlink", default: true) { return () }
     return node.value.rookery-window.map(n => _pfx() + n)
   }
 

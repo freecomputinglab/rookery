@@ -61,6 +61,10 @@
   // the same one). MEASURED: scanning for the WK figure alone missed every
   // window and left the empty heading in place.
   if node.func() == metadata {
+    // DELIBERATELY INDEPENDENT OF `backlink:`. A window claims the citations it
+    // is going to render whether or not it counts as a link from here — the two
+    // are different questions, and the marker carries both. Do not "tidy" this
+    // into agreement with `_outbound`/`_page-outbound`, which DO read the flag.
     if type(node.value) == dictionary and "rookery-window" in node.value {
       return ((kind: "claim", via: "window"),)
     }
