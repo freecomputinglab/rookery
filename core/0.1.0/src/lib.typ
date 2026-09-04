@@ -48,6 +48,9 @@
 #import "transclusion.typ": *
 #import "links.typ": *
 #import "idea.typ": *
+// AFTER `idea.typ`, necessarily: `#ideate` calls `idea`, and a `#let` closure
+// captures the scope visible at definition time.
+#import "ideate.typ": *
 // `row.typ` DEPENDS ON NOTHING HERE — a row takes formatted cells and emits an `<li>`
 // — so its position in this order is free. It sits with the drawing modules rather
 // than the reading ones, which is where a reader will look for it.

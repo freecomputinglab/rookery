@@ -473,6 +473,89 @@ on that record and read back with a default of `true`. A nested `#idea(show-id:
 false)` therefore stays bare when its parent is windowed, and a record written
 before these keys existed reads as an ordinary framed, permalinked note.
 
+## `#ideate` — every paragraph a note
+
+```typst
+// as a function, on one block
+#ideate[
+  First paragraph — one note.
+
+  Second paragraph — another.
+]
+
+// or as a document show rule
+#show: rookery
+#show: ideate
+
+Every paragraph below is a note.
+```
+
+The one place in this package where a note is INFERRED rather than written. It is
+opt-in — per block or per document — and changes nothing for a project that never
+calls it: `#idea` stays deliberate, and there is still no "every heading is a
+note" rule anywhere.
+
+**One function serves both call forms.** `#show: f` at the top level means
+`f(rest-of-the-document)`, so a plain function of one positional content argument
+already IS a show rule. There is no second name to learn.
+
+**Order matters when both show rules are used.** Write `#show: rookery` first and
+`#show: ideate` second. Typst composes those as `rookery(ideate(rest))` — `ideate`
+sees the raw markup and the template wraps its output, which is the order that
+works. The reverse hands `ideate` a body the template has already transformed.
+
+### What counts as a paragraph
+
+There is no `par` element in a markup content tree; Typst builds those at layout
+time. `#ideate` splits on `parbreak()`, which is the only separator markup
+actually has, and that decides everything:
+
+| in the body | what happens |
+| --- | --- |
+| a run of prose | one note |
+| a bulleted or numbered list | ONE note — its items are children of the same run, with no parbreak between them |
+| a figure, a code block, a raw block | one note |
+| a heading alone | **passed through unchanged, not a note** |
+| whitespace at the edges of a `[..]` body | dropped |
+
+A heading is structure: it names the run of notes under it, and wrapping it would
+give you a card whose entire body is a title. A heading with prose beside it in
+the same paragraph is not heading-only and does become a note.
+
+`#ideate` works on ONE level — the paragraphs of the body it was handed. It does
+not descend into them.
+
+### Its two inverted defaults
+
+`ideate(body, show-frame: false, show-id: false, ..args)`.
+
+Both invert `#idea`'s own defaults, and that inversion is most of the reason the
+function is worth having: an inferred note is not one anybody named, so a frame
+and a permalink around every paragraph is chrome nobody asked for — and with no
+name, that permalink points at a sequence number which means nothing to a reader.
+Pass `true` to either to get it back. See "Dropping a note's frame" above for what
+each one governs.
+
+`..args` forwards every other `#idea` argument to every note minted, which is how
+a caller tags a whole block at once:
+
+```typst
+#ideate(tags: "slip")[..]     // every paragraph becomes a note tagged `slip`
+```
+
+**Every note minted this way has an AUTO-GENERATED id**, and with `show-id: false`
+no visible permalink, so none of them is addressable by name. That is fine for a
+block a tag query will pick up and wrong for anything anyone needs to link to; a
+note that must be linkable is written by hand as `#idea("name")[..]`.
+
+### A PDF is just the prose
+
+On a paged target `#ideate` is a passthrough: it returns the markup it was given,
+mints no note, wraps nothing, and registers nothing — `#ideas()` in that build
+sees none of it. A PDF of a block of prose should be that block of prose. EPUB
+takes the HTML path, since it is a rendering target with a stylesheet rather than
+a page.
+
 ## Flat ids, and why
 
 `#idea("etal")` is the Typst label `<idea:etal>` everywhere — no handle or
