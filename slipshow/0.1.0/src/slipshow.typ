@@ -7,6 +7,7 @@
 //     [<div class="slip-row" [data-row="0"]>]
 //       <section class="slip [slip-fullscreen] [<slip-class>]"
 //                id="slip-<id>" data-index="0" [data-enter="focus"]
+//                [data-slip-edges="slip-idea:a slip-idea:b"]
 //                [style="background: #f00; max-width: 45%"]>
 //         [<div class="slip-bg"><img src="data:image/..;base64,.."></div>]
 //         ...the idea, rendered in full...
@@ -82,6 +83,17 @@
 //   background, joined with `; ` when both are present — never `width:`, so
 //   a slip narrower than its cap stays narrow instead of being stretched to
 //   fill it.
+// - `data-slip-edges` is a space-separated list of the element ids of the
+//   slides THIS slide points at — the deck's own `edges:` key function
+//   (`select.typ`'s `_apply-edges`) resolved through this deck's own
+//   name-to-id map (`_edge-ids`). It is the input the connector layer reads,
+//   and it names only slides THIS DECK SHOWS: a dependency on a note outside
+//   the deck, or on nothing at all, is dropped rather than erroring, because
+//   a deck is frequently a slice of a corpus. Absent entirely when nothing
+//   survives that drop — an empty attribute would claim the slide points at
+//   nothing in particular, which is a different thing from no edges having
+//   been computed for it. There is no `slip-edges` tag: which slides a slide
+//   depends on is a fact about a graph only the deck's caller knows.
 // - `div.slip-row[data-row]` wraps one RUN of consecutive resolved entries
 //   sharing the same row value — the deck's own `row:` key function
 //   (`select.typ`'s `_apply-row`) when it ran on that entry, else the note's
@@ -288,9 +300,29 @@
 // `_entry-row`, because a Typst closure only sees names bound above it.
 #let _entry-class(e) = if "computed-class" in e { e.computed-class } else { class-of(e.tags) }
 
-// One entry's `<section>` attributes: id, index, class list, and the two
-// optional presentation attributes a slip may override.
-#let _slip-attrs(e, i) = {
+// An entry's outgoing edges as ELEMENT IDS, given `id-of` — this deck's map
+// from a note NAME to the id of the slide showing it (built once per deck in
+// `slipshow` below). `none` when the entry has no `computed-edges` at all, or
+// when nothing survives the drop.
+//
+// A NAME OUTSIDE THE DECK IS DROPPED, NOT AN ERROR, and this is the one place
+// that rule lives. A deck is frequently a slice of a corpus, so a dependency
+// on a note this deck does not show is ordinary rather than a mistake, and so
+// is a dangling dependency naming nothing at all. That is deliberately the
+// opposite of `slips:`'s own unknown-name panic (`select.typ`'s
+// `_resolve-slip-item`), where a name IS an assertion about what the deck
+// contains.
+#let _edge-ids(e, id-of) = {
+  if "computed-edges" not in e { return none }
+  let ids = e.computed-edges.map(n => id-of.at(n, default: none)).filter(id => id != none)
+  if ids.len() == 0 { none } else { ids }
+}
+
+// One entry's `<section>` attributes: id, index, class list, the two optional
+// presentation attributes a slip may override, and its resolved edges.
+// `id-of` defaults to the empty map, which yields no edges at all — the only
+// caller passes the deck's real one.
+#let _slip-attrs(e, i, id-of: (:)) = {
   let id = if e.kind == "row" { "slip-" + e.row.id } else { "slip-" + str(i) }
   let cls = (
     "slip",
@@ -300,6 +332,8 @@
   let attrs = (class: cls.join(" "), id: id, "data-index": str(i))
   let ent = enter-of(e.tags)
   if ent != none { attrs.insert("data-enter", ent) }
+  let edge-ids = _edge-ids(e, id-of)
+  if edge-ids != none { attrs.insert("data-slip-edges", edge-ids.join(" ")) }
   let decls = (_background-style(e.tags), _max-width-style(e.tags)).filter(d => d != none)
   if decls.len() > 0 { attrs.insert("style", decls.join("; ")) }
   attrs
@@ -345,6 +379,7 @@
   reverse: false,
   row: none,
   class: none,
+  edges: none,
   enter: "scroll",
   reveal: true,
   show-frame: false,
@@ -425,9 +460,10 @@
     message: "@rookery/slipshow: `backlink` must be a bool — got " + repr(backlink),
   )
 
-  // `resolve-slips` validates `slips`/`tags`/`where`/`order`/`row`/`class`
-  // itself (see `select.typ`) — duplicating those asserts here would just be
-  // a second copy of the same message.
+  // `resolve-slips` validates
+  // `slips`/`tags`/`where`/`order`/`row`/`class`/`edges` itself (see
+  // `select.typ`) — duplicating those asserts here would just be a second
+  // copy of the same message.
   let entries = resolve-slips(
     slips: slips,
     tags: tags,
@@ -437,6 +473,7 @@
     reverse: reverse,
     row: row,
     class: class,
+    edges: edges,
   )
 
   if target() != "html" {
@@ -466,7 +503,16 @@
       "data-reveal": if reveal { "progressive" } else { "all" },
     ),
     {
-      let render-section(pair) = html.elem("section", attrs: _slip-attrs(pair.e, pair.i), {
+      // This deck's own name-to-id map, built ONCE rather than per section:
+      // `_edge-ids` needs it for every slide, and only `"row"` entries can be
+      // pointed at — a `"content"` entry has no registry row and therefore no
+      // name for an edge to name it by.
+      let id-of = (:)
+      for e in entries {
+        if e.kind == "row" { id-of.insert(e.row.name, "slip-" + e.row.id) }
+      }
+
+      let render-section(pair) = html.elem("section", attrs: _slip-attrs(pair.e, pair.i, id-of: id-of), {
         let bg = _background-child(pair.e.tags)
         if bg != none { bg }
         _render-slip(

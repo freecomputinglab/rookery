@@ -228,6 +228,36 @@
   })
 }
 
+// `edges:`'s counterpart to the two above, and the only one of the three
+// whose result is a LIST: the note names this slip points at, attached as
+// `computed-edges` and read by `#slipshow`'s `_edge-ids` (`slipshow.typ`).
+// A `label` is normalized to its string form here, exactly as
+// `_resolve-slip-item` does, so what travels on the entry is always an array
+// of plain names.
+//
+// NO KEY-PRESENCE RULE, unlike `computed-row`/`computed-class`: a computed
+// `none` is stored as the empty array rather than kept distinct, because
+// there is no `slip-edges` tag for an entry to fall back to. "Points at
+// nothing" and "computed no edges" are the same claim, so they get the same
+// value.
+#let _apply-edges(entries, edges) = {
+  if edges == none { return entries }
+  entries.map(e => {
+    if e.kind != "row" { return e }
+    let computed = edges(e.row)
+    let bad = (
+      "@rookery/slipshow: `edges`'s key function must return an array of "
+        + "note names (as a string or label), or `none` — got " + repr(computed)
+    )
+    assert(computed == none or type(computed) == array, message: bad)
+    let names = if computed == none { () } else {
+      assert(computed.all(n => type(n) in (str, label)), message: bad)
+      computed.map(n => if type(n) == label { str(n) } else { n })
+    }
+    e + (computed-edges: names)
+  })
+}
+
 // A registry lookup keyed by both `name` and `id`, built from ONE
 // `ideas(values: true)` call — resolving each `slips:` name against a fresh
 // query would pay that walk once per slip instead of once per deck (`ideas()`
@@ -303,6 +333,10 @@
 // runs on it; a `"content"` entry never does. `class:` composes with either
 // route for the same reason — it neither selects nor reorders — and gains
 // `computed-class` on the same `"row"`-only terms (`_apply-class`).
+// `edges:` is the third of them and composes the same way, gaining
+// `computed-edges` on the same `"row"`-only terms (`_apply-edges`): it names
+// the slips a slip points at, which is a fact about a graph only the deck's
+// caller knows, and it neither selects nor reorders either.
 #let resolve-slips(
   slips: none,
   tags: none,
@@ -312,6 +346,7 @@
   reverse: false,
   row: none,
   class: none,
+  edges: none,
 ) = {
   assert(
     type(reverse) == bool,
@@ -326,6 +361,11 @@
     class == none or type(class) == function,
     message: "@rookery/slipshow: `class` must be a function taking a registry "
       + "row and returning a str or `none` — got " + repr(class),
+  )
+  assert(
+    edges == none or type(edges) == function,
+    message: "@rookery/slipshow: `edges` must be a function taking a registry "
+      + "row and returning an array of note names — got " + repr(edges),
   )
   let slips-given = slips != none
   let query-given = tags != none or where != none
@@ -367,9 +407,11 @@
     // so a content-only array stays exactly as cheap as it was before names
     // existed, and keeps working with no registry (and no `#context`) at all.
     let lookup = if slips.any(item => type(item) in (str, label)) { _slip-lookup() } else { (:) }
-    return _apply-class(_apply-row(slips.map(item => _resolve-slip-item(item, lookup)), row), class)
+    let entries = slips.map(item => _resolve-slip-item(item, lookup))
+    return _apply-edges(_apply-class(_apply-row(entries, row), class), edges)
   }
 
   let rows = _sort-rows(_slip-rows-from-query(tags, match, where), order, reverse)
-  _apply-class(_apply-row(rows.map(row => (kind: "row", row: row, tags: row.tags-dict)), row), class)
+  let entries = rows.map(row => (kind: "row", row: row, tags: row.tags-dict))
+  _apply-edges(_apply-class(_apply-row(entries, row), class), edges)
 }

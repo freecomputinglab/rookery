@@ -64,9 +64,9 @@
   // forwarded. Four more join them further down, for `resolve-slips`'s own
   // tests, plus four for `order:`'s key-function/`reverse:` tests further
   // down still, plus two for the `slips:` NAME route's own tests, plus five
-  // for `row:`'s own tests, plus two for `class:`'s own tests, bringing the
-  // total to twenty-two.
-  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 22)
+  // for `row:`'s own tests, plus two for `class:`'s own tests, plus two for
+  // `edges:`'s own tests, bringing the total to twenty-four.
+  assert.eq(rows.filter(r => "slip" in r.tags-dict).len(), 24)
 
   // THE REGRESSION THE `.with()` TRAP WOULD CAUSE: a caller's own `tags:`
   // must MERGE with the `slip` tag, not replace it. If `slip` were missing
@@ -342,3 +342,43 @@
 // key — not even `none` — whatever `class:` the deck was given.
 #let cls-content = slip("cls-content")[Loose content]
 #assert("computed-class" not in resolve-slips(slips: (cls-content,), class: r => "x").first())
+
+// `edges:` — the third key function, and the only one whose result is a LIST.
+// `edge-a` and `edge-b` are a two-slide graph: `edge-b` points at `edge-a`,
+// which the deck shows, and at `edge-outside`, which it does not.
+#slip("edge-a")[A]
+#slip("edge-b")[B]
+
+#let edge-cohort = r => r.name.starts-with("edge-")
+
+#context {
+  let entries = resolve-slips(
+    tags: "slip", where: edge-cohort, order: r => r.name,
+    edges: r => if r.name == "edge-b" { ("edge-a", <edge-outside>) } else { () },
+  )
+  assert.eq(entries.map(e => e.row.name), ("edge-a", "edge-b"))
+
+  // A `label` name arrives normalized to a plain string, exactly as a
+  // `slips:` label does.
+  assert.eq(entries.at(1).computed-edges, ("edge-a", "edge-outside"))
+
+  // The deck's own name-to-id map, the shape `slipshow` builds per deck.
+  let id-of = (:)
+  for e in entries { id-of.insert(e.row.name, "slip-" + e.row.id) }
+
+  // A name the deck shows resolves to that slide's element id; a name it does
+  // not show is DROPPED, not an error.
+  assert.eq(_edge-ids(entries.at(1), id-of), (id-of.at("edge-a"),))
+  assert.eq(_slip-attrs(entries.at(1), 1, id-of: id-of).at("data-slip-edges"), id-of.at("edge-a"))
+
+  // Nothing survived the drop, so there is no attribute at all rather than an
+  // empty one.
+  assert.eq(_edge-ids(entries.at(0), id-of), none)
+  assert.eq(_slip-attrs(entries.at(0), 0, id-of: id-of).at("data-slip-edges", default: none), none)
+}
+
+// A `"content"` entry has no registry row to hand `edges:` at all, so the
+// function is skipped outright and the entry carries no `computed-edges` key,
+// which also makes it unreachable as an edge TARGET — it has no name.
+#let edge-content = slip("edge-content")[Loose content]
+#assert("computed-edges" not in resolve-slips(slips: (edge-content,), edges: r => ("x",)).first())
