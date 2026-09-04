@@ -175,9 +175,80 @@ for name in ("kickoff", "renew-lease", "sync-calendar", "note-onboarding"):
 for name in ("audit-logs", "collect-data", "review-budget", "draft-notes"):
     has_class("open-only", oo_classes, "slip-idea:" + name, "todo-slip-blocked")
 
+# 11. THE CONNECTOR EDGES. `todo-slip-keys`'s `edges:` function (`todos/
+#     0.1.0/src/deck.typ`) hands `#slipshow` the todos BLOCKING each one, and
+#     `#slipshow` resolves them to the element ids of the slides showing them
+#     (`data-slip-edges`, `slipshow/0.1.0/src/slipshow.typ`'s header).
+#
+#     NOTHING HERE ASSERTS ON THE `<svg>` OR ITS PATHS, deliberately: the
+#     connector layer is built by `src/edges.js` at runtime and this file
+#     reads static build output, where no script has run, so a path count
+#     could never pass. The declaration is the half that comes from the graph
+#     and the half a build can see; the drawing is covered by
+#     `test/edges.test.mjs` (its geometry) and by a browser (its appearance).
+def section_edges(html):
+    # `data-slip-edges` per section id. A section WITHOUT the attribute is
+    # absent from the dict entirely rather than mapped to `[]` — the two are
+    # different claims and three of the checks below turn on the difference.
+    out = {}
+    for tag in re.findall(r'<section class="slip[^"]*"[^>]*>', html):
+        id_m = re.search(r' id="([^"]+)"', tag)
+        e_m = re.search(r' data-slip-edges="([^"]*)"', tag)
+        if id_m and e_m:
+            out[id_m.group(1)] = e_m.group(1).split()
+    return out
+
+idx_edges = section_edges(deck("index"))
+oo_edges = section_edges(deck("open-only"))
+
+# A layer-1 slide depends on `kickoff` alone; a layer-2 one on two todos, and
+# the attribute keeps them in `deps` order rather than sorting them.
+check("index.html audit-logs edges", idx_edges.get("slip-idea:audit-logs"),
+      ["slip-idea:kickoff"])
+check("index.html merge-results edges (in deps order)",
+      idx_edges.get("slip-idea:merge-results"),
+      ["slip-idea:audit-logs", "slip-idea:collect-data"])
+
+# `kickoff` depends on nothing, so nothing feeds its rail and it carries no
+# attribute at all — not an empty one.
+if "slip-idea:kickoff" in idx_edges:
+    print(f"FAIL: index.html: kickoff carries data-slip-edges="
+          f"{idx_edges['slip-idea:kickoff']} despite depending on nothing")
+    bad = 1
+
+# THE DECK-SIDE TWIN OF CHECK 9. `note-onboarding`'s one dep is dangling, so
+# it is not a blocker and draws no curve either — the pair pins that rule from
+# both directions, the class and the edge.
+if "slip-idea:note-onboarding" in idx_edges:
+    print("FAIL: index.html: note-onboarding carries data-slip-edges despite "
+          "its one dep being dangling")
+    bad = 1
+
+# EVERY ID NAMED RESOLVES TO A SLIDE ON THE SAME PAGE. This is what would
+# catch the drop-names-outside-the-deck rule regressing into an attribute full
+# of ids pointing nowhere — edges no curve could ever be drawn for.
+for page, edges in (("index", idx_edges), ("open-only", oo_edges)):
+    present = set(section_classes(deck(page)))
+    for source, targets in edges.items():
+        for t in targets:
+            if t not in present:
+                print(f"FAIL: {page}.html: {source}'s data-slip-edges names {t}, "
+                      f"which is no section on this page")
+                bad = 1
+
+# `open-only.html` reaches `#slipshow` by the `slips:` route
+# (`content/open-only.typ`), and the same edges land there: `edges:` composes
+# with an explicit array exactly as `row:` and `class:` already do. The
+# corpus's one closed todo blocks nothing, so dropping it takes no edge with
+# it and the answer is the same as on `index.html`.
+check("open-only.html merge-results edges",
+      oo_edges.get("slip-idea:merge-results"),
+      ["slip-idea:audit-logs", "slip-idea:collect-data"])
+
 if not bad:
     print("  index: 4 layers, row 1 in priority/name order, every row max-width'd")
     print("  index: status rail matches the graph, including the dangling-dep case")
+    print("  index: connector edges are the open deps, and every id names a slide")
     print("  open-only: one fewer section, layers still contiguous, same rail")
     print("  wide: one row, eight sections")
 sys.exit(bad)

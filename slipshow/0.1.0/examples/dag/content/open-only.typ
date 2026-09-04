@@ -9,18 +9,20 @@
 // `slips:` wants an ordered array of names (or content) — `order:`/
 // `reverse:` are refused alongside `slips:` because an explicit array is
 // already in the order it was written (`src/select.typ`), so the sort this
-// page needs happens here, over the sliced rows, before naming them. `row:`
-// has no such restriction — it groups, it does not reorder — so it composes
-// with `slips:` the same way it composes with a tag query on
-// `content/index.typ`.
+// page needs happens here, over the sliced rows, before naming them.
+// `row:`, `class:` and `edges:` have no such restriction — none of them
+// selects or reorders anything — so all three compose with `slips:` the same
+// way they compose with a tag query on `content/index.typ`.
 //
-// `row:`/`order:`/`class:` THEMSELVES ARE THE PACKAGE'S, not hand-rolled on
-// this page: `todo-slip-keys(graph)` (`@rookery/todos`' `deck.typ`) returns
-// the same three key functions `#todo-slipshow` feeds `#slipshow` on
-// `content/index.typ`, computed once here into `keys` and reused for the
-// sort, the row grouping and the status rail — `layer-of` runs on the FULL
-// graph inside it, closed todos included, so a slice's row numbers agree
-// with the unsliced deck's.
+// `row:`/`order:`/`class:`/`edges:` THEMSELVES ARE THE PACKAGE'S, not
+// hand-rolled on this page: `todo-slip-keys(graph)` (`@rookery/todos`'
+// `deck.typ`) returns the same four key functions `#todo-slipshow` feeds
+// `#slipshow` on `content/index.typ`, computed once here into `keys` and
+// reused for the sort, the row grouping, the status rail and the connector
+// curves — `layer-of` runs on the FULL graph inside it, closed todos
+// included, so a slice's row numbers agree with the unsliced deck's. The
+// slice takes no edge with it either: the one todo it drops is closed, and a
+// closed todo blocks nothing.
 #import "lib.typ": template, todo-graph, graph-slice, todo-slip-keys, slipshow
 #show: template
 
@@ -31,5 +33,10 @@
   let sliced = graph-slice(graph, closed: false)
   let keys = todo-slip-keys(graph)
   let ordered = sliced.rows.sorted(key: keys.order)
-  slipshow(slips: ordered.map(r => r.name), row: keys.row, class: keys.class)
+  slipshow(
+    slips: ordered.map(r => r.name),
+    row: keys.row,
+    class: keys.class,
+    edges: keys.edges,
+  )
 }
