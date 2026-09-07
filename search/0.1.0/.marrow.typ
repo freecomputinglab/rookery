@@ -11,9 +11,12 @@
 //     a copy of it. This is what keeps a large rookery's build from scaling
 //     the index by the page count: MEASURED on a 320-note, 360-page site,
 //     29.5s and 43MB of output against 2.3s and 4.9MB.
-//   - `_corpus-cache`, the compressed body terms keyed by note id, read back
-//     by `#search-index(mode: "inline")` — the `file://` mode, which cannot
-//     fetch and so must still carry the island in every page.
+//   - `_rows-cache` and `_corpus-cache`, for `#search-index(mode: "inline")` —
+//     the `file://` mode, which cannot fetch and so must still carry the island
+//     in every page. The first holds the finished rows so no page derives them
+//     again (26.0s to 17.7s on that same site); the second holds the compressed
+//     body terms alone, and is what a `tags:`-filtered or non-default-knobbed
+//     index still falls back to.
 //
 // WITHOUT RHEO there is no bundle root, this file never runs, no asset is
 // emitted, `_corpus-cache` keeps its `(:)` default and `#search-index`
@@ -21,6 +24,7 @@
 // different; a missing asset is why `mode: "asset"` needs rheo at all.
 #import "@rookery/search:0.1.0": (
   _compress-corpus, _corpus-cache, _corpus-key, _date-stamp, _index-asset-path,
+  _rows-cache,
 )
 #import "@rookery/core:0.1.0": ideas
 
@@ -101,5 +105,16 @@
       row
     })
     asset(_index-asset-path, json.encode(final-rows, pretty: false))
+
+    // THE SAME ROWS, published for `mode: "inline"` to read back. Kept with
+    // `page` rather than the asset's finished `href` because an inline island's
+    // href is measured from the page it sits in, which only that page knows —
+    // see `_rows-cache`. `body` is always present and `body-search: false`
+    // drops it on read, so one row set serves both switches.
+    _rows-cache.update(c => {
+      let c = c
+      c.insert(_corpus-key(body-terms, df-ceiling), ordered + undated)
+      c
+    })
   }
 }

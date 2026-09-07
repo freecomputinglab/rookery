@@ -26,6 +26,29 @@
 // finished index to a file and a page carries only a pointer at it.
 #let _corpus-cache = state("rookery-search-corpus", (:))
 
+// The whole island row set, built once at the bundle root, for the inline path
+// to read back instead of deriving it per page.
+//
+// `_corpus-cache` above hoists the compressed BODY TERMS and nothing else, so
+// each page still called `search-ideas("")` to select and order its rows — and
+// that call walks the registry, flattens every note's body to plain text and
+// ranks the result, once per page. This state holds the finished rows in
+// `_rank`'s empty-query order, keyed by the same compression knobs. Every field
+// on them is page-invariant except the href, so a page's whole remaining job is
+// to prefix `page` with its own depth.
+//
+// MEASURED on a 320-note, 360-page site, both runs on the same tree: inline
+// mode costs 26.0s deriving its rows per page and 17.7s reading them back from
+// here, with peak RSS 5.6 GB against 3.5 GB. The islands are byte-identical,
+// checked on a root page and two nested ones. It does NOT rescue the inline
+// path — the remaining 17.7s is Typst carrying a 112 kB text node through 360
+// documents, which is what `mode: "asset"` (2.3s) removes outright — so this is
+// the inline path's floor, not an alternative to switching.
+//
+// EMPTY WITHOUT RHEO, like `_corpus-cache`: no bundle root, no marrow, every
+// lookup misses, and `#search-index` derives its rows as it always did.
+#let _rows-cache = state("rookery-search-rows", (:))
+
 // The cache key for one set of compression knobs. A string rather than a dict
 // so it can be a dictionary key at all.
 #let _corpus-key(body-terms, df-ceiling) = "t" + str(body-terms) + "/d" + str(df-ceiling)
@@ -206,6 +229,7 @@
 ) = context {
   if _target() != "html" { return }
   _assert-mode(mode, "#search-index's")
+  let cache-key = _corpus-key(body-terms, df-ceiling)
   // THE POINTER, and nothing else on the page. `data-rookery-search-src` is
   // what `src/island.js` tests to decide between fetching and parsing, and
   // `data-rookery-search-base` is this page's own depth prefix, which the
@@ -240,6 +264,38 @@
   _assert-bool(body-search, "body-search", "#search-index's")
   _assert-tags(tags, "#search-index's")
   _assert-match(match, "#search-index's")
+
+  // THE BUNDLE ROOT ALREADY BUILT THESE ROWS, in this order, with everything
+  // but the href page-invariant — so the inline path's remaining work is one
+  // `note-href` probe to recover this page's depth prefix and a string
+  // concatenation per row. No registry walk, no body flattening, no ranking.
+  //
+  // A `tags:`-filtered index cannot use it: the marrow publishes one row set
+  // over the whole corpus, and a filtered index's document frequencies are
+  // measured over its own selection, so its terms are genuinely different
+  // terms. Such a call falls through to the derivation below, which is also
+  // what happens under plain `typst compile`, where the state is empty.
+  let pre = _rows-cache.final().at(cache-key, default: none)
+  if tags == none and pre != none and pre.len() > 0 {
+    // `_page-base()`, the same depth prefix `mode: "asset"` publishes for the
+    // browser to join — and the same rule `@rookery/core`'s `_note-href`
+    // applies, one `../` per `:` level of this page's handle. So a cached row's
+    // `page` plus this prefix IS the href the derivation below would have
+    // produced, with no note-page lookup to go stale against.
+    let prefix = _page-base()
+    let rows = pre.map(r => {
+      let row = (id: r.id, name: r.name, text: r.text)
+      if r.tags.len() > 0 { row.insert("tags", r.tags) }
+      if body-search { row.insert("body", r.body) }
+      if r.created != none { row.insert("created", r.created) }
+      row.insert("href", prefix + r.page)
+      row
+    })
+    let island = json.encode(rows, pretty: false)
+    _island-budget-report(island.len(), rows.len())
+    return html.elem("script", attrs: (type: "application/json", id: elem-id), island)
+  }
+
   let selected = search-ideas("", tags: tags, match: match).filter(e => e.href != none)
   // BODIES, NOT ROWS, and the whole reason is in `_compress-corpus`' comment:
   // this call runs on every output page and is memoised only while every argument
@@ -254,7 +310,7 @@
     // genuinely different terms and must be computed over the notes it selected.
     // A missing id falls through the same way — a note the marrow could not see
     // (no minted page yet, no rheo at all) must not silently index as nothing.
-    let cached = _corpus-cache.final().at(_corpus-key(body-terms, df-ceiling), default: (:))
+    let cached = _corpus-cache.final().at(cache-key, default: (:))
     if tags == none and selected.len() > 0 and selected.all(e => e.id in cached) {
       selected.map(e => cached.at(e.id))
     } else {
