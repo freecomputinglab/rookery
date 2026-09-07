@@ -30,6 +30,56 @@
 // so it can be a dictionary key at all.
 #let _corpus-key(body-terms, df-ceiling) = "t" + str(body-terms) + "/d" + str(df-ceiling)
 
+// Above this much duplicated JSON, `mode: "inline"` gets a complaint. 8 MB is
+// chosen to sit well clear of any site that inlines deliberately — a 40-note
+// rookery's island is around 20 KB, so even a hundred pages of it is 2 MB —
+// while catching the shape that actually goes wrong: an island that grew with
+// the corpus, times a page count that grew with it too. The site that prompted
+// this reached 43 MB.
+#let _ISLAND-BUDGET = 8 * 1000 * 1000
+
+// Complain, once per page, when this page's island times the number of pages
+// carrying one comes to more than [`_ISLAND-BUDGET`].
+//
+// A HIDDEN `<div>`, not a panic: an inline index is a CHOICE, and a `file://`
+// project has no alternative, so a build that made it must not fail. The
+// mechanism is `@rookery/todos`' `#todos-validate`, which reports the same way
+// for the same reason.
+//
+// PER PAGE, because per page is where this function can see anything at all —
+// `.marrow.typ` knows the corpus but not what any page did with it. That is
+// also proportionate: a project on the inline path is already paying the island
+// in every page, so ~250 bytes of explanation beside it is not the problem.
+//
+// THE OTHER HALF OF THIS IS RHEO'S, and it needs no package: `rheo compile`
+// prints one summary line per build carrying the page count and the total
+// output bytes, so `364 page(s), 43.1 MB` says the same thing for every package
+// and every project. What this adds is the diagnosis — which package, which
+// switch — for the one case where a package knows it.
+#let _island-budget-report(island-bytes, note-count) = {
+  let c = _rheo-ctx()
+  if c == none { return }
+  // Every vertebra can carry a bar, and every minted note page carries whatever
+  // the template puts on it, so the page count is both. An overestimate is
+  // impossible to avoid here and harmless: this is an order-of-magnitude test.
+  let pages = c.at("spine-flat", default: ()).len() + note-count
+  let total = island-bytes * pages
+  if total <= _ISLAND-BUDGET { return }
+  html.elem(
+    "div",
+    attrs: (class: "rookery-search-budget-report", hidden: "hidden"),
+    "@rookery/search: the inline index is "
+      + str(calc.round(island-bytes / 1000))
+      + " kB x "
+      + str(pages)
+      + " pages = "
+      + str(calc.round(total / 1000000, digits: 1))
+      + " MB of duplicated JSON. Drop `mode: \"inline\"` to fetch one "
+      + "`rookery/search/index.json` instead (the default), or lower "
+      + "`body-terms`. Inline is only required for a `file://` build.",
+  )
+}
+
 //
 //   #search-index()                        // usually not called directly
 //   #search-index(mode: "inline")          // carry the JSON in the page itself
@@ -254,9 +304,7 @@
     row
   })
   if rows.len() == 0 { return }
-  html.elem(
-    "script",
-    attrs: (type: "application/json", id: elem-id),
-    json.encode(rows, pretty: false),
-  )
+  let island = json.encode(rows, pretty: false)
+  _island-budget-report(island.len(), selected.len())
+  html.elem("script", attrs: (type: "application/json", id: elem-id), island)
 }

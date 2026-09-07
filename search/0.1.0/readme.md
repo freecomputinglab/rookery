@@ -575,6 +575,25 @@ knowing which dead ends were measured on the same site before reaching for one:
 28.6s, and hoisting the whole row set to the bundle root costs 19.6s. The cost
 is the duplication.
 
+**Predicting the inline cost.** An island is roughly `notes x bytes-per-row`,
+and a row is dominated by its `body` — 48 terms averaging about 9 characters,
+so ~450 B, plus ~80 B for the id, name, title, tags and href. Call it 500 B a
+note, and the inline total is that times the number of pages carrying a bar
+(every vertebra, plus every minted note page):
+
+| notes | island | x 100 pages | x 400 pages |
+| ----- | ------ | ----------- | ----------- |
+|    40 |  20 kB |      2.0 MB |      8.0 MB |
+|   100 |  50 kB |      5.0 MB |       20 MB |
+|   320 | 112 kB |       11 MB |       45 MB |
+
+The bottom-right cell is the site that prompted the asset mode. Past 8 MB the
+package says so itself: `#search-index` emits a hidden
+`.rookery-search-budget-report` div naming the three numbers and the switch —
+a report, never a panic, because inline is a legitimate choice and a `file://`
+project has no other. `rheo compile`'s own one-line build summary carries the
+page count and total output bytes for every project regardless.
+
 **A row's `href` is page-relative in both modes.** The shared file carries
 site-root paths, because it cannot hold a path measured from each of 360 pages;
 each page publishes its own depth prefix as `data-rookery-search-base`, and
