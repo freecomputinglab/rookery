@@ -26,7 +26,7 @@
 // hardcoded id cannot be placed twice on a page.
 
 
-import { readIndex } from "./island.js";
+import { readIndex, loadIndex } from "./island.js";
 import { wire } from "./bar.js";
 import { wireModal } from "./modal.js";
 import { initPanels, wirePanel } from "./panel.js";
@@ -47,10 +47,16 @@ import { score, bodyScore, search } from "./score.js";
 export { fold, clusters } from "./text.js";
 export { TAG_PREFIX, splitQuery, parseTagQuery, evalTagQuery, positiveAtoms } from "./tagquery.js";
 export { score, bodyScore, search } from "./score.js";
-export { readIndex } from "./island.js";
+export { readIndex, loadIndex } from "./island.js";
 export { initPanels, wirePanel } from "./panel.js";
 
-export const init = () => {
+// ASYNC, because `mode: "asset"` fetches the index rather than reading it out
+// of the page. `initPanels()` still runs synchronously ahead of the first
+// await, so a page's panels are live on first paint whatever the network does.
+// Everything that needs ROWS — the bars, the modals, the Ctrl+K binding —
+// necessarily waits for them, and until they land a search input is inert in
+// exactly the way it already is on a page carrying no index at all.
+export const init = async () => {
   // Panels are wired FIRST and unconditionally, because they are independent of
   // the search bar: a page may carry panels and no bar at all, and the early
   // return below would otherwise skip them.
@@ -64,18 +70,23 @@ export const init = () => {
   const dialogs = document.querySelectorAll("dialog[data-rookery-search]");
   if (roots.length === 0 && dialogs.length === 0) return;
 
-  // Shared across bars AND modals, so a page with both parses the JSON once.
+  // Shared across bars AND modals, so a page with both fetches and parses the
+  // index once. Holds the PROMISE, not the rows: two bars naming the same
+  // island must await one fetch, not race two.
   const cache = new Map();
+  const rowsFor = (elemId) => {
+    if (!cache.has(elemId)) cache.set(elemId, loadIndex(elemId));
+    return cache.get(elemId);
+  };
 
   const bars = [];
   let n = 0;
   for (const root of roots) {
     const elemId = root.dataset.rookerySearch || "rookery-search-index";
-    if (!cache.has(elemId)) cache.set(elemId, readIndex(elemId));
-    const rows = cache.get(elemId);
-    // No island for this bar (a site placed one with `index: false` and no
-    // other bar emitted it, or the build emitted none) — leave the input inert
-    // rather than throwing.
+    const rows = await rowsFor(elemId);
+    // No index for this bar (a site placed one with `index: false` and no
+    // other bar emitted it, the build emitted none, or the asset could not be
+    // fetched) — leave the input inert rather than throwing.
     if (rows === null) continue;
     const bar = wire(root, rows, n++);
     if (bar) bars.push(bar);
@@ -100,8 +111,7 @@ export const init = () => {
   const modals = new Map();
   for (const dialog of dialogs) {
     const elemId = dialog.dataset.rookerySearch || "rookery-search-index";
-    if (!cache.has(elemId)) cache.set(elemId, readIndex(elemId));
-    const rows = cache.get(elemId);
+    const rows = await rowsFor(elemId);
     if (rows === null) continue;
     const modal = wireModal(dialog, rows);
     if (modal !== null) modals.set(elemId, modal);
@@ -154,6 +164,7 @@ if (typeof document !== "undefined") {
     bodyScore,
     search,
     readIndex,
+    loadIndex,
     initPanels,
     wirePanel,
     init,

@@ -1,11 +1,12 @@
-// The JSON island `#search-index` mints into a page, and the build-once cache
-// that keeps the corpus pass from running once per emitted page.
+// What `#search-index` puts on a page — a pointer at the build's one fetched
+// index, or the index itself inline — and the build-once cache the inline form
+// leans on.
 
 #import "base.typ": *
 #import "compress.typ": *
 #import "lookup.typ": *
 
-// Under rheo the corpus pass cannot lean on Typst's memo: rheo emits many
+// The inline path's corpus pass cannot lean on Typst's memo: rheo emits many
 // documents from one build and the memo does not carry across them, so a
 // 200-note rookery with 40 emitting vertebrae paid about 118 ms a page against
 // the 15 ms its own JSON costs — the whole build scaled by the page count, on
@@ -20,6 +21,9 @@
 // EMPTY WITHOUT RHEO, which is the whole fallback: `.final()` gives `(:)`, every
 // lookup misses, and `#search-index` compresses inline. The same happens under
 // rheo for a tag-filtered index — see the miss path at its call site.
+//
+// `mode: "asset"`, the default, reads none of this: the marrow writes the
+// finished index to a file and a page carries only a pointer at it.
 #let _corpus-cache = state("rookery-search-corpus", (:))
 
 // The cache key for one set of compression knobs. A string rather than a dict
@@ -27,14 +31,35 @@
 #let _corpus-key(body-terms, df-ceiling) = "t" + str(body-terms) + "/d" + str(df-ceiling)
 
 //
-//   #search-index()                       // usually not called directly
+//   #search-index()                        // usually not called directly
+//   #search-index(mode: "inline")          // carry the JSON in the page itself
 //   #search-index(elem-id: "notes-index")  // a second, differently-keyed index
 //   #search-index(body-terms: 24)          // a tighter term budget per note
 //   #search-index(df-ceiling: 20)          // a harsher cut of shared terms
 //   #search-index(body-search: false)      // no body text in the island at all
 //   #search-index(tags: "phd")             // only the notes tagged phd
 //
-// Emits `<script type="application/json" id="rookery-search-index">[...]</script>`,
+// TWO MODES, AND THE DEFAULT IS `"asset"`. Under `"asset"` the build writes ONE
+// `rookery/search/index.json` from `.marrow.typ` and each page carries only an
+// empty `<script>` pointing at it; `src/island.js` fetches it. Under `"inline"`
+// the page carries the JSON itself, as this function always did. The row schema
+// is identical either way — the difference is where the bytes live and, under
+// `"asset"`, that a row's `href` is site-root-relative with the page's own depth
+// prefix published beside it as `data-rookery-search-base`.
+//
+// PICK `"inline"` FOR A `file://` BUILD and nothing else. A `file://` page cannot
+// fetch, so the asset is unreachable there; over `http(s)://` the asset is
+// strictly better. It is strictly better by a wide margin, and the margin grows
+// with the site: MEASURED on a 320-note rookery emitting 360 pages, the inline
+// island is 112 KB and the build spends 29.5s producing 43 MB of output against
+// 2.3s and 4.9 MB for the asset — because the island is DUPLICATED PER PAGE, and
+// nothing that makes the per-page work cheaper touches that. Also measured on the
+// same site, for anyone tempted to tune instead of switch: `body-search: false`
+// still costs 20.5s, `body-terms: 8` costs 28.6s, and caching the whole row set
+// at the bundle root costs 19.6s.
+//
+// Under `"inline"`, emits
+// `<script type="application/json" id="rookery-search-index">[...]</script>`,
 // one row per note: `(id, name, text, tags, body, created, href)`, where `text`
 // is the plain-text title ("" when untitled), `tags` is the note's own tag
 // array (THE KEY IS ABSENT when it has none), `body` is that note's compressed
@@ -89,10 +114,10 @@
 // so a term this island drops — to `body-search: false`, to the `df-ceiling`, or
 // to the `body-terms` cut — is still findable there.
 //
-// WHY NOT A SEPARATE FETCHED JSON FILE, which would keep pages small: rheo
-// emits pages from typst, and there is no supported way for a package to emit
-// a standalone asset file next to them. An inline island is what the package
-// can actually produce, and it also works from `file://` with no fetch.
+// THE SEPARATE FETCHED FILE IS `mode: "asset"`, described at the top. Typst's
+// bundle target has `asset(path, data)` and rheo routes it to the output
+// directory, so `.marrow.typ` writes the index once and this function only
+// points at it. `"inline"` survives because a `file://` page has no fetch.
 //
 // `search-bar` emits this itself, so most projects never call it. Call it
 // directly when building a custom UI, or when several bars share one index —
@@ -122,6 +147,7 @@
 // cost a key per row to say the same thing. The port reads `row.tags ?? []`.
 #let search-index(
   elem-id: "rookery-search-index",
+  mode: "asset",
   body-terms: 48,
   df-ceiling: 40,
   body-search: true,
@@ -129,6 +155,28 @@
   match: "any",
 ) = context {
   if _target() != "html" { return }
+  _assert-mode(mode, "#search-index's")
+  // THE POINTER, and nothing else on the page. `data-rookery-search-src` is
+  // what `src/island.js` tests to decide between fetching and parsing, and
+  // `data-rookery-search-base` is this page's own depth prefix, which the
+  // shared file cannot carry for it. A `<script>` rather than a `<link
+  // rel=preload>` so the element the scripts already look up by `elem-id`
+  // stays the same element in both modes.
+  //
+  // A `tags:`-filtered index CANNOT use the asset: the marrow writes one file
+  // over the whole corpus, and a filtered index's document frequencies are
+  // measured over its own selection, so its terms genuinely differ. Such a
+  // call falls through to the inline path below rather than silently serving
+  // the wrong terms.
+  if mode == "asset" and tags == none {
+    let base = _page-base()
+    return html.elem("script", attrs: (
+      type: "application/json",
+      id: elem-id,
+      "data-rookery-search-src": base + _index-asset-path,
+      "data-rookery-search-base": base,
+    ), [])
+  }
   assert(
     type(body-terms) == int and body-terms > 0,
     message: "@rookery/search: #search-index's `body-terms` must be a "

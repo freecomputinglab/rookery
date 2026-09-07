@@ -109,12 +109,19 @@ OBSERVED (rheo 0.5.2, built from source at tag `v0.5.2`; typst 0.15.1), on a
 project importing both this package and rookery: `dist/lib.js` and
 `dist/search.css` are copied to `build/html/rookery/search/` and
 linked from every page's `<head>` at the correct depth-relative prefix
-(`rookery/…` at the root, `../rookery/…` one level down), and the JSON index island
+(`rookery/…` at the root, `../rookery/…` one level down), and the JSON index
 parses with one row per note, every `href` resolving to a minted page that
 exists on disk. So both manifest keys this package depends on —
 `[tool.rheo.html] js_scripts` and `css_stylesheet` — and its `.marrow.typ`
-corpus cache all work on the declared floor. Nothing here reaches for a rheo
-surface newer than 0.5.2.
+corpus cache all work on the declared floor.
+
+ONE SURFACE IS NEWER, and the manifest's `min_version = "0.6.2"` already covers
+it: `mode: "asset"` writes its index with Typst's bundle-target `asset(path,
+data)`, which rheo routes into the output directory. VERIFIED (rheo 0.6.2;
+typst 0.15.1) on a 360-page project: `rookery/search/index.json` lands beside
+this package's own scripts, and re-basing its rows the way `src/island.js` does
+reproduces the inline island's JSON exactly, on a root page and a nested one
+alike.
 
 ## Searching, without JavaScript
 
@@ -531,11 +538,53 @@ islands and each emits its own.
 ## The corpus in the browser
 
 A compile-time search is not a search box. For that the browser needs the
-corpus, and `#search-index()` puts it on the page as JSON:
+corpus, and `#search-index()` gives it one. Under the default `mode: "asset"`
+the build writes ONE file and each page carries a pointer at it:
 
 ```html
-<script type="application/json" id="rookery-search-index">[{"id":"idea:flat-ids","name":"flat-ids","text":"Flat ids, and why","tags":["phd"],"body":"Flat ids are …","href":"ideas/flat-ids.html"}, ...]</script>
+<!-- rookery/search/index.json, written once by this package's .marrow.typ -->
+[{"id":"idea:flat-ids","name":"flat-ids","text":"Flat ids, and why","tags":["phd"],"body":"flat ids …","href":"ideas/flat-ids.html"}, ...]
+
+<!-- on a page one directory down -->
+<script type="application/json" id="rookery-search-index"
+        data-rookery-search-src="../rookery/search/index.json"
+        data-rookery-search-base="../"></script>
 ```
+
+Under `mode: "inline"` the same rows go into the page itself, which is what
+this package did for every page before the asset existed:
+
+```html
+<script type="application/json" id="rookery-search-index">[{"id":"idea:flat-ids", ...}, ...]</script>
+```
+
+**Prefer the asset. `"inline"` is for `file://` and nothing else.** A `file://`
+page cannot fetch, so it must carry its own copy; over `http(s)://` the asset
+is better, and the gap widens with the site, because an inline island is
+duplicated once per emitted page. MEASURED on a 320-note rookery emitting 360
+pages, where the island had grown to 112 KB:
+
+| | build | peak RSS | output |
+| --- | --- | --- | --- |
+| `mode: "inline"` | 29.4s | 5.5 GB | 45 MB |
+| `mode: "asset"` | **2.2s** | **0.75 GB** | **5.0 MB** |
+
+Nothing that makes the per-page work cheaper closes that gap, and it is worth
+knowing which dead ends were measured on the same site before reaching for one:
+`body-search: false` still costs 20.5s, `body-terms: 8` (a 4 KB island) costs
+28.6s, and hoisting the whole row set to the bundle root costs 19.6s. The cost
+is the duplication.
+
+**A row's `href` is page-relative in both modes.** The shared file carries
+site-root paths, because it cannot hold a path measured from each of 360 pages;
+each page publishes its own depth prefix as `data-rookery-search-base`, and
+`src/island.js` joins the two on read. Everything downstream of that read —
+the bar, the modal, the preview pane — sees the same `row.href` either way.
+
+**A tag-filtered index is always inline.** Note count and document frequency
+are properties of the corpus, so a `tags:`-scoped index's terms are genuinely
+different terms; one shared file cannot serve them. `#search-index(tags: "phd")`
+falls through to the inline path whatever `mode:` says.
 
 One row per note: `id`, `name`, `text` (the plain-text title, `""` when there
 is none), `tags` (the note's own tag array — **the key is absent** when it has
@@ -550,26 +599,26 @@ what a READER's own `tags:` expression is evaluated against, per row, once they
 are there — the two axes again, and see "Filtering by tag" above. The author's
 selection is settled in Typst; the field is the reader's to filter with.
 
-**`body` is capped, not the whole note.** `search-index`'s `body-chars`
-parameter (1200 by default, `none` for no cap) truncates each row's body to
-that many CLUSTERS before it goes into the JSON, because this island is
-**inline in every page**, not fetched once. MEASURED for rookery.ohrg.org: its
+**`body` is a term budget, not the whole note.** `search-index`'s `body-terms`
+parameter (48 by default) keeps each row's most distinctive terms and drops the
+rest, and `df-ceiling` (40 by default) drops terms shared across more than that
+percentage of the corpus first. MEASURED for rookery.ohrg.org: its
 `content/*.typ` sources total ~31 KB across roughly 40 notes, so an uncapped
-index costs on the order of 20-25 KB of JSON on every page (it compresses
-well, being prose). A note longer than the cap stays findable by its opening,
-and fully findable through the Typst-side `#search-ideas`, which never
-truncates. No separate fetched JSON file, on purpose: rheo emits pages from
-typst with no supported way to emit a standalone asset alongside them, so an
-inline island is what the package can actually produce — and it also works
-from `file://` with no fetch.
+index would cost on the order of 20-25 KB of JSON per row-set (it compresses
+well, being prose). A term the budget cuts stays findable through the
+Typst-side `#search-ideas`, which never truncates. The budget matters most
+under `mode: "inline"`, where the row-set is duplicated per page; under
+`mode: "asset"` it is paid once.
 
 ### The corpus is compressed once per build, not once per page
 
-`#search-index` runs on every page that carries the island, and the corpus pass
-behind `body-search` costs far more than the island's own JSON. Under rheo the
-whole compression is hoisted into this package's `.marrow.typ`, which runs ONCE
-at the bundle root, and every page reads the finished terms back out of a state
-keyed by note id.
+Under `mode: "inline"`, `#search-index` runs on every page that carries the
+island, and the corpus pass behind `body-search` costs far more than the
+island's own JSON. Under rheo the whole compression is hoisted into this
+package's `.marrow.typ`, which runs ONCE at the bundle root, and every page
+reads the finished terms back out of a state keyed by note id. Under
+`mode: "asset"` the same marrow pass writes the finished index straight to
+`rookery/search/index.json` and no page runs any of this.
 
 MEASURED on a synthetic rookery — 200 notes of 1500 words, 40 vertebrae, one
 `#search-modal` each:

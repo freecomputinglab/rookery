@@ -21,6 +21,29 @@
   if c != none and "target" in c { c.target } else { std.target() }
 }
 
+// Where `.marrow.typ` writes the one shared index, from the SITE ROOT. It sits
+// beside this package's own scripts, which rheo copies to `rookery/search/`
+// from the manifest's `[tool.rheo.source.html]` list, so the index and the code
+// that fetches it land in one directory.
+#let _index-asset-path = "rookery/search/index.json"
+
+// ONE `../` per `:` level of the CURRENT page's handle — the depth rule rheo
+// and `@rookery/core`'s own `_rel-prefix` both apply. A deliberate copy of
+// three lines rather than an import of a private name, exactly as `_rheo-ctx`
+// above copies its pair; keep the two in step.
+//
+// `""` off a rheo build, which is right for both callers: `mode: "asset"`
+// needs rheo to have minted the asset at all, and a bare relative path is the
+// least wrong answer where there is no page depth to measure.
+//
+// Needs `#context`: it reads the per-page `rheo-handle` state rheo publishes.
+#let _page-base() = {
+  let h = state("rheo-handle").get()
+  if type(h) != str { return "" }
+  let depth = h.split(":").len() - 1
+  if depth == 0 { "" } else { range(depth).map(x => "../").join() }
+}
+
 // THE THEME IS INHERITED, NOT COPIED. This package's stylesheet reads rookery's
 // custom properties ahead of its own literals —
 // `var(--rookery-search-border, var(--idea-border-color, ...))` and friends — so a
@@ -95,4 +118,14 @@
   type(v) == bool,
   message: "@rookery/search: " + where + " `" + name + "` must be a "
     + "boolean — got " + repr(v),
+)
+
+// The message names the trade rather than only the two words, because the wrong
+// value here is a performance cliff rather than a typo: a site that meant
+// `"asset"` and wrote something else gets the island in every page.
+#let _assert-mode(v, where) = assert(
+  v == "asset" or v == "inline",
+  message: "@rookery/search: " + where + " `mode` must be \"asset\" (one "
+    + "fetched index, needs http(s)://) or \"inline\" (the index in every "
+    + "page, works from file://) — got " + repr(v),
 )

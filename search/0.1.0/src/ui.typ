@@ -24,6 +24,7 @@
   class,
   index,
   elem-id,
+  mode,
   body-terms,
   df-ceiling,
   body-search,
@@ -49,6 +50,7 @@
   if index {
     search-index(
       elem-id: elem-id,
+      mode: mode,
       body-terms: body-terms,
       df-ceiling: df-ceiling,
       body-search: body-search,
@@ -68,10 +70,14 @@
 //   #search-bar(body-terms: 24)  // a tighter term budget per note in the island
 //   #search-bar(body-search: false) // ids and titles only, no body text
 //   #search-bar(tags: "phd")        // a bar over only the notes tagged phd
+//   #search-bar(mode: "inline")     // carry the index in the page, for file://
 //
-// Emits the JSON island — via `search-index`, with `body-terms:`, `df-ceiling:`,
-// `body-search:`, `tags:` and `match:` forwarded unchanged, that function owning
-// their validation — then an `<input>` and an empty results container.
+// Emits the index — via `search-index`, with `mode:`, `body-terms:`,
+// `df-ceiling:`, `body-search:`, `tags:` and `match:` forwarded unchanged, that
+// function owning their validation — then an `<input>` and an empty results
+// container. `mode:` decides whether the index is a pointer at one fetched
+// `rookery/search/index.json` (`"asset"`, the default) or the JSON itself
+// (`"inline"`, for `file://`); `#search-index` carries the measurements.
 // `src/search.js`, injected by rheo from the manifest's `js_scripts`, wires them
 // together.
 //
@@ -104,6 +110,7 @@
   class: none,
   index: true,
   elem-id: "rookery-search-index",
+  mode: "asset",
   body-terms: 48,
   df-ceiling: 40,
   body-search: true,
@@ -117,6 +124,7 @@
     class,
     index,
     elem-id,
+    mode,
     body-terms,
     df-ceiling,
     body-search,
@@ -168,8 +176,8 @@
 // header would otherwise trap a plain absolutely-positioned overlay under
 // exactly the wrong things.
 //
-// Emits, in order: the JSON island (via `search-index`, same `index:`/
-// `elem-id:`/`body-terms:`/`df-ceiling:`/`body-search:`/`tags:`/`match:`
+// Emits, in order: the index (via `search-index`, same `index:`/`elem-id:`/
+// `mode:`/`body-terms:`/`df-ceiling:`/`body-search:`/`tags:`/`match:`
 // `#search-bar` already takes, all forwarded unchanged and all asserted by
 // `#search-index`), then the trigger button (unless `trigger: false`), then the
 // dialog.
@@ -220,6 +228,7 @@
   trigger-label: "Search",
   index: true,
   elem-id: "rookery-search-index",
+  mode: "asset",
   body-terms: 48,
   df-ceiling: 40,
   body-search: true,
@@ -233,6 +242,7 @@
     class,
     index,
     elem-id,
+    mode,
     body-terms,
     df-ceiling,
     body-search,

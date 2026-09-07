@@ -61,24 +61,35 @@ links_js "$H/sub/page.html" "../rookery/search/" ||
 grep -q '"../rookery/search/search.css"' "$H/sub/page.html" ||
   note "sub/page.html does not link search.css at the depth-relative prefix"
 
-# 4. The JSON island is present and parses, with one row per registered note.
+# 4. The index is present and parses, with one row per registered note.
 #    `#search-index` filters to notes that have a minted page (`href != none`),
 #    so this also proves the two packages agree about the registry.
-python3 - "$H/index.html" <<'PY' || fail=1
-import json, re, sys
-h = open(sys.argv[1]).read()
-m = re.search(r'<script type="application/json"[^>]*>(.*?)</script>', h, re.S)
-if not m:
-    print("FAIL: no JSON search island in index.html"); sys.exit(1)
+#
+#    THE FIXTURE BUILDS IN THE DEFAULT `mode: "asset"`, so the rows live in ONE
+#    `rookery/search/index.json` and every page carries an EMPTY `<script>`
+#    pointing at it. Reading the file rather than the page is not a weaker
+#    assertion — it is the only place the rows exist now — and 4b below pins the
+#    pointer that makes them reachable, which is the half a JSON check cannot see.
+[ -f "$H/rookery/search/index.json" ] ||
+  note "no rookery/search/index.json — the marrow did not emit the index asset"
+python3 - "$H/rookery/search/index.json" <<'PY' || fail=1
+import json, sys
 try:
-    rows = json.loads(m.group(1))
-except json.JSONDecodeError as e:
-    print(f"FAIL: search island is not valid JSON: {e}"); sys.exit(1)
-if not rows:
-    print("FAIL: search island is empty"); sys.exit(1)
+    rows = json.load(open(sys.argv[1]))
+except (OSError, json.JSONDecodeError) as e:
+    print(f"FAIL: the search index asset is not valid JSON: {e}"); sys.exit(1)
+if not isinstance(rows, list) or not rows:
+    print("FAIL: the search index asset is empty"); sys.exit(1)
 for r in rows:
     if "id" not in r or "href" not in r:
         print(f"FAIL: row missing id or href: {r}"); sys.exit(1)
+    # SITE-ROOT PATHS, not depth-relative ones: one shared file cannot carry a
+    # path measured from each page, so `src/island.js` joins each href onto the
+    # `data-rookery-search-base` prefix its page published. A `../` here would
+    # mean the marrow leaked a page-relative href into the shared file.
+    if r["href"].startswith("../") or r["href"].startswith("/"):
+        print(f"FAIL: asset row {r['id']} carries a non-site-root href: {r['href']}")
+        sys.exit(1)
     # Tag NAMES only, never the 0.5.0 tag dictionary's values: a value can be a
     # datetime or content, and `json.encode` of content does not error — it
     # emits a structural blob and bloats every page. See @rookery/core's
@@ -86,20 +97,64 @@ for r in rows:
     tags = r.get("tags", [])
     if not isinstance(tags, list) or not all(isinstance(t, str) for t in tags):
         print(f"FAIL: row {r['id']} has non-string tags: {tags!r}"); sys.exit(1)
-print(f"  island: {len(rows)} rows, all with id/href, tags flat strings")
+print(f"  index asset: {len(rows)} rows, all with id/href, tags flat strings")
 PY
 
-# 5. Every href in the island resolves to a file rheo actually wrote. A row
-#    pointing at nothing is a search result that 404s on click.
+# 4b. THE POINTER, at both depths. This is the assertion a root-only fixture
+#     cannot make, and the one whose failure takes a whole site's search with it:
+#     the `src` has to resolve from the page it sits on, and the `base` has to be
+#     that page's own depth prefix, because every row's href is joined onto it.
 python3 - "$H" <<'PY' || fail=1
-import json, os, re, sys
+import os, re, sys
 H = sys.argv[1]
-h = open(os.path.join(H, "index.html")).read()
-rows = json.loads(re.search(r'<script type="application/json"[^>]*>(.*?)</script>', h, re.S).group(1))
-missing = [r["href"] for r in rows if not os.path.isfile(os.path.join(H, r["href"]))]
-if missing:
-    print(f"FAIL: {len(missing)} island href(s) resolve to no file: {missing[:3]}"); sys.exit(1)
-print(f"  hrefs: all {len(rows)} resolve to a file on disk")
+ok = True
+for page, src, base in (
+    ("index.html", "rookery/search/index.json", ""),
+    ("sub/page.html", "../rookery/search/index.json", "../"),
+):
+    h = open(os.path.join(H, page)).read()
+    m = re.search(r'<script[^>]*id="rookery-search-index"[^>]*>', h)
+    if m is None:
+        print(f"FAIL: {page} carries no search index element"); ok = False; continue
+    tag = m.group(0)
+    if f'data-rookery-search-src="{src}"' not in tag:
+        print(f'FAIL: {page} pointer src is not "{src}": {tag}'); ok = False
+    if f'data-rookery-search-base="{base}"' not in tag:
+        print(f'FAIL: {page} pointer base is not "{base}": {tag}'); ok = False
+    # EMPTY, not merely smaller: the whole point of the asset is that no page
+    # carries a copy of the rows.
+    body = re.search(r'<script[^>]*id="rookery-search-index"[^>]*>(.*?)</script>', h, re.S)
+    if body and body.group(1).strip():
+        print(f"FAIL: {page} still carries inline index JSON ({len(body.group(1))} bytes)")
+        ok = False
+    # The src is a path from THIS page, so resolve it that way.
+    resolved = os.path.normpath(os.path.join(H, os.path.dirname(page), src))
+    if not os.path.isfile(resolved):
+        print(f"FAIL: {page}'s pointer src resolves to no file: {resolved}"); ok = False
+if ok:
+    print("  pointer: src and base correct at both depths, no inline JSON")
+sys.exit(0 if ok else 1)
+PY
+
+# 5. Every href in the index resolves to a file rheo actually wrote, FROM EVERY
+#    PAGE THAT READS IT. A row pointing at nothing is a search result that 404s
+#    on click, and under the asset mode that depends on the page's `base` as much
+#    as on the row — so the join is done here exactly as `island.js` does it.
+python3 - "$H" <<'PY' || fail=1
+import json, os, sys
+H = sys.argv[1]
+rows = json.load(open(os.path.join(H, "rookery/search/index.json")))
+ok = True
+for page, base in (("index.html", ""), ("sub/page.html", "../")):
+    here = os.path.join(H, os.path.dirname(page))
+    missing = [r["href"] for r in rows
+               if not os.path.isfile(os.path.normpath(os.path.join(here, base + r["href"])))]
+    if missing:
+        print(f"FAIL: from {page}, {len(missing)} href(s) resolve to no file: {missing[:3]}")
+        ok = False
+if ok:
+    print(f"  hrefs: all {len(rows)} resolve from both depths")
+sys.exit(0 if ok else 1)
 PY
 
 # 6. Both UI surfaces rendered. They are separate entry points and a project
@@ -139,6 +194,8 @@ if len(faceted) != 2 or len(tagged) != 2:
 # "every island on the page is the SEARCH index" rather than as a count: the bar
 # and the modal each emit one by default, so this page legitimately carries three,
 # all with the same id (MEASURED). A count would only have recorded that number.
+# Still the right assertion under `mode: "asset"`, where those three elements are
+# empty pointers rather than payloads: what it pins is that no OTHER id appears.
 ids = set(re.findall(r'<script type="application/json" id="([^"]*)"', h))
 if ids != {"rookery-search-index"}:
     print(f"FAIL: a panel emitted a JSON island of its own; island ids are {ids}")
@@ -191,7 +248,9 @@ python3 - "$H" <<'LABEL' || fail=1
 import json, os, re, sys
 H = sys.argv[1]
 h = open(os.path.join(H, "index.html")).read()
-rows = json.loads(re.search(r'<script type="application/json"[^>]*>(.*?)</script>', h, re.S).group(1))
+# The ROWS come from the index asset (see 4); the ranking probe below comes from
+# the page. Both halves of this assertion are needed and they live in two files.
+rows = json.load(open(os.path.join(H, "rookery/search/index.json")))
 
 # The demo's one titleless note. Found by its ABSENCE of an authored title, not
 # by id: its id is an auto-assigned sequence number and pinning it here would
