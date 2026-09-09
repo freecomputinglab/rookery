@@ -67,7 +67,7 @@ if len(parse) != 1:
 else:
     tags = re.search(r'data-todo-tags="([^"]*)"', parse[0])
     got = tags.group(1).split() if tags else []
-    for want in ("todo", "todo-p1", "phd"):
+    for want in ("todo", "todo-p3", "phd"):
         if want not in got:
             print(f"FAIL: {want!r} is missing from the `parse` row's tags {got}"); bad = 1
 
@@ -165,7 +165,7 @@ ship = [a for a in allt if "frontend" in a and "phd" in a]
 if len(ship) != 1:
     note(f"could not find the `ship` row's query tags among {allt}")
 else:
-    for want in ("todo", "todo-p1", "frontend", "phd"):
+    for want in ("todo", "todo-p9", "frontend", "phd"):
         if want not in ship[0]:
             note(f"{want!r} is missing from data-panel-all-tags={ship[0]!r} — the"
                  f" query channel carries the todo namespace even though no pill does")
@@ -183,13 +183,13 @@ if not any("todo-when-overdue" in w for w in whens):
 labels = [w for w in whens if "todo-when-priority" in w]
 if not labels:
     note("no undated row carries a todo-when-priority label")
-elif not all(re.search(r"todo-when-p[012]\b", w) for w in labels):
+elif not all(re.search(r"todo-when-rung-[012]\b", w) for w in labels):
     note(f"a priority label carries no rung class: {labels}")
 
 # THE LABEL IS THE CHIP, MOVED. A row showing `P1` where its date would go must not
 # also carry a `p1` badge on the strip, or the row says one thing twice.
 for r in re.split(r'(?=<li class="panel-row)', seg)[1:]:
-    if "todo-when-priority" in r and re.search(r'data-rookery-tags="[^"]*\bp[0-9]\b', r):
+    if "todo-when-priority" in r and re.search(r'data-rookery-tags="[^"]*\bp[0-9]+\b', r):
         note("a row with a priority label also carries a priority badge")
         break
 
