@@ -173,9 +173,29 @@ for a in allt:
     if a and not (a.startswith(" ") and a.endswith(" ")):
         note(f"data-panel-all-tags={a!r} is not space-padded at both ends")
 
+# THE DATE COLUMN'S TWO CHANNELS, both of them classes nothing else in the markup
+# reveals. An overdue row must band `overdue` and not `urgent`: `countdown()` calls
+# both urgent, so the distinction lives in this package alone and a regression is
+# silent. An undated row must carry its priority as a label at one of the ramp's rungs.
+whens = re.findall(r'class="idea-row-when([^"]*)"', seg)
+if not any("todo-when-overdue" in w for w in whens):
+    note("no row bands todo-when-overdue; an overdue deadline reads as merely urgent")
+labels = [w for w in whens if "todo-when-priority" in w]
+if not labels:
+    note("no undated row carries a todo-when-priority label")
+elif not all(re.search(r"todo-when-p[012]\b", w) for w in labels):
+    note(f"a priority label carries no rung class: {labels}")
+
+# THE LABEL IS THE CHIP, MOVED. A row showing `P1` where its date would go must not
+# also carry a `p1` badge on the strip, or the row says one thing twice.
+for r in re.split(r'(?=<li class="panel-row)', seg)[1:]:
+    if "todo-when-priority" in r and re.search(r'data-rookery-tags="[^"]*\bp[0-9]\b', r):
+        note("a row with a priority label also carries a priority badge")
+        break
+
 if not bad:
     print(f"  filter-panel: 4 groups, tag pills {tags}, {len(attrs)} rows padded,"
-          f" query tags on {len(allt)}")
+          f" query tags on {len(allt)}, {len(labels)} priority labels")
 sys.exit(bad)
 PANEL
 

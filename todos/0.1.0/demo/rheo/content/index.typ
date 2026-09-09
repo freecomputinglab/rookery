@@ -88,6 +88,16 @@ A todo with a DEADLINE, from the same package.
   tags: entries(deadline: datetime(year: 2026, month: 9, day: 15)),
 )[Ready now, and due next month.]
 
+An OVERDUE todo — a deadline already behind `TODAY`. `#filter-panel` lists it first
+and paints its date cell solid red; `overdue: false` drops it from the panel instead.
+
+#todo(
+  "invoice",
+  title: [Send the invoice],
+  priority: 1,
+  tags: entries(deadline: datetime(year: 2026, month: 8, day: 4)),
+)[Three weeks late.]
+
 A STALE todo: open, and untouched since January.
 
 #todo(
@@ -199,6 +209,12 @@ actually carry, so `frontend` and `phd` have pills because two todos were writte
 with them — and `launch` does not appear twice despite being both an epic and a
 bare tag on its two todos. Add a tag to a todo above and its pill is there on the
 next build.
+
+THE DATE COLUMN CARRIES TWO KINDS OF THING. A dated row shows its date, washed by how
+long is left — and solid red where the deadline is behind you, which `overdue: false`
+would drop from the list altogether. An UNDATED row shows its priority there instead,
+`P1` in the ramp's own colour, and the undated rows sort by it: `undated-priority:
+false` leaves them in registry order with an empty cell.
 
 #filter-panel(today: TODAY, visible: 6, noun: "open todos")
 

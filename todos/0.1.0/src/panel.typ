@@ -59,6 +59,12 @@
 // deliberately not what the cell shows.
 #let _iso(d) = d.display("[year]-[month]-[day]")
 
+// IS THIS DATE BEHIND US. The LADDER of bands is @rookery/timeline's `countdown()`
+// and stays there; what this reads is the SIGN of the same number, which is the one
+// thing that ladder folds away (overdue and due-today are both `urgent` to it). A row
+// with no date, or a panel with no `today:`, is not overdue — it is unmeasured.
+#let _past(d, today) = d != none and today != none and _tl.days-until(d, today) < 0
+
 // THE STATE FACET — where the declared status and the derived one meet.
 //
 // `status-of` (tags.typ) deliberately never answers "blocked": that is a question
@@ -228,6 +234,32 @@
   // document-date fallback from — so with no `today:` passed, no row is measured and
   // no countdown band drawn (priority still bands where it applies).
   countdown: true,
+  // WHETHER A ROW WHOSE DATE HAS PASSED IS LISTED AT ALL. `true` lists it and paints
+  // its date cell the `overdue` band — solid rather than a wash, the one band above
+  // the countdown's three; `false` drops it from the panel entirely.
+  //
+  // ON BY DEFAULT, because a deadline behind you is the most pressing thing a worklist
+  // has to say. `false` is for a panel read as "what is coming": a site that logs its
+  // lapsed work elsewhere, or one whose todos accumulate dates nobody means to honour,
+  // where a permanent red bar at the top of the list stops being read.
+  //
+  // IT NEEDS A `today:` for the same reason `countdown:` does — with no reference date
+  // no row is measured, so nothing is dropped and no overdue band is drawn.
+  overdue: true,
+  // WHAT AN UNDATED ROW DOES WITH ITS PRIORITY. `true` gives the priority both of the
+  // jobs a date would have done: it ORDERS the undated rows among themselves (p0
+  // first, an unprioritised row last) and it stands IN THE DATE CELL as a `P0` label
+  // on the priority ramp's own colour. `false` leaves them in registry order with an
+  // empty cell.
+  //
+  // ONLY WHERE THERE IS NO DATE. A dated row is ordered and banded by its date, which
+  // is the firmer statement; priority washes such a row only where the countdown has
+  // nothing to say (see `draw` below), and never writes a label over the date.
+  //
+  // p0/p1/p2 ONLY, the three rungs of the ramp. An undated p3 or p4 keeps an empty
+  // cell — a backlog item announcing itself in colour is the noise the ramp exists to
+  // cut through — but still sorts ahead of an unprioritised row.
+  undated-priority: true,
   visible: 8,
   placeholder: "Filter",
   noun: "todos",
@@ -264,8 +296,22 @@
   // back, and a dictionary or a datetime there would stringify into nonsense. The raw
   // datetime rides as `when-date` — not a facet, so never projected into an attribute —
   // because `render:` needs to format it and the sort key is a string.
-  let rows = all
-    .filter(keep)
+  // PRIORITY ORDER, APPLIED BEFORE `#panel`'s DATE SORT, which is what makes it the
+  // tie-break rather than a competing order: that sort keys every undated row alike
+  // (one sentinel sorting after every date) and Typst's `sorted` is stable, so the
+  // order they arrive in is the order they keep. `#panel`'s script tie-breaks on the
+  // row's markup index for the same reason, so the arrangement survives filtering.
+  //
+  // REVERSED UNDER `"newest"`, because that order reverses the whole list — without
+  // this the tie-break would come out p4-first exactly when the caller asked for the
+  // most pressing thing at the top.
+  let ranked = if not undated-priority { all.filter(keep) } else {
+    let rank = r => if r.priority == none { 99 } else { r.priority }
+    let s = all.filter(keep).sorted(key: rank)
+    if order == "newest" { s.rev() } else { s }
+  }
+
+  let rows = ranked
     .map(r => {
       let d = when(r)
       (
@@ -285,6 +331,7 @@
         when-date: d,
       )
     })
+    .filter(r => overdue or not _past(r.at("when-date", default: none), today))
 
   let draw = if render != none { render } else {
     r => {
@@ -301,8 +348,14 @@
         _tl.countdown(_tl.days-until(d, today))
       } else { none }
       if not _is-markup() {
+        // EVERY RUNG HERE, not just the ramp's three: on paper the label is
+        // information rather than colour, and the argument for stopping at p2 is an
+        // argument about washes.
+        let pri = r.at("priority", default: none)
         return {
-          if d != none { [#_fmt-day(d) — ] }
+          if d != none { [#_fmt-day(d) — ] } else if undated-priority and pri != none {
+            [#upper(pri) — ]
+          }
           r.at("label", default: r.at("name", default: ""))
           // THE SAME WORDS, NO COLOUR, which is what `#upcoming`'s paged branch does
           // too: a printed page has no chip to tint, and red ink is a decision about
@@ -317,7 +370,15 @@
       // background and the phrase becomes a tooltip: the colour is the reading at a
       // glance, the words are there for whoever asks. `#upcoming` keeps its chips —
       // that view has a different grid and a different question.
-      let band = if c == none { none } else { "todo-when-" + c.level }
+      //
+      // OVERDUE IS THE FOURTH BAND, and it is this package's own: `countdown()` folds
+      // a date behind you into `urgent` along with today and tomorrow, which is right
+      // for a chip saying how long you have and wrong for a worklist, where "late" and
+      // "due today" are different instructions. It rides on `countdown:` like the other
+      // three — a caller turning the washes off gets no colour at all.
+      let band = if c == none { none } else if _past(d, today) {
+        "todo-when-overdue"
+      } else { "todo-when-" + c.level }
       // PRIORITY, ONLY WHERE THE COUNTDOWN HAS NOTHING TO SAY. A todo three weeks out
       // earns no countdown band, so a p0 sitting far out would read exactly like the
       // p4 beside it — which is the gap this closes, on the same cell rather than a
@@ -333,19 +394,34 @@
       let pri-band = if band != none or d == none or p not in ("p0", "p1", "p2") {
         none
       } else { "todo-when-" + p }
-      // A ROW WITH NO DATE GETS NEITHER. A wash behind an em dash says nothing.
+      // THE UNDATED ROW'S OWN CELL: not a wash behind an empty column but the priority
+      // itself, written where the date would be. `P0` uppercase because it is a label
+      // rather than the `p0` the pill spells — and only at the ramp's three rungs, so
+      // an undated p4 leaves the column blank as before.
+      let pri-label = if not undated-priority or d != none or p not in ("p0", "p1", "p2") {
+        none
+      } else { upper(p) }
+      // A ROW WITH NO DATE AND NO LABEL GETS NEITHER. A wash behind an em dash says
+      // nothing. Where the label IS drawn the words are redundant with it, so no
+      // tooltip either.
       let phrase = if c != none { c.text } else if pri-band != none {
         "priority " + p.slice(1)
       } else { none }
       idea-row-body(
-        when: if d == none { none } else { _fmt-day(d) },
+        when: if d != none { _fmt-day(d) } else { pri-label },
         iso: if d == none { none } else { _iso(d) },
         // `when-class:`/`when-attrs:` ARE @rookery/core's OWN HOLE for exactly this
         // (see `row.typ`): the caller computes the band, the row still asks nothing
         // about what a date means. With no band, neither is passed and the cell's
         // markup is what it always was.
+        // THE LABEL WEARS TWO CLASSES: its ramp rung, the same `todo-when-p<n>` a
+        // dated row's wash uses, plus `todo-when-priority` — which is what tells the
+        // stylesheet this cell holds a priority rather than a date, and so takes the
+        // rung's colour as INK on the wash instead of a wash alone.
         when-class: if band != none { (band,) } else if pri-band != none {
           (pri-band,)
+        } else if pri-label != none {
+          ("todo-when-priority", "todo-when-" + p)
         } else { () },
         // `data-countdown` carries the words for the drawn tooltip; `aria-label` says
         // them to a reader who cannot see a colour. Not `title:` — a native tooltip
@@ -373,7 +449,12 @@
         // whose rows carry between one and six. The row already wears every tag as an
         // `idea-tag-<tag>` class (`row-class` below), so a site theming by tag still
         // can, and the pills say which tag is being filtered on.
+        //
+        // THE PRIORITY CHIP GOES WHERE THE LABEL IS DRAWN, because the label IS that
+        // chip, moved: an undated row carrying `P0` in the date column and a `p0`
+        // badge on the strip says one thing twice, at opposite ends of the row.
         badges: facets
+          .filter(f => f != "priority" or pri-label == none)
           .filter(f => f not in _MULTI)
           .map(f => r.at(f, default: none))
           .filter(v => v != none and v != "")

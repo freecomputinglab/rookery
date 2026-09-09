@@ -419,6 +419,32 @@ with whatever pills are pressed. `@rookery/search`'s `#panel` section carries th
 `#todos-search` — the other filter box, further up — does **not** take the language: it
 has its own input and its own scorer, and giving it one is separate work.
 
+**The date column carries two kinds of thing, and each is one argument.**
+
+```typst
+#filter-panel(today: TODAY, overdue: true, undated-priority: true)
+```
+
+A dated row shows its date, washed by how long is left — and **solid red where the
+deadline is behind you**. That fourth band is this package's own: `countdown()` in
+`@rookery/timeline` calls overdue and due-today alike `urgent`, which is right for a
+chip saying how long you have and wrong for a worklist, where *late* and *due today*
+are different instructions. `overdue: false` drops those rows from the panel
+altogether — for a list read as "what is coming", on a site that logs its lapsed work
+elsewhere.
+
+An **undated** row shows its priority where the date would go: `P0` in the ramp's own
+red, `P1` orange, `P2` yellow, and the priority chip leaves the badge strip, being the
+same fact at the other end of the row. The undated rows also *sort* by it, p0 first and
+an unprioritised row last — which is what the date sort alone cannot say, keying every
+undated row alike. `undated-priority: false` leaves them in registry order with an
+empty cell.
+
+Both ride on `today:`, as the countdown does: with no reference date nothing is
+measured, so no row is dropped and no band drawn. Neither touches a dated row's
+ordering — a date is the firmer statement, and priority washes such a row only where
+the countdown has nothing to say.
+
 Pass `facets:` to narrow the groups — `facets: ("epic", "state", "priority")` drops
 the tag pills — and `pill-rows:` to lay the remaining ones out differently. Its
 entries are `(label: <content or none>, facets: (<group names>))`, one per line, the

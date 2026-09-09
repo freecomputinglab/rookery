@@ -244,12 +244,17 @@
    * itself rather than added as a chip beside it: the badge strip is about what a
    * todo IS, and a wash says "soon" faster than a word does anyway.
    *
-   * SIX BANDS, ONE RAMP. Three from the countdown — urgent is today, tomorrow and
-   * anything overdue; soon is two to seven days; later is eight to fourteen — and
-   * three from PRIORITY, which bands only where the countdown was silent (a todo
-   * further off than a fortnight, or one with no `today:` to measure against). p3 and
-   * p4 get no rule: a ramp of three has three steps, and a backlog item colouring
-   * itself is exactly the noise the ramp exists to cut through.
+   * SEVEN BANDS, ONE RAMP. Four from the countdown — overdue is any date behind you;
+   * urgent is today and tomorrow; soon is two to seven days; later is eight to
+   * fourteen — and three from PRIORITY, which bands only where the countdown was
+   * silent (a todo further off than a fortnight, or one with no `today:` to measure
+   * against). p3 and p4 get no rule: a ramp of three has three steps, and a backlog
+   * item colouring itself is exactly the noise the ramp exists to cut through.
+   *
+   * OVERDUE IS THE ONE SOLID BAND, and the only one that recolours its ink. Every
+   * other cell is a wash a reader takes in while scanning past it; a date behind you
+   * is the one thing on the list that should stop the eye, so it reads as a filled
+   * red chip rather than a stronger tint of the same idea.
    *
    * The priority washes are a touch lighter than the countdown band of the same hue,
    * so that where the two channels sit in one column the actual deadline reads as the
@@ -265,6 +270,15 @@
     padding: 0 0.3em;
     margin-left: -0.3em;
     cursor: help;
+  }
+
+  /* The ink is declared alongside the fill because full-strength red takes neither the
+   * page's text colour nor its muted one legibly. `--todo-band-overdue-fg` overrides it
+   * for a site whose heat ramp is light enough to want dark ink back. */
+  [data-rookery="row-when"].todo-when-overdue {
+    background-color: var(--todo-band-overdue, var(--rookery-heat-urgent, #b3261e));
+    color: var(--todo-band-overdue-fg, #fff);
+    font-weight: 600;
   }
 
   [data-rookery="row-when"].todo-when-urgent {
@@ -307,6 +321,35 @@
       --todo-band-p2,
       color-mix(in oklab, var(--rookery-heat-later, #b38f1e) 22%, transparent)
     );
+  }
+
+  /* THE UNDATED ROW'S PRIORITY, standing where the date would be (`undated-priority:`
+   * in `panel.typ`). It wears its rung's `todo-when-p<n>` class too, so the wash above
+   * is already painted; what this adds is the rung's colour as INK, which is what makes
+   * a two-character label read at the size a date does. `[data-countdown]` is absent on
+   * these cells — the label needs no tooltip to say what it says — so the chip's own
+   * padding is repeated here.
+   *
+   * `--todo-pri-fg-p<n>` is the per-rung override, and the ramp underneath it is the
+   * same red/orange/yellow the washes and `#upcoming`'s chips take. */
+  [data-rookery="row-when"].todo-when-priority {
+    border-radius: 3px;
+    padding: 0 0.3em;
+    margin-left: -0.3em;
+    font-weight: 700;
+    font-variant-numeric: normal;
+  }
+
+  [data-rookery="row-when"].todo-when-priority.todo-when-p0 {
+    color: var(--todo-pri-fg-p0, var(--rookery-heat-urgent, #b3261e));
+  }
+
+  [data-rookery="row-when"].todo-when-priority.todo-when-p1 {
+    color: var(--todo-pri-fg-p1, var(--rookery-heat-soon, #b3611e));
+  }
+
+  [data-rookery="row-when"].todo-when-priority.todo-when-p2 {
+    color: var(--todo-pri-fg-p2, var(--rookery-heat-later, #b38f1e));
   }
 
   /* A BANDED DATE IS NOT SOFT-GREY. `[data-rookery="row-when"].soft` (core.css)
