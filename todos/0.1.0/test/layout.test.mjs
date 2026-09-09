@@ -37,19 +37,21 @@ test("independent nodes all sit on layer 0", () => {
   assert.deepEqual([...L.values()], [0, 0, 0]);
 });
 
-test("rows order by priority then name, unprioritised last", () => {
+test("rows order by priority descending then name, priority 0 last", () => {
   const nodes = [
     n("zebra", { priority: 0 }),
     n("apple"),
     n("mango", { priority: 0 }),
     n("kiwi", { priority: 2 }),
+    n("ox", { priority: 12 }),
   ];
   const L = layer(nodes, []);
   assert.deepEqual(rows(nodes, L)[0].map((x) => x.name), [
-    "mango",
-    "zebra",
+    "ox",
     "kiwi",
     "apple",
+    "mango",
+    "zebra",
   ]);
 });
 

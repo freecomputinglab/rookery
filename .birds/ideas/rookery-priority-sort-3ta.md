@@ -7,7 +7,7 @@ labels:
 - type:task
 deps:
 - blocked-by:rookery-priority-scale-48n
-closed: false
+closed: true
 ---
 Every place `@rookery/todos` orders todos by priority sorts ASCENDING today, because the old scale had 0 as critical, and treats an unset priority as a large sentinel (9 or 99) so it lands last. The scale is now reversed by bead `rookery-priority-scale-48n`: a bigger number is more important, `priority-of` never returns `none`, and an unprioritised todo is simply priority 0. So every one of these sorts must become DESCENDING by priority, then ascending by name — and the sentinels must go, because 0 already sorts last on its own.
 
