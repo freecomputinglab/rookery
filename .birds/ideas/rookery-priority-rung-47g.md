@@ -7,7 +7,7 @@ labels:
 - type:feature
 deps:
 - blocked-by:rookery-priority-scale-48n
-closed: false
+closed: true
 ---
 The priority colour ramp in `@rookery/todos` is keyed to ABSOLUTE numbers: `p0` takes the urgent red, `p1` soon-orange, `p2` later-yellow, and `p3`/`p4` get nothing. That only works because the old scale was capped at 0-4. Bead `rookery-priority-scale-48n` removes the cap, so an absolute key is no longer possible — a site using priorities 0, 2 and 7 has no rung called `p0`.
 

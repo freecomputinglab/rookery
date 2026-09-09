@@ -18,7 +18,7 @@
 // FLAT keys encode their value in the key, so they stay filterable by
 // `#window(tags:)` and by rookery-search's `tags:todo-p1`.
 #assert.eq(todo-tags(priority: 1).keys(), ("todo", "todo-p1"))
-#assert.eq(todo-tags(priority: 0).keys(), ("todo", "todo-p0"))
+#assert.eq(todo-tags(priority: 0).keys(), ("todo",))
 #assert.eq(todo-tags(kind: "bug").keys(), ("todo", "todo-bug"))
 #assert.eq(todo-tags(status: "in-progress").keys(), ("todo", "todo-in-progress"))
 // Flat means the value is `none`, which is what makes it render as a pill.
@@ -64,7 +64,24 @@
 #assert.eq(is-todo((phd: none)), false)
 
 #assert.eq(priority-of(todo-tags(priority: 3)), 3)
-#assert.eq(priority-of(todo-tags()), none)
+#assert.eq(priority-of(todo-tags()), 0)
+// Unbounded: no ceiling on the encoded number.
+#assert.eq(priority-of(todo-tags(priority: 12)), 12)
+// The maximum across every matching key wins, regardless of key order.
+#assert.eq(priority-of(("todo-p2": none, "todo-p9": none)), 9)
+// No `todo-p<n>` key at all decodes to 0, the unprioritised value.
+#assert.eq(priority-of(("todo": none, "todo-closed": none, "todo-bug": none)), 0)
+
+// ---- priority-rung — the fixed ramp, relative to the priorities in use ----
+#assert.eq(priority-rung(7, (7, 2, 1)), 0)
+#assert.eq(priority-rung(2, (7, 2, 1)), 1)
+#assert.eq(priority-rung(1, (7, 2, 1)), 2)
+// A scale longer than `rungs` clamps at the coolest rung rather than
+// running off the ramp.
+#assert.eq(priority-rung(1, (9, 7, 5, 3, 1)), 2)
+// Unprioritised, and a `p` absent from the scale, take no rung at all.
+#assert.eq(priority-rung(0, (7, 2)), none)
+#assert.eq(priority-rung(4, (7, 2)), none)
 #assert.eq(type-of(todo-tags(kind: "feature")), "feature")
 #assert.eq(type-of(todo-tags()), none)
 
@@ -296,11 +313,11 @@
 // records the dep itself.
 #assert.eq(layer-of(dangling).at("a"), 0)
 
-// Within a layer: priority ascending, then name, unprioritised last.
-#let rowp(name, deps: (), priority: none) = (
+// Within a layer: priority descending, then name, unprioritised last.
+#let rowp(name, deps: (), priority: 0) = (
   name: name, deps: deps, closed: false, tags-dict: (:), priority: priority,
 )
-#let tied = g(rowp("lo", priority: 3), rowp("hi", priority: 1), rowp("none-pri"))
+#let tied = g(rowp("hi", priority: 3), rowp("lo", priority: 1), rowp("none-pri"))
 #assert.eq(layers(tied).at(0).map(r => r.name), ("hi", "lo", "none-pri"))
 
 // ---- dfs-of — the deck's reading order ------------------------------------
@@ -332,7 +349,7 @@
 // here exactly as it is layer 0 above.
 #assert.eq(dfs-of(dangling).order.at("a"), 0)
 
-// Sibling lists carry `layers`' own tie-break: priority ascending, then name,
+// Sibling lists carry `layers`' own tie-break: priority descending, then name,
 // unprioritised last.
 #assert.eq(dfs-of(tied).order, (hi: 0, lo: 1, "none-pri": 2))
 
@@ -380,12 +397,12 @@
 #let dk10 = todo-slip-keys(chain10)
 #assert.eq(names10.sorted(key: n => (dk10.order)(reg(n))), names10)
 
-// Among siblings, an unprioritised todo sorts after a p3 one.
-#let samelayer = g(rowp("p3", priority: 3), rowp("none-pri"))
+// Among siblings, an unprioritised todo sorts after a hotter one.
+#let samelayer = g(rowp("hot", priority: 9), rowp("none-pri"))
 #let dks = todo-slip-keys(samelayer)
 #assert.eq(
-  ("p3", "none-pri").sorted(key: n => (dks.order)(reg(n))),
-  ("p3", "none-pri"),
+  ("hot", "none-pri").sorted(key: n => (dks.order)(reg(n))),
+  ("hot", "none-pri"),
 )
 
 // The three class strings, and the real fourth case — an open, unblocked
