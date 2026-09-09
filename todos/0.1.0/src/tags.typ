@@ -3,7 +3,7 @@
 // THREE SURFACES, and the split is the whole design of this package. Read this
 // before adding an attribute.
 //
-// 1. FLAT, KEY ENCODES THE VALUE — `todo`, `todo-p0`..`todo-p4`, `todo-<type>`,
+// 1. FLAT, KEY ENCODES THE VALUE — `todo`, `todo-p<n>` for any `n > 0`, `todo-<type>`,
 //    `todo-<status>`. Value `none`, so each renders as a pill, emits a
 //    `.idea-tag-<key>` class, and is filterable by rookery's own
 //    `#window(tags:)`/`#ideas(tags:)` AND by @rookery/search's tag query
@@ -160,12 +160,12 @@
 
   if priority != none {
     assert(
-      type(priority) == int and priority >= 0 and priority <= 4,
-      message: "@rookery/todos: `priority` must be an integer 0-4 "
-        + "(0 = critical, 4 = backlog), matching br's own scale — got "
+      type(priority) == int and priority >= 0,
+      message: "@rookery/todos: `priority` must be a non-negative integer "
+        + "(higher is more important, 0 = unprioritised) — got "
         + repr(priority),
     )
-    out.insert("todo-p" + str(priority), none)
+    if priority > 0 { out.insert("todo-p" + str(priority), none) }
   }
 
   if kind != none {
@@ -243,12 +243,17 @@
 // a project put there.
 #let metadata-of(tags) = tags.at(METADATA-KEY, default: (:))
 
-// Priority back out of the key that encodes it, or `none` when unset. Decoded
-// rather than stored separately, so the filterable surface and the sortable
-// value cannot disagree.
+// Priority back out of the keys that encode it: unbounded, higher is more
+// important, `0` when no `todo-p<n>` key is present. Decoded rather than
+// stored separately, so the filterable surface and the sortable value cannot
+// disagree. Takes the MAXIMUM across every matching key, so a note carrying
+// more than one `todo-p<n>` tag still decodes to one deterministic priority.
 #let priority-of(tags) = {
-  let hit = range(5).find(n => ("todo-p" + str(n)) in tags)
-  hit
+  let digits = regex("^[0-9]+$")
+  let hits = tags.keys()
+    .filter(k => k.starts-with("todo-p") and k.slice(6).match(digits) != none)
+    .map(k => int(k.slice(6)))
+  if hits.len() == 0 { 0 } else { calc.max(..hits) }
 }
 
 // The declared type, or `none`. Same decode-don't-duplicate rule as priority.

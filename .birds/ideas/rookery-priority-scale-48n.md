@@ -6,7 +6,7 @@ labels:
 - priority-reversal
 - type:task
 deps: []
-closed: false
+closed: true
 ---
 Reverse the meaning of `priority:` in `@rookery/todos` so that a HIGHER number is a HIGHER priority, remove the 0-4 cap, and make 0 the default. This is the foundation bead: it changes only the encode/decode pair, and every other bead in this set depends on it.
 
