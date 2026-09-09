@@ -126,6 +126,7 @@
   show-context: true,
   show-backlinks: true,
   show-title: true,
+  page-titles: "title",
   invisible-tags: (),
   doc,
 ) = {
@@ -143,6 +144,7 @@
     show-context,
     show-backlinks,
     show-title,
+    page-titles,
     invisible-tags,
   )
   let resolved = _resolve-theme(
@@ -187,6 +189,7 @@
   _show-context.update(show-context)
   _show-backlinks.update(show-backlinks)
   _show-title.update(show-title)
+  _page-titles.update(page-titles)
   // Normalized to a flat array of NAMES here, once, so `_visible-tags` can do a
   // plain `t not in hidden` on every call rather than re-deriving the shape.
   // `.update(value)` and never `.update(_ => value)` — an array is not a

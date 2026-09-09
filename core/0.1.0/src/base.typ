@@ -47,8 +47,8 @@
 
 // ---- CONSUMED BY .marrow.typ — a real API, with no other marker ------------
 //
-// `.marrow.typ` (this package's own, at the package root) imports SEVENTEEN
-// names from `"@rookery/core:0.1.0"`, seventeen of them underscore-private. They
+// `.marrow.typ` (this package's own, at the package root) imports THIRTY
+// names from `"@rookery/core:0.1.0"`, twenty-eight of them underscore-private. They
 // are as load-bearing as anything public here, and nothing else in this file
 // says so. RENAMING OR RE-SIGNING ANY OF THEM MEANS CHANGING `.marrow.typ` IN
 // THE SAME COMMIT.
@@ -71,7 +71,11 @@
 //                        reused on the minted page with a self-fragment href
 //   _themed              carries the document's theme as inline custom props
 //   _handle-title        the human title of the vertebra a handle names, for
-//                        the Context section's links back into the spine
+//                        the Context section's links back into the spine.
+//                        Takes `mode:` — marrow resolves `_page-titles` and
+//                        passes it, because this one cannot read state
+//   _page-titles         whether that name is the spine title or the page's
+//                        own path
 //   _page-links          which notes a given PAGE links to directly
 //   _page-href           depth-relative href from this page to another page
 //   _body-at             a note's body at a given nested-window budget
@@ -108,14 +112,41 @@
 // every marrow contribution sees identically (it is spine-wide, not per-file),
 // so this works from package scope with no `ctx:` parameter and no `query()`.
 //
+// A spine entry carries three fields and no more: `handle`, `path`, `title`.
+//
+// `mode` IS PASSED IN rather than read off `_page-titles` here, and that is the
+// whole reason this takes a parameter it could look up itself. This is package
+// scope with no `context`, and a state read from here is the shape that makes a
+// value depend on layout. `.marrow.typ` already resolves every other config key
+// with `.final()` inside its own context, so it resolves this one there too and
+// hands down a string.
+//
+//   "title"  the spine title, which rheo derives from the FILE STEM
+//   "path"   the source path, content dir and extension dropped
+//
+// THE CONTENT DIR IS DROPPED BY MATCHING THE HANDLE, never by trusting a
+// literal "content/": that directory is the project's own `content_dir` and may
+// be named anything or absent entirely. The handle is what says where the
+// meaningful part of the path begins, so every segment before it is prefix. On
+// the handle's FIRST segment alone, because a landing page's handle is its
+// DIRECTORY — `digitaltheory` for `digitaltheory/index.typ` — and matching the
+// whole handle would find nothing there.
+//
 // Falls back to the handle itself: a handle is always something a reader can
 // place, and this must never be the reason a build fails.
-#let _handle-title(handle) = {
+#let _handle-title(handle, mode: "title") = {
   let c = _rheo-ctx()
   if c == none { return handle }
   for v in c.at("spine-flat", default: ()) {
     if v.at("handle", default: none) == handle {
-      return v.at("title", default: handle)
+      let title = v.at("title", default: handle)
+      if mode != "path" { return title }
+      let path = v.at("path", default: none)
+      if path == none { return title }
+      let stem = if path.ends-with(".typ") { path.slice(0, -4) } else { path }
+      let segs = stem.split("/")
+      let from = segs.position(s => s == handle.split(":").first())
+      return if from == none { stem } else { segs.slice(from).join("/") }
     }
   }
   handle

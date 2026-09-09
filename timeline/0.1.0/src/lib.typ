@@ -105,7 +105,12 @@
 // — a `#submission`, a `#todo` — gets the date arguments without wrapping anything
 // itself. Without this, every such family would call `dated(..)` around its own
 // `tagged-idea(..)`, which is the boilerplate the skin exists to absorb.
-#let tagged-idea(family) = dated(_rk.tagged-idea(family))
+//
+// A WHOLESALE SINK, so this skin declares nothing about the factory's own
+// signature: several positional tags, `value:` and `exclude-tags:` all reach core
+// untouched, and a family built over the skin gets the same surface as one built
+// over core.
+#let tagged-idea(..family) = dated(_rk.tagged-idea(..family))
 
 // KEPT AS AN ALIAS, and it is now the same function as `idea` above rather than the
 // only way to get one. Call sites written before the skin keep working.

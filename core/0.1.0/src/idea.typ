@@ -471,8 +471,8 @@
 
 // ---- #tagged-idea / #tags-of / #tag-value — an idea's tags ----------------
 //
-// `tagged-idea` is a FACTORY: it returns an `#idea` variant that prepends one
-// tag to whatever the caller passed. Define your own vocabulary with it —
+// `tagged-idea` is a FACTORY: it returns an `#idea` variant that prepends its
+// own tags to whatever the caller passed. Define your own vocabulary with it —
 //
 //   #let note = tagged-idea("note")
 //   #let todo = tagged-idea("todo")
@@ -480,6 +480,17 @@
 //
 // — and `#note("x")[...]` is exactly `#idea("x", tags: (note: none))[...]`.
 // No new parameter on `#idea`, no recognised set of tags, no subclassing.
+//
+// SEVERAL TAGS ARE POSITIONAL, for a family that is a narrowing of a broader
+// one rather than a thing of its own:
+//
+//   #let participant = tagged-idea("person", "participant")
+//
+// Every `#participant` is then reachable as a `person` too, which is what a
+// `#window(tags: "person")` or a `tag-index("person")` has to see for the
+// narrower family to belong to the wider one at all. The alternative is asking
+// each call site to write `tags: ("person",)` and finding the one that forgot.
+// One tag is the common case and needs no array: the sink takes them bare.
 //
 // REPLACES the hardcoded `note`/`todo` this package exported through 0.4.1.
 // Two names could never be the right two, and a project or a package wanting a
@@ -496,6 +507,14 @@
 // FOR THAT TAG WINS OUTRIGHT — `#todo("x", tags: (todo: (state: "open")))`
 // keeps `(state: "open")` — and there is no deep merge between the two.
 // `_dedup-tag`'s "already a key" guard is what implements that.
+//
+// IT TAKES ONE TAG, and the factory refuses `value:` alongside several rather
+// than guess. "The same value for each of them" is not a thing any caller has
+// wanted, and a per-tag mapping would collide with the values that are
+// themselves dictionaries (`(todo: (state: "open"))`) — there would be no way
+// to read `value: (a: 1)` as either. A multi-tag family that needs a value for
+// one of its tags composes: build the plain factory, and let the call site or a
+// thin wrapper name the value in `tags:`.
 //
 // THE TRAP, do not reintroduce: `#let note = idea.with(tags: (note: none))`.
 // An explicit `tags:` argument at the call site OVERRIDES a value bound by
@@ -519,15 +538,41 @@
 // `#note("x", exclude-tags: (..))` would land the argument in `..args` and
 // Typst would error on a duplicate named argument. With it, the factory binding
 // is the default and a call site can still override.
-#let tagged-idea(tag, value: none, exclude-tags: ()) = (
-  tags: none,
-  exclude-tags: exclude-tags,
-  ..args,
-) => idea(
-  tags: _dedup-tag(tag, tags, value: value),
-  exclude-tags: exclude-tags,
-  ..args,
-)
+#let tagged-idea(..own, value: none, exclude-tags: ()) = {
+  // The sink has to be policed: `value:` and `exclude-tags:` are matched first
+  // and `..own` takes whatever is left, so a misspelt `values:` would land in
+  // `own.named()` and be dropped in silence.
+  assert(
+    own.named().len() == 0,
+    message: "tagged-idea: unknown argument(s) "
+      + own.named().keys().join(", ")
+      + " — takes value: and exclude-tags:",
+  )
+  // `own-tags`, not `tags`: the returned closure's own `tags:` parameter is the
+  // CALLER's, and naming both the same shadows this list inside the closure
+  // body — where the fold below needs both at once.
+  let own-tags = own.pos()
+  assert(own-tags.len() > 0, message: "tagged-idea: name at least one tag")
+  assert(
+    value == none or own-tags.len() == 1,
+    message: "tagged-idea: value: binds a value for ONE tag, got "
+      + str(own-tags.len())
+      + " — name the value in the call's own tags: instead",
+  )
+  // FOLDED IN REVERSE so the keys come out in the order they were named:
+  // `_dedup-tag` prepends, so the last one folded ends up first. Tag key order
+  // carries no meaning to anything downstream, but a `#repr(tags-of(..))` in a
+  // demo or a test reads better when it matches the factory.
+  (
+    tags: none,
+    exclude-tags: exclude-tags,
+    ..args,
+  ) => idea(
+    tags: own-tags.rev().fold(tags, (acc, t) => _dedup-tag(t, acc, value: value)),
+    exclude-tags: exclude-tags,
+    ..args,
+  )
+}
 
 //
 //   #context tags-of("etal")   // -> ("note", "draft")

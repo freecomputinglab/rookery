@@ -244,6 +244,27 @@
 // heading.
 #let _show-title = state("rheo-idea-show-title", true)
 
+// How `.marrow.typ` should NAME a vertebra in the Context and Backlinks
+// sections of a minted note page. Same wrapper discipline as the three above:
+// `.update(v)`, not `.update(_ => v)` — a string is not a function.
+//
+//   "title"  rheo's own spine title for the page (the default)
+//   "path"   the page's source path, content dir and extension dropped:
+//            `digitaltheory/index`, `jobs/cfps`, `institutions`
+//
+// WHY "path" IS ON OFFER. rheo derives a spine title from the FILE STEM, so in
+// a project with a page per directory every `index.typ` is titled "Index" and
+// every `cfps.typ` is "Cfps" — while Context exists precisely to answer "where
+// was this note written". That answer arrives identical for dozens of
+// different pages. A path is longer and less pretty; it is also unique by
+// construction.
+//
+// A PROJECT-LEVEL CHOICE, not a per-note one: this is document-wide state and
+// marrow reads `.final()`, so the last vertebra to apply the template settles
+// it for every minted page. A project wanting both would be asking one note's
+// footer to disagree with another's about what a page is called.
+#let _page-titles = state("rheo-idea-page-titles", "title")
+
 // ---- Invisible tags — a tag that leaves no visual trace -------------------
 //
 //   #show: rookery.with(invisible-tags: ("private",))

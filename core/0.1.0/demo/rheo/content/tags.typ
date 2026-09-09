@@ -82,3 +82,48 @@
     .sorted(key: r => r.deadline)
   list(..rows.map(r => [#r.label — deadline #raw(repr(r.deadline))]))
 }
+
+== A family that narrows another: several tags from one factory
+
+// `#participant` prepends BOTH tags, so every participant answers a `person`
+// selection too without any call site restating it. This is what a factory
+// taking several positional tags is for; the `#window` below is the assertion
+// that matters — it selects on the WIDER tag and has to find the narrower
+// family's notes.
+#let person = tagged-idea("person")
+#let participant = tagged-idea("person", "participant")
+
+#person("tag-p-person")[A plain person.]
+#participant("tag-p-participant")[A participant, which is also a person.]
+#participant("tag-p-both", tags: ("phd",))[
+  A participant ALSO tagged phd — the caller's tags survive alongside both of
+  the factory's own.
+]
+
+#context [
+  tag-p-person is tagged: #repr(tags-of("tag-p-person")) \
+  tag-p-participant is tagged: #repr(tags-of("tag-p-participant")) \
+  tag-p-both is tagged: #repr(tags-of("tag-p-both"))
+]
+
+#window(tags: "person")
+
+// COMPOSING THE OTHER WAY, and the one shape to avoid. `person.with(tags:
+// ("recommender",))` does prepend both — a plain `#recommender[..]` reads
+// `("person", "recommender")`, asserted below — but a `.with()`-bound `tags:` is
+// a DEFAULT, and a call naming its own `tags:` replaces it outright rather than
+// merging. MEASURED: `#recommender("x", tags: ("phd",))` reads
+// `("person", "phd")`, having silently dropped the very tag the wrapper exists
+// to add. Same failure as the `idea.with(tags: ..)` trap in the factory's own
+// banner, one level out. A narrowing that must survive a call site's tags is a
+// factory naming both: `tagged-idea("person", "recommender")`.
+#let recommender = person.with(tags: ("recommender",))
+
+#recommender("tag-p-with")[
+  A recommender built by `.with` — both tags, as long as no call site names its
+  own `tags:`.
+]
+
+#context [
+  tag-p-with is tagged: #repr(tags-of("tag-p-with"))
+]

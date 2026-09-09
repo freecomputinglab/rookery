@@ -420,6 +420,7 @@
   show-context,
   show-backlinks,
   show-title,
+  page-titles,
   invisible-tags,
 ) = {
   assert(
@@ -522,6 +523,12 @@
   assert(
     type(show-title) == bool,
     message: "@rookery/core: `show-title` must be a boolean — got " + repr(show-title),
+  )
+  assert(
+    page-titles == "title" or page-titles == "path",
+    message: "@rookery/core: `page-titles` must be \"title\" (rheo's own spine "
+      + "title for a page) or \"path\" (its source path, content dir and extension "
+      + "dropped) — got " + repr(page-titles),
   )
   // THROUGH `_assert-tags`, the same helper every other tag-shaped argument in
   // this package uses, so `invisible-tags: "private"` needs no array ceremony and

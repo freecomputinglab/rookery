@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _show-context, _show-backlinks, _show-title, _plain, _visible-tags, _tags-attr, window
+#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _show-context, _show-backlinks, _show-title, _page-titles, _plain, _visible-tags, _tags-attr, window
 
 #context {
   let registry = _registry.final()
@@ -98,6 +98,10 @@
   let show-context = _show-context.final()
   let show-backlinks = _show-backlinks.final()
   let show-title = _show-title.final()
+  // Resolved HERE, in the one context that already resolves every other
+  // document-wide key, and handed to `_handle-title` as a plain string — that
+  // function is package scope with no context of its own (see its banner).
+  let page-titles = _page-titles.final()
 
   // THE PER-TAG THEME, which every page below has to carry for itself.
   //
@@ -416,7 +420,7 @@
         // different question and bury this one.
         let context-part = if origin == none or not use-context { [] } else {
           section(_c("context"), "context", [Context],
-            page-list((link(label(id), _handle-title(origin)),)))
+            page-list((link(label(id), _handle-title(origin, mode: page-titles)),)))
         }
 
         let backlinks-part = if not use-backlinks or (back.len() == 0 and back-pages.len() == 0) { [] } else {
@@ -454,7 +458,7 @@
           let page-rows = if back-pages.len() == 0 { [] } else {
             page-list(back-pages.map(handle => context {
               let href = _page-href(handle)
-              let shown = _handle-title(handle)
+              let shown = _handle-title(handle, mode: page-titles)
               if href == none { shown } else { link(href, shown) }
             }))
           }

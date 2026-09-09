@@ -147,8 +147,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">30 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 30 ideas"
+  grep -q 'idea-index-count">34 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 34 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -500,6 +500,48 @@ fi
 #     survives a project renaming its stem.
 grep -q 'data-rookery="window" data-rookery-tags="note"' "$H/sub/page.html" ||
   note "sub/page.html's window of plain-note carries no data-rookery-tags — a window should wear its note's visible tags"
+
+# 21. A FACTORY NAMING SEVERAL TAGS prepends all of them, so a family that
+#     narrows another belongs to the wider one. `content/tags.typ` builds
+#     `#participant = tagged-idea("person", "participant")`; the narrower
+#     family's note must carry BOTH, and the caller's own tags must survive
+#     alongside them.
+#
+#     Keyed on `data-rookery-tags` rather than the `idea-tag-*` classes, for
+#     the reason check 20 gives: the class stem is a project's to rename, the
+#     attribute is not. The attribute holds a space-separated list whose order
+#     follows the factory, so each tag is matched on its own.
+for slug in tag-p-person tag-p-participant tag-p-both; do
+  [ -f "$H/ideas/$slug.html" ] || note "no minted page at ideas/$slug.html"
+done
+pp="$H/ideas/tag-p-participant.html"
+if [ -f "$pp" ]; then
+  grep -q 'data-rookery-tags="[^"]*\bperson\b' "$pp" ||
+    note "ideas/tag-p-participant.html carries no person tag — a multi-tag factory must prepend every tag it names"
+  grep -q 'data-rookery-tags="[^"]*\bparticipant\b' "$pp" ||
+    note "ideas/tag-p-participant.html carries no participant tag"
+fi
+bp="$H/ideas/tag-p-both.html"
+if [ -f "$bp" ]; then
+  for t in person participant phd; do
+    grep -q "data-rookery-tags=\"[^\"]*\\b$t\\b" "$bp" ||
+      note "ideas/tag-p-both.html is missing the $t tag — a caller's tags must survive a multi-tag factory"
+  done
+fi
+# `.with(tags: ..)` over a factory composes too: both the factory's tag and the
+# bound one reach the note. The call-site-override caveat is not asserted — it is
+# the documented behaviour of a default, named in the fixture's own comment.
+wp="$H/ideas/tag-p-with.html"
+if [ -f "$wp" ]; then
+  for t in person recommender; do
+    grep -q "data-rookery-tags=\"[^\"]*\\b$t\\b" "$wp" ||
+      note "ideas/tag-p-with.html is missing the $t tag — .with over a factory must keep both"
+  done
+fi
+# The wider tag selects the narrower family: the window on `tags.html` asks for
+# `person` alone and must transclude the participants too.
+grep -q 'tag-p-participant' "$H/tags.html" ||
+  note "tags.html's #window(tags: \"person\") does not reach tag-p-participant — the narrowing did not take"
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"
