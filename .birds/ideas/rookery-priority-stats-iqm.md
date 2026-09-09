@@ -7,7 +7,7 @@ labels:
 - type:task
 deps:
 - blocked-by:rookery-priority-scale-48n
-closed: false
+closed: true
 ---
 `#todos-stats` counts todos per priority by walking `range(5)`, which is the old capped 0-4 scale. Bead `rookery-priority-scale-48n` removes the cap, so the loop must instead walk the priorities actually in use.
 
