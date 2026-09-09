@@ -15,9 +15,9 @@
 //                each other — the WIDE sibling group this whole example
 //                exists to prove, so several unrelated todos releasing off
 //                one parent sit BESIDE each other rather than in a list.
-//                Priorities 1, 1, 3 and none (unprioritised) so the sibling
-//                ordering — priority then name, unprioritised last — is
-//                visible rather than accidental.
+//                Priorities 3, 3, 1 and none (unprioritised) so the sibling
+//                ordering — priority descending, then name, unprioritised
+//                last — is visible rather than accidental.
 //   level 2 (3)  each depends on two level-1 todos.
 //   level 3 (2)  each depends on two level-2 todos.
 //
@@ -36,14 +36,14 @@ Fourteen todos for one retreat, authored once here. `content/index.typ`,
 nothing below is rendered specially.
 
 #todo(
-  "kickoff", title: [Kick off the retreat], priority: 0,
+  "kickoff", title: [Kick off the retreat], priority: 4,
   tags: (slip-max-width: 18em),
 )[
   Pick a date, book the venue, and tell everyone it is happening.
 ]
 
 #todo(
-  "retire-legacy", title: [Retire the legacy signup form], priority: 4,
+  "retire-legacy", title: [Retire the legacy signup form], priority: 0,
   done: datetime(year: 2026, month: 1, day: 10),
   tags: (slip-max-width: 18em),
 )[
@@ -70,14 +70,14 @@ nothing below is rendered specially.
 ]
 
 #todo(
-  "sync-calendar", title: [Sync the shared calendar], priority: 3,
+  "sync-calendar", title: [Sync the shared calendar], priority: 1,
   tags: (slip-max-width: 18em),
 )[
   Everyone's calendar invite should show the same dates, room, and dial-in.
 ]
 
 #todo(
-  "audit-logs", title: [Audit the registration logs], priority: 1,
+  "audit-logs", title: [Audit the registration logs], priority: 3,
   deps: ("kickoff",),
   tags: (slip-max-width: 24em),
 )[
@@ -86,7 +86,7 @@ nothing below is rendered specially.
 ]
 
 #todo(
-  "collect-data", title: [Collect attendee dietary data], priority: 1,
+  "collect-data", title: [Collect attendee dietary data], priority: 3,
   deps: ("kickoff",),
   tags: (slip-max-width: 24em),
 )[
@@ -95,7 +95,7 @@ nothing below is rendered specially.
 ]
 
 #todo(
-  "review-budget", title: [Review the catering budget], priority: 3,
+  "review-budget", title: [Review the catering budget], priority: 1,
   deps: ("kickoff",),
   tags: (slip-max-width: 24em),
 )[
@@ -115,7 +115,7 @@ nothing below is rendered specially.
 ]
 
 #todo(
-  "compile-summary", title: [Compile the attendee summary], priority: 1,
+  "compile-summary", title: [Compile the attendee summary], priority: 3,
   deps: ("collect-data", "draft-notes"),
   tags: (slip-max-width: 24em),
 )[
@@ -143,7 +143,7 @@ nothing below is rendered specially.
 ]
 
 #todo(
-  "ship-final", title: [Ship the retreat pack], priority: 0,
+  "ship-final", title: [Ship the retreat pack], priority: 4,
   deps: ("merge-results", "publish-report"),
   tags: (slip-max-width: 45%),
 )[

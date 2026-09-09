@@ -10,7 +10,7 @@ Todos, epics and a dependency DAG over [`@rookery/core`](../../core/0.1.0) notes
 #let TODAY = datetime(year: 2026, month: 8, day: 25)
 
 #todo("fetch", title: [Fetch the source], priority: 0, done: datetime(year: 2026, month: 8, day: 1))[...]
-#todo("parse", title: [Parse it], priority: 1, type: "bug", deps: ("fetch",))[...]
+#todo("parse", title: [Parse it], priority: 9, type: "bug", deps: ("fetch",))[...]
 
 #todos-ready(today: TODAY)
 #todo-graph-view(today: TODAY)
@@ -56,7 +56,7 @@ before anything reads them, so they cannot disagree:
 #todo("fetch", timeline: (closed: d))[...]   // the store, written directly
 #todo("fetch", done: d)[...]                 // the shorthand
 #let shipped = done(d)                       // the factory, for a shared date
-#shipped("fetch", priority: 0)[...]
+#shipped("fetch", priority: 2)[...]
 ```
 
 - **A close is a DATE.** `done: true` is refused with a message: a log entry
@@ -168,7 +168,7 @@ language.
 | key | from |
 | --- | --- |
 | `todo` | every todo |
-| `todo-p0` … `todo-p4` | `priority:` (0 = critical, br's scale) |
+| `todo-p<n>` for any `n > 0` | `priority:` (bigger is more important; 0 or absent is unprioritised) |
 | `todo-task`, `todo-bug`, `todo-feature`, `todo-epic`, `todo-chore`, `todo-docs`, `todo-question` | `type:` |
 | `todo-in-progress`, `todo-deferred`, `todo-draft` | `status:` |
 | `epic-<name>` | `#epic(name)` |
@@ -300,7 +300,7 @@ vocabulary:
 
 ```
 tags:todo&!todo-closed        the open todos
-tags:todo-p1                  the priority-1 ones — no pill names a priority
+tags:todo-p9                  the priority-9 ones — no pill names a priority
 tags:phd window               a tag filter, then "window" as the fuzzy query
 ```
 
@@ -349,7 +349,7 @@ along it is. `pill-rows:` declares that layout and a caller may replace it.
 **The subject groups and the state groups compose differently, because they ask
 different kinds of question.**
 Within any group the values **OR**. Between `state` and `priority` they **AND** —
-`blocked` + `p1` leaves blocked priority-one todos, where `#todos-search`'s single
+`blocked` + `p9` leaves blocked priority-nine todos, where `#todos-search`'s single
 undifferentiated pill row could only ever union. Between `epic` and `tag` they
 **OR**: those two are one question in two projections, so pressing `rheo` (an
 epic) and `birds` (a tag) shows both, not their intersection. Splitting them
@@ -412,7 +412,7 @@ tags:todo&!todo-closed
 
 It is evaluated against every tag the todo carries rather than against the pills, and
 that gap is widest here: the `tag` group drops the whole `todo-*` namespace and the
-epics, so `tags:todo-p1` and `tags:epic-jobs` name things no pill on this panel offers.
+epics, so `tags:todo-p9` and `tags:epic-jobs` name things no pill on this panel offers.
 The expression filters and the residual text ranks (`tags:todo window`), and it **ANDs**
 with whatever pills are pressed. `@rookery/search`'s `#panel` section carries the rules.
 
@@ -433,12 +433,15 @@ are different instructions. `overdue: false` drops those rows from the panel
 altogether — for a list read as "what is coming", on a site that logs its lapsed work
 elsewhere.
 
-An **undated** row shows its priority where the date would go: `P0` in the ramp's own
-red, `P1` orange, `P2` yellow, and the priority chip leaves the badge strip, being the
-same fact at the other end of the row. The undated rows also *sort* by it, p0 first and
-an unprioritised row last — which is what the date sort alone cannot say, keying every
-undated row alike. `undated-priority: false` leaves them in registry order with an
-empty cell.
+An **undated** row shows its own priority number where the date would go — `P9`, `P2`,
+whatever it carries — coloured by its RUNG: its index among the three highest
+priorities in use on the site, so the top priority takes the ramp's own red, the
+second orange, the third yellow, and every priority beyond those three rungs shares
+the coolest one. The priority chip leaves the badge strip either way, being the same
+fact at the other end of the row. The undated rows also *sort* by their priority,
+descending, with an unprioritised row last — which is what the date sort alone cannot
+say, keying every undated row alike. `undated-priority: false` leaves them in registry
+order with an empty cell.
 
 Both ride on `today:`, as the countdown does: with no reference date nothing is
 measured, so no row is dropped and no band drawn. Neither touches a dated row's
@@ -607,7 +610,7 @@ one names the other in its `deps:`.
 
 ```typst
 #let launch = epic("launch")
-#launch("plan", priority: 1)[Kick-off.]
+#launch("plan", priority: 5)[Kick-off.]
 #launch("post", deps: ("plan",))[Follows the plan.]
 ```
 
@@ -672,7 +675,7 @@ rather than by out-specifying a selector: `--todo-ready-color`,
 `0.5rem`) size that rail.
 
 Rows and graph nodes also wear the note's own `.idea-tag-<key>` classes, so
-`.idea-tag-todo-p0` styles a critical todo on its card, in a list row, and in
+`.idea-tag-todo-p9` styles a priority-9 todo on its card, in a list row, and in
 the graph alike.
 
 ### The heat ramp: how close, and how urgent
@@ -691,14 +694,15 @@ drop it, and note that it needs a `today:` — with none passed no row can be me
 and no countdown band is drawn. (`#upcoming` is untouched: that view keeps its chips.)
 
 **Priority is the fallback, and only where the countdown is silent.** A todo three
-weeks out earns no countdown band, so a `p0` sitting far out would otherwise read
-exactly like the `p4` beside it; where both could apply the countdown wins, because a
-deadline actually due soon is the more pressing read regardless of how it was
-prioritised. `p0` takes the urgent hue, `p1` soon, `p2` later, each a touch lighter
-than the countdown band of the same colour. `p3` and `p4` are left plain — a ramp of
-three has three steps, and a backlog item colouring itself is the noise the ramp
-exists to cut through. A row with no date is never banded: a wash behind an em dash
-says nothing.
+weeks out earns no countdown band, so a high-priority todo sitting far out would
+otherwise read exactly like a low-priority one beside it; where both could apply the
+countdown wins, because a deadline actually due soon is the more pressing read
+regardless of how it was prioritised. The band follows a todo's RUNG — its priority's
+index among the three highest priorities in use on the site, not the raw number —
+so the top priority takes the urgent hue, the second soon, the third later, each a
+touch lighter than the countdown band of the same colour, and every priority beyond
+those three rungs shares the third. A row with no date is never banded: a wash
+behind an em dash says nothing.
 
 | | |
 |---|---|
@@ -706,16 +710,18 @@ says nothing.
 | `--rookery-heat-soon` | its second (defaults to `#b3611e`) |
 | `--rookery-heat-later` | its third (defaults to `#b38f1e`) |
 | `--todo-band-urgent` / `--todo-band-soon` / `--todo-band-later` | the countdown wash on the date cell, overriding the mix of the ramp |
-| `--todo-band-p0` / `--todo-band-p1` / `--todo-band-p2` | the priority wash, same |
+| `--todo-band-rung-0` / `--todo-band-rung-1` / `--todo-band-rung-2` | the priority wash, same |
+| `--todo-pri-fg-rung-0` / `--todo-pri-fg-rung-1` / `--todo-pri-fg-rung-2` | the ink on an undated row's priority label |
 | `--todo-band-fg` | the ink on a banded `soft` date, which is no longer greyed |
 | `--todo-tooltip-bg` / `--todo-tooltip-fg` / `--todo-tooltip-border` / `--todo-tooltip-outline` | the drawn tooltip, falling back to rookery's own `--idea-*` |
 
 **One ramp, two readings, and by default they are the same palette.** A site sets the
 three `--rookery-heat-*` properties once on `:root` and every heat surface in the
 family follows — this package's six date bands, and `#upcoming`'s countdown chips over
-in `@rookery/timeline`. The `--todo-band-*` properties exist for the site that
-wants urgency-in-time and urgency-in-priority to read differently, and each replaces
-its band's colour whole rather than feeding a mix:
+in `@rookery/timeline`. The `--todo-band-rung-*` and `--todo-pri-fg-rung-*`
+properties exist for the site that wants urgency-in-time and urgency-in-priority to
+read differently, and each replaces its band's colour (or its label's ink) whole
+rather than feeding a mix:
 
 ```css
 :root {
@@ -723,7 +729,8 @@ its band's colour whole rather than feeding a mix:
   --rookery-heat-soon: #b05c12;
   --rookery-heat-later: #b08a10;
   /* ...and, only if the two should come apart: */
-  --todo-band-p0: color-mix(in oklab, #6a3ab2 34%, transparent);
+  --todo-band-rung-0: color-mix(in oklab, #6a3ab2 34%, transparent);
+  --todo-pri-fg-rung-0: #6a3ab2;
 }
 ```
 

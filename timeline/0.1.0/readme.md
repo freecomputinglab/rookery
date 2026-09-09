@@ -828,9 +828,9 @@ Colours come from the rail's own properties (`--timeline-fg`, `--timeline-muted`
 **The three due colours are one ramp, and the ramp is not this package's.** Each falls
 back to `--rookery-heat-urgent` / `--rookery-heat-soon` / `--rookery-heat-later`
 before it falls back to a literal (`#b3261e` / `#b3611e` / `#b38f1e`). Set those three
-once on `:root` and every heat chip in the rookery family follows — this list's
-countdown, and the due and priority chips `@rookery/todos` draws on a
-`#filter-panel` row:
+once on `:root` and every heat surface in the rookery family follows — this list's
+countdown chips, and the due and priority bands `@rookery/todos` draws on a
+`#filter-panel` row's date cell:
 
 ```css
 :root {

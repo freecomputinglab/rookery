@@ -1232,7 +1232,7 @@ is every plain tag the listed todos carry, and nothing declares the list.
 ### `union:` — groups that answer one question
 
 Groups AND across by default, which is right when each asks a different question: a
-state and a priority narrow together, and a reader pressing `ready` and `p0` means
+state and a priority narrow together, and a reader pressing `ready` and `p9` means
 both. It is wrong when ONE question arrives as two projections.
 
 ```typst

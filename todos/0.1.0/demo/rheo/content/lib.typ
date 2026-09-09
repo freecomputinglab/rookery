@@ -10,7 +10,7 @@
 
 #let demo(doc) = {
   show: rookery.with(theme: (tags-color: (
-    "todo-p0": rgb("#cc3333"),
+    "todo-p9": rgb("#cc3333"),
     "todo-closed": rgb("#888888"),
   )))
   doc

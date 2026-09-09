@@ -26,7 +26,7 @@ cannot disagree because the first folds into the second.
 #todo(
   "fetch",
   title: [Fetch the source],
-  priority: 0,
+  priority: 4,
   type: "task",
   done: datetime(year: 2026, month: 8, day: 1),
 )[Pull the upstream tarball and verify its checksum.]
@@ -37,7 +37,7 @@ the things that need no filtering surface of their own.
 #todo(
   "parse",
   title: [Parse the manifest],
-  priority: 1,
+  priority: 3,
   type: "bug",
   deps: ("fetch",),
   metadata: (estimate: 45, assignee: "lox", external-ref: "GH-412"),
@@ -62,7 +62,7 @@ levels deep.
 #todo(
   "ship",
   title: [Ship it],
-  priority: 1,
+  priority: 9,
   deps: ("render", "style"),
   tags: ("frontend", "phd"),
 )[The release itself.]
@@ -84,7 +84,7 @@ A todo with a DEADLINE, from the same package.
 #todo(
   "audit",
   title: [Security audit],
-  priority: 0,
+  priority: 4,
   tags: entries(deadline: datetime(year: 2026, month: 9, day: 15)),
 )[Ready now, and due next month.]
 
@@ -94,7 +94,7 @@ and paints its date cell solid red; `overdue: false` drops it from the panel ins
 #todo(
   "invoice",
   title: [Send the invoice],
-  priority: 1,
+  priority: 3,
   tags: entries(deadline: datetime(year: 2026, month: 8, day: 4)),
 )[Three weeks late.]
 
@@ -135,7 +135,7 @@ one more tag and nothing else: an epic creates no parent/child edge and implies
 no dependency, so these two are unrelated until one names the other.
 
 #let launch = epic("launch")
-#launch("launch-plan", title: [Draft the launch plan], priority: 1)[Kick-off.]
+#launch("launch-plan", title: [Draft the launch plan], priority: 6)[Kick-off.]
 #launch("launch-post", title: [Announce the launch], deps: ("launch-plan",))[Follows the plan.]
 
 == A close as a factory
@@ -147,7 +147,7 @@ ID, and a date there would take that slot.
 
 #let closed-in-july = done(datetime(year: 2026, month: 7, day: 20))
 #closed-in-july("spike", title: [Spike the parser], type: "task")[Threw it away, as intended.]
-#closed-in-july("triage", title: [Triage the backlog], priority: 3, tags: ("phd",))[
+#closed-in-july("triage", title: [Triage the backlog], priority: 1, tags: ("phd",))[
   Same date, said once — which is the case this form is for.
 ]
 
@@ -201,8 +201,8 @@ The other filter, and the difference is the pills. `#todos-search` above renders
 one undifferentiated row of them; this is `@rookery/search`'s `#panel` told about
 the todo graph, so the pills come in GROUPS — epic and tag on the first line,
 state and priority on the second — and they compose the way a reader expects: the
-values within a group OR, and the groups AND. Press `blocked` and `p1` and you get
-blocked todos of priority one, not both lists concatenated.
+values within a group OR, and the groups AND. Press `blocked` and `p9` and you get
+the one blocked, priority-nine todo, not both lists concatenated.
 
 NOTHING BELOW DECLARES A TAG. The `tag` group is every plain tag the listed todos
 actually carry, so `frontend` and `phd` have pills because two todos were written
@@ -212,9 +212,11 @@ next build.
 
 THE DATE COLUMN CARRIES TWO KINDS OF THING. A dated row shows its date, washed by how
 long is left — and solid red where the deadline is behind you, which `overdue: false`
-would drop from the list altogether. An UNDATED row shows its priority there instead,
-`P1` in the ramp's own colour, and the undated rows sort by it: `undated-priority:
-false` leaves them in registry order with an empty cell.
+would drop from the list altogether. An UNDATED row shows its own priority there
+instead, coloured by its rung among the highest priorities in use — `P9` in the
+ramp's own red here, `P6` orange, `P3` yellow — and the undated rows sort by their
+priority, descending: `undated-priority: false` leaves them in registry order with
+an empty cell.
 
 #filter-panel(today: TODAY, visible: 6, noun: "open todos")
 

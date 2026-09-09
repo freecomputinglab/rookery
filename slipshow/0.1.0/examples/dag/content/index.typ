@@ -11,7 +11,7 @@
 // option that changes any of this.
 //
 // THE WHOLE PAGE IS ONE `#todo-slipshow` CALL. The row each slide joins, the
-// sibling order (priority then name, unprioritised last) and the status rail
+// sibling order (priority descending, then name, unprioritised last) and the status rail
 // (ready/blocked/closed) all come straight from `todo-slip-keys` inside
 // `@rookery/todos`' `deck.typ` — this page hands it nothing but the tag query
 // selecting every todo, and has no `row:`/`order:`/`class:` of its own to
