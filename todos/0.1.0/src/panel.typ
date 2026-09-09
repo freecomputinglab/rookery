@@ -256,11 +256,11 @@
   // is the firmer statement; priority washes such a row only where the countdown has
   // nothing to say (see `draw` below), and never writes a label over the date.
   //
-  // A ROW EARNS A RUNG when its priority is among the THREE HIGHEST priorities in use
-  // on the site — the ramp's fixed three steps, placed RELATIVE to the scale rather
-  // than to an absolute number. An unprioritised row (priority 0) and any priority
-  // below those three rungs keep an empty cell, though they still sort by their own
-  // priority number, ahead of an unprioritised row.
+  // A ROW'S RUNG is its priority's index among the priorities in use, clamped at the
+  // ramp's fixed three steps — RELATIVE to the scale rather than to an absolute
+  // number — so every prioritised row earns a rung, and everything from the
+  // third-hottest priority downward shares the coolest one. Only an unprioritised row
+  // (priority 0) keeps an empty cell.
   undated-priority: true,
   visible: 8,
   placeholder: "Filter",
@@ -403,9 +403,8 @@
       } else { "todo-when-rung-" + str(rung) }
       // THE UNDATED ROW'S OWN CELL: not a wash behind an empty column but the priority
       // itself, written where the date would be. Uppercase because it is a label
-      // rather than the lowercase pill spelling — and only where the priority earns a
-      // rung, so an undated row below the ramp's three rungs (or unprioritised) leaves
-      // the column blank as before.
+      // rather than the lowercase pill spelling — and blank only for an unprioritised
+      // row, which earns no rung.
       let pri-label = if not undated-priority or d != none or rung == none {
         none
       } else { "P" + p.slice(1) }

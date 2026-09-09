@@ -248,10 +248,11 @@
    * urgent is today and tomorrow; soon is two to seven days; later is eight to
    * fourteen — and three from PRIORITY, which bands only where the countdown was
    * silent (a todo further off than a fortnight, or one with no `today:` to measure
-   * against). The three priority bands are the THREE HIGHEST PRIORITIES IN USE ON
-   * THE SITE, not fixed numbers — a todo below them, or unprioritised, gets no rule:
-   * a ramp of three has three steps, and a backlog item colouring itself is exactly
-   * the noise the ramp exists to cut through.
+   * against). The three priority bands are the three rungs of the ramp: a priority's
+   * rung is its index among the priorities IN USE ON THE SITE, clamped to the ramp,
+   * so the third band covers the third-hottest priority and everything cooler than
+   * it. Only an unprioritised todo draws no band: a ramp of three has three steps,
+   * and a fourth hue stops reading as one ramp at the glance this is scanned at.
    *
    * OVERDUE IS THE ONE SOLID BAND, and the only one that recolours its ink. Every
    * other cell is a wash a reader takes in while scanning past it; a date behind you
