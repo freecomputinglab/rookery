@@ -461,3 +461,54 @@
 #assert.eq((dkc.class)(reg("ghost")), none)
 #assert.eq((dke.edges)(reg("ghost")), none)
 #assert.eq((dke.edges)(reg("open-dep")), ())
+
+// ---- _top-priority / _on-today — #today-panel's pure selection -----------
+//
+// The panel itself needs a rendering context and is not tested here; these
+// two pure helpers are what decide WHICH rows it draws.
+
+// No rows, and rows with no priority in use at all, have no topmost priority
+// to derive a band from — an unprioritised row (priority 0) does not count.
+#assert.eq(_top-priority(()), none)
+#assert.eq(_top-priority(((priority: 0), (priority: 0))), none)
+// The maximum among the priorities actually in use.
+#assert.eq(_top-priority(((priority: 0), (priority: 3), (priority: 7), (priority: 3))), 7)
+
+// A minimal `_on-today` fixture: only `tags-dict` and `priority` are read.
+#let dayrow(priority: 0, tags: (:)) = (tags-dict: tags, priority: priority)
+
+// A deadline today, at `horizon: 0` — the "due today" case.
+#assert.eq(_on-today(dayrow(tags: entries(deadline: NOW)), today: NOW, horizon: 0), true)
+
+// A deadline tomorrow falls outside a same-day horizon and inside a
+// one-day one.
+#let tomorrow = dayrow(tags: entries(deadline: d(2026, 8, 26)))
+#assert.eq(_on-today(tomorrow, today: NOW, horizon: 0), false)
+#assert.eq(_on-today(tomorrow, today: NOW, horizon: 1), true)
+
+// A deadline a week behind: listed when `overdue: true`, dropped when
+// `overdue: false` and nothing else about the row qualifies it.
+#let lapsed = dayrow(tags: entries(deadline: d(2026, 8, 18)))
+#assert.eq(_on-today(lapsed, today: NOW, overdue: true), true)
+#assert.eq(_on-today(lapsed, today: NOW, overdue: false), false)
+
+// Scheduled a month ago and never actioned: still "may I start" today, which
+// is exactly the old-scheduled-date case a day view must not drop.
+#assert.eq(_on-today(dayrow(tags: entries(scheduled: d(2026, 7, 25))), today: NOW), true)
+
+// Scheduled for next month, no deadline, and under the priority floor:
+// nothing about this row is for today.
+#assert.eq(
+  _on-today(dayrow(priority: 3, tags: entries(scheduled: d(2026, 9, 25))), today: NOW, top: 5),
+  false,
+)
+
+// An undated row joins on priority alone once it reaches `top`, and not one
+// rung below it.
+#assert.eq(_on-today(dayrow(priority: 5), today: NOW, top: 5), true)
+#assert.eq(_on-today(dayrow(priority: 4), today: NOW, top: 5), false)
+
+// `also:` is the one hole no other argument can fill — an undated,
+// unprioritised row joins only because the site's own predicate says so.
+#assert.eq(_on-today(dayrow(), today: NOW, also: r => true), true)
+#assert.eq(_on-today(dayrow(), today: NOW, also: none), false)

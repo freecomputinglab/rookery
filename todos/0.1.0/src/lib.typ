@@ -28,6 +28,10 @@
 // package — see `table.typ`'s own header for why the edge now exists.
 #import "table.typ": *
 
+// AFTER `table.typ`, whose `#todo-table` it projects into a day view — the
+// same dependency-order rule as every import above.
+#import "today.typ": *
+
 // AFTER `graph.typ`, whose `dfs-of`/`is-ready`/`is-blocked` it projects, and
 // placed beside `table.typ` above: the two are this package's only imports of
 // another package's names, and it is the same reasoning both times — see

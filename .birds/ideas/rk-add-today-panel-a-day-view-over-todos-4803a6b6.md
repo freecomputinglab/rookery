@@ -9,7 +9,7 @@ labels:
 deps:
 - blocked-by:rk-rename-filter-panel-to-todo-table-9971e639
 - blocked-by:rookery-priority-tests-hax
-closed: false
+closed: true
 ---
 `@rookery/todos` has one view, `#todo-table`, and it lists EVERYTHING open, ordered by date. That is the right shape for a worklist and the wrong shape for the question a person asks at the start of a day: what is on for today, and what is the most important thing outstanding. Answering it today means reading a list of several hundred rows.
 
