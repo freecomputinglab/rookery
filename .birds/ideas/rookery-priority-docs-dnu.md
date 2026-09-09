@@ -8,7 +8,7 @@ labels:
 deps:
 - blocked-by:rookery-priority-css-7v3
 - blocked-by:rookery-priority-stats-iqm
-closed: false
+closed: true
 ---
 The `@rookery` documentation and the two example corpora still describe and use the old priority scale (integer 0-4, 0 = critical, br's scale, absent = unprioritised). Bring them onto the new one: a non-negative integer with no upper bound, bigger is more important, absent means 0, and the colour ramp's three rungs are the three highest priorities in use on the site rather than fixed numbers p0/p1/p2. See beads `rookery-priority-scale-48n`, `rookery-priority-rung-47g` and `rookery-priority-css-7v3` for the mechanics.
 

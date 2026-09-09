@@ -7,20 +7,16 @@ labels:
 - priority-reversal
 - type:task
 deps: []
-closed: false
+closed: true
 ---
-The `@rookery/todos` demo asserts on its own built HTML, and two of those assertions still speak the old priority vocabulary, so `just check` is RED with:
-
-```
-FAIL: a priority label carries no rung class: [' todo-when-priority todo-when-rung-2', ' todo-when-priority todo-when-rung-2', ' todo-when-priority todo-when-rung-2']
-demo/rheo FAILED
-```
+The `@rookery/todos` demo asserts on its own built HTML, and several of those assertions still speak the old priority vocabulary, so `just check` is RED.
 
 File: `/home/lox/code/_fcl/rookery/todos/0.1.0/demo/rheo/check.sh`. Nothing else is in scope.
 
 The contract being asserted, restated in full so you need no other file:
-- An undated row in `#filter-panel` shows its priority in the date cell when that priority earns a RUNG. The cell carries `todo-when-priority` plus `todo-when-rung-<i>`, where `i` is 0, 1 or 2 — 0 for the highest priority in use on the site, 2 for the third-highest-or-lower. A priority-0 (unprioritised) row earns no rung and no label.
+- An undated row in `#filter-panel` shows its priority in the date cell when that priority earns a RUNG. The cell carries `todo-when-priority` plus `todo-when-rung-<i>`, where `i` is 0, 1 or 2 — 0 for the highest priority in use on the site, 2 for the third-hottest and everything cooler. A priority-0 (unprioritised) row earns no rung and no label.
 - The RAW tag key is unbounded and independent of the ramp: a priority-7 todo carries the tag `todo-p7`, a priority-12 one `todo-p12`. Rungs are a display ramp; tags are the stored fact.
+- The demo corpus carries `fetch=4 (closed)`, `parse=3`, `ship=9`, `retro=2`, `audit=4`, `invoice=3`, `launch-plan=6`, `triage=1 (closed)`.
 
 Steps:
 
@@ -42,10 +38,16 @@ Steps:
 
 3. Before changing line 192, confirm the assertion can fire at all: check whether a `<li class="panel-row ...">` in the built `demo/rheo/build/html/index.html` actually carries a `data-rookery-tags` attribute. If it does not, the check is dead against that markup — say so in your report and in the bank message, and leave the line as corrected in step 2 rather than deleting it.
 
-4. The comment at lines 176-179 says an undated row "must carry its priority as a label at one of the ramp's rungs", which is true as written. Leave it unless it names an absolute priority number.
+4. Two more assertions name a priority the corpus does not carry:
+   - Line 70, `for want in ("todo", "todo-p1", "phd"):` — the `parse` row's tag set. `parse` carries `priority: 3`, so the wanted key is `todo-p3`.
+   - Line 168, `for want in ("todo", "todo-p1", "frontend", "phd"):` — the `ship` row's `data-panel-all-tags`. `ship` carries `priority: 9`, so the wanted key is `todo-p9`.
 
-Do NOT change any other assertion in `check.sh`, do not touch `demo/rheo/content/`, and do not touch anything under `src/`. If `just check` still fails after these two changes, the remaining failure is NOT yours to fix: report the exact message and stop.
+   Change both to the key its row actually carries. What each assertion demonstrates — that the query channel holds the whole `todo-*` namespace even though no pill names it — is unchanged; only the number moves.
+
+5. The comment at lines 176-179 says an undated row "must carry its priority as a label at one of the ramp's rungs", which is true as written. Leave it, and every other comment that names no priority number.
+
+Do NOT touch `demo/rheo/content/`, and do NOT touch anything under `src/`. Change no assertion other than the four above. If `just check` still fails once all four are corrected, the remaining failure is NOT yours to fix: report the exact message and stop.
 
 VERIFY, from `/home/lox/code/_fcl/rookery/todos/0.1.0`:
 1. `just check` passes — it prints the `filter-panel: ...` summary line and exits 0.
-2. `rg -n 'todo-when-p[0-9]' demo/rheo/check.sh` returns nothing.
+2. `rg -n 'todo-when-p[0-9]|todo-p1"' demo/rheo/check.sh` returns nothing.
