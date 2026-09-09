@@ -240,7 +240,7 @@
     font-weight: 600;
   }
 
-  /* THE BAND ON A `#filter-panel` ROW'S DATE CELL. Urgency is painted on the date
+  /* THE BAND ON A `#todo-table` ROW'S DATE CELL. Urgency is painted on the date
    * itself rather than added as a chip beside it: the badge strip is about what a
    * todo IS, and a wash says "soon" faster than a word does anyway.
    *
@@ -327,7 +327,7 @@
   }
 
   /* THE UNDATED ROW'S PRIORITY, standing where the date would be (`undated-priority:`
-   * in `panel.typ`). It wears its rung's `todo-when-rung-<n>` class too, so the wash
+   * in `table.typ`). It wears its rung's `todo-when-rung-<n>` class too, so the wash
    * above is already painted; what this adds is the rung's colour as INK, which is what
    * makes a two-character label read at the size a date does. `[data-countdown]` is
    * absent on these cells — the label needs no tooltip to say what it says — so the

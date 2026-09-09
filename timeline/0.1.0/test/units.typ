@@ -478,7 +478,7 @@
 // ---- countdown — HOW LONG YOU HAVE, as words ------------------------------
 //
 // Public, and living in `when.typ` rather than in the view that draws it, because
-// @rookery/todos' `#filter-panel` draws the same chip. Asserted directly rather
+// @rookery/todos' `#todo-table` draws the same chip. Asserted directly rather
 // than through `#upcoming` because the view reads the note registry and returns
 // content — this is the whole of the policy, and it is a pure function of one integer.
 #assert.eq(countdown(none), none)

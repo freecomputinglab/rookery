@@ -8,7 +8,7 @@ labels:
 deps:
 - blocked-by:rookery-priority-sort-3ta
 - blocked-by:rookery-priority-rung-47g
-closed: false
+closed: true
 ---
 `@rookery/todos` calls its main view `#filter-panel`, and the name is wrong twice over.
 

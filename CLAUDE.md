@@ -22,13 +22,13 @@ search bar, and an overlay search modal) imports `core` for its `ideas()` and
 is not. A project using it must import BOTH in its own `.typ` files — see
 that package's readme for why.
 
-`todos` then imports `search` in ONE file, `panel.typ`, which skins
-`#filter-panel` into a version whose pills know the todo graph. That edge was
-forbidden until it was needed: `ready` and `blocked` are derived in `todos`
-and nowhere else, so a panel that cannot press them is the one thing every
-consuming site hand-rolls. `#todos-search` still reaches for nothing in
-`search` — see that package's `search.typ` for which half of the old rule
-still holds.
+`todos` then imports `search` in ONE file, `table.typ`, which builds
+`#todo-table` atop that package's `#panel`, with pills that know the todo
+graph. That edge was forbidden until it was needed: `ready` and `blocked` are
+derived in `todos` and nowhere else, so a panel that cannot press them is the
+one thing every consuming site hand-rolls. `#todos-search` still reaches for
+nothing in `search` — see that package's `search.typ` for which half of the
+old rule still holds.
 
 ## Build
 

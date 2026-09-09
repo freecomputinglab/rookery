@@ -830,7 +830,7 @@ back to `--rookery-heat-urgent` / `--rookery-heat-soon` / `--rookery-heat-later`
 before it falls back to a literal (`#b3261e` / `#b3611e` / `#b38f1e`). Set those three
 once on `:root` and every heat surface in the rookery family follows — this list's
 countdown chips, and the due and priority bands `@rookery/todos` draws on a
-`#filter-panel` row's date cell:
+`#todo-table` row's date cell:
 
 ```css
 :root {

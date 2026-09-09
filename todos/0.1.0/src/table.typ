@@ -1,25 +1,18 @@
-// `#filter-panel` — @rookery/search's panel, told about the todo graph.
+// `#todo-table` — todo rows projected into @rookery/search's `#panel`, with the
+// facets only this package can derive.
 //
-// THE SKIN PATTERN, APPLIED SIDEWAYS. `skin.typ` re-exports @rookery/core's own
-// surface with `window` overridden; this re-exports @rookery/search's
-// `#filter-panel` with a version that knows what `ready` and `blocked` mean. Same
-// rule as every other skin here: a site star-importing both packages gets THIS one
-// as long as it imports rookery-todos LAST.
-//
-// THIS FILE IS THE EDGE TO @rookery/search, and it is new. `search.typ` used to
-// say this package must never grow one. That rule is still right about
-// `#todos-search`, which renders its own pill row and needs no panel — and it was
-// wrong as a rule about the whole package. `ready` and `blocked` are derived HERE and
-// nowhere else (`graph.typ`), so a panel that cannot press them is the one thing every
-// consuming site ends up hand-rolling. The banner in `search.typ` now says which half
-// still holds.
+// `ready` AND `blocked` COME FROM `graph.typ` AND NOWHERE ELSE, so a panel that
+// cannot press them is the one thing every consuming site ends up hand-rolling —
+// which is the whole reason this file is the one import edge to @rookery/search:
+// `#todos-search` needs nothing from that package (see its own header for which
+// half of the old rule still holds), but a panel over the todo graph does.
 //
 // IT DELEGATES TO `#panel`, NOT TO `#filter-panel`, and that is what buys the pill
-// GROUPS. rookery-search's `#filter-panel` has one pill row and one `pill-match` for
-// all of it, so `epic-jobs` + `todo-p0` UNION under the default "any" — press two,
-// get more — and return nothing at all under "all", two epics being mutually
-// exclusive. `#panel`'s facet mode composes per group, so epic, tag, state and
-// priority each become their own group for free.
+// GROUPS. @rookery/search's own `#filter-panel` has one pill row and one
+// `pill-match` for all of it, so `epic-jobs` + `todo-p0` UNION under the default
+// "any" — press two, get more — and return nothing at all under "all", two epics
+// being mutually exclusive. `#panel`'s facet mode composes per group, so epic, tag,
+// state and priority each become their own group for free.
 //
 // AND THE GROUPS DO NOT ALL COMPOSE ALIKE, which is the correction this file needed
 // after shipping. "Within a facet the values OR .. and across facets they AND" was
@@ -33,9 +26,6 @@
 // "which one" and fit a scalar; a todo's plain tags are a SET, and a pill per tag any
 // listed todo carries is the group that needs no vocabulary declared anywhere — which
 // was the last thing on this panel a site had to maintain by hand. See `_tags-of`.
-//
-// THE NAME IS THE POINT. A call site keeps writing `#filter-panel(..)`; what changes
-// is that its pills are grouped and three of them are derived rather than authored.
 
 #import "@rookery/search:0.1.0": panel
 #import "@rookery/core:0.1.0": idea-row-body
@@ -143,10 +133,20 @@
   "scheduled"
 }
 
-#let filter-panel(
+#let todo-table(
   // Pre-computed rows, in `todos()` shape. `none` walks the registry itself, which is
   // what a page wanting "every open todo" means.
   rows: none,
+  // THE SET THE DEPENDENCY GRAPH IS BUILT FROM, where `rows:` is only the set that
+  // gets LISTED. `none` (the default) means "the same as `rows:`", which is what
+  // this function has always done.
+  //
+  // A LISTED TODO'S BLOCKER IS VERY OFTEN CLOSED, and a blocker missing from the
+  // graph reads to `is-blocked` as "not blocking" — quietly promoting a blocked
+  // todo to ready. A caller passing a pre-narrowed `rows:` (one epic's todos, say)
+  // must pass the whole corpus too, or every row it lists comes out ready
+  // regardless of what actually blocks it.
+  corpus: none,
   // The reference date `is-ready` defers against. Passed through to
   // @rookery/timeline, which panics if neither this nor a document date is
   // available — NOTHING HERE CALLS `datetime.today()`, which returns 1980-01-01 under
@@ -273,17 +273,20 @@
 ) = context {
   assert(
     order in ("newest", "soonest"),
-    message: "@rookery/todos: #filter-panel's `order` must be \"newest\" (the most "
+    message: "@rookery/todos: #todo-table's `order` must be \"newest\" (the most "
       + "recent date first) or \"soonest\" (the earliest first) — got "
       + repr(order),
   )
 
   let all = if rows != none { rows } else { todos() }
-  // THE GRAPH IS BUILT FROM EVERY TODO, not from the filtered rows, and that is
+  // THE GRAPH IS BUILT FROM THE CORPUS, not from the listed rows, and that is
   // load-bearing: a todo's blocker is very often closed, and a closed row dropped
   // before the graph is built would leave the blocker unresolvable — which
   // `is-blocked` reads as "not blocking", quietly promoting a blocked todo to ready.
-  let graph = todo-graph(rows: all)
+  // `corpus:` defaults to `none`, meaning "the same as `rows:`", which is what this
+  // function has always done — a caller narrowing `rows:` below the corpus has to
+  // say so explicitly by passing both.
+  let graph = todo-graph(rows: if corpus != none { corpus } else { all })
   // ONCE, not per row: `priority-rung` places a priority on the ramp relative to
   // this scale, and the scale itself does not change while rendering one panel.
   let scale = priority-scale()
@@ -488,7 +491,7 @@
   for f in facets {
     assert(
       facet-rows.any(r => r.facets.contains(f)),
-      message: "@rookery/todos: #filter-panel's facet `" + f + "` is in `facets:` but "
+      message: "@rookery/todos: #todo-table's facet `" + f + "` is in `facets:` but "
         + "in no `pill-rows:` entry, so it would render no pills. Put it in a row, or "
         + "drop it from `facets:`.",
     )

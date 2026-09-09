@@ -1,7 +1,7 @@
 // `#todo-slipshow` — the todo graph, laid out as an `@rookery/slipshow` deck.
 //
 // THIS FILE IS THE ONE IMPORT EDGE TO @rookery/slipshow, and it mirrors
-// `panel.typ`'s edge to @rookery/search for the same reason: `dfs-of`,
+// `table.typ`'s edge to @rookery/search for the same reason: `dfs-of`,
 // `is-ready` and `is-blocked` derive in THIS package and nowhere else
 // (`graph.typ`), so a deck that cannot read them is the thing every
 // consuming site hand-rolls — see `slipshow/0.1.0/examples/dag/content/
@@ -10,7 +10,7 @@
 // a project's own imports, not a package's internal ones, so a project using
 // `#todo-slipshow` still imports `@rookery/slipshow` itself to get that
 // package's CSS and JS, exactly as it already must import @rookery/search
-// for `#filter-panel`.
+// for `#todo-table`.
 //
 // `todo-slip-keys`' `row:` AND `order:` ARE A MATCHED PAIR, not two
 // independent options. `order:` is the depth-first position `dfs-of`

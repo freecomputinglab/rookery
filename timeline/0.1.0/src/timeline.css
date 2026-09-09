@@ -42,7 +42,7 @@
    `--rookery-heat-later`, and only then to a literal (#b3261e / #b3611e / #b38f1e).
    A site sets those three ONCE — on `:root`, in its own stylesheet — and every heat
    chip in the rookery family follows, including the due and priority chips
-   @rookery/todos draws on a `#filter-panel` row. The `--upcoming-due-*`
+   @rookery/todos draws on a `#todo-table` row. The `--upcoming-due-*`
    properties are the per-view override, for a page that wants this list's chips to
    differ from the ramp everything else reads.
 */

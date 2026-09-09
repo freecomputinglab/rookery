@@ -103,7 +103,7 @@
 #let _iso(d) = d.display("[year]-[month]-[day]")
 
 // `#days-until` and `#countdown` USED TO LIVE HERE, as privates. They are in
-// `when.typ` now, and public, because @rookery/todos' `#filter-panel` draws the
+// `when.typ` now, and public, because @rookery/todos' `#todo-table` draws the
 // same chip on its own rows and cannot reach a private of the one file in this
 // package that reads the note registry. Nothing about them changed in the move
 // except the underscore.
@@ -180,7 +180,7 @@
 //
 // SPLIT OUT AND PUBLIC, and not merely as tidiness: it is what lets a project put an
 // upcoming queue INSIDE a filter widget —
-// `#filter-panel(rows: upcoming-rows(..), when: r => r.when)` — without this package
+// `#todo-table(rows: upcoming-rows(..), when: r => r.when)` — without this package
 // importing @rookery/search. It must not: rheo scans only a PROJECT's own
 // imports, never a package's, so a timeline that wrapped search's panel would hand a
 // project markup with neither that package's stylesheet nor its script, silently.

@@ -100,7 +100,7 @@ if "idea:parse" not in seg:
 print("  skin: closed todo hidden by default, shown with closed: true, open one unaffected")
 SKIN
 
-# `#filter-panel`'s FOUR PILL GROUPS, and the `tag` one in particular. Asserted on
+# `#todo-table`'s FOUR PILL GROUPS, and the `tag` one in particular. Asserted on
 #    the output because the whole claim is about markup nothing declared: the tag
 #    pills are the union of what the listed todos carry, so a pill that is missing
 #    is a filter the reader never sees and a pill too many is one that matches
@@ -194,7 +194,7 @@ for r in re.split(r'(?=<li class="panel-row)', seg)[1:]:
         break
 
 if not bad:
-    print(f"  filter-panel: 4 groups, tag pills {tags}, {len(attrs)} rows padded,"
+    print(f"  todo-table: 4 groups, tag pills {tags}, {len(attrs)} rows padded,"
           f" query tags on {len(allt)}, {len(labels)} priority labels")
 sys.exit(bad)
 PANEL

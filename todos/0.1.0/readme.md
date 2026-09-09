@@ -305,7 +305,7 @@ tags:phd window               a tag filter, then "window" as the fuzzy query
 ```
 
 The expression decides **which** rows exist and the residual text decides how
-they **rank**, the same division `#filter-panel` draws. It **ANDs** with any
+they **rank**, the same division `#todo-table` draws. It **ANDs** with any
 pressed pill: both are visible commitments, so a row must satisfy both.
 
 **Without `@rookery/search` the input is the plain fuzzy filter it has always
@@ -314,7 +314,7 @@ nothing. This package still declares no dependency on that one for this widget:
 `#todos-search` imports nothing from it and names it in no manifest. The browser
 half feature-detects the `RookerySearch` global at wire time and offers one more
 capability when it finds it, which is deliberately *not* the same thing as
-`#filter-panel`'s real package edge.
+`#todo-table`'s real package edge.
 
 ### Without JavaScript
 
@@ -330,15 +330,25 @@ this page*; that searches every note in the rookery, with a proper ranking and
 a modal. The two are independent — this package does not depend on it, and a
 project may install either alone.
 
-## Grouped pills: `#filter-panel`
+## Grouped pills: `#todo-table`
 
-The other filter box, and it is `@rookery/search`'s `#panel` told about the todo
-graph — the same name that package exports, re-exported here with pills that know
-what `ready` and `blocked` mean. A site star-importing both gets this one as long as
-it imports `@rookery/todos` **last**.
+The other filter box: `@rookery/search`'s `#panel` told about the todo graph, with
+pills that know what `ready` and `blocked` mean.
 
 ```typst
-#filter-panel(today: TODAY)
+#todo-table(today: TODAY)
+```
+
+**`rows:` is the set the panel lists; `corpus:` is the set its dependency graph is
+built from**, and `corpus:` defaults to `none`, meaning "the same as `rows:`" — which
+is what the panel has always done. A listed todo's blocker is very often closed, and
+a graph missing that blocker reads a row as unblocked *because invisible* rather than
+*because done* — quietly promoting a blocked todo to ready. A caller narrowing
+`rows:` (one epic's todos, say) must pass the whole corpus too, or every row it lists
+comes out ready regardless of what actually blocks it:
+
+```typst
+#todo-table(rows: rheo-todos, corpus: todos(), today: TODAY)
 ```
 
 **Four pill groups, none of them declared:** `epic` on its own line under an
@@ -389,7 +399,7 @@ every tag as an `.idea-tag-<tag>` class, so theming by tag is unaffected.
 the tag key, which narrows the group and cannot widen it:
 
 ```typst
-#filter-panel(
+#todo-table(
   today: TODAY,
   tag-filter: k => not k.starts-with("venue-") and not k.starts-with("sort-"),
 )
@@ -422,7 +432,7 @@ has its own input and its own scorer, and giving it one is separate work.
 **The date column carries two kinds of thing, and each is one argument.**
 
 ```typst
-#filter-panel(today: TODAY, overdue: true, undated-priority: true)
+#todo-table(today: TODAY, overdue: true, undated-priority: true)
 ```
 
 A dated row shows its date, washed by how long is left — and **solid red where the
@@ -680,7 +690,7 @@ the graph alike.
 
 ### The heat ramp: how close, and how urgent
 
-`#filter-panel` **bands the date cell itself** on every row whose date falls within a
+`#todo-table` **bands the date cell itself** on every row whose date falls within a
 fortnight, in the three bands `@rookery/timeline` defines (`countdown`,
 `when.typ`): urgent is today, tomorrow and anything overdue; soon is two to seven
 days; later is eight to fourteen. The colour is the reading at a glance; the words —

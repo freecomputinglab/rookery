@@ -159,7 +159,7 @@
 //
 // THESE TWO ARE PUBLIC AND LIVE HERE rather than beside the view that draws them.
 // `#upcoming` (`upcoming.typ`) held them as privates until @rookery/todos'
-// `#filter-panel` needed the same chip on its own rows — and that file is the one
+// `#todo-table` needed the same chip on its own rows — and that file is the one
 // place in this package that reads rookery's note registry, so a consumer importing
 // from it pays for a registry walk to reach two functions over an integer.
 

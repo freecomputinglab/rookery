@@ -24,12 +24,12 @@
 #import "search.typ": *
 // AFTER `graph.typ`, whose `is-ready`/`is-blocked` it projects, and after
 // `search.typ`, where the reasoning about this package's relationship to
-// @rookery/search lives. `#filter-panel` is the ONE name here sourced from that
-// package — see `panel.typ`'s own header for why the edge now exists.
-#import "panel.typ": *
+// @rookery/search lives. `#todo-table` is the ONE name here sourced from that
+// package — see `table.typ`'s own header for why the edge now exists.
+#import "table.typ": *
 
 // AFTER `graph.typ`, whose `dfs-of`/`is-ready`/`is-blocked` it projects, and
-// placed beside `panel.typ` above: the two are this package's only imports of
+// placed beside `table.typ` above: the two are this package's only imports of
 // another package's names, and it is the same reasoning both times — see
 // `deck.typ`'s own header for the @rookery/slipshow edge.
 #import "deck.typ": *

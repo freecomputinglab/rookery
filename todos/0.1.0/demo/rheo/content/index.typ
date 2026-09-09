@@ -4,7 +4,7 @@
 // this demo exists to exercise: the name is rookery's, the version here knows about
 // todos, and importing it from the wrapper is the whole of opting in.
 #import "@rookery/todos:0.1.0": (
-  done, epic, filter-panel, todo, todo-graph-view, todos-blocked, todos-list,
+  done, epic, todo, todo-graph-view, todo-table, todos-blocked, todos-list,
   todos-ready, todos-search, todos-stale, todos-stats, todos-validate, window,
 )
 #import "@rookery/timeline:0.1.0": entries
@@ -88,7 +88,7 @@ A todo with a DEADLINE, from the same package.
   tags: entries(deadline: datetime(year: 2026, month: 9, day: 15)),
 )[Ready now, and due next month.]
 
-An OVERDUE todo — a deadline already behind `TODAY`. `#filter-panel` lists it first
+An OVERDUE todo — a deadline already behind `TODAY`. `#todo-table` lists it first
 and paints its date cell solid red; `overdue: false` drops it from the panel instead.
 
 #todo(
@@ -195,7 +195,7 @@ simply a list.
 
 #todos-search(today: TODAY)
 
-== Filter them in groups — `#filter-panel`
+== Filter them in groups — `#todo-table`
 
 The other filter, and the difference is the pills. `#todos-search` above renders
 one undifferentiated row of them; this is `@rookery/search`'s `#panel` told about
@@ -218,7 +218,7 @@ ramp's own red here, `P6` orange, `P3` yellow — and the undated rows sort by t
 priority, descending: `undated-priority: false` leaves them in registry order with
 an empty cell.
 
-#filter-panel(today: TODAY, visible: 6, noun: "open todos")
+#todo-table(today: TODAY, visible: 6, noun: "open todos")
 
 == The dependency graph
 

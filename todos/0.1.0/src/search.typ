@@ -19,7 +19,7 @@
 // `#todos-search` needs nothing but this package and `@rookery/core`.
 //
 // WITH ONE QUALIFICATION, and it is deliberately NOT the package edge
-// `panel.typ` has. There is still no import here, no manifest entry and no
+// `table.typ` has. There is still no import here, no manifest entry and no
 // Typst dependency: with `@rookery/search` absent this widget renders and
 // filters exactly as it always did. What it does now is offer ONE MORE
 // capability when that package happens to be on the page — the browser half
@@ -31,8 +31,8 @@
 // thing this file must not do.
 //
 // THAT USED TO BE WRITTEN AS A RULE ABOUT THE WHOLE PACKAGE — "MUST NOT depend on
-// @rookery/search" — and it was too strong. `panel.typ` now skins that
-// package's `#filter-panel`, for the reason point 1 above states: `ready` and
+// @rookery/search" — and it was too strong. `table.typ` now builds `#todo-table`
+// atop that package's `#panel`, for the reason point 1 above states: `ready` and
 // `blocked` are derived HERE and nowhere else, so a panel that cannot press them is
 // the one thing every consuming site ends up hand-rolling. The two facts sit side by
 // side — this file needs no panel, and the panel needs this file's graph.
