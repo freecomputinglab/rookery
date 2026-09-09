@@ -332,9 +332,8 @@
     ("blocked", count(r => not r.closed and is-blocked(r, graph))),
     ("ready", count(r => is-ready(r, graph, today: today))),
   )
-  for n in range(5) {
-    let c = count(r => r.priority == n)
-    if c > 0 { pairs.push(("p" + str(n), c)) }
+  for n in rows.map(r => r.priority).filter(p => p > 0).dedup().sorted().rev() {
+    pairs.push(("p" + str(n), count(r => r.priority == n)))
   }
   for t in TYPES {
     let c = count(r => r.kind == t)

@@ -7,7 +7,7 @@ labels:
 - priority-reversal
 - type:task
 deps: []
-closed: false
+closed: true
 ---
 The JS half of `@rookery/todos` sorts graph rows in `src/layout.js`'s `rows()`, and its unit test still encodes the OLD priority scale, so `just test-js` is RED: 27 tests, 26 pass, 1 fail.
 
