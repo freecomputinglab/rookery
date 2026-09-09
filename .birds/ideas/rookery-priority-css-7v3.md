@@ -7,7 +7,7 @@ labels:
 - type:task
 deps:
 - blocked-by:rookery-priority-rung-47g
-closed: false
+closed: true
 ---
 `@rookery/todos`' stylesheet paints the priority ramp with absolute-number selectors, which the unbounded scale from bead `rookery-priority-scale-48n` makes meaningless, and which bead `rookery-priority-rung-47g` has already stopped the Typst side from emitting. Move the stylesheet onto the rung classes.
 
