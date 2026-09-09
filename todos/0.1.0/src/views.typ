@@ -175,13 +175,9 @@
   )
 }
 
-// Newest-looking order first: by priority (0 is critical), then by name so the
-// order is stable across builds and a diff of generated output means something.
-// An unprioritised todo sorts last, not first — no priority is not urgency.
-#let _by-priority(rows) = rows.sorted(key: r => (
-  if r.priority == none { 9 } else { r.priority },
-  r.name,
-))
+// By priority, most important first, then by name for a build-stable order.
+// An unprioritised todo is priority 0 and so sorts last.
+#let _by-priority(rows) = rows.sorted(key: r => (-r.priority, r.name))
 
 // ---- #todos-list — br `list` -----------------------------------------------
 //

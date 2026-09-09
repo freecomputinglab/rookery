@@ -303,10 +303,10 @@
   // row's markup index for the same reason, so the arrangement survives filtering.
   //
   // REVERSED UNDER `"newest"`, because that order reverses the whole list — without
-  // this the tie-break would come out p4-first exactly when the caller asked for the
-  // most pressing thing at the top.
+  // this the tie-break would come out least-important-first exactly when the caller
+  // asked for the most pressing thing at the top.
   let ranked = if not undated-priority { all.filter(keep) } else {
-    let rank = r => if r.priority == none { 99 } else { r.priority }
+    let rank = r => -r.priority
     let s = all.filter(keep).sorted(key: rank)
     if order == "newest" { s.rev() } else { s }
   }

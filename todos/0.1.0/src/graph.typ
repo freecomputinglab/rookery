@@ -314,14 +314,11 @@
   layer
 }
 
-// The sort key for a list of sibling nodes: priority ascending, then name,
+// The sort key for a list of sibling nodes: priority descending, then name,
 // with an unprioritised node last. `layers` and `dfs-of` both order by it, and
 // it matches `layout.js`'s `rows()` and the list views, so the drawn graph and
 // a deck built from the same data agree about sequence.
-#let _rank(r) = (
-  if r.at("priority", default: none) == none { 9 } else { r.priority },
-  r.name,
-)
+#let _rank(r) = (-r.at("priority", default: 0), r.name)
 
 // Groups `graph.nodes.values()` into an array of arrays by `layer-of(graph)`,
 // index = layer, layer 0 first — the nodes on the same layer are the notes the

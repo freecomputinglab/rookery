@@ -43,9 +43,10 @@ export function layer(nodes, edges) {
   return layerOf;
 }
 
-// Group nodes into rows by layer, ordering within a row by priority then name
-// so the picture is stable across builds. An unprioritised node sorts last,
-// matching how the list views order theirs.
+// Group nodes into rows by layer, ordering within a row by priority
+// descending then name so the picture is stable across builds. An
+// unprioritised node is priority 0 and sorts last, matching `_rank` in
+// graph.typ.
 export function rows(nodes, layerOf) {
   const byLayer = new Map();
   for (const n of nodes) {
@@ -56,9 +57,9 @@ export function rows(nodes, layerOf) {
   const out = [];
   for (const l of [...byLayer.keys()].sort((a, b) => a - b)) {
     const row = byLayer.get(l).sort((a, b) => {
-      const pa = a.priority ?? 9;
-      const pb = b.priority ?? 9;
-      return pa !== pb ? pa - pb : a.name.localeCompare(b.name);
+      const pa = a.priority ?? 0;
+      const pb = b.priority ?? 0;
+      return pa !== pb ? pb - pa : a.name.localeCompare(b.name);
     });
     out.push(row);
   }
