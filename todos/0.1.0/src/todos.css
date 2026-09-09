@@ -248,8 +248,10 @@
    * urgent is today and tomorrow; soon is two to seven days; later is eight to
    * fourteen — and three from PRIORITY, which bands only where the countdown was
    * silent (a todo further off than a fortnight, or one with no `today:` to measure
-   * against). p3 and p4 get no rule: a ramp of three has three steps, and a backlog
-   * item colouring itself is exactly the noise the ramp exists to cut through.
+   * against). The three priority bands are the THREE HIGHEST PRIORITIES IN USE ON
+   * THE SITE, not fixed numbers — a todo below them, or unprioritised, gets no rule:
+   * a ramp of three has three steps, and a backlog item colouring itself is exactly
+   * the noise the ramp exists to cut through.
    *
    * OVERDUE IS THE ONE SOLID BAND, and the only one that recolours its ink. Every
    * other cell is a wash a reader takes in while scanning past it; a date behind you
@@ -302,36 +304,36 @@
     );
   }
 
-  [data-rookery="row-when"].todo-when-p0 {
+  [data-rookery="row-when"].todo-when-rung-0 {
     background-color: var(
-      --todo-band-p0,
+      --todo-band-rung-0,
       color-mix(in oklab, var(--rookery-heat-urgent, #b3261e) 34%, transparent)
     );
   }
 
-  [data-rookery="row-when"].todo-when-p1 {
+  [data-rookery="row-when"].todo-when-rung-1 {
     background-color: var(
-      --todo-band-p1,
+      --todo-band-rung-1,
       color-mix(in oklab, var(--rookery-heat-soon, #b3611e) 28%, transparent)
     );
   }
 
-  [data-rookery="row-when"].todo-when-p2 {
+  [data-rookery="row-when"].todo-when-rung-2 {
     background-color: var(
-      --todo-band-p2,
+      --todo-band-rung-2,
       color-mix(in oklab, var(--rookery-heat-later, #b38f1e) 22%, transparent)
     );
   }
 
   /* THE UNDATED ROW'S PRIORITY, standing where the date would be (`undated-priority:`
-   * in `panel.typ`). It wears its rung's `todo-when-p<n>` class too, so the wash above
-   * is already painted; what this adds is the rung's colour as INK, which is what makes
-   * a two-character label read at the size a date does. `[data-countdown]` is absent on
-   * these cells — the label needs no tooltip to say what it says — so the chip's own
-   * padding is repeated here.
+   * in `panel.typ`). It wears its rung's `todo-when-rung-<n>` class too, so the wash
+   * above is already painted; what this adds is the rung's colour as INK, which is what
+   * makes a two-character label read at the size a date does. `[data-countdown]` is
+   * absent on these cells — the label needs no tooltip to say what it says — so the
+   * chip's own padding is repeated here.
    *
-   * `--todo-pri-fg-p<n>` is the per-rung override, and the ramp underneath it is the
-   * same red/orange/yellow the washes and `#upcoming`'s chips take. */
+   * `--todo-pri-fg-rung-<n>` is the per-rung override, and the ramp underneath it is
+   * the same red/orange/yellow the washes and `#upcoming`'s chips take. */
   [data-rookery="row-when"].todo-when-priority {
     border-radius: 3px;
     padding: 0 0.3em;
@@ -340,16 +342,16 @@
     font-variant-numeric: normal;
   }
 
-  [data-rookery="row-when"].todo-when-priority.todo-when-p0 {
-    color: var(--todo-pri-fg-p0, var(--rookery-heat-urgent, #b3261e));
+  [data-rookery="row-when"].todo-when-priority.todo-when-rung-0 {
+    color: var(--todo-pri-fg-rung-0, var(--rookery-heat-urgent, #b3261e));
   }
 
-  [data-rookery="row-when"].todo-when-priority.todo-when-p1 {
-    color: var(--todo-pri-fg-p1, var(--rookery-heat-soon, #b3611e));
+  [data-rookery="row-when"].todo-when-priority.todo-when-rung-1 {
+    color: var(--todo-pri-fg-rung-1, var(--rookery-heat-soon, #b3611e));
   }
 
-  [data-rookery="row-when"].todo-when-priority.todo-when-p2 {
-    color: var(--todo-pri-fg-p2, var(--rookery-heat-later, #b38f1e));
+  [data-rookery="row-when"].todo-when-priority.todo-when-rung-2 {
+    color: var(--todo-pri-fg-rung-2, var(--rookery-heat-later, #b38f1e));
   }
 
   /* A BANDED DATE IS NOT SOFT-GREY. `[data-rookery="row-when"].soft` (core.css)

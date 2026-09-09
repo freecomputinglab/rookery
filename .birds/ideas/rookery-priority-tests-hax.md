@@ -8,7 +8,7 @@ labels:
 deps:
 - blocked-by:rookery-priority-rung-47g
 - blocked-by:rookery-priority-sort-3ta
-closed: false
+closed: true
 ---
 Bring `@rookery/todos`' unit tests onto the reversed, unbounded, default-0 priority scale introduced by bead `rookery-priority-scale-48n` and the rank-relative ramp from bead `rookery-priority-rung-47g`, and add the cases the new scale makes possible.
 
