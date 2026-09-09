@@ -47,6 +47,12 @@
     .filter(t => is-todo(t.tags-dict))
 }
 
+// The distinct priorities actually in use on the site, hottest (largest)
+// first — what `priority-rung` (tags.typ) needs to place an unbounded
+// priority on a fixed ramp. Lives here rather than in tags.typ because it
+// needs `todos()`, and tags.typ must not depend on this module.
+#let priority-scale() = todos().map(r => r.priority).filter(p => p > 0).dedup().sorted().rev()
+
 // ---- todo-graph() — adjacency over `todo-deps` ----------------------------
 //
 // Returns `(nodes: (name -> row), edges: ((from, to), ..), unresolved: ((from,

@@ -256,6 +256,21 @@
   if hits.len() == 0 { 0 } else { calc.max(..hits) }
 }
 
+// A priority's rung on a fixed three-step ramp, RELATIVE to the priorities
+// actually in use rather than to an absolute number — `priority-of` is
+// unbounded, so no fixed number means "hottest" on its own. `scale` is the
+// distinct priorities in use, hottest (largest) first; `p`'s rung is its
+// index into `scale`, clamped to `rungs - 1` so anything past the
+// `rungs`-th hottest priority shares the coolest rung instead of running off
+// the ramp. `0` (unprioritised) and any `p` absent from `scale` take no rung
+// at all — a colour on every row says nothing. Pure and parameterised on
+// `rungs` because a consuming site may draw a ramp of a different size.
+#let priority-rung(p, scale, rungs: 3) = {
+  if p == none or p <= 0 { return none }
+  let idx = scale.position(x => x == p)
+  if idx == none { none } else { calc.min(idx, rungs - 1) }
+}
+
 // The declared type, or `none`. Same decode-don't-duplicate rule as priority.
 #let type-of(tags) = TYPES.find(t => ("todo-" + t) in tags)
 

@@ -247,18 +247,20 @@
   // no row is measured, so nothing is dropped and no overdue band is drawn.
   overdue: true,
   // WHAT AN UNDATED ROW DOES WITH ITS PRIORITY. `true` gives the priority both of the
-  // jobs a date would have done: it ORDERS the undated rows among themselves (p0
-  // first, an unprioritised row last) and it stands IN THE DATE CELL as a `P0` label
-  // on the priority ramp's own colour. `false` leaves them in registry order with an
-  // empty cell.
+  // jobs a date would have done: it ORDERS the undated rows among themselves (the
+  // highest priority first, an unprioritised row last) and it stands IN THE DATE CELL
+  // as a `P<n>` label on the priority ramp's own colour, where the priority earns a
+  // rung. `false` leaves them in registry order with an empty cell.
   //
   // ONLY WHERE THERE IS NO DATE. A dated row is ordered and banded by its date, which
   // is the firmer statement; priority washes such a row only where the countdown has
   // nothing to say (see `draw` below), and never writes a label over the date.
   //
-  // p0/p1/p2 ONLY, the three rungs of the ramp. An undated p3 or p4 keeps an empty
-  // cell — a backlog item announcing itself in colour is the noise the ramp exists to
-  // cut through — but still sorts ahead of an unprioritised row.
+  // A ROW EARNS A RUNG when its priority is among the THREE HIGHEST priorities in use
+  // on the site — the ramp's fixed three steps, placed RELATIVE to the scale rather
+  // than to an absolute number. An unprioritised row (priority 0) and any priority
+  // below those three rungs keep an empty cell, though they still sort by their own
+  // priority number, ahead of an unprioritised row.
   undated-priority: true,
   visible: 8,
   placeholder: "Filter",
@@ -282,6 +284,9 @@
   // before the graph is built would leave the blocker unresolvable — which
   // `is-blocked` reads as "not blocking", quietly promoting a blocked todo to ready.
   let graph = todo-graph(rows: all)
+  // ONCE, not per row: `priority-rung` places a priority on the ramp relative to
+  // this scale, and the scale itself does not change while rendering one panel.
+  let scale = priority-scale()
 
   let keep = if filter != none { filter } else { r => not r.closed }
   let when = if when != none { when } else {
@@ -322,9 +327,10 @@
         // `multi:` below. Sorting is @rookery/search's job: it dedups and sorts the
         // union across every listed row, so the pill order is stable across builds.
         tag: _tags-of(r.tags-dict, keep: tag-filter),
-        // "p0" rather than `0`: a pill reading `p0` says what the number is, and a
-        // pill reading `0` reads as a count of something.
-        priority: if r.priority == none { none } else { "p" + str(r.priority) },
+        // A pill reading "p7" says what the number is, and a pill reading "0" would
+        // read as a count of something — so priority 0, the unprioritised default,
+        // projects to no pill at all.
+        priority: if r.priority == 0 { none } else { "p" + str(r.priority) },
         // A ZERO-PADDED `[year][month][day]` STRING, because `#panel` sorts its sort
         // field as a plain string — which is date order exactly when it is padded.
         when: if d == none { none } else { d.display("[year][month][day]") },
@@ -380,27 +386,29 @@
         "todo-when-overdue"
       } else { "todo-when-" + c.level }
       // PRIORITY, ONLY WHERE THE COUNTDOWN HAS NOTHING TO SAY. A todo three weeks out
-      // earns no countdown band, so a p0 sitting far out would read exactly like the
-      // p4 beside it — which is the gap this closes, on the same cell rather than a
-      // second one. Where both could apply the countdown WINS: a deadline actually due
-      // soon is the more pressing read regardless of how it was prioritised.
+      // earns no countdown band, so its priority would otherwise be invisible next to
+      // one sitting on a cooler rung — which is the gap this closes, on the same cell
+      // rather than a second one. Where both could apply the countdown WINS: a
+      // deadline actually due soon is the more pressing read regardless of how it was
+      // prioritised.
       //
-      // `r.priority` HERE IS THE PROJECTED STRING (`"p0"`), not the number — the map
-      // above turned it into one so it could ride as a facet attribute.
-      //
-      // NO p3 OR p4, deliberately: a ramp of three has three steps, and a backlog item
-      // colouring itself is exactly the noise the ramp exists to cut through.
+      // `p` HERE IS THE PROJECTED STRING (`"p7"`), not the number — the map above
+      // turned it into one so it could ride as a facet attribute. `rung` places it on
+      // the fixed three-step ramp relative to the OTHER priorities in use, since the
+      // number itself is unbounded and means nothing on its own.
       let p = r.at("priority", default: none)
-      let pri-band = if band != none or d == none or p not in ("p0", "p1", "p2") {
+      let rung = priority-rung(if p == none { none } else { int(p.slice(1)) }, scale)
+      let pri-band = if band != none or d == none or rung == none {
         none
-      } else { "todo-when-" + p }
+      } else { "todo-when-rung-" + str(rung) }
       // THE UNDATED ROW'S OWN CELL: not a wash behind an empty column but the priority
-      // itself, written where the date would be. `P0` uppercase because it is a label
-      // rather than the `p0` the pill spells — and only at the ramp's three rungs, so
-      // an undated p4 leaves the column blank as before.
-      let pri-label = if not undated-priority or d != none or p not in ("p0", "p1", "p2") {
+      // itself, written where the date would be. Uppercase because it is a label
+      // rather than the lowercase pill spelling — and only where the priority earns a
+      // rung, so an undated row below the ramp's three rungs (or unprioritised) leaves
+      // the column blank as before.
+      let pri-label = if not undated-priority or d != none or rung == none {
         none
-      } else { upper(p) }
+      } else { "P" + p.slice(1) }
       // A ROW WITH NO DATE AND NO LABEL GETS NEITHER. A wash behind an em dash says
       // nothing. Where the label IS drawn the words are redundant with it, so no
       // tooltip either.
@@ -414,14 +422,14 @@
         // (see `row.typ`): the caller computes the band, the row still asks nothing
         // about what a date means. With no band, neither is passed and the cell's
         // markup is what it always was.
-        // THE LABEL WEARS TWO CLASSES: its ramp rung, the same `todo-when-p<n>` a
+        // THE LABEL WEARS TWO CLASSES: its ramp rung, the same `todo-when-rung-<n>` a
         // dated row's wash uses, plus `todo-when-priority` — which is what tells the
         // stylesheet this cell holds a priority rather than a date, and so takes the
         // rung's colour as INK on the wash instead of a wash alone.
         when-class: if band != none { (band,) } else if pri-band != none {
           (pri-band,)
         } else if pri-label != none {
-          ("todo-when-priority", "todo-when-" + p)
+          ("todo-when-priority", "todo-when-rung-" + str(rung))
         } else { () },
         // `data-countdown` carries the words for the drawn tooltip; `aria-label` says
         // them to a reader who cannot see a colour. Not `title:` — a native tooltip
