@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _show-context, _show-backlinks, _show-title, _page-titles, _plain, _visible-tags, _tags-attr, window
+#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _show-context, _show-backlinks, _show-title, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label
 
 #context {
   let registry = _registry.final()
@@ -293,8 +293,19 @@
             // did before 0.6.0. The derived label goes in this page's `<title>`
             // instead (see `rheo-document(title:)` below) — putting it here printed
             // the body twice.
+            // A minted note page never calls `rookery()` again (`src/template.typ:267-269`),
+            // so the document-wide `show ref: hyperlink` a vertebra installs is absent
+            // here — without this `show` a reference inside `rec.title` renders as its
+            // anchor figure's own Typst-assigned counter, a bare number, rather than the
+            // name of the note it points at. Installed unconditionally: `refs:`/
+            // `ref-target:` are not carried in state (`src/state.typ`), so this cannot
+            // honor a project's `refs: false`, and a resolved link is still better than a
+            // raw counter under that setting.
             (if rec.title == none { [] } else {
-              html.elem("span", attrs: (class: _c("title"), data-rookery: "title"), rec.title)
+              html.elem("span", attrs: (class: _c("title"), data-rookery: "title"), {
+                show ref: hyperlink
+                rec.title
+              })
             }),
           )
         } else { [] },
@@ -534,10 +545,14 @@
       // here and wrong on the `<h1>` above (see `#idea`'s title-vs-label banner).
       // A titleless note's page is therefore called by its opening words instead
       // of by `1`. `slug` survives as the fallback for a note whose label is
-      // somehow absent.
+      // somehow absent. Resolved through `_ref-text` rather than read straight
+      // off the stored record, so a title holding a reference names the note it
+      // points at here too, instead of contributing the empty string `_plain`
+      // (the registration-time projection) gives a `ref`.
       title: {
-        let l = rec.at("label", default: none)
-        if l == none { slug } else { l }
+        let reg = _registry.final()
+        let l = _rec-label(rec, _ref-text(reg))
+        if l == none or l == "" { slug } else { l }
       },
       if tpl == none { page } else { tpl(id: id, note: rec, page) },
     )

@@ -7,7 +7,7 @@ labels:
 - type:bug
 - fix-title-refs
 deps: []
-closed: false
+closed: true
 ---
 A note whose TITLE contains a reference is named wrongly on its own minted page:
 the reference renders as a bare number instead of the target's name, and the

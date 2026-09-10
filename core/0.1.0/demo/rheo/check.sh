@@ -147,8 +147,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">34 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 34 ideas"
+  grep -q 'idea-index-count">35 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 35 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -542,6 +542,19 @@ fi
 # `person` alone and must transclude the participants too.
 grep -q 'tag-p-participant' "$H/tags.html" ||
   note "tags.html's #window(tags: \"person\") does not reach tag-p-participant — the narrowing did not take"
+
+# 22. A TITLE HOLDING A REFERENCE, on the minted page that renders it. A minted
+# page never calls `rookery()`, so the `show ref:` rule has to be installed
+# where the title span is built — without it the reference renders as its
+# anchor figure's counter, a bare number, and the page's <title> loses the
+# name altogether.
+R="$H/ideas/ref-titled.html"
+grep -q 'class="idea-title"[^>]*>About <span class="idea-ref"' "$R" ||
+  note "ref-titled.html's <h1> does not render its title's reference through the ref rule"
+grep -q '>Cited note<' "$R" ||
+  note "ref-titled.html's <h1> does not name the note its title references"
+grep -q '<title>About Cited note</title>' "$R" ||
+  note "ref-titled.html's <title> does not resolve its title's reference"
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"

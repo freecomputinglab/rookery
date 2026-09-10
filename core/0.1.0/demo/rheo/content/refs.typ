@@ -36,6 +36,14 @@ made outside any note.
 // empty title span.
 #idea("dt-empty")[]
 
+// A TITLE HOLDING A REFERENCE, which only a MINTED page renders wrongly: this
+// vertebra is inside `#show: rookery` and so has the ref rule, where
+// `.marrow.typ` mints `ideas/ref-titled.html` without it. Named `cited-note`,
+// defined above on this same page, so the target's title is a fixed string.
+#idea("ref-titled", title: [About #ref(label("idea:cited-note"))])[
+  A note whose title names another note.
+]
+
 // Trailing prose citation — AFTER the last note on the page, with nothing
 // following to claim it. An idea's sweep block only claims a citation
 // written BEFORE it, so this one — after `dt-empty`, the last note here —
