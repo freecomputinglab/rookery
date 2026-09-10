@@ -8,7 +8,7 @@ labels:
 - feat-url-state
 deps:
 - blocked-by:rk-sync-panel-query-and-pills-to-the-url-386ad1b3
-closed: false
+closed: true
 ---
 Forward a `sync:` key through `#todo-table` and `#today-panel` to the `#panel`
 underneath, so a todo view's filter box and pressed pills survive a reload and ride

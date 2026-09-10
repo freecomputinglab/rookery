@@ -316,6 +316,34 @@ half feature-detects the `RookerySearch` global at wire time and offers one more
 capability when it finds it, which is deliberately *not* the same thing as
 `#todo-table`'s real package edge.
 
+### `sync:`, when `@rookery/search` is installed
+
+```typst
+#todos-search(today: TODAY, sync: "t")
+```
+
+**`sync: "t"` puts the box and the pills in the URL:** the typed query lands
+in `?t.q=`, each pressed `ready`/`blocked` pill in its own repeated
+`?t.status=`, and each pressed type pill in its own repeated `?t.type=`. A
+reload, or a link a reader was handed, opens on the same filtered view.
+`sync: none` — the default — leaves the widget exactly as it has always been,
+local to the page.
+
+**This needs `@rookery/search` on the page, detected the same way the `tags:`
+expression above is** — at wire time, through the `RookerySearch` global
+rather than an import, since this file has no import edge to that package
+(see its own header). The URL-syncing primitives themselves live there; this
+widget only reaches for them. With that package absent, `sync:` set changes
+nothing: the box and pills stay local, and nothing is raised.
+
+A reader who presses `ready` and types "phd" against the call above leaves
+with `?t.q=phd&t.status=ready` in the address bar.
+
+`@rookery/search`'s readme, under its own `sync:` section, is the reference
+for the parameter shape, the reserved `q` name, the key's character set, and
+the one-key-per-page rule — this section names only the three parameters
+`#todos-search` itself produces.
+
 ### Without JavaScript
 
 The input and the pills are hidden and every todo is listed as an ordinary
@@ -465,6 +493,15 @@ same shape `#panel` takes for `facet-rows:`; a line whose groups are all absent 
 `facets:` is dropped, so narrowing one argument needs no edit to the other. Every
 group on one unlabelled line is `pill-rows: ((facets: ("epic", "tag", "state", "priority")),)`.
 
+**`sync:` opts the whole panel into URL state**, forwarded straight to
+`@rookery/search`'s `#panel` unchanged: `sync: "t"` puts the filter box in
+`?t.q=` and each pill group in its own repeated parameter — `?t.epic=`,
+`?t.tag=`, `?t.state=` and `?t.priority=` for the four groups this panel
+ships by default. `sync: none` — the default — leaves the panel local to the
+page. `@rookery/search`'s readme, under its own `sync:` section, is the
+reference for the parameter shape, the reserved `q` name, and the
+one-key-per-page rule.
+
 ## A day view: `#today-panel`
 
 ```typst
@@ -479,7 +516,7 @@ scheduled date that has arrived, and whichever priority sits at the top of
 the open corpus — and a todo needs to satisfy only one of them to make the
 list. Everything past the selection is `#todo-table`'s own: the pills, the
 date-cell ramp, the row shape, and every knob that view already takes
-(`rows:`, `filter:`, `facets:`, `pill-rows:`, and the rest), because
+(`rows:`, `filter:`, `facets:`, `pill-rows:`, `sync:`, and the rest), because
 `#today-panel` draws nothing of its own — it hands `#todo-table` a smaller
 list and gets the same widget back. The one default it changes on the way in
 is `visible:`, `none` here where `#todo-table` defaults to `8`: a day view is
@@ -849,6 +886,9 @@ blob and bloats the page.
 ## Requirements
 
 - `@rookery/core` 0.6.0 and `@rookery/timeline` 0.6.0. Both are hard imports.
+- `@rookery/search`, optionally: `#todos-search`'s `tags:` expression and its
+  `sync:` argument (see above) both feature-detect that package at wire time
+  rather than importing it, and degrade to doing nothing without it.
 - rheo 0.6.0 or later, inherited from rookery's own floor.
 - A built package: `dist/` must exist before a project sees an edit.
 
