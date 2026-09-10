@@ -349,6 +349,65 @@
 // it at registration time, before there is anything to resolve against.
 #let _plain(c) = _plain-with(c, _ => "")
 
+// `_plain-with`'s resolver for a document that HAS its registry: what a `ref`
+// inside a title is worth in plain text is the NAME OF THE NOTE it points at.
+// A title reading [Meeting with #ref(<idea:doshi-velez-finale>)] is then
+// "Meeting with Finale Doshi-Velez" in an index row, a search hit and a
+// reference's own link text, where `_plain` alone leaves "Meeting with ".
+//
+//   _plain-with(title, _ref-text(_registry.final()))
+//
+// `it.supplement` WINS where the author gave one — `@idea:x[custom text]` — the
+// same preference and the same `auto` sentinel `#hyperlink`'s ref-mode carries.
+//
+// THE TARGET'S REGISTRATION-TIME `label`, never a re-flattening of its title,
+// and that is what makes this total rather than merely usually-terminating: two
+// notes whose titles reference each other would otherwise walk in a circle. A
+// `label` is computed with the pure `_plain` before anything reaches the
+// registry, so reading one cannot recurse.
+//
+// A REFERENCE TO SOMETHING THAT IS NOT A NOTE — an ordinary figure, a heading —
+// contributes nothing, exactly as it did without the hook: there is no name here
+// to take, and a raw `fig:x` in a search row is worse than the gap.
+//
+// PURE, taking the registry as an argument, so it can live beside the walker it
+// parameterises rather than in whichever module first needed it: `ideas()` and
+// `#hyperlink` both resolve the state themselves and pass the dictionary in.
+#let _ref-text(reg) = it => {
+  if it.at("supplement", default: auto) != auto {
+    _plain(it.supplement)
+  } else {
+    let id = str(it.target)
+    let rec = reg.at(id, default: none)
+    if rec == none { "" } else {
+      let l = rec.at("label", default: none)
+      if l == none or l == "" { _norm(id) } else { l }
+    }
+  }
+}
+
+// WHAT TO CALL THE NOTE `rec` RECORDS, and never empty: its title as plain text,
+// else the `label` `#idea` derived at registration time (the title flattened
+// purely, else the body's first sixty characters), else the note's own name.
+//
+// `ref-text` is `_ref-text(reg)` wherever the registry is in hand and `_ => ""`
+// where it is not. THE RESOLVER IS THE ARGUMENT rather than the registry so a
+// caller walking the whole corpus resolves the state ONCE for the pass, which is
+// the cost `ideas()` exists to keep to one — a per-row `_registry.final()` is
+// exactly the walk-per-note that accessor's own comments warn about.
+//
+// EVERY PLACE THAT NAMES A NOTE READS THIS, so a search hit, an index row, a
+// reference, a window's summary and an outline entry cannot drift apart: the
+// `if t == "" { name } else { title }` chain was copied by hand before, and the
+// copies disagreed the moment a title could contain a reference.
+#let _rec-label(id, rec, ref-text) = {
+  let t = _plain-with(rec.at("title", default: none), ref-text)
+  if t != none and t != "" { t } else {
+    let l = rec.at("label", default: none)
+    if l == none or l == "" { _norm(id) } else { l }
+  }
+}
+
 // Plain text of a note's BODY, for `ideas()`. Every registry body has been
 // through `_flatten` since v6y.7, wrapping it in a `show`-rule scope that
 // Typst represents as a `styled` node hanging off `.child` — unwrap that

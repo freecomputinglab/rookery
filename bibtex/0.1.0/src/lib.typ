@@ -1,8 +1,8 @@
 // @rookery/bibtex — a BibTeX reader and a `#citation` note constructor for
 // @rookery/core notes.
 //
-// `bibtex(src, tagged-idea:, tag:, keywords:, show-fields:)` parses one or more `.bib`
-// sources once and closes over the result, returning:
+// `bibtex(src, tagged-idea:, tag:, keywords:, show-fields:, only:)` parses one
+// or more `.bib` sources once and closes over the result, returning:
 //
 //   bib:      the parsed dictionary, `key -> (field: value, ..)`
 //   entry:    key -> that entry, asserting the key exists
@@ -55,24 +55,46 @@
 // tags that ALREADY exist — the known-tag set is a fixed point under its own
 // writes — so reading it mid-sweep still converges. See `note` below for how
 // that read reaches both minting paths.
+//
+// `only:` parses just the named keys out of `src`, so a large library costs
+// what it's USED rather than what it contains. `auto` (the default) parses
+// the whole file, exactly as before this parameter existed — not `none`,
+// which would read as "parse nothing". A key `only` names that `src` doesn't
+// carry is dropped silently; nothing here errors on it, because `entry(key)`
+// already asserts on a missing key at the point something asks for it,
+// which is a more useful place to fail than factory construction.
 #let bibtex(
   src,
   tagged-idea: _core-tagged-idea,
   tag: "citation",
   keywords: none,
   show-fields: (:),
+  only: auto,
 ) = {
   assert(
     keywords in _KEYWORDS-MODES,
     message: "@rookery/bibtex: `keywords` must be none, \"all\" or \"existing\" — got "
       + repr(keywords),
   )
+  assert(
+    only == auto or type(only) == array,
+    message: "@rookery/bibtex: `only` must be auto or an array of keys — got " + repr(only),
+  )
   // Captured under its own name because `fields:` below takes a per-call
   // parameter of the same name — inside that closure, `show-fields` is the
   // per-call one, and this is the only way back to the factory's.
   let _show-fields = show-fields
   let src = if type(src) == array { src.join("\n") } else { src }
-  let bib = parse-bib(src)
+  // `only:` filters the SOURCE before parsing, not the parsed result after —
+  // the whole point is that a library's cost scales with what's kept rather
+  // than with the file. A key `only` names that the file doesn't carry is
+  // silently dropped here; `entry(key)` below is where that turns into an
+  // error, at the point something actually asks for it.
+  let bib = if only == auto { parse-bib(src) } else {
+    let chunks = bib-chunks(src)
+    let kept = only.filter(k => k in chunks).map(k => chunks.at(k))
+    if kept.len() == 0 { (:) } else { parse-bib(kept.join("\n")) }
+  }
   let entry = key => {
     let e = bib.at(key, default: none)
     assert(e != none, message: "no `" + key + "` in the bibliography")

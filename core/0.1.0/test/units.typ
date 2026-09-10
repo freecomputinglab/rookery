@@ -19,7 +19,7 @@
 #import "/src/lib.typ": (
   _bib, _bib-keys, _blocks, _body-plain, _body-text, _cite-scan, _dedup-tag,
   _is-inline, _join, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
-  _derived-title, _own-cited-keys, _plain, _resolve-excluded, _resolve-tags-color, _sort-ids,
+  _derived-title, _own-cited-keys, _plain, _plain-with, _resolve-excluded, _resolve-tags-color, _sort-ids,
   _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content,
   footnote, idea, note-href, note-path,
   tag-index, window,
@@ -78,6 +78,25 @@
 #assert.eq(_plain(none), "")
 #assert.eq(_plain("x"), "x")
 #assert.eq(_plain([The #raw("marker") marker]), "The marker marker")
+
+// ---- _plain-with — a `ref` in a title is the caller's to name ---------------
+// MEASURED defect: a derived title reading [Meeting with #ref(<idea:x>)]
+// flattened to "Meeting with " — the reference contributed nothing, so every
+// search hit and index row for the note dropped the name it was about.
+// `_plain` is still the pure answer; `ideas()` passes a resolver that reads the
+// target's own label.
+#assert.eq(_plain([Meeting with #ref(<idea:doshi-velez-finale>)]), "Meeting with ")
+#assert.eq(
+  _plain-with([Meeting with #ref(<idea:doshi-velez-finale>)], it => "Finale Doshi-Velez"),
+  "Meeting with Finale Doshi-Velez",
+)
+// The resolver sees the ELEMENT, target and supplement included, and a title
+// that is nothing but a reference resolves whole.
+#assert.eq(_plain-with(ref(<idea:etal>), it => str(it.target)), "idea:etal")
+#assert.eq(
+  _plain-with([A #ref(<idea:x>, supplement: [custom])], it => _plain(it.supplement)),
+  "A custom",
+)
 
 // ---- _body-text / _body-plain — block boundaries, and the empty body -------
 // MEASURED defect: "raw code.A second paragraph" — a `parbreak` contributed

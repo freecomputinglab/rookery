@@ -70,6 +70,19 @@
 // rendered fixture in `test/sweep.typ`; this only checks the shape.
 #assert.eq(type(bibtex(TWO).all), function)
 
+// `only:` keeps just the named keys, parsing the source down to them rather
+// than filtering the parsed result.
+#assert.eq(bibtex(TWO, only: ("smith2020",)).bib.keys(), ("smith2020",))
+#assert.eq(bibtex(TWO, only: ()).bib.len(), 0)
+
+// A key `only` names that the fixture doesn't carry is dropped silently, not
+// an error — `entry(key)` is where a missing key raises, not here.
+#assert.eq(bibtex(TWO, only: ("nosuchkey",)).bib.len(), 0)
+
+// `auto`, the default, parses the whole file exactly as `bibtex` behaved
+// before `only:` existed.
+#assert.eq(bibtex(TWO).bib.keys().sorted(), ("badiou2002", "smith2020"))
+
 // `all()` mints in `bib.keys().sorted()` order, alphabetical rather than
 // insertion order — a fixture whose keys are already alphabetical (like
 // `TWO` above) cannot tell the two apart, hence a fixture entered in reverse.

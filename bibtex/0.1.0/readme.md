@@ -21,7 +21,7 @@ one note per reference, titled and keyed from the entry itself.
 carries as an HTML definition list, for a body that just wants the record
 laid out.
 
-## `bibtex(src, tagged-idea:, tag:, keywords:, show-fields:)`
+## `bibtex(src, tagged-idea:, tag:, keywords:, show-fields:, only:)`
 
 `src` is a `.bib` file's contents, or an array of them — several exports read
 as one bibliography, joined with a newline between members so a file ending
@@ -30,6 +30,19 @@ mid-token cannot fuse into the next file's first token:
 ```typst
 #let refs = bibtex((read("primary.bib"), read("secondary.bib")))
 ```
+
+`only:` restricts parsing to a handful of keys — a reference manager export
+with thousands of entries costs only what a project actually cites:
+
+```typst
+#let refs = bibtex(read("references.bib"), only: ("badiou2002", "smith2020"))
+```
+
+`auto` (the default) parses the whole file, exactly as `bibtex` behaved
+before this parameter existed. A key `only` names that isn't in `src` is
+dropped silently rather than raised as an error here — `entry(key)` (and
+`citation`/`fields` through it) is where a missing key becomes an error,
+at the point something actually asks for it.
 
 The return value is a dictionary of five functions, all closed over the
 parsed bibliography:
@@ -74,6 +87,11 @@ either double-register every key or silently do nothing, neither of which is
 useful. A hand-written `citation` for a key always wins: `all()` never mints
 over one, no matter where in the document the two calls sit relative to each
 other.
+
+`all()` sweeps the entries the factory knows — which is `bib`, not the whole
+`.bib` file, when `only:` narrowed it. This is how `only:` turns a large
+library into a small number of notes: sweep a four-key `bib` with `all()`
+and four notes mint, not fourteen hundred.
 
 `tagged-idea:` defaults to `@rookery/core`'s own, which is what you want on
 plain rookery. **A project on `@rookery/timeline` or `@rookery/todos` should

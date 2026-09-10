@@ -90,13 +90,21 @@
       if e != none and e.func() == figure and e.kind == "rheo-idea-anchor" {
         let id = str(it.target)
         let reg = _registry.final()
+        // A NAME: a reference NAMES the note it points at, so `@idea:x` renders
+        // the note's title, or its opening words when it has none, instead of
+        // falling through to a bare id. `_rec-label` (pure.typ) is that name and
+        // is the same one `ideas()` puts in a row, so a reference and a search
+        // hit call one note by one name — including when the target's own title
+        // references a third note, which its registration-time `label` cannot
+        // resolve and this can. A STRING rather than the title's content: the
+        // name goes inside a `link`, and content carrying a reference of its own
+        // would nest one link inside another.
+        let rec = reg.at(id, default: none)
+        let named = if rec == none { "" } else { _rec-label(id, rec, _ref-text(reg)) }
         let shown = if it.supplement != auto {
           it.supplement
-        // A LABEL: a reference NAMES the note it points at, so `@idea:x` renders
-        // the note's title, or its opening words when it has none, instead of
-        // falling through to a bare id.
-        } else if id in reg and reg.at(id).at("label", default: none) != none {
-          reg.at(id).label
+        } else if named != "" {
+          named
         } else {
           raw(id)
         }

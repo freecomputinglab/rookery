@@ -292,37 +292,6 @@
 // only to the survivors, so the cost is proportional to what was asked for rather
 // than to the corpus.
 //
-// What a `ref` inside a title is worth in plain text: the NAME OF THE NOTE it
-// points at. A title reading [Meeting with #ref(<idea:doshi-velez-finale>)] is
-// then "Meeting with Finale Doshi-Velez" in a row, an index and a search hit,
-// where a pure `_plain` can only drop the reference and leave "Meeting with".
-// `#hyperlink`'s ref-mode already renders one that way for a reader; this is the
-// same answer for every consumer that takes a note's name as a string.
-//
-// `it.supplement` WINS where the author gave one — `@idea:x[custom text]` — the
-// same preference and the same `auto` sentinel that ref-mode carries.
-//
-// THE TARGET'S REGISTRATION-TIME `label`, never a re-flattening of its title,
-// and that is what makes this total: two notes whose titles reference each other
-// would otherwise walk in a circle. `#idea` computes a `label` with the pure
-// `_plain` before anything reaches the registry, so reading one cannot recurse.
-//
-// A REFERENCE TO SOMETHING THAT IS NOT A NOTE — an ordinary figure, a heading —
-// contributes nothing, as it did before this hook: there is no name to take, and
-// a raw `fig:x` in a search row is worse than the gap.
-#let _ref-text(reg) = it => {
-  if it.at("supplement", default: auto) != auto {
-    _plain(it.supplement)
-  } else {
-    let id = str(it.target)
-    let rec = reg.at(id, default: none)
-    if rec == none { "" } else {
-      let l = rec.at("label", default: none)
-      if l == none or l == "" { _norm(id) } else { l }
-    }
-  }
-}
-
 // Must be called INSIDE a `#context` block (it reads `_registry.final()`); it
 // is not itself a context function, because a context function can only return
 // content and the whole point here is to return data.
@@ -365,13 +334,11 @@
         //
         // A `str`, always, so it drops into `lower(..)`, an HTML attribute or a
         // JSON index with no cast. The fallback to `name` is what makes it total.
-        label: {
-          let t = plain(rec.at("title", default: none))
-          if t != "" { t } else {
-            let l = rec.at("label", default: none)
-            if l != none { l } else { _norm(id) }
-          }
-        },
+        //
+        // `_rec-label` (pure.typ) IS THAT CHAIN, shared with every other place a
+        // note gets named — a reference's link text, a window's summary, an
+        // outline entry — so the five of them cannot answer differently.
+        label: _rec-label(id, rec, ref-text),
         // TAG NAMES ONLY, as a flat array of every key — valued tags included.
         // The VALUES are deliberately kept off this row, and that is load-
         // bearing rather than tidiness: `@rookery/search` puts this field

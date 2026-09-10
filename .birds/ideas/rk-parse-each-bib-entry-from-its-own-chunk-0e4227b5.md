@@ -6,7 +6,7 @@ priority: 4
 labels:
 - perf-parse
 deps: []
-closed: false
+closed: true
 ---
 `parse-bib` walks a `.bib` file one character at a time through a Typst
 `while` loop. That is fine for the 2-entry fixtures in `test/units.typ` and
