@@ -7,7 +7,7 @@ labels:
 - test-large-bib
 deps:
 - blocked-by:rk-parse-each-bib-entry-from-its-own-chunk-0e4227b5
-closed: false
+closed: true
 ---
 Nothing in `test/` parses a bibliography bigger than a few entries or a field
 longer than a line, so the package's two worst failures were both invisible

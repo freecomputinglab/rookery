@@ -110,7 +110,7 @@ python3 - "$H/index.html" <<'PANEL' || fail=1
 import re, sys
 h = open(sys.argv[1]).read()
 i = h.index("Filter them in groups")
-seg = h[i:h.index("The dependency graph", i)]
+seg = h[i:h.index("Today —", i)]
 
 bad = 0
 def note(m):
@@ -198,5 +198,38 @@ if not bad:
           f" query tags on {len(allt)}, {len(labels)} priority labels")
 sys.exit(bad)
 PANEL
+
+# `#today-panel`'s SELECTION, asserted on the isolated section rather than the
+#    whole page — `#todo-table` above already lists every one of these todos,
+#    so a check against the full page would pass even if the day view selected
+#    nothing of its own. `retro`'s absence is the one negative claim: its
+#    scheduled date is in December, and `is-scheduled-now` must not read that
+#    as arrived.
+python3 - "$H/index.html" <<'TODAY' || fail=1
+import re, sys
+h = open(sys.argv[1]).read()
+i = h.index("Today —")
+seg = h[i:h.index("The dependency graph", i)]
+
+bad = 0
+def note(m):
+    global bad
+    print("FAIL: " + m); bad = 1
+
+rows = re.findall(r'class="idea-row-title" href="ideas/([a-z-]+)\.html"', seg)
+want = {"mirror", "invoice", "renew", "ship"}
+got = set(rows)
+if got != want:
+    note(f"the today panel lists {sorted(got)}, wanted {sorted(want)} — the "
+         f"scheduled-in-the-past todo (mirror), the overdue one (invoice), the "
+         f"one due exactly today (renew), and the corpus's one priority-9 todo "
+         f"(ship)")
+if "retro" in got:
+    note("retro (scheduled for December, not yet arrived) appears in the today panel")
+
+if not bad:
+    print(f"  today-panel: {sorted(got)}")
+sys.exit(bad)
+TODAY
 
 if [ "$fail" -eq 0 ]; then echo "demo/rheo OK"; else echo "demo/rheo FAILED"; exit 1; fi

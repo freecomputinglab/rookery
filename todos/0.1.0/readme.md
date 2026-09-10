@@ -465,6 +465,62 @@ same shape `#panel` takes for `facet-rows:`; a line whose groups are all absent 
 `facets:` is dropped, so narrowing one argument needs no edit to the other. Every
 group on one unlabelled line is `pill-rows: ((facets: ("epic", "tag", "state", "priority")),)`.
 
+## A day view: `#today-panel`
+
+```typst
+#today-panel(today: TODAY, noun: "todos")
+```
+
+Where `#todo-table` lists everything open, `#today-panel` answers the
+narrower question a person actually asks first thing: what is on for today,
+and what is important regardless of its date. It lists the union of four
+things — a deadline falling today, a deadline already behind today, a
+scheduled date that has arrived, and whichever priority sits at the top of
+the open corpus — and a todo needs to satisfy only one of them to make the
+list. Everything past the selection is `#todo-table`'s own: the pills, the
+date-cell ramp, the row shape, and every knob that view already takes
+(`rows:`, `filter:`, `facets:`, `pill-rows:`, and the rest), because
+`#today-panel` draws nothing of its own — it hands `#todo-table` a smaller
+list and gets the same widget back. The one default it changes on the way in
+is `visible:`, `none` here where `#todo-table` defaults to `8`: a day view is
+meant to be read whole, not scrolled.
+
+**Overdue work stays on the list by default.** `#todo-table` already paints
+an overdue deadline's date cell solid red; this view keeps that row in front
+of you rather than dropping it, because a day view that quietly hides what
+is already late is worse than none. `overdue: false` removes those rows
+outright, for a site that logs lapsed work elsewhere.
+
+**A scheduled todo counts as "for today" from the day it arrives, not only
+on that day** — `is-scheduled-now` semantics, inherited whole from
+`@rookery/timeline`. A todo scheduled for last month, still open, sits on
+today's list until it closes. This is the one behaviour worth naming before
+it surprises a reader on a live site: "scheduled" here does not mean "due".
+
+Four arguments belong to this view alone:
+
+- **`horizon:`** widens the deadline half only — how many days past today
+  still count as due soon, passed straight to `is-upcoming`'s `within:`. `0`
+  by default: due today, exactly. It does not touch the overdue, scheduled,
+  or priority clauses.
+- **`overdue:`** whether a deadline already behind you is listed at all.
+  `true` by default, for the reason above.
+- **`priority:`** which todos join on importance alone, regardless of date.
+  `auto` (the default) reads the topmost priority actually carried by the
+  rows this panel is choosing FROM — the open corpus after `filter:`, not
+  the narrower "on for today" list this same call is about to produce,
+  which would make the band depend on its own result. An integer floors it
+  explicitly: every row at that priority or above joins, whatever `auto`
+  would have picked. `none` turns the whole priority half off, leaving a
+  plain dated list.
+- **`also:`** a predicate that ORs extra rows IN — the one hole this
+  package cannot fill for itself, for a site with a reason a todo belongs on
+  today's list that no date or priority captures. It is easy to reach for
+  the wrong argument here: `filter:` narrows the corpus this panel chooses
+  from before the day's question is even asked, so it can only ever remove
+  rows; `also:` widens the answer to that question, adding rows back in from
+  among whatever `filter:` left standing. `none` (the default) adds none.
+
 ## Decks: #todo-slipshow
 
 ```typst

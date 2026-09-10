@@ -4,8 +4,9 @@
 // this demo exists to exercise: the name is rookery's, the version here knows about
 // todos, and importing it from the wrapper is the whole of opting in.
 #import "@rookery/todos:0.1.0": (
-  done, epic, todo, todo-graph-view, todo-table, todos-blocked, todos-list,
-  todos-ready, todos-search, todos-stale, todos-stats, todos-validate, window,
+  done, epic, today-panel, todo, todo-graph-view, todo-table, todos-blocked,
+  todos-list, todos-ready, todos-search, todos-stale, todos-stats,
+  todos-validate, window,
 )
 #import "@rookery/timeline:0.1.0": entries
 
@@ -79,6 +80,17 @@ dates are one concept owned by one package.
   tags: entries(scheduled: datetime(year: 2026, month: 12, day: 1)),
 )[Not ready until December, even though nothing blocks it.]
 
+A todo SCHEDULED weeks ago and still open. `is-scheduled-now` asks whether
+the date has arrived, not whether it is today — so a schedule from July is
+still `#today-panel`'s problem for as long as this stays open.
+
+#todo(
+  "mirror",
+  title: [Sync the package mirror],
+  priority: 2,
+  tags: entries(scheduled: datetime(year: 2026, month: 7, day: 1)),
+)[Nobody has started, and the date came and went weeks ago.]
+
 A todo with a DEADLINE, from the same package.
 
 #todo(
@@ -87,6 +99,16 @@ A todo with a DEADLINE, from the same package.
   priority: 4,
   tags: entries(deadline: datetime(year: 2026, month: 9, day: 15)),
 )[Ready now, and due next month.]
+
+A todo whose DEADLINE FALLS TODAY — the boundary `#today-panel`'s default
+`horizon: 0` draws: due today, exactly, neither yet upcoming nor overdue.
+
+#todo(
+  "renew",
+  title: [Renew the certificate],
+  priority: 3,
+  tags: entries(deadline: datetime(year: 2026, month: 8, day: 25)),
+)[Expires today.]
 
 An OVERDUE todo — a deadline already behind `TODAY`. `#todo-table` lists it first
 and paints its date cell solid red; `overdue: false` drops it from the panel instead.
@@ -219,6 +241,19 @@ priority, descending: `undated-priority: false` leaves them in registry order wi
 an empty cell.
 
 #todo-table(today: TODAY, visible: 6, noun: "open todos")
+
+== Today — `#today-panel`
+
+Where the panel above lists everything open, this one answers a narrower
+question: what is due today, what is already late, what was scheduled and
+never done, and whatever is prioritised over everything else regardless of
+its date. `renew` is due exactly today; `invoice` is three weeks overdue;
+`mirror` was scheduled for July and is still open, so it counts as today's
+problem however long ago that date arrived; `ship`, this corpus's one
+priority-9 todo, joins on priority alone. `retro` stays off the list — its
+own scheduled date is in December, and that has not arrived yet.
+
+#today-panel(today: TODAY, noun: "todos")
 
 == The dependency graph
 
