@@ -134,6 +134,20 @@ jobs:
       - name: timeline unit and view fixtures
         run: cd timeline/0.1.0 && just test
 
+      # AFTER the namespace-symlink step, like every step that resolves a
+      # package by coordinate: @rookery/meetings imports BOTH
+      # `@rookery/core:0.1.0` and `@rookery/timeline:0.1.0`. Buildless like
+      # those two, so no vite step.
+      #
+      # `just test` here runs TWO fixtures: `test/units.typ` asserts the values
+      # `#meeting` derives — the `occurred` log entry, the `created` date `on:`
+      # sets, the synthesized title — and `test/view.typ` plus `test/check.sh`
+      # assert the markup, including that the record and the rail come ABOVE the
+      # note's prose, which is document order and so invisible to the value
+      # fixture.
+      - name: meetings unit and view fixtures
+        run: cd meetings/0.1.0 && just test
+
       # `just parity` is the only thing keeping the Typst and JavaScript copies
       # of the ranking rule from drifting — two leaf scorers and the tiering rule
       # above them. `just build` first: parity imports `src/`, but a build failure

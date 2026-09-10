@@ -6,7 +6,7 @@ priority: 3
 labels:
 - feat-meetings-package
 deps: []
-closed: false
+closed: true
 ---
 Create a new pure-Typst package `@rookery/meetings:0.1.0` at
 `/home/lox/code/_fcl/rookery/meetings/0.1.0/`, exporting `#meeting` — a wrapper
