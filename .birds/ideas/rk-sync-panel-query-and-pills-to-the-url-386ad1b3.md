@@ -8,7 +8,7 @@ labels:
 - feat-url-state
 deps:
 - blocked-by:rk-add-urlstate-js-url-param-state-2afe3277
-closed: false
+closed: true
 ---
 Give `#panel` an opt-in `sync:` key that mirrors its filter box and its pressed
 pills into the query string and rehydrates them from there on load. This is the

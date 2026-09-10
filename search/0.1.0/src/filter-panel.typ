@@ -183,6 +183,14 @@
   placeholder: "Filter",
   noun: "ideas",
   empty: [Nothing here.],
+  // OPT IN to mirroring the filter box and the pressed pills into the URL's query
+  // string, and rehydrating both from there on load. `none` (the default) emits
+  // and reads nothing, so every existing caller is unaffected. Set to a short
+  // string unique on the page — it becomes the parameter namespace: `<key>.q` for
+  // the text box and repeated `<key>.t` params for the pressed tags, one per tag
+  // rather than one comma-joined value, because a tag name has no rule against
+  // carrying a comma itself.
+  sync: none,
   // The text input's haystack, per row. Defaults to label + name + body — searching the
   // BODY is what finds a note by a phrase inside it rather than by its title.
   haystack: none,
@@ -196,6 +204,7 @@
       + "recent date first) or \"soonest\" (the earliest first) — got "
       + repr(order),
   )
+  if sync != none { let _ = _sync-key(sync) }
   // `auto` OR AN ARRAY, and worth saying because the two modes read so differently that
   // a `pills: "todo"` typo would otherwise derive nothing and drop every pill silently.
   assert(
@@ -332,5 +341,6 @@
     placeholder: placeholder,
     noun: noun,
     empty: empty,
+    sync: sync,
   )
 }
