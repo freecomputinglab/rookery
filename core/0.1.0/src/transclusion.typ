@@ -142,8 +142,16 @@
   // TYPE DIFFERENCE IS DELIBERATE and needs no conversion: `label` is a str,
   // `title` is content, and both arms below take either — the HTML span wraps it
   // and the paged head passes it to `strong`.
+  //
+  // `_rec-label` RESOLVES A REFERENCE IN THE TITLE, which is why the registry is
+  // read here rather than the record's own `label` field taken as final: a note
+  // titled [Meeting with #ref(<idea:x>)] has a registration-time label of
+  // "Meeting with " and nothing more, that label being computed before there was
+  // a registry to resolve against. One state resolution per window, and a window
+  // has already cost its caller one to find the record it passes in.
   let name = if show-label {
-    rec.at("label", default: none)
+    let reg = _registry.final()
+    _rec-label(id, rec, _ref-text(reg))
   } else {
     rec.at("title", default: none)
   }

@@ -43,12 +43,14 @@ import {
   positiveAtoms,
 } from "./tagquery.js";
 import { score, bodyScore, search } from "./score.js";
+import { readSync, writeSync, readParam, writeParam, commit, claimKey, debounce } from "./urlstate.js";
 
 export { fold, clusters } from "./text.js";
 export { TAG_PREFIX, splitQuery, parseTagQuery, evalTagQuery, positiveAtoms } from "./tagquery.js";
 export { score, bodyScore, search } from "./score.js";
 export { readIndex, loadIndex } from "./island.js";
 export { initPanels, wirePanel } from "./panel.js";
+export { readSync, writeSync, readParam, writeParam, commit, claimKey, debounce } from "./urlstate.js";
 
 // ASYNC, because `mode: "asset"` fetches the index rather than reading it out
 // of the page. `initPanels()` still runs synchronously ahead of the first
@@ -167,6 +169,13 @@ if (typeof document !== "undefined") {
     loadIndex,
     initPanels,
     wirePanel,
+    readSync,
+    writeSync,
+    readParam,
+    writeParam,
+    commit,
+    claimKey,
+    debounce,
     init,
   };
 }

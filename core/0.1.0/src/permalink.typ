@@ -193,9 +193,14 @@
   // A LABEL, not the authored title: this row shows a name AS A LINK with no body
   // under it, so it names rather than headings (see `#idea`'s title-vs-label
   // banner). A bottomed-out window therefore names the note instead of showing a
-  // bare id — which is what the row shape was always for. Never empty, so the
-  // `_permalink` fallback is gone with the branch.
-  let name = rec.at("label", default: none)
+  // bare id — which is what the row shape was always for.
+  //
+  // THROUGH `_rec-label` (pure.typ) rather than off the record's own field, so a
+  // title that references another note reads as that note's name here too: a
+  // registration-time `label` cannot resolve a reference, there being no registry
+  // yet when it is computed. `none` only for a note with no name at all — an
+  // empty body and no title — which the `id` branch below still covers.
+  let name = _rec-label(id, rec, _ref-text(_registry.final()))
   let row = link(_resolve-dest(id, "page"), if name == none { id } else { name })
   if _target() == "html" or _target() == "epub" {
     html.elem(

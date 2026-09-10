@@ -43,6 +43,7 @@ css_stylesheet = "src/search.css"
 # scan of import statements, so a file left out here never lands in the
 # output even though the browser's own module graph would have found it.
 js_scripts = [
+  "src/urlstate.js",
   "src/text.js",
   "src/marks.js",
   "src/tagquery.js",

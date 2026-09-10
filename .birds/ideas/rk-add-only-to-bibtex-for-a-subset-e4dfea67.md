@@ -7,7 +7,7 @@ labels:
 - feat-only-filter
 deps:
 - blocked-by:rk-parse-each-bib-entry-from-its-own-chunk-0e4227b5
-closed: false
+closed: true
 ---
 `bibtex(..)` parses every entry in the file it is handed, and `all()` then
 mints a note for every one of them. A consumer whose `.bib` is a whole

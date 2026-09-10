@@ -100,10 +100,10 @@
         // name goes inside a `link`, and content carrying a reference of its own
         // would nest one link inside another.
         let rec = reg.at(id, default: none)
-        let named = if rec == none { "" } else { _rec-label(id, rec, _ref-text(reg)) }
+        let named = if rec == none { none } else { _rec-label(id, rec, _ref-text(reg)) }
         let shown = if it.supplement != auto {
           it.supplement
-        } else if named != "" {
+        } else if named != none {
           named
         } else {
           raw(id)

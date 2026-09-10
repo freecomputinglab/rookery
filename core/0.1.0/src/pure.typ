@@ -397,14 +397,25 @@
 // exactly the walk-per-note that accessor's own comments warn about.
 //
 // EVERY PLACE THAT NAMES A NOTE READS THIS, so a search hit, an index row, a
-// reference, a window's summary and an outline entry cannot drift apart: the
-// `if t == "" { name } else { title }` chain was copied by hand before, and the
-// copies disagreed the moment a title could contain a reference.
-#let _rec-label(id, rec, ref-text) = {
+// reference, a window's summary and a bottomed-out window row cannot drift
+// apart: the `if t == "" { name } else { title }` chain was copied by hand
+// before, and the copies disagreed the moment a title could contain a reference.
+//
+// `fallback:` IS WHAT A NOTE WITH NO NAME AT ALL COMES BACK AS — no title and an
+// empty body, which `#idea("x")[]` legally is. `ideas()` passes the note's own
+// name, its `label` field being documented as never empty; a caller RENDERING a
+// name keeps the default `none`, where nothing-to-show is the real answer and
+// `core.css` has rules (`h*.idea:empty`) that exist to collapse it.
+//
+// TAKES NO ID, which is what lets `#ideas-outline` share it: an outline entry
+// reads the note's METADATA PAYLOAD rather than its registry record, and the
+// payload carries no id. Nothing here needs one — the only caller wanting an id
+// as its last resort is `ideas()`, which has it and passes it as the fallback.
+#let _rec-label(rec, ref-text, fallback: none) = {
   let t = _plain-with(rec.at("title", default: none), ref-text)
   if t != none and t != "" { t } else {
     let l = rec.at("label", default: none)
-    if l == none or l == "" { _norm(id) } else { l }
+    if l == none or l == "" { fallback } else { l }
   }
 }
 
