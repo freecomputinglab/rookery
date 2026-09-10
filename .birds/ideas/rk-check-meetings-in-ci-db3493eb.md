@@ -7,7 +7,7 @@ labels:
 - ci-meetings
 deps:
 - blocked-by:rk-add-the-meetings-package-4a1ea2fb
-closed: false
+closed: true
 ---
 Add a CI step for `@rookery/meetings` to
 `/home/lox/code/_fcl/rookery/.github/workflows/check.yml`, so the package's two
