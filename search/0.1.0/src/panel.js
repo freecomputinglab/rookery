@@ -43,6 +43,15 @@ import { splitQuery, evalTagQuery } from "./tagquery.js";
 // hyphen-sensitive in a way the search bar is not, which reads as the language being
 // broken in one of the two places it runs.
 import { fold } from "./text.js";
+import { readSync, writeSync, commit, claimKey, debounce } from "./urlstate.js";
+
+// `CSS.escape` IS ABSENT UNDER LINKEDOM, which is what the node suite here runs
+// on, so rehydration builds its own attribute-selector strings with this rather
+// than `CSS.escape` directly. Escapes only what a double-quoted attribute value
+// needs escaped — a quote or a backslash — which is narrower than the full CSS
+// spec but exactly what a `[attr="value"]` selector requires.
+const cssEscape = (s) =>
+  globalThis.CSS?.escape ? CSS.escape(s) : s.replace(/["\\]/g, "\\$&");
 
 // DOES ONE GROUP ACCEPT THE ROW? Within a facet the values OR — two state pills mean
 // "either".
@@ -140,6 +149,13 @@ export const wirePanel = (container, n) => {
   const tagMode = container.dataset.panelMode === "tags";
   // "any" unless the panel says otherwise, the absent attribute included.
   const pillMatch = container.dataset.panelPillMatch === "all" ? "all" : "any";
+
+  // `data-panel-sync` NAMES THE WIDGET'S URL NAMESPACE, absent on a panel that
+  // never opted in. `claimKey` is what emits the duplicate-key warning; a
+  // duplicate simply does not sync, and the panel otherwise works exactly as
+  // it does with no `sync:` at all.
+  const syncKey = container.dataset.panelSync;
+  const syncing = syncKey !== undefined && syncKey !== "" && claimKey(syncKey);
 
   // The facet fields, read off the groups the Typst side emitted. A panel with no
   // pills is legal and gets an empty map; a tag panel emits no groups at all.
@@ -300,12 +316,29 @@ export const wirePanel = (container, n) => {
     }
   };
 
+  // WRITES THE CURRENT STATE INTO THE URL, a no-op unless this panel claimed
+  // its key. `location.search` is read fresh on every call rather than
+  // captured once: a second synced widget on the page writes between two
+  // calls to this one, and a captured string would drop its params.
+  const persist = () => {
+    if (!syncing) return;
+    const values = new Map();
+    if (tagMode) values.set("t", pressed);
+    else for (const [field, set] of facets) values.set(field, set);
+    commit(writeSync(syncKey, { q: input.value, values }, location.search));
+  };
+  const persistSoon = debounce(persist);
+
   input.addEventListener("input", apply);
+  input.addEventListener("input", persistSoon);
   input.addEventListener("keydown", (ev) => {
     // Escape clears the query and restores the original order.
     if (ev.key === "Escape") {
       input.value = "";
       apply();
+      // Immediate, not debounced: a deliberate clear should drop its param at
+      // once rather than wait out a quiet period nothing else is filling.
+      persist();
     }
   });
 
@@ -326,7 +359,42 @@ export const wirePanel = (container, n) => {
         pill.setAttribute("aria-pressed", "true");
       }
       apply();
+      // A pill press is one deliberate act, unlike a keystroke, so it lands
+      // in the URL immediately rather than behind the input's debounce.
+      persist();
     });
+  }
+
+  // REHYDRATE BEFORE THE FIRST `apply()`, so the restored state renders as
+  // the first paint rather than an unfiltered flash followed by a second
+  // render. A URL value naming a pill this markup does not carry is IGNORED,
+  // not applied: a stale link naming a value no longer offered would
+  // otherwise filter every row away with nothing on screen to explain it or
+  // press to undo it.
+  if (syncing) {
+    const st = readSync(syncKey, location.search);
+    if (st.q) input.value = st.q;
+    if (tagMode) {
+      for (const v of st.values.get("t") ?? []) {
+        const pill = container.querySelector(`.panel-pill[data-panel-tag="${cssEscape(v)}"]`);
+        if (!pill) continue;
+        pressed.add(v);
+        pill.setAttribute("aria-pressed", "true");
+      }
+    } else {
+      for (const [field, wanted] of st.values) {
+        const set = facets.get(field);
+        if (!set) continue;
+        for (const v of wanted) {
+          const pill = container.querySelector(
+            `.panel-pill[data-panel-facet="${cssEscape(field)}"][data-panel-value="${cssEscape(v)}"]`,
+          );
+          if (!pill) continue;
+          set.add(v);
+          pill.setAttribute("aria-pressed", "true");
+        }
+      }
+    }
   }
 
   container.setAttribute("data-panel-ready", "true");

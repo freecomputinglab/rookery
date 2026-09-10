@@ -95,6 +95,20 @@
   " " + out.join(" ") + " "
 }
 
+// `sync:`'S OWN NAMESPACE, validated because it becomes a URL parameter prefix
+// rather than an HTML attribute: a dot, ampersand or equals sign in it would
+// break out of the widget's own slice of the query string. See `urlstate.js`.
+#let _sync-key(key) = {
+  assert(
+    type(key) == str and key.len() > 0 and key.match(regex("^[a-z0-9-]+$")) != none,
+    message: "@rookery/search: `sync:` is the widget's URL-parameter namespace, so it "
+      + "must be a non-empty string of lowercase letters, digits and hyphens — got "
+      + repr(key) + ". A key carrying `.`, `&` or `=` would break out of its own "
+      + "namespace in the query string.",
+  )
+  key
+}
+
 // One pill per value ANY LISTED ROW ACTUALLY HAS, never per value the vocabulary
 // permits: a pill for a value nothing carries is a filter that could only ever
 // return nothing. Values are sorted so the pill row is stable across builds —
@@ -147,6 +161,10 @@
   placeholder: "Filter",
   noun: "rows",
   empty: [Nothing here.],
+  // The widget's URL-parameter namespace, or `none` for no URL state at all.
+  // `panel.js` reads this off `data-panel-sync` to decide whether to persist
+  // and rehydrate.
+  sync: none,
 ) = {
   // PAGED/EPUB: there is no input to type into and no pill to press, so the same
   // rows render as an ordinary list. Every view in this package takes this branch
@@ -173,6 +191,7 @@
       // widget degrades: with no JavaScript the chrome that would do nothing
       // never appears, and what is left is an ordinary complete list.
       "data-panel-ready": "false",
+      ..if sync == none { (:) } else { ("data-panel-sync": sync) },
       ..attrs-after,
       // The visible height goes to CSS as a custom property rather than as a
       // rule, so the number lives once, in the call that sets it.
@@ -330,6 +349,20 @@
   // Plural noun for the live count, e.g. "12 submissions".
   noun: "rows",
   empty: [Nothing here.],
+  // OPT IN to mirroring the filter box and the pressed pills into the URL's
+  // query string, and rehydrating both from there on load. `none` (the
+  // default) emits and reads nothing, so every existing caller is
+  // unaffected. Set to a short string unique on the page — it becomes the
+  // parameter namespace: `<key>.q` for the text box and one `<key>.<field>`
+  // per pressed value, repeated once per value. Two widgets sharing a key
+  // on one page is a mistake the script warns about and refuses, rather
+  // than one clobbering the other.
+  //
+  // `"q"` and `"t"` ARE RESERVED inside that namespace — they are what a
+  // synced `#filter-panel` uses for its own text box and tag-pill set — so a
+  // facet named either while `sync:` is set fails to compile instead of
+  // silently colliding with the text input's own parameter.
+  sync: none,
 ) = {
   // A FACET IN `facets:` BUT IN NO ROW keeps its `data-<field>` on every row and
   // loses its pills, which is a filter the reader cannot see and cannot press —
@@ -458,6 +491,22 @@
     }
   }
 
+  // A SYNCED PANEL RESERVES `q` AND `t` — `<key>.q` is the filter box and
+  // `<key>.t` is the tag-pill set (`#filter-panel`'s own reserved name, since
+  // its tag mode has no facets to collide with). A facet sharing either name
+  // would fight the text input for the same URL parameter.
+  if sync != none {
+    let _ = _sync-key(sync)
+    for f in facets {
+      assert(
+        f not in ("q", "t"),
+        message: "@rookery/search: a synced panel reserves `" + f + "` — `<key>.q` is "
+          + "the filter box and `<key>.t` is the tag-pill set. Rename the projected "
+          + "field, or drop `sync:`.",
+      )
+    }
+  }
+
   _panel-shell(
     rows,
     r => html.elem(
@@ -522,5 +571,6 @@
     placeholder: placeholder,
     noun: noun,
     empty: empty,
+    sync: sync,
   )
 }

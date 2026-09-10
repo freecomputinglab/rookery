@@ -8,7 +8,7 @@ labels:
 - feat-url-state
 deps:
 - blocked-by:rk-add-urlstate-js-url-param-state-2afe3277
-closed: false
+closed: true
 ---
 Give `#todos-search` an opt-in `sync:` key, so its filter box and its pressed
 `ready`/`blocked`/type pills survive a reload and ride in a copyable URL. This
