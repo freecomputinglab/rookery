@@ -1314,6 +1314,14 @@ tags:draft window                 filter by the tags, rank by "window"
 - **Matching folds case and hyphens** and is by prefix, so `tags:todo` also matches
   `todo-closed` — which is why the negation in the first example above is needed.
 
+### `sync:` — keeping the box and the pills in the URL
+
+`sync: "keyname"` (`none` by default) mirrors the filter box and the pressed pills
+into the URL's query string, and rehydrates both from there before the first
+paint. It reserves the facet names `q` and `t` for its own use — see "Keeping
+filter state in the URL" below for the parameter shape and the rest of what a
+synced page has to know.
+
 ### Without JavaScript
 
 The container is emitted with `data-panel-ready="false"` and the stylesheet hides
@@ -1506,6 +1514,17 @@ urgent thing on the page and next week's should not sit below next year's.
 floating it to the top of a list sorted by date would read as urgent when it is merely
 unset.
 
+### `sync:` — keeping the box and the pressed tags in the URL
+
+`sync: "keyname"` (`none` by default) mirrors the filter box and the pressed tags
+into the URL's query string — one repeated `<key>.t` parameter per tag, rather
+than one value joined by commas, because a tag name carries no rule against
+having one itself — and rehydrates both before the first paint. Unlike `#panel`,
+there is no reserved-name check here: this widget's pills are bare tag names in
+one undifferentiated row, not facets a caller named, so the collision that check
+guards against cannot arise. See "Keeping filter state in the URL" below for the
+rest.
+
 ### The row is not this package's
 
 Each row is `#idea-row` from [`@rookery/core`](../../core/0.1.0) — the same row
@@ -1513,6 +1532,172 @@ Each row is `#idea-row` from [`@rookery/core`](../../core/0.1.0) — the same ro
 and a project that has themed `.idea-tag-<tag>` for a note's hat has already themed
 the chips here. What this package styles is the panel's own chrome around them: the
 input, the pills, the count and the scroll box.
+
+## Keeping filter state in the URL: `sync:`
+
+A page reload starts every panel from a clean slate — an empty box, no pill
+pressed — whichever kind of reload it is: a reader hitting refresh, a link
+someone else sent them, or `rheo watch` tearing the page down and rebuilding it
+whole. `sync:` puts a panel's state into the query string instead of only in a
+closure, so a reload restores it and a filtered view becomes something you can
+copy out of the address bar and hand to someone else.
+
+Rehydration happens before the panel's own `data-panel-ready` flips to `"true"`,
+so a restored filter shows on the first paint instead of flashing the whole list
+and narrowing it a moment later.
+
+It is opt-in, and changes nothing for a call that does not ask for it. `sync:
+none` is the default on both `#panel` and `#filter-panel`; at that default the
+widget emits no `data-panel-sync` attribute, and `panel.js` reads no parameter
+for it — a project on this package before `sync:` existed keeps behaving
+exactly as it did.
+
+```typst
+#panel(
+  rows: rows,
+  facets: ("state", "priority"),
+  sync: "todos",
+)
+```
+
+`sync:` takes a short string, unique on the page, and that string becomes the
+widget's own namespace inside the query string.
+
+### The parameter shape
+
+A `#panel` keyed `"todos"` and a `#filter-panel` keyed `"ideas"` on the same
+page can leave the address bar reading:
+
+```
+?todos.q=rheo&todos.state=ready&todos.state=blocked&ideas.t=cfp
+```
+
+`<key>.q` is the filter box, a scalar. `<key>.<field>` is one of `#panel`'s
+facet groups, repeated once per pressed value rather than written once —
+`todos.state` appears twice above because both `ready` and `blocked` are
+pressed, and that is as true of an ordinary scalar facet as of a `multi:` one,
+since a group ORs its own pressed pills either way. `<key>.t` is
+`#filter-panel`'s tag-pill set: it has no facet of its own to key off, because
+that widget has no facets at all.
+
+### Why repeated parameters, and not one value joined by commas
+
+`_attr` lets a facet value be any scalar, and only `_multi-attr` — the join
+behind a `multi:` field's own attribute — forbids whitespace in one. A comma
+is legal in a facet value or a tag name, so a query string that joined two
+pressed values with `,` would corrupt the one that already had a comma in it,
+with no escaping rule anywhere to fall back on. Repeating the parameter
+instead means a value never has to be told apart from whatever joined it to
+its neighbours, because nothing does.
+
+### `q` and `t` are reserved
+
+A synced `#panel` cannot declare a facet named `q` or `t` — those are already
+the text box and, on a synced `#filter-panel`, the tag-pill set. `#panel`
+checks it at build time and names the field:
+
+```
+a synced panel reserves `state` — `<key>.q` is the filter box and `<key>.t`
+is the tag-pill set. Rename the projected field, or drop `sync:`.
+```
+
+`#filter-panel` carries no equivalent assert, and that is not an oversight:
+its pills are bare tag names in one undifferentiated row, not facets a caller
+named, so there is no field of its own that could collide with `q` or `t` in
+the first place.
+
+### The key's charset
+
+A `sync:` key must match `^[a-z0-9-]+$` — lowercase letters, digits and
+hyphens, nothing else. The key becomes a literal prefix inside the query
+string, and a key carrying `.`, `&` or `=` would break out of its own
+namespace: `sync: "a.b"` would leave `<key>.q` indistinguishable from a facet
+actually named `b`, on top of whatever else `.`, `&` or `=` already mean in a
+query string.
+
+### One key per page
+
+Typst cannot see across two separate calls to `#panel` or `#filter-panel` to
+assert that neither was handed the same `sync:` key, so the check runs in the
+browser instead. The first widget to ask for a key gets it; every later one
+asking for the same key is refused, with a console warning —
+
+```
+"todos" is already synced to the URL by another widget — this one will
+not sync.
+```
+
+— and otherwise keeps working exactly as it would with no `sync:` at all. It
+just never reads or writes the URL.
+
+### `history.replaceState`, not `pushState`
+
+A filter change is not a navigation, so committing state to the URL uses
+`history.replaceState`. Back leaves the page exactly as it always did; it
+does not step back through every keystroke first. Typing into the filter box
+is debounced before it writes, so a fast typist does not call `replaceState`
+once per character; pressing a pill, or Escape, writes at once, because both
+are one deliberate act rather than a stream of them.
+
+### Parameters merge
+
+Committing a widget's state rewrites only that widget's own `<key>.*`
+parameters. Whatever else is in the query string — a second panel's own key, a
+`data-rookery-url-radio` tab, anything the site itself put there — survives
+untouched.
+
+### A stale value is ignored
+
+A parameter naming a pill the markup no longer offers — a value dropped from
+the corpus since the link was made, say — presses nothing, rather than
+filtering the list down to nothing. A reader who followed a link like that
+gets the full, unfiltered panel: not an empty one with no pill on screen to
+explain it or to press to undo it.
+
+### Without JavaScript
+
+A synced panel's only extra markup is the `data-panel-sync` attribute itself.
+With no script to read or write it, that attribute is inert, and the panel is
+exactly the readable list it always was — see "Without JavaScript" above.
+
+### `data-rookery-url-radio`: a radio group with no script of its own
+
+Put `data-rookery-url-radio="<key>"` on any element containing a radio group
+and give each radio a `value`, and that group's selection lives in the bare
+`?<key>=` parameter — not `<key>.q` or a dotted namespace, because this is one
+value rather than a whole panel.
+
+```html
+<div data-rookery-url-radio="tab">
+  <label><input type="radio" name="tab" value="overview" checked> Overview</label>
+  <label><input type="radio" name="tab" value="details"> Details</label>
+</div>
+```
+
+This exists for a CSS-only tab strip: a site can keep its active pane across a
+reload — `rheo watch` included — with `:checked` selectors and no script of
+its own, just this one attribute.
+
+The trap it is built to avoid: a radio with no `value` attribute reports
+`.value === "on"` in the DOM, which would sync a whole group to the literal
+string `"on"`. `wireRadioGroup` reads the `value` *attribute*, never the
+property, and skips a radio that does not carry one — so a group whose radios
+carry no `value` at all syncs nothing, rather than writing `?tab=on` three
+times over as each one fires.
+
+### The public JS surface
+
+`readSync`, `writeSync`, `readParam`, `writeParam`, `commit`, `claimKey` and
+`debounce` sit on `globalThis.RookerySearch` — see "Building your own UI on
+the same rule" above — for a site wiring a `sync:`-shaped widget of its own
+rather than either of these two. `readSync`/`writeSync` read and write a
+whole namespace's `{ q, values }`; `readParam`/`writeParam` are the scalar
+form `data-rookery-url-radio` is itself built on. `commit` is the one
+function that touches the address bar; every other one takes and returns a
+plain string, which is what lets the parity suite call them under node with
+no `location` or `history` to hand them. `claimKey` and `debounce` are the
+two pieces of bookkeeping every widget built this way needs — one key per
+page, and a keystroke that does not call `replaceState` once per character.
 
 ## Working on it locally
 

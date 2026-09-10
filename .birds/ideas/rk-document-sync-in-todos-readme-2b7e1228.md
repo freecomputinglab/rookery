@@ -9,7 +9,7 @@ labels:
 deps:
 - blocked-by:rk-forward-sync-through-todo-table-and-6f60e9ab
 - blocked-by:rk-sync-todos-search-facets-to-the-url-b4312fc7
-closed: false
+closed: true
 ---
 Document `sync:` in `@rookery/todos`' readme — on `#todos-search`, `#todo-table`
 and `#today-panel` — so a consuming site can find the feature from the package it
