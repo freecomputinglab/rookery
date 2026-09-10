@@ -9,7 +9,7 @@ labels:
 deps:
 - blocked-by:rk-add-today-panel-a-day-view-over-todos-4803a6b6
 - blocked-by:rookery-priority-docs-dnu
-closed: false
+closed: true
 ---
 `#today-panel` is added to `@rookery/todos` by bird rk-add-today-panel-a-day-view-over-todos-4803a6b6 ("Add #today-panel, a day view over todos") and is undocumented and undemoed when that bird lands. This bird gives it a readme section, a worked demo, and an output assertion — the three things every other view in this package has.
 

@@ -44,6 +44,7 @@ import {
 } from "./tagquery.js";
 import { score, bodyScore, search } from "./score.js";
 import { readSync, writeSync, readParam, writeParam, commit, claimKey, debounce } from "./urlstate.js";
+import { initUrlSync, wireRadioGroup } from "./urlsync.js";
 
 export { fold, clusters } from "./text.js";
 export { TAG_PREFIX, splitQuery, parseTagQuery, evalTagQuery, positiveAtoms } from "./tagquery.js";
@@ -51,6 +52,7 @@ export { score, bodyScore, search } from "./score.js";
 export { readIndex, loadIndex } from "./island.js";
 export { initPanels, wirePanel } from "./panel.js";
 export { readSync, writeSync, readParam, writeParam, commit, claimKey, debounce } from "./urlstate.js";
+export { initUrlSync, wireRadioGroup } from "./urlsync.js";
 
 // ASYNC, because `mode: "asset"` fetches the index rather than reading it out
 // of the page. `initPanels()` still runs synchronously ahead of the first
@@ -63,6 +65,7 @@ export const init = async () => {
   // the search bar: a page may carry panels and no bar at all, and the early
   // return below would otherwise skip them.
   initPanels();
+  initUrlSync();
 
   // The dialog ALSO carries `data-rookery-search` (it shares the bar's
   // island-lookup attribute), so the bar query must exclude it — otherwise a
@@ -176,6 +179,8 @@ if (typeof document !== "undefined") {
     commit,
     claimKey,
     debounce,
+    initUrlSync,
+    wireRadioGroup,
     init,
   };
 }

@@ -44,6 +44,7 @@ css_stylesheet = "src/search.css"
 # output even though the browser's own module graph would have found it.
 js_scripts = [
   "src/urlstate.js",
+  "src/urlsync.js",
   "src/text.js",
   "src/marks.js",
   "src/tagquery.js",
