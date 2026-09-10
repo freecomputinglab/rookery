@@ -8,7 +8,7 @@ labels:
 - feat-url-state
 deps:
 - blocked-by:rk-sync-panel-query-and-pills-to-the-url-386ad1b3
-closed: false
+closed: true
 ---
 Give `#filter-panel` the same opt-in `sync:` key `#panel` has, so its filter box
 and its pressed tag pills survive a reload and ride in a copyable URL. Typst only:

@@ -267,6 +267,13 @@
   noun: "todos",
   empty: [Nothing here.],
   haystack: none,
+  // OPT IN to mirroring the filter box and pressed pills into the URL, the
+  // same knob `#panel` takes below — see there for the full contract. `<key>.q`
+  // is the filter box; `<key>.epic`, `<key>.tag`, `<key>.state` and
+  // `<key>.priority` are this widget's four pill groups, one repeated param
+  // per pressed value. `none` (the default) puts no URL state on the page;
+  // set, the key must be unique on it.
+  sync: none,
   // Override the whole row. The default is `#idea-row-body`; this exists for the
   // caller with a genuinely different row, not as the ordinary path.
   render: none,
@@ -535,6 +542,7 @@
     noun: noun,
     empty: empty,
     haystack: haystack,
+    sync: sync,
     render: draw,
   )
 }

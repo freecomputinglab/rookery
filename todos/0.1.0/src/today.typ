@@ -114,6 +114,7 @@
   noun: "todos",
   empty: [Nothing for today.],
   haystack: none,
+  sync: none,
   render: none,
 ) = context {
   let all = if rows != none { rows } else { todos() }
@@ -152,6 +153,7 @@
     noun: noun,
     empty: empty,
     haystack: haystack,
+    sync: sync,
     render: render,
   )
 }
