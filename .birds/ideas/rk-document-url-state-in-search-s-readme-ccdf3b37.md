@@ -10,7 +10,7 @@ deps:
 - blocked-by:rk-sync-panel-query-and-pills-to-the-url-386ad1b3
 - blocked-by:rk-take-sync-on-filter-panel-6b93790a
 - blocked-by:rk-sync-a-radio-group-named-by-data-cb8c8c12
-closed: false
+closed: true
 ---
 Document URL state in `@rookery/search`'s readme: the `sync:` key on `#panel` and
 `#filter-panel`, the `data-rookery-url-radio` hook, the parameter shape, and the
