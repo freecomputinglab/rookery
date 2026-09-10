@@ -7,7 +7,7 @@ labels:
 - docs-meetings
 deps:
 - blocked-by:rk-add-the-meetings-package-4a1ea2fb
-closed: false
+closed: true
 ---
 Write `/home/lox/code/_fcl/rookery/meetings/0.1.0/readme.md`, and add the new
 package to the five places `/home/lox/code/_fcl/rookery/CLAUDE.md` enumerates the

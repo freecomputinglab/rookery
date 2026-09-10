@@ -2,12 +2,12 @@
 
 The `@rookery` family of [Rheo](https://rheo.ohrg.org) Typst packages: atomic,
 interlinked, transcludable notes (`core`), fuzzy search over them (`search`),
-a dated lifecycle log (`timeline`), and todos/epics/a dependency DAG
-(`todos`). Each package lives in `<name>/<version>/` (e.g. `search/0.1.0/`)
-and mirrors the same layout: `typst.toml`, `src/`, a `Justfile`, and
-`flake.nix`. Two of the four (`search`, `todos`) also ship JS via
-`package.json`/vite — see "Pure-Typst packages" below for the two that
-don't.
+a dated lifecycle log (`timeline`), todos/epics/a dependency DAG
+(`todos`), and dated meeting notes (`meetings`). Each package lives in
+`<name>/<version>/` (e.g. `search/0.1.0/`) and mirrors the same layout:
+`typst.toml`, `src/`, a `Justfile`, and `flake.nix`. Two of them (`search`,
+`todos`) also ship JS via `package.json`/vite — see "Pure-Typst packages"
+below for the two that don't.
 
 This repo was split out of `rheo-packages` (`freecomputinglab/rheo-packages`)
 on 2026-08-30, once `@rookery` needed a repository URL of its own to resolve
@@ -98,8 +98,8 @@ TARGET DIR` where `DIR` already exists as a directory writes the link
 entry first rather than trying to overwrite it, then confirm with `jj status`
 that nothing landed in the tree.
 
-Then `just build` the package (skip this for `core`/`timeline`, the two
-dist-less pure-Typst packages — see "Pure-Typst packages" below) and `rheo
+Then `just build` the package (skip this for `core`/`timeline`/`meetings`, the
+three dist-less pure-Typst packages — see "Pure-Typst packages" below) and `rheo
 compile` a test project that imports it. No per-package devShell needed
 either for most work: this repo's own root `flake.nix`/`.envrc` provide
 `just` and `typst`, and direnv finds them by walking up from anywhere under
@@ -200,7 +200,7 @@ rheo" (A) or "works standalone, rheo optionally enhances it" (B).
 
 ## Pure-Typst packages
 
-`core` and `timeline` are pure Typst (+ CSS) — no `package.json`, no
+`core`, `timeline` and `meetings` are pure Typst (+ CSS) — no `package.json`, no
 `pnpm-lock.yaml`, no build step at all: `typst.toml`'s `entrypoint` and
 `css_stylesheet` point straight at `src/` — editing `src/` takes effect
 immediately, nothing to rebuild or forget to re-run.
@@ -226,8 +226,9 @@ own; only the optimized bundle is genuinely missing outside a release.
 `.github/workflows/publish-packages.yml` handles two cases per package: a
 `package.json` present means `pnpm install && pnpm run build`; its absence
 means no build step at all. The release archive step tars `src/` always, and
-ADDS `dist/` on top of it when the build produced one — so `core`/`timeline`
-ship their `src/` directly, and `search`/`todos` ship both `src/`
+ADDS `dist/` on top of it when the build produced one — so
+`core`/`timeline`/`meetings` ship their `src/` directly, and `search`/`todos`
+ship both `src/`
 (entrypoint, stylesheet, source-mode scripts) and `dist/` (the optimized JS
 bundle).
 
