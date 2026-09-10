@@ -7,7 +7,7 @@ labels:
 - type:feature
 - feat-url-state
 deps: []
-closed: false
+closed: true
 ---
 Add `src/urlstate.js` to `@rookery/search`: the query-string primitives every
 stateful widget in this family will use to survive a reload. This bird adds the

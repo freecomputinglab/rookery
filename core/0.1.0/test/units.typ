@@ -19,7 +19,7 @@
 #import "/src/lib.typ": (
   _bib, _bib-keys, _blocks, _body-plain, _body-text, _cite-scan, _dedup-tag,
   _is-inline, _join, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
-  _derived-title, _own-cited-keys, _plain, _plain-with, _resolve-excluded, _resolve-tags-color, _sort-ids,
+  _derived-title, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
   _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content,
   footnote, idea, note-href, note-path,
   tag-index, window,
@@ -97,6 +97,31 @@
   _plain-with([A #ref(<idea:x>, supplement: [custom])], it => _plain(it.supplement)),
   "A custom",
 )
+
+// ---- _ref-text / _rec-label — one name for one note, everywhere ------------
+// MEASURED defect: a meeting titled [Meeting with #ref(<idea:x>)] was called
+// "Meeting with " in a window summary and a backlink, and "MeetingWith Bought
+// large with the idea that a .." in the search index — the reference contributed
+// nothing and the fallback reached for the body.
+#let REG = (
+  "idea:doshi-velez-finale": (title: [Finale Doshi-Velez], label: "Finale Doshi-Velez"),
+  "idea:96": (title: [Meeting with #ref(<idea:doshi-velez-finale>)], label: "Meeting with "),
+  "idea:97": (title: none, label: "Bought large with the idea that a .."),
+  "idea:98": (title: none, label: none),
+)
+#assert.eq(_ref-text(REG)(ref(<idea:doshi-velez-finale>)), "Finale Doshi-Velez")
+// A reference to something that is not a note names nothing.
+#assert.eq(_ref-text(REG)(ref(<fig:plot>)), "")
+#assert.eq(
+  _rec-label(REG.at("idea:96"), _ref-text(REG)),
+  "Meeting with Finale Doshi-Velez",
+)
+// No title: the registration-time label, which is the body's opening words.
+#assert.eq(_rec-label(REG.at("idea:97"), _ref-text(REG)), "Bought large with the idea that a ..")
+// No name at all — an empty body and no title. `none` for a caller rendering a
+// name, the note's own name for `ideas()`, whose `label` is never empty.
+#assert.eq(_rec-label(REG.at("idea:98"), _ref-text(REG)), none)
+#assert.eq(_rec-label(REG.at("idea:98"), _ref-text(REG), fallback: "98"), "98")
 
 // ---- _body-text / _body-plain — block boundaries, and the empty body -------
 // MEASURED defect: "raw code.A second paragraph" — a `parbreak` contributed

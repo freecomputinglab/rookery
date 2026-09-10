@@ -200,7 +200,7 @@
   // registration-time `label` cannot resolve a reference, there being no registry
   // yet when it is computed. `none` only for a note with no name at all — an
   // empty body and no title — which the `id` branch below still covers.
-  let name = _rec-label(id, rec, _ref-text(_registry.final()))
+  let name = _rec-label(rec, _ref-text(_registry.final()))
   let row = link(_resolve-dest(id, "page"), if name == none { id } else { name })
   if _target() == "html" or _target() == "epub" {
     html.elem(

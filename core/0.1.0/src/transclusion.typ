@@ -151,7 +151,7 @@
   // has already cost its caller one to find the record it passes in.
   let name = if show-label {
     let reg = _registry.final()
-    _rec-label(id, rec, _ref-text(reg))
+    _rec-label(rec, _ref-text(reg))
   } else {
     rec.at("title", default: none)
   }

@@ -27,9 +27,15 @@ default:
 # `sweep-all.typ`/`sweep-existing.typ` are separate documents, not two calls
 # in `sweep.typ`, because a second `all()` call is a compile error — each
 # needs its own `bibtex(..)` and its own vertebra.
+#
+# `test/large.typ` parses a field past Typst's 10,000-iteration `while`
+# ceiling and a 400-entry corpus, so a parser that regresses to stepping
+# character by character fails the compile rather than passing unnoticed.
 test:
     typst compile --features html --root . --format pdf test/units.typ /dev/null
     @echo "units OK"
+    typst compile --features html --root . --format pdf test/large.typ /dev/null
+    @echo "large OK"
     # `mkdir` first: unlike `rheo`, `typst compile` does not create its output
     # directory and fails with "No such file or directory" on a fresh checkout,
     # since `test/build/` is gitignored and never committed.

@@ -298,6 +298,11 @@
   let multi-page = c != none and c.at("ext", default: none) != none
   let idea-depth = 0
   let window-depth = 0
+  // ONE resolver for the whole walk, resolved before the loop rather than per
+  // entry: it is what lets a reference inside a note's title read as the name of
+  // the note it points at (see `_rec-label` below), and a per-entry
+  // `_registry.final()` would be one state resolution per note on the page.
+  let ref-text = _ref-text(_registry.final())
   let out = ()
   for el in query(selector(metadata).or(selector(figure.where(kind: IK)))) {
     let f = el.func()
@@ -324,16 +329,23 @@
     let m = el.body.children.find(x => x.func() == metadata)
     if m == none { continue }
     let v = m.value
-    // AN OUTLINE ENTRY NAMES A NOTE, so it reads `label` rather than `title` — the
-    // authored title, or the note's opening words when it has none (see `#idea`'s
-    // title-vs-label banner). This used to skip every titleless note on the
-    // reasoning that there was "nothing to label them with"; there is now.
+    // AN OUTLINE ENTRY NAMES A NOTE, so it takes the note's NAME rather than its
+    // authored title — the title where there is one, the note's opening words
+    // where there is not (see `#idea`'s title-vs-label banner). This used to skip
+    // every titleless note on the reasoning that there was "nothing to label them
+    // with"; there is now.
     //
-    // The skip survives for a note whose LABEL is `none` — an empty body, with no
-    // text to name it by at all — because an entry still needs something to say.
-    // `.at` with a default, not `v.label`, so a payload written by an older
-    // rookery in the same document does not panic here.
-    let name = v.at("label", default: none)
+    // `_rec-label` (pure.typ) is that name, shared with `ideas()`, a reference's
+    // link text and a window's summary, and it reads the payload's `title`
+    // resolving any reference in it — a note titled [Meeting with #ref(<idea:x>)]
+    // therefore names the person it was with here too, where the payload's own
+    // `label` field (computed before there was a registry) stops at "Meeting
+    // with ". It reads that field as its fallback, so a payload written by an
+    // older rookery in the same document still degrades rather than panicking.
+    //
+    // The skip survives for a note with NO name at all — an empty body and no
+    // title — because an entry still needs something to say.
+    let name = _rec-label(v, ref-text)
     if name == none { continue }
     // `tags` with a default, not `v.tags`: this metadata is read on the paged
     // and no-rheo paths too, and a default costs nothing where a missing key

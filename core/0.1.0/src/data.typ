@@ -338,7 +338,7 @@
         // `_rec-label` (pure.typ) IS THAT CHAIN, shared with every other place a
         // note gets named — a reference's link text, a window's summary, an
         // outline entry — so the five of them cannot answer differently.
-        label: _rec-label(id, rec, ref-text, fallback: _norm(id)),
+        label: _rec-label(rec, ref-text, fallback: _norm(id)),
         // TAG NAMES ONLY, as a flat array of every key — valued tags included.
         // The VALUES are deliberately kept off this row, and that is load-
         // bearing rather than tidiness: `@rookery/search` puts this field
