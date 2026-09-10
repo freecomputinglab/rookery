@@ -86,9 +86,9 @@ undecorated one would not carry them:
 #let refs = bibtex(read("refs.bib"), tagged-idea: tagged-idea)
 ```
 
-`parse-bib`, `bib-title`, `cite-key`, `fields-block` and `keyword-tags` are
-re-exported from the entrypoint too, for a consumer that wants the parts
-directly rather than only through the factory.
+`parse-bib`, `bib-chunks`, `bib-title`, `cite-key`, `fields-block` and
+`keyword-tags` are re-exported from the entrypoint too, for a consumer that
+wants the parts directly rather than only through the factory.
 
 ## `keywords:` — a Zotero export's keywords as rookery tags
 

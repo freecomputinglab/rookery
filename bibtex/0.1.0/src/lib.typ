@@ -18,9 +18,9 @@
 // read as one bibliography, joined with a newline between members so a file
 // ending mid-token cannot fuse into the next file's first token.
 //
-// `parse-bib`, `bib-title`, `cite-key`, `fields-block` and `keyword-tags` are
-// re-exported so a consumer can reach the parts directly rather than only
-// through the factory.
+// `parse-bib`, `bib-chunks`, `bib-title`, `cite-key`, `fields-block` and
+// `keyword-tags` are re-exported so a consumer can reach the parts directly
+// rather than only through the factory.
 
 // `_norm-tags` IS ONE OF CORE'S PRIVATE NAMES, imported deliberately: merging keyword
 // tags into the caller's own needs both sides to be dictionaries, and `tags:` accepts a

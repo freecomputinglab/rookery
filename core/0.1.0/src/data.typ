@@ -207,6 +207,7 @@
 //    name:    "etal",          // the id with the prefix stripped
 //    title:   [Et al.],        // the title as CONTENT, or none
 //    text:    "Et al.",        // the same title as plain text, "" if none
+//                              // (a `ref` in it reads as its target's name)
 //    label:   "Et al.",         // what to CALL it — never empty; see below
 //    tags:    ("note", "draft"), // as the author gave them, () if untagged
 //    body:    "Et al. is ...", // the note's body as plain text, "" if empty
@@ -291,6 +292,37 @@
 // only to the survivors, so the cost is proportional to what was asked for rather
 // than to the corpus.
 //
+// What a `ref` inside a title is worth in plain text: the NAME OF THE NOTE it
+// points at. A title reading [Meeting with #ref(<idea:doshi-velez-finale>)] is
+// then "Meeting with Finale Doshi-Velez" in a row, an index and a search hit,
+// where a pure `_plain` can only drop the reference and leave "Meeting with".
+// `#hyperlink`'s ref-mode already renders one that way for a reader; this is the
+// same answer for every consumer that takes a note's name as a string.
+//
+// `it.supplement` WINS where the author gave one — `@idea:x[custom text]` — the
+// same preference and the same `auto` sentinel that ref-mode carries.
+//
+// THE TARGET'S REGISTRATION-TIME `label`, never a re-flattening of its title,
+// and that is what makes this total: two notes whose titles reference each other
+// would otherwise walk in a circle. `#idea` computes a `label` with the pure
+// `_plain` before anything reaches the registry, so reading one cannot recurse.
+//
+// A REFERENCE TO SOMETHING THAT IS NOT A NOTE — an ordinary figure, a heading —
+// contributes nothing, as it did before this hook: there is no name to take, and
+// a raw `fig:x` in a search row is worse than the gap.
+#let _ref-text(reg) = it => {
+  if it.at("supplement", default: auto) != auto {
+    _plain(it.supplement)
+  } else {
+    let id = str(it.target)
+    let rec = reg.at(id, default: none)
+    if rec == none { "" } else {
+      let l = rec.at("label", default: none)
+      if l == none or l == "" { _norm(id) } else { l }
+    }
+  }
+}
+
 // Must be called INSIDE a `#context` block (it reads `_registry.final()`); it
 // is not itself a context function, because a context function can only return
 // content and the whole point here is to return data.
@@ -298,6 +330,10 @@
   _assert-tags(tags, "#ideas'")
   _assert-match(match, "#ideas'")
   let reg = _registry.final()
+  // ONE resolver for the whole walk, not one per row: it closes over the registry
+  // and nothing else, so every row's title flattens against the same corpus.
+  let ref-text = _ref-text(reg)
+  let plain = c => _plain-with(c, ref-text)
   let keep = _tag-pred(tags, match)
   reg
     .pairs()
@@ -309,7 +345,11 @@
         id: id,
         name: _norm(id),
         title: rec.at("title", default: none),
-        text: _plain(rec.at("title", default: none)),
+        // A REFERENCE IN THE TITLE READS AS ITS TARGET'S NAME here — see
+        // `_ref-text` above. The `title` field beside it stays the authored
+        // CONTENT, refs and all, so a caller rendering rather than naming still
+        // gets the real thing.
+        text: plain(rec.at("title", default: none)),
         // WHAT TO CALL THIS NOTE, and NEVER `none`: the authored title as plain
         // text, else the first 60 characters of the body, else the note's own
         // name. See `#idea`'s title-vs-label banner for why this is separate from
@@ -326,7 +366,7 @@
         // A `str`, always, so it drops into `lower(..)`, an HTML attribute or a
         // JSON index with no cast. The fallback to `name` is what makes it total.
         label: {
-          let t = _plain(rec.at("title", default: none))
+          let t = plain(rec.at("title", default: none))
           if t != "" { t } else {
             let l = rec.at("label", default: none)
             if l != none { l } else { _norm(id) }

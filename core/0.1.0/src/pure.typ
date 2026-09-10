@@ -298,9 +298,18 @@
 // under the narrow test, because `raw` carries `.text` and has neither
 // children nor a body — silently making that note unfindable by the word in
 // its own title. A math equation still contributes nothing.
-#let _plain(c) = {
+//
+// A `ref` IS THE ONE LEAF A CALLER CAN DECIDE FOR ITSELF, through `resolve`.
+// It has no `.text`, no `.children` and no `.body`, so a title that names
+// another note — [Meeting with #ref(<idea:x>)] — has nothing here to walk
+// into: what a reference is worth in plain text is the NAME OF ITS TARGET,
+// and only a caller holding the registry knows that. `_plain` below passes
+// the pure answer, `_ => ""`, which is what a title's plain text was before
+// the hook existed; `ideas()` passes one that reads the target's own label.
+#let _plain-with(c, resolve) = {
   if c == none { "" } else if type(c) == str { c } else if type(c) != content {
     ""
+  } else if c.func() == ref { resolve(c)
   } else if c.has("text") { c.text
   } else if c.func() == smartquote {
     // A SMART QUOTE IS ITS OWN ELEMENT, and it used to contribute nothing —
@@ -327,10 +336,18 @@
     if c.at("double", default: true) { "\"" } else { "'" }
   } else if c.func() == [ ].func() {
     " "
-  } else if c.has("children") { c.children.map(_plain).join() } else if c.has("body") {
-    _plain(c.body)
+  } else if c.has("children") {
+    c.children.map(x => _plain-with(x, resolve)).join()
+  } else if c.has("body") {
+    _plain-with(c.body, resolve)
   } else { "" }
 }
+
+// Plain text of a title with no registry to hand: a reference contributes
+// nothing, every other leaf reads as it does above. The projection to reach
+// for anywhere outside a `context` — `#idea` computes a note's `label` with
+// it at registration time, before there is anything to resolve against.
+#let _plain(c) = _plain-with(c, _ => "")
 
 // Plain text of a note's BODY, for `ideas()`. Every registry body has been
 // through `_flatten` since v6y.7, wrapping it in a `show`-rule scope that
