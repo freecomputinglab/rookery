@@ -95,6 +95,16 @@ export function wire(container) {
   const tq = globalThis.RookerySearch;
   const hasTagQuery = Boolean(tq && tq.splitQuery && tq.evalTagQuery && tq.fold);
 
+  // THE URL-SYNC SURFACE, same all-five-or-none rule as `hasTagQuery` above,
+  // over `@rookery/search`'s `urlstate.js`. `data-todo-search-sync` names the
+  // query-parameter namespace; `claimKey` refuses a second widget on the page
+  // trying to sync the same one.
+  const syncKey = container.getAttribute("data-todo-search-sync");
+  const hasUrlState = Boolean(
+    tq && tq.readSync && tq.writeSync && tq.commit && tq.claimKey && tq.debounce,
+  );
+  const syncing = Boolean(syncKey) && hasUrlState && tq.claimKey(syncKey);
+
   // Read once. The rows never change after this — filtering only toggles
   // `hidden` and re-appends, so the original index survives as the tiebreak
   // that preserves the build-time priority order.
@@ -179,12 +189,29 @@ export function wire(container) {
     }
   };
 
+  // Mirrors the box and the pills into the URL. Reads `location.search` fresh
+  // on every call rather than a captured copy — another synced widget on the
+  // page may have written between two of these — and writes through `commit`,
+  // which is `history.replaceState` under the hood so Back keeps leaving the
+  // page.
+  const persist = () => {
+    if (!syncing) return;
+    const values = new Map([
+      ["status", facets.status],
+      ["type", facets.type],
+    ]);
+    tq.commit(tq.writeSync(syncKey, { q: input.value, values }, location.search));
+  };
+  const persistSoon = syncing ? tq.debounce(persist) : () => {};
+
   input.addEventListener("input", apply);
+  input.addEventListener("input", persistSoon);
   input.addEventListener("keydown", (ev) => {
     // Escape clears the query and restores the original order.
     if (ev.key === "Escape") {
       input.value = "";
       apply();
+      persist();
     }
   });
 
@@ -202,7 +229,39 @@ export function wire(container) {
         pill.setAttribute("aria-pressed", "true");
       }
       apply();
+      persist();
     });
+  }
+
+  // Rehydrates from the URL before the ready flag flips, so the first paint a
+  // reader sees already reflects the link they followed. A value naming no
+  // pill on THIS page (a stale link to a type that no longer appears) is
+  // silently dropped rather than filtering every row away with nothing left
+  // to press.
+  if (syncing) {
+    const st = tq.readSync(syncKey, location.search);
+    let restored = false;
+    if (st.q) {
+      input.value = st.q;
+      restored = true;
+    }
+    for (const facet of ["status", "type"]) {
+      for (const v of st.values.get(facet) ?? []) {
+        const pill = pills.find(
+          (p) =>
+            p.getAttribute("data-todo-facet") === facet &&
+            p.getAttribute("data-todo-value") === v,
+        );
+        if (!pill) continue;
+        facets[facet].add(v);
+        pill.setAttribute("aria-pressed", "true");
+        restored = true;
+      }
+    }
+    // `apply()` runs only when something was restored: `wire` otherwise never
+    // calls it, and the rows stay in the build-time priority order Typst
+    // sorted them into until someone types or presses a pill.
+    if (restored) apply();
   }
 
   container.setAttribute("data-todo-search-ready", "true");

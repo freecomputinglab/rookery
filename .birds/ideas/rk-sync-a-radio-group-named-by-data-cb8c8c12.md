@@ -8,7 +8,7 @@ labels:
 - feat-url-state
 deps:
 - blocked-by:rk-add-urlstate-js-url-param-state-2afe3277
-closed: false
+closed: true
 ---
 Add `src/urlsync.js` to `@rookery/search`: a declarative sync for a radio group
 named by a data attribute, so a CSS-only tab strip can keep its active pane across

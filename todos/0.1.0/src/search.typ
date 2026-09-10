@@ -127,14 +127,33 @@
 ///
 /// `closed: false` is the DEFAULT here, unlike `#todos-list` where it is
 /// `true`: a filter box is for finding live work.
+///
+/// `sync:` opts the widget into URL state. `none` (the default) leaves the
+/// box and pills local to the page; a string names the query-parameter
+/// namespace the browser half mirrors them into — `<sync>.q` for the input,
+/// `<sync>.status` and `<sync>.type` for the pressed pills, one repeated
+/// param per pressed value.
 #let todos-search(
   title: none,
   placeholder: "Filter todos",
   today: none,
   closed: false,
+  sync: none,
 ) = context {
   let graph = todo-graph()
   assert-acyclic(graph)
+  // Validated HERE rather than by importing `@rookery/search`'s own
+  // parameter validator: this file has no edge to that package (see the file
+  // header) and must not grow one for a check this simple.
+  if sync != none {
+    assert(
+      type(sync) == str and sync.len() > 0 and sync.match(regex("^[a-z0-9-]+$")) != none,
+      message: "@rookery/todos: `sync:` is the widget's URL-parameter namespace, so it "
+        + "must be a non-empty string of lowercase letters, digits and hyphens — got "
+        + repr(sync) + ". A key carrying `.`, `&` or `=` would break out of its own "
+        + "namespace in the query string.",
+    )
+  }
   let rows = todos()
   if not closed { rows = rows.filter(r => not r.closed) }
   rows = _by-priority(rows)
@@ -161,13 +180,19 @@
     label,
   )
 
+  // Built by insertion, not as a literal of two spreads: `(..a, ..b)` with no
+  // named field is an ARRAY literal in Typst, and spreading a dictionary into
+  // one is an error.
+  let container-attrs = (class: "todo-search", "data-todo-search-ready": "false")
+  if sync != none { container-attrs.insert("data-todo-search-sync", sync) }
+
   html.elem(
     "div",
     // `false` until the script has wired itself up. The stylesheet hides the
     // input and the pills while it says so, which is how the widget degrades:
     // with no JavaScript the chrome that would do nothing never appears, and
     // the rows below it are simply a list.
-    attrs: (class: "todo-search", "data-todo-search-ready": "false"),
+    attrs: container-attrs,
     {
       if title != none {
         html.elem("div", attrs: (class: "todo-view-title"), title)
