@@ -225,6 +225,22 @@
   )
 }
 
+// A PILL IS A REUSABLE OBJECT, not just markup private to the block below. The
+// pill block is one place a pill appears; a consumer drawing the same facet
+// value again elsewhere (a row's own tag badge, say) must emit this exact
+// markup or `panel.js` will not find and wire it up.
+#let facet-pill(field, value, label: auto) = html.elem(
+  "button",
+  attrs: (
+    type: "button",
+    class: "panel-pill",
+    "data-panel-facet": field,
+    "data-panel-value": value,
+    "aria-pressed": "false",
+  ),
+  if label == auto { value.replace("-", " ") } else { label },
+)
+
 #let panel(
   rows: (),
   // Projected field names to offer as pill groups, in the order given. Each
@@ -443,24 +459,12 @@
     if descending { s.rev() } else { s }
   }
 
-  let pill(field, value) = html.elem(
-    "button",
-    attrs: (
-      type: "button",
-      class: "panel-pill",
-      "data-panel-facet": field,
-      "data-panel-value": value,
-      "aria-pressed": "false",
-    ),
-    value.replace("-", " "),
-  )
-
   let group(f) = {
     let vals = _facet-values(rows, f, multi: multi.contains(f))
     html.elem(
       "span",
       attrs: (class: "panel-pill-group", "data-panel-group": f),
-      vals.map(v => pill(f, v)).join(),
+      vals.map(v => facet-pill(f, v)).join(),
     )
   }
 

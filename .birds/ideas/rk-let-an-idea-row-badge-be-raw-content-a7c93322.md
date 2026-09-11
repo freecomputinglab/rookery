@@ -7,7 +7,7 @@ labels:
 - idea-row
 - type:feature
 deps: []
-closed: false
+closed: true
 ---
 `#idea-row-body`'s badge strip can only draw one kind of thing: a `<span class="idea-tag idea-tag-<tag>">`, built from a `(text: .., tag: ..)` dictionary. That is right for a chip, and wrong for the one case now in front of it — `@rookery/todos` wants a row's tags drawn as `@rookery/search`'s own filter pills, which are `<button>`s carrying `data-panel-*` attributes, so that pressing a tag where you read it presses the filter.
 

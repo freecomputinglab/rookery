@@ -182,6 +182,19 @@ export const wirePanel = (container, n) => {
   // The tag panel's own state: which pills are pressed, as tag names.
   const pressed = new Set();
 
+  // ONE PILL, POSSIBLY SEVERAL BUTTONS. A facet value may be drawn more than
+  // once on a panel — @rookery/todos draws a row's own tags as pills inside the
+  // row — and `aria-pressed` is the state, so every copy has to carry the same
+  // answer or the page shows one filter as both on and off.
+  const mirror = (facet, value, on) => {
+    const sel = tagMode
+      ? `.panel-pill[data-panel-tag="${cssEscape(value)}"]`
+      : `.panel-pill[data-panel-facet="${cssEscape(facet)}"][data-panel-value="${cssEscape(value)}"]`;
+    for (const el of container.querySelectorAll(sel)) {
+      el.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+  };
+
   // Read ONCE. The rows never change after this — filtering only toggles `hidden`
   // and re-appends — so the original index survives as the tiebreak that
   // preserves the order Typst sorted them into.
@@ -351,13 +364,9 @@ export const wirePanel = (container, n) => {
       if (!set) return;
       const value = tagMode ? pill.dataset.panelTag : pill.dataset.panelValue;
       if (!value) return;
-      if (set.has(value)) {
-        set.delete(value);
-        pill.setAttribute("aria-pressed", "false");
-      } else {
-        set.add(value);
-        pill.setAttribute("aria-pressed", "true");
-      }
+      if (set.has(value)) set.delete(value);
+      else set.add(value);
+      mirror(pill.dataset.panelFacet, value, set.has(value));
       apply();
       // A pill press is one deliberate act, unlike a keystroke, so it lands
       // in the URL immediately rather than behind the input's debounce.
@@ -376,22 +385,20 @@ export const wirePanel = (container, n) => {
     if (st.q) input.value = st.q;
     if (tagMode) {
       for (const v of st.values.get("t") ?? []) {
-        const pill = container.querySelector(`.panel-pill[data-panel-tag="${cssEscape(v)}"]`);
-        if (!pill) continue;
+        const sel = `.panel-pill[data-panel-tag="${cssEscape(v)}"]`;
+        if (container.querySelectorAll(sel).length === 0) continue;
         pressed.add(v);
-        pill.setAttribute("aria-pressed", "true");
+        mirror(null, v, true);
       }
     } else {
       for (const [field, wanted] of st.values) {
         const set = facets.get(field);
         if (!set) continue;
         for (const v of wanted) {
-          const pill = container.querySelector(
-            `.panel-pill[data-panel-facet="${cssEscape(field)}"][data-panel-value="${cssEscape(v)}"]`,
-          );
-          if (!pill) continue;
+          const sel = `.panel-pill[data-panel-facet="${cssEscape(field)}"][data-panel-value="${cssEscape(v)}"]`;
+          if (container.querySelectorAll(sel).length === 0) continue;
           set.add(v);
-          pill.setAttribute("aria-pressed", "true");
+          mirror(field, v, true);
         }
       }
     }
