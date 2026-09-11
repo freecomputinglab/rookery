@@ -1408,6 +1408,43 @@ is not).
   inventory, chips as the vocabulary. Every row still wears every tag it has as an
   `idea-tag-<tag>` class, so theming is untouched either way.
 
+### `chip-pills:` — a chip a reader can press
+
+`chip-pills: true` draws every chip on a row as a **pill** — `tag-pill`, the same button
+the block above the list draws — instead of as `@rookery/core`'s chip. Pressing one
+filters exactly as pressing its twin above does, and both copies show the same
+`aria-pressed`; no script of this package's own is involved.
+
+```typst
+#filter-panel(
+  tag: "todo",
+  pills: auto,
+  chips: ("meeting", "cfp", "venue"),
+  chip-pills: true,
+)
+```
+
+It is the twin of `@rookery/todos`' `badge-pills:` on `#todo-table` and rests on the
+same observation: a tag a reader can *see* on a row is a tag they want to press, so a
+chipped tag that filters nothing is a tease, and a strip mixing chip-shaped tags with
+pill-shaped ones says two things in two conventions on one line.
+
+**Off by default**, because a pill is no narrower than a chip and the strip's width
+comes out of every title on the page — the cost `chips:` above is already rationed
+against. This knob does not change how many chips there are, only what they are, so a
+panel whose chip list is already short pays nothing to turn it on.
+
+**Every chip must also be a pill**, asserted at build time: a pill for a tag outside the
+pill set matches no row and empties the list the moment it is pressed. The commonest
+cause is a *valued* tag — `pills: auto` derives from the flat tags only, so a chip
+naming `submission-of` or `cfp-id` is a legal chip that can never be a pill.
+
+**Colour survives the change.** A pill wears `idea-tag-<tag>` beside `panel-pill`, and
+this package's stylesheet chains `--idea-tag-line` / `--idea-tag-color` ahead of its own
+muted default — so a tag the project themed through `theme: (tags-color: ..)` keeps its
+hue as a pill, pressed or not. `#panel`'s `facet-pill` does the same for a facet value,
+which is what colours a `ready` state pill on `#todo-table`'s badge strip.
+
 ### How a tag reads: `tag-display:`
 
 Pills and chips show the tag name with its hyphens turned into spaces. A project whose

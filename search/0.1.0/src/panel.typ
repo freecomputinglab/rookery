@@ -229,16 +229,48 @@
 // pill block is one place a pill appears; a consumer drawing the same facet
 // value again elsewhere (a row's own tag badge, say) must emit this exact
 // markup or `panel.js` will not find and wire it up.
+//
+// IT WEARS `idea-tag-<value>` ALONGSIDE `panel-pill`, which is the ONE line that
+// keeps a pill colourable. @rookery/core turns a project's `theme: (tags-color: ..)`
+// into a generated `.idea-tag-<name>` rule publishing `--idea-tag-line`/`-bg`/
+// `-color`, and `search.css` reads those off the pill — so a value the project
+// already themed by name (`accepted`, `ready`, `venue-journal`) keeps its colour
+// when it is drawn as a pill instead of as a chip. `.rookery-search-tag` has
+// chained to the same properties since the modal shipped, for the same reason;
+// this is that mechanism reaching the other object that names a value.
+//
+// NOT `idea-tag` ITSELF — only the per-name hook. That class carries @rookery/core's
+// whole chip look (fill, radius, size), and a pill is not a chip; a pill wearing both
+// would be two objects arguing over one button.
 #let facet-pill(field, value, label: auto) = html.elem(
   "button",
   attrs: (
     type: "button",
-    class: "panel-pill",
+    class: "panel-pill idea-tag-" + value,
     "data-panel-facet": field,
     "data-panel-value": value,
     "aria-pressed": "false",
   ),
   if label == auto { value.replace("-", " ") } else { label },
+)
+
+// THE TAGS-MODE PILL, which is `#filter-panel`'s what `facet-pill` is to `#panel`:
+// same button, same class, same theming hook, and `data-panel-tag` instead of the
+// facet/value pair — `data-panel-mode="tags"` is how `panel.js` tells the two apart.
+//
+// HERE RATHER THAN IN `filter-panel.typ` because it is the same argument the comment
+// above makes: a consumer drawing a tag pill somewhere else (a row's own badge strip,
+// under that panel's `chip-pills:`) must emit exactly this markup, so the markup is an
+// object both callers share rather than a literal written twice.
+#let tag-pill(tag, label: auto) = html.elem(
+  "button",
+  attrs: (
+    type: "button",
+    class: "panel-pill idea-tag-" + tag,
+    "data-panel-tag": tag,
+    "aria-pressed": "false",
+  ),
+  if label == auto { tag.replace("-", " ") } else { label },
 )
 
 #let panel(

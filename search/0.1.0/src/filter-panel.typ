@@ -115,6 +115,23 @@
   // wears every tag it has as an `idea-tag-<tag>` class either way, so theming is
   // untouched by anything decided here.
   chips: auto,
+  // EVERY CHIP ON A ROW BECOMES A PRESSABLE PILL — `tag-pill`, the same object the
+  // block above the list draws, not @rookery/core's chip. The knob is the twin of
+  // @rookery/todos' `badge-pills:` on `#todo-table` and exists for the same reason: a
+  // tag a reader can SEE on a row is a tag they want to press, so a chipped tag that
+  // filters nothing is a tease, and a strip mixing chip-shaped tags with pill-shaped
+  // ones says two things in two conventions on one line.
+  //
+  // OFF BY DEFAULT because a pill is no narrower than a chip and `#idea-row` is
+  // `<gutter> 1fr auto auto`: the strip is that last `auto` track, so its width comes
+  // out of every title on the page. That cost is what `chips:` above is already
+  // rationed against, and this knob does not change how many chips there are — only
+  // what they are. A panel that has already decided its chip list is short can turn it
+  // on and pay nothing.
+  //
+  // IT REQUIRES EVERY CHIP TO BE A PILL, asserted below: a pill whose tag is not in the
+  // pill set filters every row away when pressed, which is worse than a dead chip.
+  chip-pills: false,
   // HOW TWO PRESSED PILLS COMPOSE. `"any"` (the default) keeps a row carrying EITHER,
   // so a second pill widens; `"all"` keeps only a row carrying BOTH, so it narrows.
   //
@@ -261,6 +278,29 @@
   // was authored: see `chips:` for why a derived list must not reach the badge strip.
   let chips = if chips != auto { chips } else if pills == auto { () } else { carried }
 
+  // A CHIP DRAWN AS A PILL MUST BE A PILL. `carried` is the pill set, and it is also
+  // what every row's `data-panel-tags` is built from below — so a pill for a tag
+  // outside it matches no row at all and empties the list the moment it is pressed.
+  // Checked here rather than left to render, because the failure is silent: the button
+  // looks like every other one until someone presses it.
+  //
+  // THE COMMONEST CAUSE IS A VALUED TAG. `pills: auto` derives from the FLAT tags only
+  // (see `_flat-tags-of`), so a chip naming a valued key — `submission-of`, `cfp-id` —
+  // is a legal chip and can never be a pill; under `chip-pills: true` it has to come
+  // off the chip list or the whole knob has to stay off.
+  if chip-pills {
+    for t in chips {
+      assert(
+        carried.contains(t),
+        message: "@rookery/search: #filter-panel's `chip-pills: true` draws every chip "
+          + "as a pill, but `" + t + "` is in `chips:` and not in the pill set — a pill "
+          + "no row carries filters everything away. Add it to `pills:` (or stop "
+          + "`tag-filter:` from dropping it), take it out of `chips:`, or turn "
+          + "`chip-pills:` off.",
+      )
+    }
+  }
+
   let draw = if render != none { render } else {
     r => {
       let d = when(r)
@@ -277,7 +317,15 @@
         title: r.at("label", default: r.at("name", default: "")),
         href: r.at("href", default: none),
         tags: _row-tags(r),
-        badges: shown.map(t => (text: tag-display(t), tag: t)),
+        // `#idea-row` places a dictionary as its own chip and anything else in the
+        // strip verbatim (see `row.typ`), which is the hole `tag-pill` goes through:
+        // the pill is wired to the same press as the block above with no script of
+        // this package's own, and the row still asks nothing about what a badge means.
+        badges: shown.map(t => if chip-pills {
+          tag-pill(t, label: tag-display(t))
+        } else {
+          (text: tag-display(t), tag: t)
+        }),
         // The panel's own row hook, kept so the script and the stylesheet reach these
         // rows exactly as they reach `#panel`'s.
         extra: ("panel-row",),
@@ -323,19 +371,11 @@
       // at instead of leaving it to be inferred from an absence.
       "data-panel-pill-match": pill-match,
     ),
+    // `tag-pill` rather than the markup written out here, which it was until a row's
+    // own badge could be a pill too: two hand copies of one button is how the block
+    // above the list and the strip on the row drift into two shapes of the same thing.
     pills: if carried.len() == 0 { none } else {
-      () => carried
-        .map(t => html.elem(
-          "button",
-          attrs: (
-            type: "button",
-            class: "panel-pill",
-            "data-panel-tag": t,
-            "aria-pressed": "false",
-          ),
-          tag-display(t),
-        ))
-        .join()
+      () => carried.map(t => tag-pill(t, label: tag-display(t))).join()
     },
     visible: visible,
     placeholder: placeholder,

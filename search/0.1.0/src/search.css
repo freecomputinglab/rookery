@@ -838,27 +838,45 @@
      genuinely must be told apart from its neighbour belongs on a line that says
      what it is. */
 
+  /* THE COLOUR CHAINS TO `--idea-tag-*` FIRST, and that is the whole of what makes a
+     pill themeable. Every pill wears `idea-tag-<value>` beside `panel-pill` (see
+     `facet-pill`/`tag-pill` in `panel.typ`), and @rookery/core turns a project's
+     `theme: (tags-color: ..)` into a generated rule on exactly that class publishing
+     `--idea-tag-line` and `--idea-tag-bg`. So a value the project named — `accepted`,
+     `ready`, `venue-journal` — keeps its own colour whether it is drawn as a chip on a
+     row or as a pill above the list, and a value nobody named falls through to the
+     muted default this widget has always had. `.rookery-search-tag` chains the same
+     way for the same reason.
+
+     THE BORDER FOLLOWS BECAUSE IT IS `currentColor` by default, so a themed pill comes
+     out as an outline in its own hue and needs no second rule. A project that has set
+     `--rookery-search-border` has said it wants ONE border colour for every pill, and
+     still gets it. */
   .panel-pill {
     font: inherit;
     font-size: 0.85em;
     line-height: 1.4;
     padding: 0.1em 0.6em;
     cursor: pointer;
-    color: var(--rookery-search-muted, gray);
+    color: var(--idea-tag-color, var(--idea-tag-line, var(--rookery-search-muted, gray)));
     background: transparent;
     border: 1px solid var(--rookery-search-border, currentColor);
     border-radius: 999px;
   }
 
+  /* HOVER AND PRESSED LEAVE A THEMED PILL ITS HUE, taking the foreground only where
+     there is no theme to keep: brightening `accepted` to the body ink on hover would
+     make the one pill whose colour was declared the one pill that loses it. The wash
+     under a pressed pill is what says pressed in both cases. */
   .panel-pill:hover {
-    color: var(--rookery-search-fg, inherit);
+    color: var(--idea-tag-color, var(--idea-tag-line, var(--rookery-search-fg, inherit)));
   }
 
   /* PRESSED IS THE STATE, and it is read off `aria-pressed` rather than a class
      the script would have to keep in step with it. One source of truth for
      "this filter is on", and it is the one assistive technology reads. */
   .panel-pill[aria-pressed="true"] {
-    color: var(--rookery-search-fg, inherit);
+    color: var(--idea-tag-color, var(--idea-tag-line, var(--rookery-search-fg, inherit)));
     border-color: currentColor;
     background: var(--rookery-search-hover, rgba(127, 127, 127, 0.15));
   }
