@@ -117,19 +117,33 @@
   // element draws a stub of rule through its `::before`, which inside a row reads
   // as a stray dash. The stylesheet shares the SHAPE between the two selectors
   // instead.
+  //
+  // A BADGE IS A DICTIONARY OR CONTENT. `(text: .., tag: ..)` draws the ordinary
+  // chip below; anything else is placed in the strip verbatim and the caller
+  // owns its element, its classes and its attributes — the hole
+  // @rookery/todos needs to draw a row's tags as @rookery/search's own filter
+  // pills (a `<button>` carrying `data-panel-*`) rather than a chip, without
+  // re-emitting this function's four spans to get at the strip. It is the same
+  // hole `when-class:`/`when-attrs:` already are one level in: the row still
+  // asks nothing about what a badge means, it only places what it was handed.
+  // Core styles only the dictionary's chip form, through `core.css`'s
+  // `[data-rookery="row-badges"] > [data-rookery="tag"]`; content that is not a
+  // `[data-rookery="tag"]` takes whatever styling its own caller gives it.
   if badges.len() > 0 {
     html.elem(
       "span",
       attrs: (class: _c("row-badges"), data-rookery: "row-badges"),
       badges
-        .map(b => html.elem(
-          "span",
-          // `data-rookery-tags` inlined rather than shared with `_tags-attr`
-          // (pure.typ), which this file otherwise avoids: a badge's tag is
-          // always exactly one non-empty name.
-          attrs: (class: _c("tag") + " " + _c("tag-" + b.tag), data-rookery: "tag", data-rookery-tags: b.tag),
-          b.text,
-        ))
+        .map(b => if type(b) == dictionary {
+          html.elem(
+            "span",
+            // `data-rookery-tags` inlined rather than shared with `_tags-attr`
+            // (pure.typ), which this file otherwise avoids: a badge's tag is
+            // always exactly one non-empty name.
+            attrs: (class: _c("tag") + " " + _c("tag-" + b.tag), data-rookery: "tag", data-rookery-tags: b.tag),
+            b.text,
+          )
+        } else { b })
         .join(),
     )
   }
