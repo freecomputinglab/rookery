@@ -106,6 +106,12 @@
   order: "soonest",
   countdown: true,
   undated-priority: true,
+  // NOT FORWARDED UNCHANGED, unlike everything else on this list: a day view
+  // is a handful of rows read whole rather than scrolled, so the grid-width
+  // cost that keeps `#todo-table`'s own default off does not apply here —
+  // and the tags a reader can already see on a row are tags they want to
+  // press, so this view shows every badge as the block's own filter pill.
+  badge-pills: true,
   // `none` here, where `#todo-table` defaults to `8`: a day view is meant to
   // be read whole, not scrolled — a box over a list of six rows hides the
   // sixth behind a gesture nothing on the page advertises.
@@ -148,6 +154,7 @@
     countdown: countdown,
     overdue: overdue,
     undated-priority: undated-priority,
+    badge-pills: badge-pills,
     visible: visible,
     placeholder: placeholder,
     noun: noun,

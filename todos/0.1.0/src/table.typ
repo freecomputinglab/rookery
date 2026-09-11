@@ -27,7 +27,7 @@
 // listed todo carries is the group that needs no vocabulary declared anywhere — which
 // was the last thing on this panel a site had to maintain by hand. See `_tags-of`.
 
-#import "@rookery/search:0.1.0": panel
+#import "@rookery/search:0.1.0": facet-pill, panel
 #import "@rookery/core:0.1.0": idea-row-body
 #import "@rookery/timeline:0.1.0": deadline-of, scheduled-of
 // AND AS A MODULE, for `countdown`/`days-until`: the parameter below is also called
@@ -262,6 +262,27 @@
   // third-hottest priority downward shares the coolest one. Only an unprioritised row
   // (priority 0) keeps an empty cell.
   undated-priority: true,
+  // EVERY BADGE IN THE STRIP BECOMES A PRESSABLE PILL — the same `facet-pill`
+  // the block above the list draws, not a chip — AND the multi-valued facets
+  // (`tag`, the only entry in `_MULTI`) join the strip alongside the scalar
+  // ones. The two halves are one knob because they are one decision: a tag a
+  // reader can see on a row is a tag they want to press, so a chipped tag
+  // that filters nothing is a tease, and a strip mixing chip-shaped state
+  // with pill-shaped state says two things in two conventions on one line.
+  //
+  // OFF HERE, because `.idea-row` is `<gutter> 1fr auto auto` and the strip
+  // is that last `auto` track: a chip (or a pill, which is no narrower) per
+  // tag makes the strip as wide as the widest row's tag list and squeezes
+  // every title on the page to pay for it — real cost on a worklist of
+  // several hundred rows carrying between one and six tags each. See the
+  // comment where the strip is built, below, for the fuller argument.
+  //
+  // ON BY DEFAULT in `#today-panel`, where a handful of rows are read whole
+  // rather than scrolled, so the grid-width cost above does not apply.
+  //
+  // DOES NOTHING under a caller-supplied `render:`, which owns the whole row
+  // and never calls the `badges:` this knob changes.
+  badge-pills: false,
   visible: 8,
   placeholder: "Filter",
   noun: "todos",
@@ -459,23 +480,47 @@
         // them. The strip is about facets and nothing else — urgency is the date cell's
         // job now.
         //
-        // THE MULTI-VALUED ONES ARE NOT CHIPPED, which is a decision about the GRID
-        // rather than about tags. `.idea-row` is `<gutter> 1fr auto auto` and the strip
-        // is that last `auto`: a chip per tag makes the strip as wide as the widest
-        // row's tag list and squeezes every title on the page to pay for it, on a list
-        // whose rows carry between one and six. The row already wears every tag as an
-        // `idea-tag-<tag>` class (`row-class` below), so a site theming by tag still
-        // can, and the pills say which tag is being filtered on.
+        // THE MULTI-VALUED ONES ARE NOT CHIPPED BY DEFAULT, which is a decision about
+        // the GRID rather than about tags. `.idea-row` is `<gutter> 1fr auto auto` and
+        // the strip is that last `auto`: a chip per tag makes the strip as wide as the
+        // widest row's tag list and squeezes every title on the page to pay for it, on
+        // a list whose rows carry between one and six. The row already wears every tag
+        // as an `idea-tag-<tag>` class (`row-class` below), so a site theming by tag
+        // still can, and the pills above the list say which tag is being filtered on.
+        // `badge-pills: true` is the stated exception: a day view is a handful of rows
+        // read whole, so that cost does not apply, and there every badge — including
+        // the multi-valued ones — is drawn as the block's own `facet-pill` instead of a
+        // chip, wired to the same press with no script of this package's own.
         //
         // THE PRIORITY CHIP GOES WHERE THE LABEL IS DRAWN, because the label IS that
         // chip, moved: an undated row carrying `P0` in the date column and a `p0`
-        // badge on the strip says one thing twice, at opposite ends of the row.
-        badges: facets
-          .filter(f => f != "priority" or pri-label == none)
-          .filter(f => f not in _MULTI)
-          .map(f => r.at(f, default: none))
-          .filter(v => v != none and v != "")
-          .map(v => (text: v.replace("-", " "), tag: v)),
+        // badge on the strip says one thing twice, at opposite ends of the row. This
+        // holds regardless of `badge-pills`.
+        //
+        // A LOOP, NOT A `.flatten()`: a multi-valued facet contributes SEVERAL badges,
+        // and flattening would flatten the `(facet, value)` pairs along with the array
+        // of them.
+        badges: {
+          let out = ()
+          for f in facets {
+            // THE PRIORITY CHIP GOES WHERE THE LABEL IS DRAWN — unchanged, see above.
+            if f == "priority" and pri-label != none { continue }
+            // THE MULTI-VALUED FACETS JOIN THE STRIP ONLY UNDER `badge-pills`.
+            if not badge-pills and f in _MULTI { continue }
+            let v = r.at(f, default: none)
+            let vals = if f in _MULTI {
+              if v == none { () } else { v }
+            } else if v == none { () } else { (v,) }
+            for value in vals.filter(x => x != "") {
+              out.push(if badge-pills {
+                facet-pill(f, value)
+              } else {
+                (text: value.replace("-", " "), tag: value)
+              })
+            }
+          }
+          out
+        },
       )
     }
   }

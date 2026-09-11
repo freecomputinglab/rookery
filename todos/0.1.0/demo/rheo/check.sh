@@ -232,4 +232,62 @@ if not bad:
 sys.exit(bad)
 TODAY
 
+# `badge-pills:` — OFF on `#todo-table`, ON on `#today-panel`. Asserted on the
+#    OUTPUT because the whole claim is about markup nothing else exercises:
+#    the knob draws every badge in a row's strip as the same pressable
+#    `.panel-pill` the block above the list draws, and it must do that ONLY
+#    in the day view. `ship` is the row to check — it carries both plain tags
+#    (`data-tag=" frontend phd "`, asserted above) — so its row must carry a
+#    pill for each, and no `#todo-table` row must carry a pill at all.
+python3 - "$H/index.html" <<'PILLS' || fail=1
+import re, sys
+h = open(sys.argv[1]).read()
+
+bad = 0
+def note(m):
+    global bad
+    print("FAIL: " + m); bad = 1
+
+def rows_of(seg):
+    return re.split(r'(?=<li class="panel-row)', seg)[1:]
+
+# THE WORKLIST (`#todo-table`, `badge-pills: false` by default): no row
+# carries a pill. This is the assertion that would catch the knob wired the
+# wrong way round.
+i = h.index("Filter them in groups")
+table_rows = rows_of(h[i:h.index("Today —", i)])
+if any("panel-pill" in r for r in table_rows):
+    note("a #todo-table row carries a panel-pill; badge-pills should default off")
+
+# THE DAY VIEW (`#today-panel`, `badge-pills: true`): every badge in a row's
+# own strip is the same pressable pill the block above the list draws.
+i = h.index("Today —")
+today_rows = rows_of(h[i:h.index("The dependency graph", i)])
+
+row_pills = [
+    p
+    for r in today_rows
+    for p in re.findall(r'<button type="button" class="panel-pill"[^>]*>', r)
+]
+if not any('data-panel-facet="tag"' in p for p in row_pills):
+    note("no today-panel row carries a tag pill")
+for p in row_pills:
+    if 'aria-pressed="false"' not in p:
+        note(f"an in-row pill ships no aria-pressed=\"false\": {p}")
+
+ship_row = next((r for r in today_rows if "ideas/ship.html" in r), None)
+if ship_row is None:
+    note("no today-panel row links to ideas/ship.html")
+else:
+    ship_tags = set(
+        re.findall(r'data-panel-facet="tag" data-panel-value="([^"]*)"', ship_row)
+    )
+    if ship_tags != {"frontend", "phd"}:
+        note(f"the ship row's tag pills are {sorted(ship_tags)}, wanted frontend and phd")
+
+if not bad:
+    print(f"  row pills: {len(row_pills)} in today rows, none in #todo-table rows")
+sys.exit(bad)
+PILLS
+
 if [ "$fail" -eq 0 ]; then echo "demo/rheo OK"; else echo "demo/rheo FAILED"; exit 1; fi

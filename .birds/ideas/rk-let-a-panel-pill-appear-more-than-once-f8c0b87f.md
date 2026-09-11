@@ -7,7 +7,7 @@ labels:
 - panel
 - type:feature
 deps: []
-closed: false
+closed: true
 ---
 `@rookery/search`'s `#panel` emits its filter pills in exactly one place — the pill block above the list — and `panel.js` assumes that, so each facet value has exactly one button on the page. `@rookery/todos` now wants the same pill to appear a second time INSIDE a row, as the row's own tag badge, so that a reader can press a tag where they read it rather than hunting for it in the block above. Two things stop that today: the pill markup is a closure private to `#panel`, so a consumer can only hand-copy it; and `panel.js` writes `aria-pressed` onto the clicked button alone, so two copies of one pill would disagree about whether the filter is on.
 

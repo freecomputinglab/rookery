@@ -417,11 +417,19 @@ What it leaves out, all of it a fact another group already states:
   that makes the subject line's `union:` necessary: the epic's name lives in one
   group only, so the two groups cannot be intersected.
 
-**Tags are not chipped on the row**, unlike the other three facets, and that is a
-decision about the grid: `.idea-row` is `<gutter> 1fr auto auto` and the badge strip
-is that last `auto`, so a chip per tag makes the strip as wide as the widest row's
-tag list and squeezes every title on the page to pay for it. Each row still wears
-every tag as an `.idea-tag-<tag>` class, so theming by tag is unaffected.
+**Tags are not chipped on the row by default**, unlike the other three facets, and
+that is a decision about the grid: `.idea-row` is `<gutter> 1fr auto auto` and the
+badge strip is that last `auto`, so a chip per tag makes the strip as wide as the
+widest row's tag list and squeezes every title on the page to pay for it. Each row
+still wears every tag as an `.idea-tag-<tag>` class, so theming by tag is unaffected.
+
+**`badge-pills: true` turns the strip into the same pressable pills the block above
+the list draws**, and joins the tag group into it at the same time — the two are one
+knob because they are one decision: a tag a reader can already see on a row is a tag
+they want to press, and a strip mixing chip-shaped state with pill-shaped state says
+two things in two conventions on one line. `false` (the default here, for the grid
+reason above) keeps every badge a chip and keeps tags off the row entirely; `#today-panel`
+below turns it on, where the strip is a handful of rows rather than a scrolling worklist.
 
 **To keep a whole tag family out of the group**, pass `tag-filter:` — a predicate over
 the tag key, which narrows the group and cannot widen it:
@@ -518,9 +526,14 @@ list. Everything past the selection is `#todo-table`'s own: the pills, the
 date-cell ramp, the row shape, and every knob that view already takes
 (`rows:`, `filter:`, `facets:`, `pill-rows:`, `sync:`, and the rest), because
 `#today-panel` draws nothing of its own — it hands `#todo-table` a smaller
-list and gets the same widget back. The one default it changes on the way in
-is `visible:`, `none` here where `#todo-table` defaults to `8`: a day view is
-meant to be read whole, not scrolled.
+list and gets the same widget back. Two defaults change on the way in.
+`visible:` is `none` here where `#todo-table` defaults to `8`: a day view is
+meant to be read whole, not scrolled. `badge-pills:` is `true` here where
+`#todo-table` defaults to `false`: a handful of rows read whole does not pay
+the grid-width cost that default exists to avoid, so every badge in a row's
+strip — including its tags — is drawn as the same pressable pill the block
+above the list draws, and pressing a tag on a row filters the list exactly as
+pressing its twin above does.
 
 **Overdue work stays on the list by default.** `#todo-table` already paints
 an overdue deadline's date cell solid red; this view keeps that row in front

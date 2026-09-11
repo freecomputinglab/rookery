@@ -527,4 +527,14 @@
   .todo-validate-report {
     display: none;
   }
+
+  /* A PILL IN A ROW'S BADGE STRIP, not in the block above it. `.panel-pill`
+     (@rookery/search) styles it whole — this only stops a two-word value
+     (`in progress`) breaking across two lines in a strip that is the grid's
+     last `auto` track. Layered safely: core's unlayered chip rule matches
+     `[data-rookery="tag"]` and a pill is not one, and search sets no
+     `white-space`, so nothing competes with this. */
+  [data-rookery="row-badges"] > .panel-pill {
+    white-space: nowrap;
+  }
 }

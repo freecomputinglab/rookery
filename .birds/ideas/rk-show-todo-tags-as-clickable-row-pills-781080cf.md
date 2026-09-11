@@ -9,7 +9,7 @@ labels:
 deps:
 - blocked-by:rk-let-a-panel-pill-appear-more-than-once-f8c0b87f
 - blocked-by:rk-let-an-idea-row-badge-be-raw-content-a7c93322
-closed: false
+closed: true
 ---
 A `#today-panel` row shows a badge strip on the right — `ready`, `blocked`, the epic, the priority — and the todo's own plain tags are missing from it. They exist as pills in the block above the list, so a reader can filter by `phd`, but cannot see that THIS row is the `phd` one without reading the pills against the rows. The strip is where a reader already looks for what a row IS, and the tags belong in it.
 
