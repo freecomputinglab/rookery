@@ -1,0 +1,93 @@
+/* @rookery/meetings — the record a meeting opens with: who was in the room, and
+   the rail of when it happened under it.
+
+   Thin on purpose, like every stylesheet in this family: enough that the block
+   reads correctly out of the box, and nothing that presumes a page design.
+
+   THE LAYER, and it is not optional. rheo links a PACKAGE's stylesheet AFTER the
+   project's own, so on equal specificity this file would win every tie and a
+   project could not fix it by writing its rule "later" — there is no later.
+   Wrapping everything in a cascade layer inverts that: any UNLAYERED rule in the
+   project's CSS beats any layered rule here, whatever its specificity or position.
+
+   THE PROPERTIES. Every colour and size is `var(--x, <default>)`, the default being
+   the literal in the var() call. Set one on `.meeting-fields` (or anywhere it
+   inherits from) and the block is themed without overriding a rule at all:
+
+     --meeting-fg       a field's value
+     --meeting-muted    the label above the block, and a field's name
+     --meeting-line     the rules between fields
+     --meeting-gap      space between a field's text and the rule under it
+     --meeting-gutter   width of the name column
+
+   THE GUTTER MATCHES @rookery/timeline'S RAIL, 7.5em, and the match is the point:
+   a meeting draws this block and that rail one after the other, and two adjacent
+   tables whose columns start in different places read as two conventions rather
+   than one note. The default reads `--timeline-gutter` first, so setting that
+   single property lines both up.
+
+   THE SAME MARKUP @rookery/bibtex GIVES A CITATION, deliberately — one gutter, one
+   hairline, one label size across the family — but its OWN classes and its own
+   copy of the rules, because a project using this package must not have to install
+   that one to see a meeting's header. What differs is the spacing: bibtex's block
+   is a FOOTER and its gaps are measured for one, which is exactly wrong at the top
+   of a note. Here the space goes below the block rather than above it. */
+@layer meetings {
+  .meeting-fields-head {
+    margin: 0.25em 0 0;
+    color: var(--meeting-muted, gray);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.85em;
+  }
+
+  /* TWO COLUMNS: the field's name in the gutter, its value to the right. A grid on
+     the `<dl>` itself, with each `<dt>`/`<dd>` auto-placed as its own item — so a
+     value that wraps to three lines pushes the next row down instead of drifting
+     out of column. A grid rather than a flex line, for the reason measured across
+     this family: a flex item's basis is only a HYPOTHETICAL size, so a long field
+     name would push its value and no two rows would agree where it starts. */
+  .meeting-fields {
+    display: grid;
+    grid-template-columns: var(--meeting-gutter, var(--timeline-gutter, 7.5em)) 1fr;
+    column-gap: 0.9rem;
+    margin: 0.6rem 0 1.2rem;
+    border-top: 1px solid var(--meeting-line, var(--timeline-line, currentColor));
+  }
+
+  /* THE RULES BETWEEN FIELDS, one per row, drawn on BOTH cells so the two segments
+     abut into a single line across the block. Horizontal only: the field names are
+     a label column, not a second column of data. */
+  .meeting-fields dt,
+  .meeting-fields dd {
+    padding: var(--meeting-gap, 0.4rem) 0;
+    border-bottom: 1px solid var(--meeting-line, var(--timeline-line, currentColor));
+  }
+
+  .meeting-fields dt {
+    color: var(--meeting-muted, gray);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.85em;
+  }
+
+  /* `margin: 0` is load-bearing rather than tidy: a browser's default `<dd>`
+     carries `margin-inline-start: 40px`, which in a grid cell indents every value
+     away from its own column. */
+  .meeting-fields dd {
+    margin: 0;
+    color: var(--meeting-fg, inherit);
+  }
+
+  /* A RAIL FOLLOWING THE RECORD carries the block's bottom space instead, so the
+     table and the rail read as one header rather than two tables with a gap
+     between them. `.timeline` sets `margin: 0.6rem 0 0` itself, which is the space
+     ABOVE it; what it has no opinion about is the prose underneath. */
+  .meeting-fields:has(+ .timeline) {
+    margin-bottom: 0;
+  }
+
+  .meeting-fields + .timeline {
+    margin-bottom: 1.2rem;
+  }
+}

@@ -1,0 +1,24 @@
+[package]
+name = "bibtex"
+version = "0.1.0"
+compiler = "0.15.0"
+entrypoint = "src/lib.typ"
+authors = ["The Free Computing Lab <https://freecomputinglab.ohrg.org>"]
+license = "MIT"
+description = "A BibTeX reader and a #citation note constructor for @rookery/core notes"
+repository = "https://github.com/freecomputinglab/rookery"
+
+# The floor @rookery/core declares, matched rather than guessed: this package mints
+# notes through core's `tagged-idea` and is only ever built inside a project already
+# on a rheo that can resolve the `@rookery` namespace and a ref-fetched package by
+# its resolved commit — both of which need 0.6.2.
+#
+# `min_version` MUST BE DECLARED BEFORE THE SUBTABLE BELOW IT: a format-specific
+# subtable placed above it would capture that key into itself instead.
+[tool.rheo]
+min_version = "0.6.2"
+
+# The stylesheet for the citation block `#fields-block` draws — a label and one row
+# per bibliographic field, sized against whatever type the page already sets.
+[tool.rheo.html]
+css_stylesheet = "src/bibtex.css"

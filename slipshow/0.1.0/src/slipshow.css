@@ -1,0 +1,337 @@
+/* rookery-slipshow — the presentation stylesheet: slip layout, row layout,
+   fullscreen slips, backgrounds, and the progressive reveal that keeps a
+   deck empty until the reader walks into it. Pinned to the DOM `src/slipshow.typ`
+   emits (read that file's header for the exact markup) and to the
+   camera/scroll behaviour `src/slipshow.js` drives — all three name the
+   same class/attribute/data-* vocabulary and cannot be changed apart.
+
+   This is a SLIP model, not a slide model: there is no fixed slip height
+   anywhere below. A slip is exactly as tall as its content, and the deck is
+   one continuous vertical flow the engine scrolls through rather than a
+   sequence of fixed-size frames. `.slip-row` is the one exception to that
+   flow rather than a replacement for it: it lays its own children out
+   side by side and scrolls sideways on overflow, and every rule for it is
+   scoped under `.slip-row` so a deck using no `row:` (`src/slipshow.typ`'s
+   file header) renders through none of them.
+
+   A slip's content is a `@rookery/core` card — `[data-rookery="box"]` or
+   `[data-rookery="window"]` — and this file must not restyle a card's own
+   identity (its left rule, its hat). It reaches core only through those role
+   attributes, never through the `.idea-box`/`.idea-window` classes: the
+   classes are a renameable public hook, the attributes are the stable one.
+   Every dimension here is the deck's own — the rhythm between slips, the
+   fullscreen height, a background's sizing, a row's default width — so
+   nothing borrows a `--idea-*` token FOR A CARD'S CHROME. The one
+   exception is `.slip-row`'s own `gap`: several cards sitting side by side
+   want the same rhythm a themed project already gives a card's content
+   beside its rule, so the row reads `--idea-pad` instead of picking its
+   own number. */
+
+/* THE DECK IS NOT A SCROLL CONTAINER. `src/slipshow.js` scrolls the WINDOW —
+   `window.scrollTo`, `window.scrollY`, `document.documentElement.scrollHeight`
+   — and `src/camera.js` computes its targets in DOCUMENT coordinates, so
+   giving this element a height and `overflow-y` of its own would leave every
+   camera move scrolling a page that no longer scrolls. Slips stack in normal
+   block flow and the page grows to fit them. */
+.slipshow {
+  /* The camera's "focus" action (`src/camera.js`) zooms by scaling this
+     root; transitioned here so a zoom glides like the scroll it pairs with.
+     Turned off under reduced motion below. */
+  transition: transform 0.35s ease;
+
+  /* The containing block for `.slip-edges` below, which is `inset: 0` against
+     it. This makes the deck a containing block for absolute positioning;
+     nothing else in this file relies on it not being one — `.slip-bg` is
+     positioned against `.slip`, which declares `position: relative` itself. */
+  position: relative;
+}
+
+/* THE CONNECTOR LAYER (`src/edges.js`): one SVG spanning the whole deck, its
+   user units the deck's own untransformed pixels — hence no `viewBox`. It is
+   the deck's FIRST child so the curves paint beneath every slip.
+
+   `overflow: visible` because a curve leaving a rail near the deck's edge can
+   bulge outside the deck's box, and clipping it there would cut the join.
+   `pointer-events: none` because a curve is never a click target and must not
+   eat the deck's own click-to-advance. */
+.slip-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* ONE CURVE. As thick as the rails it joins by default, so it reads as their
+   continuation rather than as a line drawn between them; `--slip-edge-width`
+   is the override for a deck that wants them thinner than its rules. Round
+   caps so the join to a rail has no visible corner. */
+.slip-edge {
+  fill: none;
+  stroke-width: var(--slip-edge-width, var(--slip-rule-width, 4px));
+  stroke-linecap: round;
+  opacity: var(--slip-edge-opacity, 0.85);
+}
+
+/* Smooth scrolling belongs to the scrolling element, which is the document —
+   so it goes on the root, and `:has` keeps it to a page that actually carries
+   a deck rather than every page in a rheo project this stylesheet ships to.
+   The engine passes `behavior` to `scrollTo` itself; this covers a scroll it
+   did not start, such as landing on a `#slip-<id>` fragment. */
+:root:has(.slipshow) {
+  scroll-behavior: smooth;
+}
+
+/* ONE SLIP. No fixed height — see the file header — and, by default, no
+   spacing of its own either: a slip is exactly its card, and the rhythm
+   between two slips is whatever `@rookery/core` already gives two cards in a
+   column. This package used to add `3rem 1.5rem` of padding and another
+   `3rem` between slips, which on a deck the reader walks into one slip at a
+   time reads as a page of empty space with a note somewhere in it — the
+   generous frame was sized for a deck that showed everything at once.
+
+   TWO CUSTOM PROPERTIES RATHER THAN TWO LITERALS, because zero is a default
+   and not a decree: a deck that wants the old airy frame back sets
+   `--slip-pad: 3rem 1.5rem; --slip-gap: 3rem` on `.slipshow` in its own
+   stylesheet, and one that wants a little breathing room sets something
+   smaller. They are declared here, on the element that uses them, rather than
+   on a `:root` block: a project overriding them scopes the override to its
+   own deck that way instead of to every page in the site.
+
+   `padding` IS WHAT A BACKGROUND FILLS (see the background rules below), so a
+   slip with `background:` set now paints exactly its card's own box with no
+   surround. That is the honest reading of zero padding rather than an
+   oversight — a deck wanting a coloured band around its content is a deck
+   wanting `--slip-pad`.
+
+   `scroll-margin-top` stays a real number, and matters MORE at zero padding
+   than it did at `3rem`: the engine's `up` and `left` actions land a slip's
+   top edge exactly at the viewport edge, and with no padding left to stand in
+   for it the card would otherwise butt straight against the top of the
+   window.
+
+   A FOURTH, OPT-IN AXIS: `border-inline-start`/`padding-inline-start` below
+   open a left-rule channel with no colour of its own, defaulting to `0`
+   width, `transparent` colour and `0` gap, so a deck setting none of the
+   three renders byte-identical to a slip with no rule at all. `-inline-start`
+   rather than `left`, matching every other directional value in this file.
+   It lives on the slip and not on the card inside it because the card's own
+   border belongs to `@rookery/core`, and `core.css` is unlayered throughout —
+   its own comment on that border rule (marked MEASURED) is why a downstream
+   package's layered rule can never beat one there regardless of specificity.
+   A slip carries no border of its own to fight, so the channel opens here
+   instead, for a consuming package to set the colour on. */
+.slip {
+  /* The containing block for `.slip-bg` below. */
+  position: relative;
+  padding: var(--slip-pad, 0);
+  border-inline-start: var(--slip-rule-width, 0) solid var(--slip-rule-color, transparent);
+  padding-inline-start: var(--slip-rule-gap, 0);
+  margin-bottom: var(--slip-gap, 0);
+  scroll-margin-top: var(--slip-scroll-margin, 1.5rem);
+}
+
+/* A ROW (`div.slip-row[data-row]`, `src/slipshow.typ`'s file header): a run
+   of slips laid out side by side instead of stacked. `align-items:
+   flex-start`, not `stretch`: slips in one row carry different amounts of
+   prose, and stretching them to a common height would put a card's left
+   rule and tab against empty space a row of side-by-side cards has no
+   business filling — a row is a set of cards beside each other, not a
+   table. `gap` reads `--idea-pad`, the same rhythm a themed project
+   already uses to space a card's own content from its rule; the fallback
+   (1rem) is this file's own, wider than the card indent because a row gap
+   separates two whole cards rather than a rule from the text beside it. */
+.slip-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--idea-pad, 1rem);
+}
+
+/* THE ROW SCROLLS SIDEWAYS ON OVERFLOW rather than wrapping or clipping —
+   the reason `.slip-row` exists at all. `scroll-behavior: smooth` mirrors
+   `:root:has(.slipshow)` above: a scroll the engine did not itself start
+   (a fragment link landing on a slip inside a row, say) still glides
+   instead of jumping. `scroll-padding-inline-start` mirrors `.slip`'s own
+   `scroll-margin-top` above, so a programmatic horizontal scroll does not
+   butt a slip against the row's left edge either. `proximity`, not
+   `mandatory`: mandatory snapping fights a hand-scroll near a row's end
+   and can trap a reader between two slips. */
+.slip-row {
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline-start: 1.5rem;
+}
+
+/* `flex: 0 0 auto` is load-bearing: without it flex shrinks every slip to
+   fit the row, and the inline `max-width` `src/slipshow.typ` may set
+   (file header) becomes a ceiling nothing ever reaches — twelve slips in a
+   row would each come out a sliver instead of scrolling. NO `flex-wrap`
+   anywhere in this file: a wrapped row is a second row nothing labelled it
+   as, and the engine navigates by the row wrapper's own children. */
+.slip-row > .slip {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+/* A SENSIBLE DEFAULT WIDTH, for a deck that groups slips into a row
+   without setting `max-width:` on any of them. The inline `max-width`
+   `src/slipshow.typ` emits overrides this with no `!important` needed — an
+   inline style already beats a stylesheet rule of any specificity. */
+.slip-row > .slip {
+  max-width: min(100%, 34rem);
+}
+
+/* AN IMAGE BACKGROUND (`div.slip-bg`, `src/slipshow.typ`'s file header). It
+   fills the slip's own box behind everything else, `object-fit: cover`
+   standing in for the `background-size: cover` a `background-image` would
+   otherwise have gotten. Each of the slip's own children then gets
+   `position: relative; z-index: 1` individually, rather than a stacking
+   context on `.slip` itself, which would sit between `.slipshow`'s zoom
+   transform (`src/camera.js`, applied by `src/slipshow.js`) and its
+   children in a way the camera does not account for. */
+.slip-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.slip-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.slip > :not(.slip-bg) {
+  position: relative;
+  z-index: 1;
+}
+
+/* A SLIDE'S WINDOW OWES ITS FIGURE NOTHING. `@rookery/core`'s `#window` wraps
+   itself in a Typst `figure`, and two things put a box around that figure which
+   a slip does not want:
+
+     - the user agent's own `figure { margin: 1em 40px }`. Core zeroes the left
+       and right of it for a window, which leaves the `1em` top and bottom.
+     - core's `padding-top` on the same figure, reserving room for a window's
+       LIFTED ID so it cannot overflow upward into whatever precedes it.
+
+   Neither earns its space here. `<section class="slip">` is already the spacing
+   unit — it is what the camera scrolls to and what `.slip-row` lays out — so a
+   second box inside it only pushes the content off its own top edge. And a
+   slide has no id to clear: `#slipshow` sets `show-id: false`, which leaves the
+   tab emitted but empty.
+
+   `.slipshow .slip figure`, NOT `.slip figure`, and the second class is
+   load-bearing. Core's rule is `figure:has(> [data-rookery="window"])`, scoring
+   (0,1,1) because `:has()` takes its argument's specificity — exactly what a
+   bare `.slip figure` scores too, which would leave the winner to stylesheet
+   order. That order is a property of a consuming project's package list rather
+   than of anything this package controls, so the tie is broken here instead:
+   (0,2,1) wins wherever the two sheets land. */
+.slipshow .slip figure {
+  margin: 0;
+  padding: 0;
+}
+
+/* THE FULLSCREEN CASE. `min-height`, not `height`: a slip whose content is
+   taller than the viewport still shows all of it rather than clipping.
+   `svh` over `vh` for the reason given on `.slipshow` above — a `100vh`
+   fullscreen slip resizes (and visibly jumps) as mobile browser chrome
+   shows and hides during scroll; `svh` is the viewport height with that
+   chrome already accounted for, so it stays put. `vh` first, as the
+   fallback line an `svh`-aware browser overrides. Centered as a flex column
+   so short content sits in the middle of the viewport rather than pinned to
+   the top, which is the point of calling a slip fullscreen at all. */
+.slip.slip-fullscreen {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* A FULLSCREEN SLIP INSIDE A ROW is a contradiction — several cards cannot
+   each be the whole viewport on one line — so the ROW becomes the
+   fullscreen thing instead. `align-items: center` centers the row's
+   shorter neighbours against the fullscreen slip's height, the same
+   reason the slip itself centers its own content (above). */
+.slip-row:has(> .slip-fullscreen) {
+  min-height: 100svh;
+  align-items: center;
+}
+
+/* Cancels `.slip.slip-fullscreen`'s own `min-height` (above): left in
+   place, three fullscreen slips in one row would each demand their own
+   `100svh`, tripling the row's height instead of sharing the one the row
+   now supplies. Two classes each, so this selector ties
+   `.slip.slip-fullscreen`'s specificity exactly — it wins by coming after
+   it in this file, not by being more specific. */
+.slip-row > .slip-fullscreen {
+  min-height: 0;
+}
+
+/* PROGRESSIVE REVEAL (`data-reveal="progressive"`, `src/slipshow.typ`'s
+   header). Two rules, and both hang off `.slipshow-revealing` — a class
+   `src/slipshow.js` adds to the deck root at init and this file never sees
+   otherwise. That indirection is the whole safety story: the attribute alone
+   would hide the deck for a reader whose JavaScript never ran, and since
+   nothing else could then bring a slip back, the page would be permanently
+   blank. Hiding only once the controller has announced itself means no JS
+   gets the whole deck rendered, exactly as it did before this existed.
+
+   `display: none`, not `visibility` or `opacity`: an unreached slip must take
+   up NO ROOM, or a deck of twenty opens as one screen of content followed by
+   nineteen screens of blank page, and every camera target the engine computes
+   is measured against a document that is mostly nothing. */
+.slipshow-revealing .slip:not(.slip-revealed) {
+  display: none;
+}
+
+/* A ROW WHOSE SLIPS ARE ALL STILL HIDDEN goes too, and it has to be said
+   separately because a row is not a slip: an empty `.slip-row` still
+   contributes its own `gap`, and one containing a fullscreen slip still
+   matches `.slip-row:has(> .slip-fullscreen)` above — `:has` tests the DOM,
+   which a `display: none` child is still in — so it would hold a whole
+   viewport of blank page open for a slip nobody has reached. The moment any
+   one of its slips is revealed the row comes back with it. */
+.slipshow-revealing .slip-row:not(:has(> .slip-revealed)) {
+  display: none;
+}
+
+/* AN INLINE `background-image`, from a source OTHER than this package:
+   `src/slipshow.typ` never emits one itself — a colour or a gradient becomes
+   an inline `background: ..`, an image becomes `div.slip-bg` instead (see
+   its file header). A colour/gradient background needs nothing here: CSS
+   already paints a `background`/`background-color` across the element's
+   full padding box by default, which is exactly "behind the whole slip,
+   padding included." This rule stays for a slip whose `style` carries a
+   `background-image` some other way, matched on the attribute itself so it
+   applies regardless of what set it. */
+.slip[style*="background-image"] {
+  background-size: cover;
+  background-position: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The engine reads this same preference when it picks `scrollTo`'s
+     behaviour (`src/slipshow.js`), but this stylesheet has to stand on its
+     own for the motions it declares outright: the document's smooth
+     scroll, the focus-zoom transition, and a row's own smooth scroll and
+     snap. */
+  :root:has(.slipshow) {
+    scroll-behavior: auto;
+  }
+
+  .slipshow {
+    transition: none;
+  }
+
+  .slip-row {
+    scroll-behavior: auto;
+    scroll-snap-type: none;
+  }
+}

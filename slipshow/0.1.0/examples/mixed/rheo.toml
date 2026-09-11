@@ -1,0 +1,12 @@
+# A mixed `#idea`/`#slip` deck — see `examples/_template/rheo.toml` for the
+# comments on `version`, `[spine]`, and the `[packages.rookery]` override
+# below; this file only sets the values, not the reasons.
+version = "0.6.2"
+content_dir = "content"
+formats = ["html"]
+
+[spine]
+exclude = ["lib.typ"]
+
+[packages.rookery]
+path = "../../../.."

@@ -1,0 +1,35 @@
+# @rookery/slipshow's only in-repo rheo fixture. This repo's own definition of
+# lint (CLAUDE.md, "Build") is "the package builds and its demo compiles",
+# and without this the package shipped src/, dist/ and test/ with no demo/
+# ever exercising the DOM `src/slipshow.typ` actually renders.
+#
+# The corpus is a REAL rookery, not one page: `index.typ` builds its deck from
+# a TAG QUERY, `explicit.typ` from an EXPLICIT ARRAY, `predicate.typ` from a
+# PREDICATE `tags:` function, and `deck.typ` is the realistic dozen-slip
+# presentation this package exists for. Four pages because the two
+# definition routes (`select.typ`) take different code paths through
+# `resolve-slips`, and either can break while the other passes.
+#
+# `formats` carries `pdf` deliberately: `#slipshow` renders transparently —
+# no camera, no deck wrapper, the ideas in their resolved order — on a paged
+# target, and only a PDF build proves that branch runs at all.
+version = "0.6.2"
+content_dir = "content"
+formats = ["html", "pdf"]
+
+[spine]
+# `lib.typ` is a library, not a page: it holds the `demo` wrapper every
+# vertebra applies. Without this it would compile to its own `lib.html`.
+exclude = ["lib.typ"]
+
+# The Typst package cache's `rookery` namespace
+# (`~/.cache/typst/packages/rookery`) is a per-machine convenience symlink,
+# and on a machine running several checkouts side by side it can point
+# anywhere — including a DIFFERENT checkout of this repository than the one
+# this fixture lives in. This override reads `@rookery/*` straight out of
+# THIS repository's own tree instead, so the fixture always exercises the
+# code sitting next to it rather than whatever the cache happens to resolve
+# to. `path` is anchored to this file's own directory, four levels up from
+# `<name>/<version>/`.
+[packages.rookery]
+path = "../../../.."
