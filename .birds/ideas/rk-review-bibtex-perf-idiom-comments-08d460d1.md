@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-package-reviews
 deps: []
-closed: false
+closed: true
 ---
 Review `@rookery/bibtex` for performance, idiomatic Typst, readability and
 comment bloat, and FILE the findings as birds. This bird writes no package code.
