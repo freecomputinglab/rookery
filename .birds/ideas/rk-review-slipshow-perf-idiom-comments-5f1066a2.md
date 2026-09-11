@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-package-reviews
 deps: []
-closed: false
+closed: true
 ---
 Review `@rookery/slipshow` for performance, idiomatic Typst and JavaScript,
 readability and comment bloat, and FILE the findings as birds. This bird writes
