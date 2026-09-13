@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-core-review
 deps: []
-closed: false
+closed: true
 ---
 `#idea` resolves the same visible-tag list four times per note, and binds the
 authored title to a second name for nothing. Both are in one function and one

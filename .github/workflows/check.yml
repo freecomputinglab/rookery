@@ -148,12 +148,24 @@ jobs:
       - name: meetings unit and view fixtures
         run: cd meetings/0.1.0 && just test
 
+      # bibtex is buildless like meetings — pure Typst, no vite — and imports
+      # `@rookery/core:0.1.0` for the notes its `#citation` constructor builds,
+      # so it sits after the namespace-resolution step above. Its recipe compiles
+      # two PDF fixtures and four HTML ones, echoing each one's stderr: the sweep
+      # fixtures assert on the WARNINGS a sweep emits, so the output is the test.
+      - name: bibtex unit and sweep fixtures
+        run: cd bibtex/0.1.0 && just test
+
+      # `just test` and `just parity` answer different questions: `just test`
+      # is this package's own node suite (the panels, the island, the URL
+      # state, the selection model, the row builder, the note extractor), and
       # `just parity` is the only thing keeping the Typst and JavaScript copies
-      # of the ranking rule from drifting — two leaf scorers and the tiering rule
-      # above them. `just build` first: parity imports `src/`, but a build failure
-      # is worth catching here too, since publish-packages.yml only builds on main.
-      - name: search build and parity
-        run: cd search/0.1.0 && just build && just parity
+      # of the ranking rule from drifting — two leaf scorers and the tiering
+      # rule above them. Both are needed. `just build` first: both later
+      # recipes import `src/`, but a build failure is worth catching here too,
+      # since publish-packages.yml only builds on main.
+      - name: search build, unit suite and parity
+        run: cd search/0.1.0 && just build && just test && just parity
 
       # This repo's definition of "lint" is that a package's demo compiles
       # (CLAUDE.md, "Build"). `demo/pure` is plain `typst compile`, so it runs
@@ -224,8 +236,8 @@ jobs:
       # package imports `@rookery/core:0.1.0` by coordinate. AFTER its own
       # `just build`, because `dist/` is gitignored and rheo cannot resolve
       # the package until vite has written it.
-      - name: slipshow build, unit fixture and rheo demo
-        run: cd slipshow/0.1.0 && just build && just test && just check
+      - name: slipshow build, unit fixtures and rheo demo
+        run: cd slipshow/0.1.0 && just build && just test && just test-js && just check
 
       # AFTER the namespace-symlink step, like every rheo demo above: these
       # example projects import `@rookery/core:0.1.0` by coordinate. AFTER
