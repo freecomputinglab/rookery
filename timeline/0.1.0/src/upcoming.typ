@@ -282,10 +282,12 @@
 
   // Both bounds compare on the same zero-padded key the sort uses, so there is one
   // notion of "this date is before that one" in this file rather than two.
+  let from-key = if from == none { none } else { _key(from) }
+  let within-key = if within == none { none } else { _key(_today(today) + duration(days: within)) }
   let rows = rows.filter(r => {
     if r.when == none { return true }
-    if from != none and r.key < _key(from) { return false }
-    if within != none and r.key > _key(_today(today) + duration(days: within)) { return false }
+    if from-key != none and r.key < from-key { return false }
+    if within-key != none and r.key > within-key { return false }
     true
   })
 

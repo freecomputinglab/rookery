@@ -346,13 +346,11 @@
 /* A note whose heading has NO CONTENT keeps the element only to carry the `id`
    anchor every `@idea:etal` fragment link resolves to, and must take no space.
 
-   AS LOAD-BEARING AS EVER, and 0.6.0 does not narrow them. That version derives a
-   naming LABEL from the body for a titleless note, but deliberately does NOT print
-   it here: a heading sits directly above the note's own body, so printing the
-   label there rendered the same text twice (see `#idea`'s title-vs-label banner in
-   src/idea.typ). The label goes to the places that REFER to the note — the minted
-   page's `<title>`, an index row, an outline entry — and a titleless note's
-   heading is as empty as it was in 0.5.0.
+   A titleless note derives a naming LABEL from its body, but this heading does NOT
+   print it: a heading sits directly above the note's own body, so printing the
+   label there would render the same text twice (see `#idea`'s title-vs-label banner
+   in src/idea.typ). The label goes to the places that REFER to the note instead —
+   the minted page's `<title>`, an index row, an outline entry.
 
    Scoped through the PARENT `[data-rookery="head"]`, for the same reason the
    margin-bottom rule above is: it is what lets this reach a minted page's
@@ -371,7 +369,7 @@
    (`show-id: false` drops it), the tag pills (`show-tags:`, off by default) and
    the date (`show-date:`, off by default). Turn the permalink off on an ordinary
    note and nothing is left, so the tab has to collapse or a note asked for no
-   hat still wears an empty band where one used to be. `#idea`/`#window` keep
+   hat still wears an empty band in its place. `#idea`/`#window` keep
    emitting the `<span>` in that state deliberately — it is the element every
    other tab rule in this file is written against, and it comes back the moment a
    pill or a date is turned on.
@@ -479,12 +477,11 @@
 
    That colour goes on the footer's OWN parts (below), never on this box. A
    `#window` in Backlinks is a NOTE, and has to read as one — the same thing it
-   is anywhere else — but an inherited `color` here reaches inside the
-   transcluded copy and tints its title. MEASURED on rookery.ohrg.org: backlink
-   titles came out `--idea-date-color` amber where every other window's title
-   is the ambient text colour. Per-part is also the only fix that stays theme
-   agnostic: a package cannot name the colour a window's title should revert
-   TO, only decline to override it. */
+   is anywhere else — but an inherited `color` here would reach inside the
+   transcluded copy and tint its title in the date colour, where every other
+   window's title is the ambient text colour. Per-part is also the only fix that
+   stays theme agnostic: a package cannot name the colour a window's title should
+   revert TO, only decline to override it. */
 [data-rookery="footer"] {
   margin-top: 2em;
   padding-top: 0.5em;
@@ -497,12 +494,10 @@
 /* Both sections have the same shape — a heading, then rows flowing down from
    it — so they take the same spacing and need no rules of their own.
 
-   REJECTED, do not reinstate: (1) the two sections side by side in a grid,
-   which gave a one-line fact half the footer's width and a list of unknown
-   length the other half, and needed a container query to flip a divider
-   between vertical and horizontal; (2) Context as a tinted one-line banner
-   across the top, which made the two sections look like different kinds of
-   thing when they are the same kind — places this note is reachable from. */
+   REJECTED: side by side in a grid, which gives a one-line fact half the
+   footer's width and a list of unknown length the other half; and Context as a
+   tinted banner across the top, which makes the two sections look like
+   different kinds of thing when they are the same kind. */
 [data-rookery="footer"] > * + * {
   margin-top: 1.5em;
 }

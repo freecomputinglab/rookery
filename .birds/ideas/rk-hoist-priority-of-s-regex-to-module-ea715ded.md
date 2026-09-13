@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-todos-review
 deps: []
-closed: false
+closed: true
 ---
 Hoist `priority-of`'s regex to module scope in
 `/home/lox/code/_fcl/rookery/todos/0.1.0/src/tags.typ`.
