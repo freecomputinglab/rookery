@@ -14,13 +14,12 @@
 // being mutually exclusive. `#panel`'s facet mode composes per group, so epic, tag,
 // state and priority each become their own group for free.
 //
-// AND THE GROUPS DO NOT ALL COMPOSE ALIKE, which is the correction this file needed
-// after shipping. "Within a facet the values OR .. and across facets they AND" was
-// quoted here as though it were the whole of what a reader expects, and it is not: it
-// is right for the STATE line, where `ready` and `p0` ask different questions, and
-// wrong for the SUBJECT line, where `epic` and `tag` are one question in two
-// projections and ANDing them returns nothing. `union:` below says which line is
-// which — see the argument at the `panel(..)` call.
+// AND THE GROUPS DO NOT ALL COMPOSE ALIKE. "Within a facet the values OR ..
+// and across facets they AND" is right for the STATE line, where `ready`
+// and `p0` ask different questions, and wrong for the SUBJECT line, where
+// `epic` and `tag` are one question in two projections and ANDing them
+// returns nothing. `union:` below says which line is which — see the
+// argument at the `panel(..)` call.
 //
 // THE `tag` GROUP IS WHY `multi:` EXISTS IN @rookery/search. The other three answer
 // "which one" and fit a scalar; a todo's plain tags are a SET, and a pill per tag any

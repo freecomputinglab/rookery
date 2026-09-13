@@ -264,14 +264,10 @@
 //
 // Open todos untouched for more than `older-than` days.
 //
-// RE-SOURCED IN 0.6.0, AND IT NOW MEASURES WHAT IT CLAIMS TO. It used to read
-// rookery core's `updated` field, which resolved from `#idea(updated:)`, then
-// `minted`, then the DOCUMENT's date — so on any project that did not hand-write
-// an `updated:` per todo, "stale" measured how old the document was and not
-// whether anything had happened. It now reads @rookery/timeline's
-// `updated-of(row, tags)`: the last entry in the todo's own dated log, falling
-// back to `created`. A todo that was deferred, activated or otherwise touched
-// says so, because touching it puts an entry in the log.
+// MEASURES WHAT IT CLAIMS TO: it reads @rookery/timeline's
+// `updated-of(row, tags)`, the last entry in the todo's own dated log,
+// falling back to `created`. A todo that was deferred, activated or
+// otherwise touched says so, because touching it puts an entry in the log.
 //
 // A todo with NO date at all is still not stale: nothing is known about when it
 // was touched, and reporting silence as staleness would flag every undated

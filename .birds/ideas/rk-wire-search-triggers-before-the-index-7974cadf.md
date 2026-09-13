@@ -6,7 +6,7 @@ priority: 6
 labels:
 - fix-safari-search-modal
 deps: []
-closed: false
+closed: true
 ---
 A reader on Safari (macOS and iPad) reported that clicking the search button in
 a rookery site's header does nothing at all, while the same click on Firefox and

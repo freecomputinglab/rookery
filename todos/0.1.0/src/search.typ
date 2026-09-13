@@ -30,12 +30,11 @@
 // property: an import would make the dependency unconditional, which is the one
 // thing this file must not do.
 //
-// THAT USED TO BE WRITTEN AS A RULE ABOUT THE WHOLE PACKAGE — "MUST NOT depend on
-// @rookery/search" — and it was too strong. `table.typ` now builds `#todo-table`
-// atop that package's `#panel`, for the reason point 1 above states: `ready` and
-// `blocked` are derived HERE and nowhere else, so a panel that cannot press them is
-// the one thing every consuming site ends up hand-rolling. The two facts sit side by
-// side — this file needs no panel, and the panel needs this file's graph.
+// `table.typ` builds `#todo-table` atop @rookery/search's `#panel`, for the
+// reason point 1 above states: `ready` and `blocked` are derived HERE and
+// nowhere else, so a panel that cannot press them is the one thing every
+// consuming site ends up hand-rolling. The two facts sit side by side —
+// this file needs no panel, and the panel needs this file's graph.
 //
 // LINKS, NOT TRANSCLUSIONS. Every match is the same link row the other views
 // emit. (`windows: true` on those views is a separate feature and this widget
