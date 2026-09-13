@@ -74,7 +74,7 @@ read in `jj log` if they want it.
   what it used to be, what moved where, which release changed it, or that
   something "is gone". "The scorer lives in `score.typ`" is worth a line; "the
   scorer used to live in `tagquery.typ`" is worth none.
-- **No issue ids.** Never name a beads issue, a bookmark or a branch. The
+- **No issue ids.** Never name a bird, a bookmark or a branch. The
   argument for a line has to stand on its own, because most readers of it have
   no access to the tracker and no interest in one.
 - **Keep the measurement, drop the lab notebook.** A number that justifies a
