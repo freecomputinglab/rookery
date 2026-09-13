@@ -1,7 +1,16 @@
 /* @rookery/pinboard: an absolutely-positioned board of note cards. Every
    rule is scoped under `.pinboard`/`.pinboard-card` — this stylesheet is
    injected into every page of a consuming project, and an unscoped rule
-   here would restyle pages that carry no board at all. */
+   here would restyle pages that carry no board at all.
+
+   A CARD'S FRAME IS CORE'S. `src/board.typ` puts a real `#window` inside
+   every card, so the left rule, the hat carrying the note's id, the hover
+   tint and the click-to-open disclosure all come from `core.css` and move
+   with whatever a project sets through `#show: rookery.with(..)`. What is
+   left here is the shell that positions that window, and the two things a
+   board needs from a window that a window standing in prose does not: a
+   summary row that drags, and a body that scrolls instead of growing the
+   card past the board. */
 
 .pinboard {
   position: relative;
@@ -15,65 +24,59 @@
   position: absolute;
   translate: var(--pin-x, 0) var(--pin-y, 0);
   width: 300px;
-  /* A collapsed card shrinks to fit its handle. `layout.js`'s `cardHeight` is
-     a spacing parameter for the initial grid, not a rendered height, so
+  /* A collapsed card shrinks to fit its summary row. `layout.js`'s `cardHeight`
+     is a spacing parameter for the initial grid, not a rendered height, so
      nothing here may pin the card to a fixed height. */
   height: auto;
-  border: 1px solid var(--pinboard-card-border, #ccc);
-  /* Not transparent: cards overlap while a layout settles. */
-  background: var(--pinboard-card-bg, #fff);
+  /* Not transparent: cards overlap while a layout settles. `Canvas` is the
+     reader's own page colour, so a card stays opaque under a dark theme too. */
+  background: var(--pinboard-card-bg, Canvas);
+  /* ROOM FOR THE HAT above the air. A window's id sits a whole
+     `--idea-label-size` above the frame's top edge — core lifts the tab there
+     — so a card owing only its own padding would clip the id. Read from the
+     property core lifts by, never a pixel count, so a project retheming the
+     label keeps the corner inside the card. */
+  padding: calc(var(--idea-label-size, 0.57rem) + 0.5em) 0.75em 0.6em;
   box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+}
+
+/* Core pays half the lift back as `padding-top` on the figure it wraps a
+   window in, for a window in prose whose other half overlaps the margin
+   above it. A card pays the whole lift itself (above), so this would be a
+   second helping of it. */
+.pinboard-card > figure {
+  margin: 0;
+  padding-top: 0;
+}
+
+/* THE SUMMARY ROW IS THE HANDLE, and it is still the disclosure: a press that
+   moves is a drag, a press that does not is the click that opens the card
+   (`src/drag.js`). `grab` describes both — the row answers a press either way.
+   `user-select: none` is what keeps a drag from turning into a text
+   selection; suppressing that from JavaScript would take a `preventDefault`
+   on `pointerdown`, and that costs the click the disclosure needs. */
+.pinboard-card [data-rookery="window-summary"] {
+  cursor: grab;
+  user-select: none;
+}
+
+/* The permalink in the hat is a real link and keeps a link's cursor. */
+.pinboard-card [data-rookery="window-summary"] a {
+  cursor: pointer;
 }
 
 /* While dragging, the card must track the pointer exactly rather than ease
    behind it, so any transition on `translate` is suspended for the duration. */
 .pinboard-card[data-dragging] {
   transition: none;
+}
+
+.pinboard-card[data-dragging] [data-rookery="window-summary"] {
   cursor: grabbing;
 }
 
-.pinboard-card-handle {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  padding: 0.5em 0.75em;
-  background: var(--pinboard-handle-bg, #eee);
-  font-weight: 600;
-  cursor: grab;
-}
-
-/* No default button chrome: the toggle reads as part of the handle, not a
-   form control dropped onto it. */
-.pinboard-card-toggle {
-  all: unset;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.25em;
-  height: 1.25em;
-  flex: none;
-  border: 1px solid var(--pinboard-toggle-border, #999);
-  border-radius: 3px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.pinboard-card-toggle:focus-visible {
-  outline: 2px solid var(--pinboard-focus-ring, #4a90d9);
-  outline-offset: 1px;
-}
-
-.pinboard-card-body {
-  padding: 0.5em 0.75em;
-  /* One long note must not make a card taller than the board. */
+/* One long note must not make a card taller than the board. */
+.pinboard-card [data-rookery="window-body"] {
   max-height: 200px;
   overflow: auto;
-}
-
-/* `data-collapsed` is the single source of truth for a card's state (see
-   `src/collapse.js`) — this rule is the only place the body's visibility is
-   decided, and it must never be set from JavaScript as an inline style. */
-.pinboard-card[data-collapsed] .pinboard-card-body {
-  display: none;
 }

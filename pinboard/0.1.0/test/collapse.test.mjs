@@ -1,56 +1,55 @@
 // Unit tests for collapse-to-title. `isCollapsed`/`setCollapsed` are plain
-// attribute reads and writes on an element, which linkedom's lightweight DOM
-// models faithfully — one of the few things in this package a node test can
-// exercise with no browser.
+// attribute reads and writes on the `<details>` a card's `#window` puts there,
+// which linkedom's lightweight DOM models faithfully — one of the few things
+// in this package a node test can exercise with no browser.
 
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { parseHTML } from "linkedom";
 
-import { isCollapsed, setCollapsed } from "../src/collapse.js";
+import { cardDetails, isCollapsed, setCollapsed } from "../src/collapse.js";
 
-function makeCard() {
-  const { document } = parseHTML("<!DOCTYPE html><html><body></body></html>");
-  const card = document.createElement("article");
-  card.setAttribute("class", "pinboard-card");
-  const handle = document.createElement("header");
-  handle.setAttribute("class", "pinboard-card-handle");
-  const button = document.createElement("button");
-  button.setAttribute("class", "pinboard-card-toggle");
-  button.setAttribute("type", "button");
-  button.setAttribute("aria-expanded", "true");
-  button.textContent = "−";
-  handle.appendChild(button);
-  card.appendChild(handle);
-  document.body.appendChild(card);
-  return { card, button };
+// The DOM `src/board.typ` renders, trimmed to what these functions read: the
+// card, and the window's disclosure inside the figure core wraps it in.
+function makeCard({ nested = false } = {}) {
+  const body = nested
+    ? '<details data-rookery="window-details" open><summary>nested</summary></details>'
+    : "prose";
+  const { document } = parseHTML(`<!DOCTYPE html><html><body>
+    <article class="pinboard-card" data-pinboard-id="idea:etal">
+      <figure><div data-rookery="window">
+        <details class="idea-window-details" data-rookery="window-details" open>
+          <summary data-rookery="window-summary">Outline</summary>
+          <div data-rookery="window-body">${body}</div>
+        </details>
+      </div></figure>
+    </article>
+  </body></html>`);
+  const card = document.querySelector(".pinboard-card");
+  return { card, details: cardDetails(card) };
 }
 
-test("setCollapsed(card, true) sets data-collapsed and aria-expanded=false", () => {
-  const { card, button } = makeCard();
+test("setCollapsed(card, true) shuts the card's disclosure", () => {
+  const { card, details } = makeCard();
   setCollapsed(card, true);
-  assert.ok(card.hasAttribute("data-collapsed"));
-  assert.equal(button.getAttribute("aria-expanded"), "false");
+  assert.ok(!details.hasAttribute("open"));
 });
 
-test("setCollapsed(card, false) removes data-collapsed and restores aria-expanded=true", () => {
-  const { card, button } = makeCard();
+test("setCollapsed(card, false) opens it again", () => {
+  const { card, details } = makeCard();
   setCollapsed(card, true);
   setCollapsed(card, false);
-  assert.ok(!card.hasAttribute("data-collapsed"));
-  assert.equal(button.getAttribute("aria-expanded"), "true");
+  assert.ok(details.hasAttribute("open"));
 });
 
 test("setCollapsed is idempotent", () => {
-  const { card, button } = makeCard();
+  const { card, details } = makeCard();
   setCollapsed(card, true);
   setCollapsed(card, true);
-  assert.ok(card.hasAttribute("data-collapsed"));
-  assert.equal(button.getAttribute("aria-expanded"), "false");
+  assert.ok(!details.hasAttribute("open"));
   setCollapsed(card, false);
   setCollapsed(card, false);
-  assert.ok(!card.hasAttribute("data-collapsed"));
-  assert.equal(button.getAttribute("aria-expanded"), "true");
+  assert.ok(details.hasAttribute("open"));
 });
 
 test("isCollapsed agrees with what setCollapsed last set", () => {
@@ -63,9 +62,27 @@ test("isCollapsed agrees with what setCollapsed last set", () => {
 });
 
 test("setCollapsed(card, true) works on a card that has never been clicked", () => {
-  const { card, button } = makeCard();
+  const { card } = makeCard();
   // No listener ever attached or run — this is the boot-time restore path.
   setCollapsed(card, true);
   assert.ok(isCollapsed(card));
-  assert.equal(button.getAttribute("aria-expanded"), "false");
+});
+
+test("a window nested in the body does not stand in for the card's own", () => {
+  const { card, details } = makeCard({ nested: true });
+  const inner = card.querySelector('[data-rookery="window-body"] details');
+  assert.equal(cardDetails(card), details);
+  setCollapsed(card, true);
+  assert.ok(!details.hasAttribute("open"));
+  assert.ok(inner.hasAttribute("open"));
+});
+
+test("a card with no window at all reads as open and takes no writes", () => {
+  const { document } = parseHTML(
+    '<!DOCTYPE html><html><body><article class="pinboard-card"></article></body></html>',
+  );
+  const card = document.querySelector(".pinboard-card");
+  assert.equal(isCollapsed(card), false);
+  setCollapsed(card, true);
+  assert.equal(isCollapsed(card), false);
 });

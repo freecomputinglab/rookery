@@ -2,11 +2,11 @@
 // `[data-pinboard]` container already on the page, restores each card's
 // pinned position and collapsed state from `src/store.js`, lays out any card
 // the store has nothing for with a flow layout from `src/layout.js`, and
-// wires the handle drag from `src/drag.js` and the collapse toggle from
-// `src/collapse.js` to persist through the same store on change. Position
-// rides on the `--pin-x`/`--pin-y` custom properties for `src/pinboard.css`
-// to place a card with, and not `style.left`/`style.top`, so the store, the
-// flow layout and the drag all go through the same pair.
+// wires the summary-row drag from `src/drag.js` and the card's own
+// disclosure from `src/collapse.js` to persist through the same store on
+// change. Position rides on the `--pin-x`/`--pin-y` custom properties for
+// `src/pinboard.css` to place a card with, and not `style.left`/`style.top`,
+// so the store, the flow layout and the drag all go through the same pair.
 //
 // Restoring the store happens synchronously, before a card is ever painted
 // with a flow position — under `rheo watch`, a rebuild reloads the whole

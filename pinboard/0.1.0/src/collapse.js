@@ -1,46 +1,60 @@
-// Collapse-to-title for pinboard cards. `makeCollapsible(board)` wires ONE
-// delegated click listener on the board, the same delegation `makeDraggable`
-// uses in `src/drag.js` for the same reason: a board can carry a hundred
-// cards, added and removed only by a rebuild, so one listener is cheaper and
-// simpler than one per card. `src/drag.js`'s own pointerdown handler already
-// ignores a press that lands on a `<button>`, so the toggle and the drag
-// never contend for the same gesture.
+// Collapse-to-title for pinboard cards. A card is a `@rookery/core` `#window`
+// (see `src/board.typ`), so collapsing one is the `<details>` core already
+// put there being shut: the `open` attribute is the single source of truth,
+// the browser writes it on every click with no JavaScript involved, and this
+// module is only what a boot-time restore and the store need to read and
+// write the same state from the outside.
 //
-// `data-collapsed` is the single source of truth for a card's state:
-// `setCollapsed` is the only place that writes it, `isCollapsed` the only
-// place that reads it, and `src/pinboard.css` hides a collapsed card's body
-// keyed on that same attribute — nothing here sets an inline style.
+// The attribute rather than the `open` IDL property, because the two are the
+// one thing a non-browser DOM (`node --test` runs these against linkedom) is
+// certain to agree about.
+
+// A card's OWN disclosure, never a nested window's: the card's is first in
+// document order, so the first match is the right one whatever a note's body
+// transcludes further down.
+export function cardDetails(card) {
+  return card.querySelector('[data-rookery="window-details"]');
+}
 
 export function isCollapsed(card) {
-  return card.hasAttribute("data-collapsed");
+  const details = cardDetails(card);
+  return details ? !details.hasAttribute("open") : false;
 }
 
 // Sets the card's collapsed state directly, independent of any listener
-// having run — this is what lets a boot-time caller (a future bird restoring
-// persisted state) collapse a card that has never been clicked.
+// having run — this is what lets `src/pinboard.js` restore a persisted state
+// on a card that has never been clicked.
 export function setCollapsed(card, collapsed) {
-  if (collapsed) {
-    card.setAttribute("data-collapsed", "");
-  } else {
-    card.removeAttribute("data-collapsed");
-  }
-  const button = card.querySelector(".pinboard-card-toggle");
-  if (!button) return;
-  button.setAttribute("aria-expanded", collapsed ? "false" : "true");
-  button.textContent = collapsed ? "+" : "−";
+  const details = cardDetails(card);
+  if (!details) return;
+  details.toggleAttribute("open", !collapsed);
 }
 
-// `opts.onChange`, when given, is called with the card once per toggle,
-// after `setCollapsed` — `src/pinboard.js` supplies the callback that
-// persists the card's new collapsed state via `src/store.js`; this module
-// has no dependency on storage at all.
+// `opts.onChange`, when given, is called with the card once per toggle —
+// `src/pinboard.js` supplies the callback that persists the card's new
+// collapsed state via `src/store.js`; this module has no dependency on
+// storage at all.
+//
+// ONE delegated listener on the board, the same delegation `makeDraggable`
+// uses in `src/drag.js` for the same reason: a board can carry a hundred
+// cards, added and removed only by a rebuild. `toggle` does not bubble, so
+// the listener runs in the CAPTURE phase, which reaches it anyway — and
+// catches a keyboard activation and a `setCollapsed` call as well as a click,
+// which a delegated `click` listener would not.
+//
+// A boot-time restore therefore re-persists the entry it just read, since the
+// `toggle` it queues lands after this is wired. Idempotent, and cheaper than
+// a flag that has to be cleared correctly.
 export function makeCollapsible(board, opts = {}) {
-  board.addEventListener("click", (event) => {
-    const toggle = event.target.closest(".pinboard-card-toggle");
-    if (!toggle) return;
-    const card = toggle.closest(".pinboard-card");
-    if (!card) return;
-    setCollapsed(card, !isCollapsed(card));
-    opts.onChange?.(card);
-  });
+  board.addEventListener(
+    "toggle",
+    (event) => {
+      const card = event.target.closest?.(".pinboard-card");
+      // A window nested inside a card's body has a disclosure of its own, and
+      // opening it says nothing about the card's own state.
+      if (!card || cardDetails(card) !== event.target) return;
+      opts.onChange?.(card);
+    },
+    true,
+  );
 }

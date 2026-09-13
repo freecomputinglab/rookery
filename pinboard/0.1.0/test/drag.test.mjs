@@ -6,7 +6,20 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 
-import { offsetPosition, clampPosition } from "../src/drag.js";
+import { offsetPosition, clampPosition, movedEnough, DRAG_THRESHOLD } from "../src/drag.js";
+
+test("movedEnough is false while the press is a click, on either axis", () => {
+  const start = { x: 100, y: 100 };
+  assert.equal(movedEnough(start, start), false);
+  assert.equal(movedEnough(start, { x: 100 + DRAG_THRESHOLD - 1, y: 100 }), false);
+  assert.equal(movedEnough(start, { x: 100, y: 100 - (DRAG_THRESHOLD - 1) }), false);
+});
+
+test("movedEnough is true once either axis reaches the threshold", () => {
+  const start = { x: 100, y: 100 };
+  assert.equal(movedEnough(start, { x: 100 + DRAG_THRESHOLD, y: 100 }), true);
+  assert.equal(movedEnough(start, { x: 100, y: 100 - DRAG_THRESHOLD }), true);
+});
 
 test("offsetPosition adds the pointer's delta to the start position", () => {
   const start = { x: 100, y: 50 };
