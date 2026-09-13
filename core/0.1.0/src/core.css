@@ -106,19 +106,15 @@
   font-weight: 200;
   /* Metadata, not content — explicitly smaller than the title beside it
      (`[data-rookery="window-title"]` and a heading's own text both stay at their
-     ambient size), rather than differing only by weight/colour as before.
-     `[data-rookery="date"]` reads this same property, so the date at the hat's other end
-     reads as the same kind of thing as the id at this one.
+     ambient size). `[data-rookery="date"]` reads this same property, so the date at
+     the hat's other end reads as the same kind of thing as the id at this one.
 
-     `rem`, NOT `em` — and this is the whole point of the rule. An id is ONE
-     thing wherever it appears, and `em` made it three different sizes: 0.57 of
-     an `<h2>` in an `#idea` heading, 0.57 of an `<h1>` on a minted page, 0.57
-     of body text in a `#window` summary (smaller again inside the footer,
-     which scales down). MEASURED on rookery.ohrg.org: the same id came out
-     visibly larger in a heading than in a window beside it. Root-relative, it
-     comes out identical in all of them, at the window's size — the smallest
-     of the three, which is the one that reads as machinery rather than as
-     part of the heading it sits in. */
+     `rem`, NOT `em` — an id is ONE thing wherever it appears, and `em` would make it
+     three different sizes: 0.57 of an `<h2>` in an `#idea` heading, 0.57 of an
+     `<h1>` on a minted page, 0.57 of body text in a `#window` summary (smaller again
+     inside the footer, which scales down). Root-relative, it comes out identical in
+     all of them, at the window's size — the smallest of the three, which is the one
+     that reads as machinery rather than as part of the heading it sits in. */
   font-size: var(--idea-label-size, 0.57rem);
   /* THE HAT'S FACE, shared with `#ideas-outline`'s title, which wears the same
      rule and is therefore the same object. `monospace` is the GENERIC family, so
@@ -130,10 +126,9 @@
   border-radius: 3px;
 }
 
-/* The 0.5em separates the permalink from a TITLE it follows — which, since the
-   id moved onto the tab below, is only the case for a permalink standing in
-   ordinary prose (a nested window with no depth budget left). Kept for that one,
-   and for any stylesheet that positioned the id the old way. */
+/* The 0.5em separates the permalink from a title it follows — the case for a
+   permalink standing in ordinary prose, in a nested window with no depth budget
+   left for a tab. */
 [data-rookery="label"]:first-child {
   margin-left: 0;
 }
@@ -186,10 +181,9 @@
   border-top: var(--idea-rule-width, 2px) solid var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12)));
 }
 
-/* The stub reaches back across the card's own `padding-left` (0.75em, set on
-   the box/window role below) PLUS the 2px of the left rule itself, so it
-   ends on that rule's OUTER edge and the corner has no notch in it. At 1px the
-   shortfall was invisible; at 2px it is a gap you can see. */
+/* The stub reaches back across the card's own `padding-left` (from `--idea-pad`)
+   plus the width of the left rule (`--idea-rule-width`), so it ends on that
+   rule's OUTER edge and the corner has no notch in it. */
 [data-rookery="tab"]::before,
 [data-rookery-tab]::before {
   width: calc(var(--idea-pad, 0.5em) + var(--idea-rule-width, 2px));
@@ -210,12 +204,12 @@
    `flow-root`, NOT `block`, and that is the difference between a closed corner
    and no corner at all. The tab is lifted by a negative `margin-top` (below) to
    straddle the card's top edge. As a plain block this element has no border and
-   no padding, so that margin ADJOINS its own — it collapses out through
-   `[data-rookery="head"]`, and then out through `[data-rookery="box"]`, which has no top border or
-   padding either. MEASURED: the whole card moved up by the lift, left rule
-   included, so the stub stayed exactly as far below the rule's top end as
-   before. `flow-root` makes this a block formatting context, which is precisely
-   the rule that stops a child's margin escaping its parent. */
+   no padding, so that margin would ADJOIN its own — collapsing out through
+   `[data-rookery="head"]`, then out through `[data-rookery="box"]`, which has no top border or
+   padding either — so the whole card would shift up by the lift instead of just
+   the tab, and the stub would stay exactly as far below the rule's top end as
+   without any lift. `flow-root` makes this a block formatting context, which is
+   precisely the rule that stops a child's margin escaping its parent. */
 [data-rookery="head"] {
   display: flow-root;
 }
@@ -242,24 +236,20 @@
 [data-rookery="box"] > [data-rookery="head"] > [data-rookery="tab"],
 [data-rookery="window-summary"] > [data-rookery="tab"] {
   line-height: 1;
-  /* THE RULE TO THE BOTTOM OF THE LINE, not through the id's middle, and only in
-     these two contexts — the ones with a top border for it to be. A zero-height
-     flex item centred lands on the label's own centre line, which is what used to
-     leave half the id hanging BELOW the border: MEASURED, 4.55px above the box top
-     and 4.58px below it. At `flex-end` the rule sits under the label, so the lift
-     below puts the id ON the border rather than through it. */
+  /* The rule sits at the bottom of the line, not through the id's middle, and only
+     in the two contexts that have a top border for it to be: a zero-height flex
+     item centred would land on the label's own centre line. At `flex-end` the rule
+     sits under the label, so the lift below puts the id ON the border. */
   align-items: flex-end;
-  /* CLOSER TO THE END OF THE HAT. Half the generic tab's `gap` — MEASURED 4.8px
-     (0.3em) between the stub's end and the id's box, 6.8px to the id's text once
-     the label's own 2px padding is counted; halved it is 2.4px and 4.4px. The id
-     reads as sitting ON the end of the rule rather than floating away from it.
-     Scoped to these two contexts with the rest of the treatment: a MINTED page's
-     tab keeps the wider gap, and keeps its id centred on the stub, because there
-     the dash is a leader beside the id rather than a frame's top edge. */
+  /* Half the generic tab's `gap`, so the id reads as sitting on the end of the rule
+     rather than floating away from it. Scoped to these two contexts with the rest of
+     the treatment: a MINTED page's tab keeps the wider gap, and keeps its id centred
+     on the stub, because there the dash is a leader beside the id rather than a
+     frame's top edge. */
   gap: 0.15em;
-  /* A WHOLE label, not half: with the rule at the line's bottom (above), lifting by
+  /* A whole label, not half: with the rule at the line's bottom (above), lifting by
      the label's full height lands that rule on the box's top edge and leaves the id
-     entirely above it. Half a label is what used to centre the id ON the border.
+     entirely above it — half a label would centre the id ON the border instead.
      From the custom property, never a pixel count, so a project retheming
      `--idea-label-size` keeps the alignment. */
   margin-top: calc(-1 * var(--idea-label-size, 0.57rem) - 1px);
@@ -278,12 +268,12 @@
    that edge and the corner closes on the left rule there. With `align-items:
    flex-end` each item's MARGIN box bottom meets the line's bottom, so a
    `margin-bottom` on the label alone raises the label within that line.
-   BUT IT MUST BE PAIRED WITH 1px MORE LIFT, and measuring is the only way to see
-   why: the label is the tallest item, so its MARGIN box sets the line's height —
-   the tab grew 1px, its bottom moved 1px DOWN into the box, and the id did not
-   move at all. MEASURED, `idBelowBoxTop` stayed 0.02px. So every lift below also
-   carries `- 1px`: the tab's bottom returns to the box's top edge, the rule with
-   it, and the id ends up the 1px higher that was wanted. */
+   IT MUST BE PAIRED WITH 1px MORE LIFT: the label is the tallest item, so its
+   margin box sets the line's height, and the 1px of air under the id therefore has
+   to be paid for with 1px more lift, or the tab's bottom moves 1px down into the box
+   while the id stays put. So every lift below also carries `- 1px`: the tab's bottom
+   returns to the box's top edge, the rule with it, and the id ends up the 1px higher
+   that was wanted. */
 [data-rookery="box"] > [data-rookery="head"] > [data-rookery="tab"] > [data-rookery="label"],
 [data-rookery="window-summary"] > [data-rookery="tab"] > [data-rookery="label"] {
   margin-bottom: 1px;
@@ -313,15 +303,12 @@
 
 /* A HEADING INSIDE THE HEAD CONTRIBUTES NOTHING BELOW IT EITHER, and this one is
    a consequence of `[data-rookery="head"]` being a block formatting context (see above).
-   Margins do not collapse across a BFC boundary, so a heading's own
-   `margin-bottom` — which used to collapse with the first body block's
-   `margin-top` and disappear into it — now ADDS to it instead.
-
-   MEASURED on rookery.ohrg.org: that site sets `h1..h6 { margin-bottom: 0.5em }`,
-   which at heading size plus the browser's own 1em paragraph margin put nearly
-   twice the space between "A rookery" and its first line than before the head
-   existed. Zero it, and the gap under a note's name is again the first block's to
-   set — exactly what the heading rule above has always said it should be.
+   Margins do not collapse across a BFC boundary, so without this rule a heading's own
+   `margin-bottom` would ADD to the first body block's `margin-top` instead of
+   collapsing with it — doubling the gap under a note's name on a site whose own
+   heading rule sets a non-zero `margin-bottom`. Zeroing it here makes the gap under
+   a note's name the first block's to set again, exactly what the heading rule above
+   has always said it should be.
 
    STRUCTURAL, keyed to the PARENT's role rather than the heading's own: a
    minted page's `<h1>` is the one heading this package emits with no

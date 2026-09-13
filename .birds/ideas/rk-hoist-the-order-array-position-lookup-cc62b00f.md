@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-slipshow-review
 deps: []
-closed: false
+closed: true
 ---
 Fix a quadratic scan in `@rookery/slipshow`'s `_sort-rows`: ordering a deck by
 an explicit `order:` array of note names/ids calls `array.position()` once
