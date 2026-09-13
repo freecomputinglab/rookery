@@ -339,8 +339,7 @@
   // ROW, never to that call's arguments, which stay `selected.map(e => e.body)`.
   // Its memo is keyed on those arguments, so widening them would silently
   // multiply build time by the page count.
-  let rows = selected.enumerate().map(pair => {
-    let (i, e) = pair
+  let rows = selected.enumerate().map(((i, e)) => {
     // `text` MEANS WHAT TO CALL THIS NOTE, and rookery's `label` is that
     // question's answer: the authored title flattened, else the note's first 60
     // characters of body, else its name — never empty. `e.text` is the authored

@@ -133,11 +133,9 @@ export const wireModal = (dialog, rows) => {
     // where they are visible at all.
     const terms = queryTerms(split.text);
     const atoms = positiveAtoms(split.rpn);
-    for (const hit of hits) {
+    for (const [i, hit] of hits.entries()) {
       const row = renderRow(hit, terms, atoms);
-      row.addEventListener("pointerenter", () => {
-        select([...list.children].indexOf(row));
-      });
+      row.addEventListener("pointerenter", () => select(i));
       list.append(row);
     }
     // NO HITS: the pane is emptied HERE, because `select` cannot do it — it

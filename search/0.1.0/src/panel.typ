@@ -169,7 +169,7 @@
   // PAGED/EPUB: there is no input to type into and no pill to press, so the same
   // rows render as an ordinary list. Every view in this package takes this branch
   // for the same reason.
-  if target() != "html" {
+  if _target() != "html" {
     if rows.len() == 0 { return text(gray, emph(empty)) }
     return list(..rows.map(if paged-render == none { render } else { paged-render }))
   }

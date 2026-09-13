@@ -6,7 +6,7 @@ priority: 2
 labels:
 - chore-slipshow-review
 deps: []
-closed: false
+closed: true
 ---
 Drop the unused `clamp` alias from `@rookery/slipshow`'s `src/camera.js`.
 `clampTo` is the one and only clamping function this package actually uses —
