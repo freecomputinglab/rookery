@@ -1,27 +1,26 @@
 // @rookery/timeline — a dated log for rookery notes.
 //
-// A note's temporal planning, contributed through @rookery/core 0.6.0's TAG
+// A note's temporal planning, contributed through @rookery/core's TAG
 // DICTIONARY rather than through a wrapper around `#idea`. The whole interface
 // is a fragment builder you merge into a `tags:` argument:
 //
 //   #import "@rookery/timeline:0.1.0": dates
 //   #idea("ship", tags: entries(deadline: datetime(year: 2026, month: 9, day: 1)))[..]
 //
-// THAT SHAPE IS THE POINT, and it survives 0.6.0's `#dated-idea` intact. The
-// CORE of this package imports @rookery/core not at all, and @rookery/core knows
-// nothing of it — a tag fragment is a plain dictionary, so composition needs no
-// import relationship in either direction. Any package, and any hand-written
-// `#idea`, can use it. `dated(mint)` keeps that true for the decorator too, by
-// taking the minting function as an ARGUMENT; the single `dated-idea` binding at
-// the foot of this file is the one line that imports rookery, and it exists only
-// so the common case reads as one name rather than two.
+// THAT SHAPE IS THE POINT. The CORE of this package imports @rookery/core not
+// at all, and @rookery/core knows nothing of it — a tag fragment is a plain
+// dictionary, so composition needs no import relationship in either direction.
+// Any package, and any hand-written `#idea`, can use it. `dated(mint)` keeps
+// that true for the decorator too, by taking the minting function as an
+// ARGUMENT; the single `dated-idea` binding at the foot of this file is the
+// one line that imports rookery, and it exists only so the common case reads
+// as one name rather than two.
 //
-// WHAT IT OWNS: a note's DATED EVENTS, as one ordered log. Until 0.6.0 it owned
-// two independent slots and both were plans — `scheduled` (when you mean to work
-// on it) and `deadline` (a hard date), the org-mode pair. A log is the third
-// thing, org-mode's LOGBOOK to those two: what happened, and when. Both of the
-// old slots are RESERVED STAGE NAMES inside it now, so one mechanism carries
-// arbitrarily complex lifecycles without this package naming any of their states.
+// WHAT IT OWNS: a note's DATED EVENTS, as one ordered log — org-mode's LOGBOOK.
+// `scheduled` (when you mean to work on it) and `deadline` (a hard date) are
+// RESERVED STAGE NAMES inside that log rather than slots beside it, so one
+// mechanism carries arbitrarily complex lifecycles without this package naming
+// any of their states.
 //
 // WHAT IT DOES NOT OWN, deliberately:
 //
@@ -35,14 +34,13 @@
 //     `is-settled`/`rung`/`next-stage` take a ladder as a parameter. Status
 //     transitions likewise: @rookery/todos owns `activated`.
 //
-//   `updated` is neither owned nor read — core removed that field in 0.6.0.
+//   `updated` is neither owned nor read; core ships no such field.
 //   `updated-of` DERIVES it: the log's last entry, else `created`.
 //
-// THERE IS NO WALL CLOCK, and this constrains the whole package. Typst has no
-// time of day at all (MEASURED: `datetime.today().hour()` is `none`), and in a
-// reproducible-build environment `SOURCE_DATE_EPOCH` makes `datetime.today()`
-// return 1980-01-01 rather than the real date (MEASURED at typst 0.15.1 with
-// `SOURCE_DATE_EPOCH=315532800`, which is what this repo's own devShell sets).
+// THERE IS NO WALL CLOCK, and this constrains the whole package. MEASURED at
+// typst 0.15.1: `datetime.today().hour()` is `none`, and `SOURCE_DATE_EPOCH`
+// (which this repo's own devShell sets, to 315532800) makes `datetime.today()`
+// return 1980-01-01 rather than the real date.
 // IT FAILS SILENTLY — a wrong date, not an error. So:
 //
 //   - every date is author-supplied; nothing here is auto-stamped
@@ -50,8 +48,8 @@
 //   - a predicate needing a "now" takes an explicit `today:`, falling back to
 //     the document's own `#set document(date:)`, and panics rather than guess
 //
-// This package reads no rheo context, no `sys.inputs` and no state, and there is
-// still no JavaScript. TWO functions are not pure functions of their arguments,
+// This package reads no rheo context, no `sys.inputs` and no state, and ships
+// no JavaScript. TWO functions are not pure functions of their arguments,
 // and they are the two that DRAW something:
 //
 //   `#timeline-view` (`view.typ`) emits HTML — one note's log as a vertical rail —
@@ -72,8 +70,6 @@
 #import "view.typ": *
 #import "upcoming.typ": *
 
-// ---- The SKIN over @rookery/core ------------------------------------------
-//
 // THE PATTERN. If you use plain rookery you import `idea`, `window` and the rest
 // from rookery. If you use this package you import those SAME names from HERE
 // instead, and get versions that take this package's date arguments. A skin over
@@ -82,7 +78,7 @@
 //   #import "@rookery/timeline:0.1.0": idea, window, rookery
 //   #idea("ship", deadline: d, timeline: (submitted: d2))[..]
 //
-// HOW IT WORKS, and all three facts were verified before this was written:
+// HOW IT WORKS:
 //
 //   1. the star-import below RE-EXPORTS every rookery name to this module's own
 //      consumers, so `window`, `ideas`, `tag-data`, `rookery` and the rest pass
@@ -112,6 +108,5 @@
 // over core.
 #let tagged-idea(..family) = dated(_rk.tagged-idea(..family))
 
-// KEPT AS AN ALIAS, and it is now the same function as `idea` above rather than the
-// only way to get one. Call sites written before the skin keep working.
+// An alias for `idea` above.
 #let dated-idea = idea

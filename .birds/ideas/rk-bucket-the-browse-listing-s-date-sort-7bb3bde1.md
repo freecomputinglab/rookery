@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-search-review
 deps: []
-closed: false
+closed: true
 ---
 `_rank`'s browse listing — every empty-residual query, which is what a bare
 `tags:draft` and an empty search box both produce — formats each row's date
