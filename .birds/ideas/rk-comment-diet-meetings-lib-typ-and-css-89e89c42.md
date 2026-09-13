@@ -7,7 +7,7 @@ labels:
 - chore-meetings-review
 deps:
 - blocked-by:rk-hoist-meetings-css-safe-regex-to-module-c2b9e625
-closed: false
+closed: true
 ---
 /home/lox/code/_fcl/rookery/meetings/0.1.0/src/lib.typ is 253 lines, 134 of
 them (53%) comments, and /home/lox/code/_fcl/rookery/meetings/0.1.0/src/meetings.css

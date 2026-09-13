@@ -248,8 +248,12 @@
 // stored separately, so the filterable surface and the sortable value cannot
 // disagree. Takes the MAXIMUM across every matching key, so a note carrying
 // more than one `todo-p<n>` tag still decodes to one deterministic priority.
+// Matches a plain non-negative integer. Bound once here rather than
+// rebuilt inside `priority-of`, which runs once per todo in the site.
+#let _PRIORITY-DIGITS = regex("^[0-9]+$")
+
 #let priority-of(tags) = {
-  let digits = regex("^[0-9]+$")
+  let digits = _PRIORITY-DIGITS
   let hits = tags.keys()
     .filter(k => k.starts-with("todo-p") and k.slice(6).match(digits) != none)
     .map(k => int(k.slice(6)))
