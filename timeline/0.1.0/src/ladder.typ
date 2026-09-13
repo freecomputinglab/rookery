@@ -19,8 +19,6 @@
 // `transit` is ORDERED BY PROGRESS, and that order is what `rung` reads.
 // `terminal` is unordered in meaning — its membership is what settles a note.
 
-#import "fragment.typ": *
-#import "read.typ": *
 #import "when.typ": *
 
 // Validated on every call rather than once at construction, because a ladder is a

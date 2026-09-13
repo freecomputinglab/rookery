@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-timeline-review
 deps: []
-closed: false
+closed: true
 ---
 **Delete an orphaned, duplicated comment block in `read.typ`.**
 
