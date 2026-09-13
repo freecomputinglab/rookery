@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-timeline-review
 deps: []
-closed: false
+closed: true
 ---
 **Cut the version history, the interior banner and the lab notebook out of `@rookery/timeline`'s `lib.typ` header.**
 

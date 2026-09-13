@@ -123,6 +123,7 @@ function collect(deck) {
     const targetRail = rail(target);
     if (targetRail.width === 0) continue;
     const targetRow = target.closest(".slip-row");
+    const targetBox = deckBox(target, deck);
 
     for (const id of target.dataset.slipEdges.split(/\s+/).filter(Boolean)) {
       // `getElementById`, not a `#id` selector: a slide's id carries the
@@ -136,7 +137,6 @@ function collect(deck) {
       if (sourceRow !== null && sourceRow === targetRow) continue;
 
       const sourceBox = deckBox(source, deck);
-      const targetBox = deckBox(target, deck);
       edges.push({
         from: { x: railX(sourceBox, sourceRail.width), y: sourceBox.y + sourceBox.height },
         to: { x: railX(targetBox, targetRail.width), y: targetBox.y },
