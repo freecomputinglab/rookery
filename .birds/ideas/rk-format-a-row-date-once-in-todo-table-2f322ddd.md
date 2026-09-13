@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-todos-review
 deps: []
-closed: false
+closed: true
 ---
 Format a row's date once instead of twice in `#todo-table`'s row renderer, in
 `/home/lox/code/_fcl/rookery/todos/0.1.0/src/table.typ`.

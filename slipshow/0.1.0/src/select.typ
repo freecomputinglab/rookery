@@ -128,13 +128,23 @@
 
 #let _sort-rows(rows, order, reverse) = {
   if type(order) == array {
-    // Position in `order`, matched against either `name` or `id` so a caller
-    // may write whichever form is at hand; a row named nowhere in `order`
-    // is unkeyed (`position` already returns `none`), which keeps unnamed
-    // rows after every named one and in their incoming (id) order among
-    // themselves.
+    // A name/id -> position dictionary, built once from `order` rather than
+    // rescanned per row: each entry is keyed under BOTH its `str()` form so a
+    // caller may write whichever of `name`/`id` is at hand, and a row's
+    // lookup tries `name` first, `id` second, matching `order`'s own entry
+    // order when both would resolve. A row named nowhere in `order` is
+    // unkeyed (the `default: none` chain falls all the way through), which
+    // keeps unnamed rows after every named one and in their incoming (id)
+    // order among themselves.
+    let positions = (:)
+    for (i, n) in order.enumerate() {
+      positions.insert(str(n), i)
+    }
     _sort-pairs(
-      rows.map(row => (key: order.position(n => n == row.name or n == row.id), row: row)),
+      rows.map(row => (
+        key: positions.at(row.name, default: positions.at(row.id, default: none)),
+        row: row,
+      )),
       reverse,
     )
   } else if order == "created" {

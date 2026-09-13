@@ -254,6 +254,22 @@
   assert.eq(mixed.at(1).row.name, "slot-a")
 }
 
+// `order:` also accepts a plain ARRAY of note names, sorting registry rows
+// by position in it rather than by any field on the row. Reuses
+// `ord-p`/`ord-q`/`ord-r` (registered above for the key-function tests)
+// plus `slot-a` (registered above for the `slips:` NAME route tests) — no
+// new notes, so the running total on line 69 does not change. `slot-a` is
+// not named in `order:` below, so it must sort last regardless of the
+// order the other three are given in.
+#context {
+  let names = resolve-slips(
+    tags: "slip",
+    where: r => r.name in ("ord-p", "ord-q", "ord-r", "slot-a"),
+    order: ("ord-r", "ord-q", "ord-p"),
+  ).map(e => e.row.name)
+  assert.eq(names, ("ord-r", "ord-q", "ord-p", "slot-a"))
+}
+
 // `row:` — a key function over the whole row, grouping a query deck the way
 // `examples/dag` groups a `@rookery/todos` DAG layer onto notes that carry
 // no `slip-row` tag of their own. `rk-a`/`rk-b` share a computed row, `rk-c`
