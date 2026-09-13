@@ -78,8 +78,7 @@ export function place(rowsOfNodes) {
   // is unblocked — with whatever waits on them hanging below. An index page
   // reads "here is what you can pick up, and here is what it releases".
   //
-  // `depth` is still needed for `height` below, which is why it survives the
-  // formula no longer using it.
+  // `depth` is `rowsOfNodes.length`, used by `height` below.
   const depth = rowsOfNodes.length;
   rowsOfNodes.forEach((row, i) => {
     const rowW = row.length * GEOM.w + Math.max(0, row.length - 1) * GEOM.gapX;

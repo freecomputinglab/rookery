@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-meetings-review
 deps: []
-closed: false
+closed: true
 ---
 `_css-safe` in /home/lox/code/_fcl/rookery/meetings/0.1.0/src/lib.typ (lines 59-64)
 compiles a fresh `regex(...)` object on every call:

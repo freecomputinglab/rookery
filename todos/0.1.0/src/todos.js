@@ -87,9 +87,8 @@ function drawNode(node, pt) {
 // An edge leaves the bottom of the box that UNBLOCKS and arrives at the top of
 // the box waiting on it, so the arrow reads "upper unblocks lower".
 //
-// The geometry is unchanged from when the drawing ran the other way: bottom of
-// the first argument, top of the second, cubic control points at the midpoint.
-// Only which position is passed as which argument moved — see the call site.
+// The curve runs from the bottom of `upper` to the top of `lower`, with
+// cubic control points at the midpoint of the two.
 function drawEdge(upper, lower, unresolved) {
   const x1 = upper.x + GEOM.w / 2;
   const y1 = upper.y + GEOM.h;
