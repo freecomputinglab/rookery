@@ -7,7 +7,7 @@ labels:
 - fix-today-panel-in-progress
 - feat-todos-in-progress
 deps: []
-closed: false
+closed: true
 ---
 A todo marked `status: "in-progress"` (or its shorthand `active: true`) is the thing
 the author is working on RIGHT NOW. `#today-panel` drops it off the day view unless

@@ -217,13 +217,13 @@ def note(m):
     print("FAIL: " + m); bad = 1
 
 rows = re.findall(r'class="idea-row-title" href="ideas/([a-z-]+)\.html"', seg)
-want = {"mirror", "invoice", "renew", "ship"}
+want = {"mirror", "invoice", "renew", "ship", "migrate"}
 got = set(rows)
 if got != want:
     note(f"the today panel lists {sorted(got)}, wanted {sorted(want)} — the "
          f"scheduled-in-the-past todo (mirror), the overdue one (invoice), the "
-         f"one due exactly today (renew), and the corpus's one priority-9 todo "
-         f"(ship)")
+         f"one due exactly today (renew), the corpus's one priority-9 todo "
+         f"(ship), and the one being worked on right now (migrate)")
 if "retro" in got:
     note("retro (scheduled for December, not yet arrived) appears in the today panel")
 

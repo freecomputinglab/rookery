@@ -538,11 +538,12 @@ one-key-per-page rule.
 
 Where `#todo-table` lists everything open, `#today-panel` answers the
 narrower question a person actually asks first thing: what is on for today,
-and what is important regardless of its date. It lists the union of four
-things — a deadline falling today, a deadline already behind today, a
-scheduled date that has arrived, and whichever priority sits at the top of
-the open corpus — and a todo needs to satisfy only one of them to make the
-list. Everything past the selection is `#todo-table`'s own: the pills, the
+what is being worked on right now, and what is important regardless of its
+date. It lists the union of five things — a todo marked in progress, a
+deadline falling today, a deadline already behind today, a scheduled date
+that has arrived, and whichever priority sits at the top of the open corpus
+— and a todo needs to satisfy only one of them to make the list. Everything
+past the selection is `#todo-table`'s own: the pills, the
 date-cell ramp, the row shape, and every knob that view already takes
 (`rows:`, `filter:`, `facets:`, `pill-rows:`, `sync:`, and the rest), because
 `#today-panel` draws nothing of its own — it hands `#todo-table` a smaller
@@ -554,6 +555,14 @@ the grid-width cost that default exists to avoid, so every badge in a row's
 strip — including its tags — is drawn as the same pressable pill the block
 above the list draws, and pressing a tag on a row filters the list exactly as
 pressing its twin above does.
+
+**A todo marked in progress is always on the list.** `status: "in-progress"`
+(or its shorthand `active: true`) puts a todo on today's list whatever its
+dates or priority say, and sorts it above every dated row — the same hoist
+`#todo-table` gives an in-progress row everywhere else. It is the one clause
+here with no argument to turn it off: there is no site that wants its day
+view to hide the thing its author has declared they are working on right
+now.
 
 **Overdue work stays on the list by default.** `#todo-table` already paints
 an overdue deadline's date cell solid red; this view keeps that row in front

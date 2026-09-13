@@ -110,6 +110,17 @@ A todo whose DEADLINE FALLS TODAY — the boundary `#today-panel`'s default
   tags: entries(deadline: datetime(year: 2026, month: 8, day: 25)),
 )[Expires today.]
 
+A todo BEING WORKED ON RIGHT NOW. It carries no priority and a deadline
+months away, so nothing but `active: true` puts it on today's list — a todo
+being worked on is on for today whatever its dates say.
+
+#todo(
+  "migrate",
+  title: [Migrate the datastore],
+  active: true,
+  tags: entries(deadline: datetime(year: 2026, month: 10, day: 30)),
+)[Being worked on now, due at the end of next month.]
+
 An OVERDUE todo — a deadline already behind `TODAY`. `#todo-table` lists it first
 and paints its date cell solid red; `overdue: false` drops it from the panel instead.
 

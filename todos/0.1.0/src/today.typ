@@ -3,11 +3,12 @@
 //
 // `#todo-table` lists EVERYTHING open, ordered by date — the right shape for
 // a worklist and the wrong shape for the question a person asks at the start
-// of a day: what is on for today, and what is the most important thing
-// outstanding regardless of its date. Those are two different questions that
-// get asked together, and this file is nothing but the SELECTION that
-// answers both at once. The projection, the pills, the date-cell ramp and the
-// row rendering all stay `#todo-table`'s; this file draws nothing of its own.
+// of a day: what is on for today, what is being worked on right now
+// regardless of its date, and what is the most important thing outstanding
+// regardless of its date. Those are questions that get asked together, and
+// this file is nothing but the SELECTION that answers them at once. The
+// projection, the pills, the date-cell ramp and the row rendering all stay
+// `#todo-table`'s; this file draws nothing of its own.
 
 #import "table.typ": *
 #import "graph.typ": *
@@ -26,8 +27,9 @@
   if ps.len() == 0 { none } else { calc.max(..ps) }
 }
 
-// IS THIS ROW ON FOR TODAY. Five independent reasons, ORed together, and a
-// row needs only one: `also` (a reason only the calling site can know),
+// IS THIS ROW ON FOR TODAY. Six independent reasons, ORed together, and a
+// row needs only one: `also` (a reason only the calling site can know), the
+// row being in progress right now regardless of what its dates say,
 // `is-upcoming` (a deadline landing within `horizon` days), `is-overdue`
 // (gated by `overdue`), `is-scheduled-now` (a scheduled date that has
 // arrived, however long ago), or a priority at or above `top`. `top: none`
@@ -36,6 +38,7 @@
 #let _on-today(row, today: none, horizon: 0, overdue: true, top: none, also: none) = {
   let t = row.tags-dict
   ((also != none and also(row))
+    or row.status == "in-progress"
     or is-upcoming(t, today: today, within: horizon)
     or (overdue and is-overdue(t, today: today))
     or is-scheduled-now(t, today: today)

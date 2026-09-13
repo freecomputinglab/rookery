@@ -480,8 +480,11 @@
 // The maximum among the priorities actually in use.
 #assert.eq(_top-priority(((priority: 0), (priority: 3), (priority: 7), (priority: 3))), 7)
 
-// A minimal `_on-today` fixture: only `tags-dict` and `priority` are read.
-#let dayrow(priority: 0, tags: (:)) = (tags-dict: tags, priority: priority)
+// A minimal `_on-today` fixture: only `tags-dict`, `priority` and `status`
+// are read.
+#let dayrow(priority: 0, status: none, tags: (:)) = (
+  tags-dict: tags, priority: priority, status: status,
+)
 
 // A deadline today, at `horizon: 0` — the "due today" case.
 #assert.eq(_on-today(dayrow(tags: entries(deadline: NOW)), today: NOW, horizon: 0), true)
@@ -517,6 +520,28 @@
 // `also:` is the one hole no other argument can fill — an undated,
 // unprioritised row joins only because the site's own predicate says so.
 #assert.eq(_on-today(dayrow(), today: NOW, also: r => true), true)
+
+// A todo marked in progress is on for today with no date and no priority at
+// all — and drops off again once its status is cleared.
+#assert.eq(_on-today(dayrow(status: "in-progress"), today: NOW), true)
+#assert.eq(_on-today(dayrow(), today: NOW), false)
+
+// In progress outranks a deadline far outside the horizon, which alone would
+// leave the row off the panel.
+#assert.eq(
+  _on-today(
+    dayrow(status: "in-progress", tags: entries(deadline: d(2026, 9, 25))),
+    today: NOW, horizon: 0,
+  ),
+  true,
+)
+
+// In progress is independent of `overdue:` and of the priority band — it
+// still qualifies with both turned off.
+#assert.eq(_on-today(dayrow(status: "in-progress"), today: NOW, overdue: false, top: none), true)
+
+// Some other status is not, by itself, a reason to be on today.
+#assert.eq(_on-today(dayrow(status: "deferred"), today: NOW), false)
 
 // ---- _sort-key — what puts an in-progress todo at the top ---------------
 //
