@@ -56,8 +56,9 @@
 // A page tag about to be interpolated into an `idea-tag-<key>` class. Rejected
 // here rather than in a stylesheet, where the only symptom is a rule that silently
 // never matches.
+#let _CSS-SAFE-RE = regex("^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$")
 #let _css-safe(name) = assert(
-  type(name) == str and name.match(regex("^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$")) != none,
+  type(name) == str and name.match(_CSS-SAFE-RE) != none,
   message: "@rookery/meetings: the page tag "
     + repr(name)
     + " is not usable as a CSS class fragment. Use alphanumerics and interior hyphens only.",
