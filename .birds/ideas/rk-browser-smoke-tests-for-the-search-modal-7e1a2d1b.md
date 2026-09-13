@@ -2,7 +2,7 @@
 id: rk-browser-smoke-tests-for-the-search-modal-7e1a2d1b
 short-id: 7e
 title: Browser smoke tests for the search modal
-priority: 5
+priority: 1
 labels:
 - fix-safari-search-modal
 - test-browser

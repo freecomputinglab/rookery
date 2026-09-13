@@ -2,7 +2,7 @@
 id: rk-stand-up-the-shared-browser-harness-cbc3ae56
 short-id: cbc
 title: Stand up the shared browser harness
-priority: 6
+priority: 1
 labels:
 - test-browser
 deps: []

@@ -2,7 +2,7 @@
 id: rk-browser-tests-for-the-todos-graph-2b7d4c0f
 short-id: 2b7d
 title: Browser tests for the todos graph
-priority: 4
+priority: 1
 labels:
 - test-browser
 deps:

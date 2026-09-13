@@ -2,7 +2,7 @@
 id: rk-browser-tests-for-the-slipshow-deck-9514479d
 short-id: '95'
 title: Browser tests for the slipshow deck
-priority: 5
+priority: 1
 labels:
 - test-browser
 deps:

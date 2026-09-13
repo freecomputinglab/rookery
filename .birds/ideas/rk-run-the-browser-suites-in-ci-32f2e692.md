@@ -2,7 +2,7 @@
 id: rk-run-the-browser-suites-in-ci-32f2e692
 short-id: 32f
 title: Run the browser suites in CI
-priority: 4
+priority: 1
 labels:
 - test-browser
 deps:

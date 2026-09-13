@@ -2,7 +2,7 @@
 id: rk-browser-tests-for-the-search-dropdown-b7dba794
 short-id: b7d
 title: Browser tests for the search dropdown
-priority: 4
+priority: 1
 labels:
 - test-browser
 deps:
