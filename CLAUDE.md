@@ -4,13 +4,14 @@ The `@rookery` family of [Rheo](https://rheo.ohrg.org) Typst packages: atomic,
 interlinked, transcludable notes (`core`), fuzzy search over them (`search`),
 a dated lifecycle log (`timeline`), todos/epics/a dependency DAG (`todos`),
 dated meeting notes (`meetings`), a BibTeX reader and `#citation` note
-constructor (`bibtex`), and an endlessly scrolling presentation over notes
-(`slipshow`). Each package lives in `<name>/<version>/` (e.g. `search/0.1.0/`)
+constructor (`bibtex`), an endlessly scrolling presentation over notes
+(`slipshow`), and a board of draggable cards for arranging notes by hand
+(`pinboard`). Each package lives in `<name>/<version>/` (e.g. `search/0.1.0/`)
 and mirrors the same layout: `typst.toml`, `src/`, and a `Justfile`, plus a
 `flake.nix` where the package pins a toolchain of its own (`search` for
-node/pnpm, `slipshow` likewise). Three of them (`search`, `todos`, `slipshow`)
-also ship JS via `package.json`/vite — see "Pure-Typst packages" below for the
-four that don't.
+node/pnpm, `slipshow` likewise). Four of them (`search`, `todos`, `slipshow`,
+`pinboard`) also ship JS via `package.json`/vite — see "Pure-Typst packages"
+below for the four that don't.
 
 This repo was split out of `rheo-packages` (`freecomputinglab/rheo-packages`)
 on 2026-08-30, once `@rookery` needed a repository URL of its own to resolve
@@ -44,6 +45,7 @@ slipshow  -> core
 timeline  -> core
 meetings  -> core, timeline
 todos     -> core, timeline, search, slipshow
+pinboard  -> core
 ```
 
 `timeline` is `todos`'s heaviest edge — seven files import it:

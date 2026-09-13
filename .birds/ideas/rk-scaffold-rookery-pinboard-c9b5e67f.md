@@ -6,7 +6,7 @@ priority: 5
 labels:
 - feat-pinboard
 deps: []
-closed: false
+closed: true
 ---
 A `@rookery/pinboard` is a browser view that lays every note in a rookery out as a
 card on a two-dimensional board the author arranges by hand. The motivating use is

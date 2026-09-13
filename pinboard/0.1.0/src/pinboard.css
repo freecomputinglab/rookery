@@ -1,0 +1,38 @@
+/* @rookery/pinboard: an absolutely-positioned board of note cards. Every
+   rule is scoped under `.pinboard`/`.pinboard-card` — this stylesheet is
+   injected into every page of a consuming project, and an unscoped rule
+   here would restyle pages that carry no board at all. */
+
+.pinboard {
+  position: relative;
+  min-height: 480px;
+}
+
+/* Position rides on `--pin-x`/`--pin-y`, written by `src/pinboard.js` (and,
+   once the drag bird lands, by pointer movement) — never `style.left`/
+   `style.top` directly, so that later code has one property pair to touch. */
+.pinboard-card {
+  position: absolute;
+  translate: var(--pin-x, 0) var(--pin-y, 0);
+  width: 300px;
+  border: 1px solid var(--pinboard-card-border, #ccc);
+  /* Not transparent: cards overlap while a layout settles. */
+  background: var(--pinboard-card-bg, #fff);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+}
+
+.pinboard-card-handle {
+  display: block;
+  padding: 0.5em 0.75em;
+  background: var(--pinboard-handle-bg, #eee);
+  font-weight: 600;
+  /* A promise the drag bird keeps. */
+  cursor: grab;
+}
+
+.pinboard-card-body {
+  padding: 0.5em 0.75em;
+  /* One long note must not make a card taller than the board. */
+  max-height: 200px;
+  overflow: auto;
+}

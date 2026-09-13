@@ -1,0 +1,20 @@
+[package]
+name = "pinboard"
+version = "0.1.0"
+compiler = "0.15.0"
+entrypoint = "src/lib.typ"
+authors = ["The Free Computing Lab <https://freecomputinglab.ohrg.org>"]
+license = "MIT"
+description = "A board of draggable cards for arranging @rookery/core notes by hand"
+repository = "https://github.com/freecomputinglab/rookery"
+
+[tool.rheo]
+min_version = "0.6.2"
+
+[tool.rheo.html]
+js_scripts = "dist/lib.js"
+css_stylesheet = "src/pinboard.css"
+
+[tool.rheo.source.html]
+js_scripts = ["src/layout.js", "src/pinboard.js"]
+js_module = true
