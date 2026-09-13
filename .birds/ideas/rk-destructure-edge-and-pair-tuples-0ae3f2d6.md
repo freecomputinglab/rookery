@@ -8,7 +8,7 @@ labels:
 deps:
 - blocked-by:rk-resolve-todos-once-per-view-92dd0465
 - blocked-by:rk-index-shown-names-as-a-set-22a2b00d
-closed: false
+closed: true
 ---
 Destructure edge and pair tuples instead of reading them with `.at(0)`/`.at(1)`, in
 `/home/lox/code/_fcl/rookery/todos/0.1.0/src/graph.typ` and

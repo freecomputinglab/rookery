@@ -1,15 +1,8 @@
 // Derived temporal predicates, each taking an explicit reference date.
 //
-// EVERY FUNCTION HERE NEEDS A "NOW", AND TYPST CANNOT SUPPLY ONE. `datetime`
-// has no time of day (MEASURED: `.hour()` is `none`), and `datetime.today()`
-// returns 1980-01-01 wherever `SOURCE_DATE_EPOCH` is set for reproducible
-// builds — MEASURED at typst 0.15.1 with `SOURCE_DATE_EPOCH=315532800`, which
-// is exactly what this repo's own devShell exports. It does not error; it just
-// answers wrongly. A predicate built on it would report every deadline in the
-// project as decades overdue and no build would complain.
-//
-// So the reference date is a PARAMETER, resolved by `_today` below, and the
-// last resort is a panic rather than a guess.
+// EVERY FUNCTION HERE NEEDS A "NOW", AND TYPST CANNOT SUPPLY ONE. So the
+// reference date is a PARAMETER, resolved by `_today` below, and the last
+// resort is a panic rather than a guess.
 
 #import "read.typ": *
 
