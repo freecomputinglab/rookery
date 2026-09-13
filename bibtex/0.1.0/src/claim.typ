@@ -9,5 +9,5 @@
 //
 // `_swept` guards `all()` against a second call — see `all()`'s own comment
 // for why it must be read with `.get()`, never `.final()`.
-#let _claimed = state("rookery-bibtex-claimed", ())
+#let _claimed = state("rookery-bibtex-claimed", (:))
 #let _swept = state("rookery-bibtex-swept", 0)

@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-search-review
 deps: []
-closed: false
+closed: true
 ---
 `#filter-panel` formats each row's date three times to sort once, and then asks
 "does any row carry this tag" by rebuilding every row's tag list once per pill.

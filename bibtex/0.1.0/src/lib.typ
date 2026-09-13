@@ -144,7 +144,7 @@
     // reads as one claimed key, not a collision.
     citation: (key, title: auto, tags: none, show-tags: true, ..args) => {
       let key = cite-key(key)
-      _claimed.update(c => if key in c { c } else { c + (key,) })
+      _claimed.update(c => { c.insert(key, none); c })
       if keywords == "existing" {
         context note(key, title: title, tags: tags, show-tags: show-tags, ..args)
       } else {
