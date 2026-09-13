@@ -83,11 +83,19 @@
 // NO STEMMING, no accent folding, no language detection: documented non-goals.
 // Each would be a rule the READER now has to reproduce in the search box, since
 // the browser matches raw substrings against whatever the build kept.
+//
+// The token pattern and the bare-digit test, built ONCE rather than per body
+// and per token: this pass runs over every note's body, and on the inline
+// index path over every note's body per output page.
+//
+// Doubled backslashes: Typst rejects `\.` / `\p` as unknown STRING escapes, so
+// the regex the engine sees is `\.?[\p{L}\p{N}][\p{L}\p{N}.\-]*`.
+#let _TOKEN-RE = regex("\\.?[\\p{L}\\p{N}][\\p{L}\\p{N}.\\-]*")
+#let _DIGITS-RE = regex("^[0-9]+$")
+
 #let _tokenize(body) = {
   let out = ()
-  // Doubled backslashes: Typst rejects `\.` / `\p` as unknown STRING escapes, so
-  // the regex the engine sees is `\.?[\p{L}\p{N}][\p{L}\p{N}.\-]*`.
-  for m in lower(body).matches(regex("\\.?[\\p{L}\\p{N}][\\p{L}\\p{N}.\\-]*")) {
+  for m in lower(body).matches(_TOKEN-RE) {
     let t = m.text
     // `str.len()` and `str.slice` are BYTE offsets, which is safe here and only
     // here: the two characters being stripped are ASCII, so `len() - 1` is always
@@ -97,7 +105,7 @@
       t = t.slice(0, t.len() - 1)
     }
     if t.clusters().len() < 3 { continue }
-    if t.contains(regex("^[0-9]+$")) { continue }
+    if t.match(_DIGITS-RE) != none { continue }
     if t in _stopwords { continue }
     out.push(t)
   }

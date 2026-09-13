@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-todos-review
 deps: []
-closed: false
+closed: true
 ---
 Index `shown-names` as a dictionary instead of an array in
 `#todo-graph-view`, in
