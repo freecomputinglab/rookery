@@ -218,12 +218,10 @@
   })
 }
 
-// `class:`'s counterpart to `_apply-row` above, same shape and same
-// key-presence rule: `computed-class` lands ONLY on the entries the function
-// ran on, so `#slipshow`'s `_entry-class` (`slipshow.typ`) can tell "no
-// computed class, fall back to the note's own `slip-class` tag" apart from
-// "computed as `none`, this slip gets no class at all" by that key's
-// presence rather than its value.
+// `class:`'s counterpart to `_apply-row` above: `computed-class` lands
+// ONLY on the entries `class` ran on, told apart from "no `class:`, fall
+// back to the note's own `slip-class` tag" by the same key-presence rule
+// `_apply-row` explains in full.
 #let _apply-class(entries, class) = {
   if class == none { return entries }
   entries.map(e => {

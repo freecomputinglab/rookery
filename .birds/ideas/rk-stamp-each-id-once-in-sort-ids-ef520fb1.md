@@ -7,7 +7,7 @@ labels:
 - chore-core-review
 deps:
 - blocked-by:rk-cache-bib-keys-drop-dead-cite-walk-871b6099
-closed: false
+closed: true
 ---
 `_sort-ids` formats every note's `created` datetime between four and N+3 times
 when a `#window` sorts by date. Compute each stamp once and group on it.

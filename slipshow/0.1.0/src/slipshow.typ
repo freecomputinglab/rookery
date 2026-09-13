@@ -292,12 +292,10 @@
 
 // An entry's class for `_slip-attrs` below: `computed-class` (`select.typ`'s
 // `_apply-class`) when `class:` ran on this entry, else its own `slip-class`
-// tag. Told apart by the KEY's presence, not its value, the same rule
-// `_entry-row` further down applies to `computed-row`: a `class:` function
-// that computed `none` for this entry still counts as having run, so that
-// entry gets no class rather than falling back to a tag it might still
-// carry. Defined here, ahead of `_slip-attrs`, rather than beside
-// `_entry-row`, because a Typst closure only sees names bound above it.
+// tag — told apart by the same key-presence rule `_entry-row` explains in
+// full, further down. Defined here, ahead of `_slip-attrs`, rather than
+// beside `_entry-row`, because a Typst closure only sees names bound above
+// it.
 #let _entry-class(e) = if "computed-class" in e { e.computed-class } else { class-of(e.tags) }
 
 // An entry's outgoing edges as ELEMENT IDS, given `id-of` — this deck's map
