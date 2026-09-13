@@ -6,7 +6,7 @@ priority: 4
 labels:
 - fix-today-panel-row-pill
 deps: []
-closed: false
+closed: true
 ---
 `just check` in `@rookery/todos` fails, and has been failing for some time, on a single
 assertion:

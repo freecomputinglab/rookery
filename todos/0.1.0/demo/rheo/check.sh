@@ -264,10 +264,13 @@ if any("panel-pill" in r for r in table_rows):
 i = h.index("Today —")
 today_rows = rows_of(h[i:h.index("The dependency graph", i)])
 
+# A facet pill wears `idea-tag-<value>` alongside `panel-pill` as its
+# per-tag theming hook, so the class is matched by prefix rather than
+# equality.
 row_pills = [
     p
     for r in today_rows
-    for p in re.findall(r'<button type="button" class="panel-pill"[^>]*>', r)
+    for p in re.findall(r'<button type="button" class="panel-pill[^"]*"[^>]*>', r)
 ]
 if not any('data-panel-facet="tag"' in p for p in row_pills):
     note("no today-panel row carries a tag pill")
