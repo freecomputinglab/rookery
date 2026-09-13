@@ -6,7 +6,7 @@ priority: 1
 labels:
 - test-browser
 deps: []
-closed: false
+closed: true
 ---
 This repo has no browser testing of any kind. `search`, `todos` and `slipshow`
 ship 22 `*.test.mjs` files between them, all running under node with linkedom

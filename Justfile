@@ -84,6 +84,27 @@ check-versions:
     fi
     echo "check-versions OK across $(ls -d */*/typst.toml | wc -l) manifests"
 
+# Real-engine tests, across WebKit (the Safari engine), Chromium and Gecko.
+# One runner per file under a package's `test/browser/`, so a package adds a
+# suite by adding a file and nothing here changes. Needs the root devShell for
+# the browser builds; every `just test` in this repo stays runnable without it.
+#
+# The suites assert against a package's BUILT demo, so run that package's
+# `just check` first — each suite says so by name if the build is missing.
+browser:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    shopt -s nullglob
+    found=0
+    for f in */*/test/browser/*.mjs; do
+        echo "==> $f"
+        node "$f"
+        found=1
+    done
+    if [ "$found" -eq 0 ]; then
+        echo "browser: no suites yet — nothing to run"
+    fi
+
 # Cuts `<pkg>/<new>/` from `<pkg>/<old>/` and rewrites every version this repo
 # writes out by hand, so a release is one command rather than dozens of edits
 # that `check-versions` can only catch AFTERWARDS. MEASURED before this existed:
