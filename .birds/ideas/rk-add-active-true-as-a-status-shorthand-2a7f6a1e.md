@@ -7,7 +7,7 @@ labels:
 - feat-todos-in-progress
 deps:
 - blocked-by:rk-hoist-in-progress-todos-to-the-top-d3a08506
-closed: false
+closed: true
 ---
 Marking a todo as being worked on costs a quoted string today —
 `#todo("x", status: "in-progress")` — where closing one costs a named argument,

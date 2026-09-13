@@ -150,6 +150,11 @@
   priority: none,
   kind: none,
   status: none,
+  // `true` IS THE SHORTHAND for `status: "in-progress"`, resolved below so that
+  // everything downstream reads one field. A BOOL, where `done:` is a date:
+  // a close is a dated event and lives in the log, while being under way is a
+  // state and never carried a date. `false` emits nothing, like `closed:` below.
+  active: false,
   // A BOOL saying whether the log records a close, not a date. `#todo` derives it.
   closed: false,
   deps: (),
@@ -177,15 +182,33 @@
     out.insert("todo-" + kind, none)
   }
 
-  if status != none {
+  assert(
+    type(active) == bool,
+    message: "@rookery/todos: `active` is a flag, `true` or `false` — got "
+      + repr(active) + ". It is the shorthand for `status: \"in-progress\"`, and "
+      + "carries no date: a todo recording WHEN it was picked up writes "
+      + "`timeline: (activated: ..)` alongside it.",
+  )
+  // TWO SPELLINGS OF ONE FIELD ON ONE CALL is a contradiction to report rather
+  // than a merge to perform — the same reading `_closing` takes of a close
+  // written twice. Refused even where the two agree, so there stays one write path.
+  assert(
+    not (active and status != none),
+    message: "@rookery/todos: this todo says how far along it is twice — once as "
+      + "`active: true` and once as `status: " + repr(status) + "`. They are the "
+      + "same field, so write one of them.",
+  )
+  let st = if active { "in-progress" } else { status }
+
+  if st != none {
     assert(
-      status in STATUSES,
+      st in STATUSES,
       message: "@rookery/todos: `status` must be one of "
-        + STATUSES.join(", ") + " — got " + repr(status)
+        + STATUSES.join(", ") + " — got " + repr(st)
         + ". A CLOSED todo is expressed by `done:`, not by `status:`, and a "
         + "BLOCKED one is derived from its dependencies rather than declared.",
     )
-    out.insert("todo-" + status, none)
+    out.insert("todo-" + st, none)
   }
 
   // A BOOL, and it is DERIVED — `#todo` passes `CLOSED-STAGE in log`, never a

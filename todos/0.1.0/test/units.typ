@@ -21,6 +21,12 @@
 #assert.eq(todo-tags(priority: 0).keys(), ("todo",))
 #assert.eq(todo-tags(kind: "bug").keys(), ("todo", "todo-bug"))
 #assert.eq(todo-tags(status: "in-progress").keys(), ("todo", "todo-in-progress"))
+// `active: true` is the same claim in fewer characters, and resolves to the
+// same key rather than to one of its own.
+#assert.eq(todo-tags(active: true).keys(), ("todo", "todo-in-progress"))
+// `false` is the default and says nothing, like `closed: false`.
+#assert.eq(todo-tags(active: false).keys(), ("todo",))
+#assert.eq(todo-tags().keys(), ("todo",))
 // Flat means the value is `none`, which is what makes it render as a pill.
 #assert.eq(todo-tags(priority: 1).at("todo-p1"), none)
 

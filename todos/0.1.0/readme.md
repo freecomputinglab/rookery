@@ -74,6 +74,26 @@ before anything reads them, so they cannot disagree:
 - **Closing twice is refused** — `done:` together with `timeline: (closed: ..)`
   leaves the date the todo closed on unknowable, so write one of them.
 
+## Marking a todo in progress
+
+Two spellings, one key — `active:` folds into `status:` before anything reads
+it, so they cannot disagree:
+
+```typst
+#todo("fetch", status: "in-progress")[...]   // the field, written directly
+#todo("fetch", active: true)[...]            // the shorthand
+```
+
+- **`active:` is a FLAG, not a date**, where `done:` is the other way round. A
+  close is a dated event and belongs in the log; being under way is a state,
+  and `status: "in-progress"` never carried a date. A todo that wants to record
+  when it was picked up writes the log stage that exists for it alongside:
+  `#todo("fetch", active: true, timeline: (activated: d))`.
+- **`active: false` is the default and emits nothing.** Absence is "not said",
+  not "not in progress" — the same rule `closed: false` follows.
+- **Both at once is refused.** `active: true` together with any `status:` is
+  one field written twice, so write one of them.
+
 ## 0.1.0 — a todo's dates are one log
 
 The first release of this package, version-aligned with `@rookery/core`,
@@ -170,7 +190,7 @@ language.
 | `todo` | every todo |
 | `todo-p<n>` for any `n > 0` | `priority:` (bigger is more important; 0 or absent is unprioritised) |
 | `todo-task`, `todo-bug`, `todo-feature`, `todo-epic`, `todo-chore`, `todo-docs`, `todo-question` | `type:` |
-| `todo-in-progress`, `todo-deferred`, `todo-draft` | `status:` |
+| `todo-in-progress`, `todo-deferred`, `todo-draft` | `status:` (or `active:` for the first) |
 | `epic-<name>` | `#epic(name)` |
 
 The payoff is concrete and costs this package nothing: **`tags:todo&!todo-closed`

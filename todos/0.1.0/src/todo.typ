@@ -126,6 +126,7 @@
   priority: none,
   type: none,
   status: none,
+  active: false,
   deps: (),
   metadata: (:),
   tags: none,
@@ -146,6 +147,7 @@
       // `type()` for the whole callee body, and `todo-tags` needs that builtin.
       kind: type,
       status: status,
+      active: active,
       // THE FLAT MARKER IS DERIVED FROM THE LOG, not from an argument — so
       // `done:` and `timeline: (closed: ..)` always agree, and
       // `tags:todo&!todo-closed` (the query this package's header calls the
