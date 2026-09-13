@@ -182,7 +182,7 @@
 // `background`, so this is the one place a `gradient` becomes something a
 // browser understands.
 #let _gradient-css(g) = {
-  let stops = g.stops().map(p => p.at(0).to-hex() + " " + repr(p.at(1))).join(", ")
+  let stops = g.stops().map(((c, r)) => c.to-hex() + " " + repr(r)).join(", ")
 
   // CSS interpolates a gradient in sRGB unless told otherwise; Typst
   // defaults to Oklab. These four Typst colour-space functions share a name
@@ -324,10 +324,11 @@
 // caller passes the deck's real one.
 #let _slip-attrs(e, i, id-of: (:)) = {
   let id = if e.kind == "row" { "slip-" + e.row.id } else { "slip-" + str(i) }
+  let entry-class = _entry-class(e)
   let cls = (
     "slip",
     ..if is-fullscreen(e.tags) { ("slip-fullscreen",) } else { () },
-    ..if _entry-class(e) != none { (_entry-class(e),) } else { () },
+    ..if entry-class != none { (entry-class,) } else { () },
   )
   let attrs = (class: cls.join(" "), id: id, "data-index": str(i))
   let ent = enter-of(e.tags)

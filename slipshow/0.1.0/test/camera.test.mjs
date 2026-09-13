@@ -1,7 +1,7 @@
 // Numbers-only tests for the pure camera geometry — no DOM, no browser.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { targetFor, clamp, clampTo, unfocusTarget } from "../src/camera.js";
+import { targetFor, clampTo, unfocusTarget } from "../src/camera.js";
 
 const VP = { height: 800, width: 600, scrollLeft: 0, scrollTop: 0 };
 
@@ -164,11 +164,6 @@ test("clampTo: a document shorter than the viewport clamps everything to 0", () 
 
 test("clampTo: an in-range target passes through unchanged", () => {
   assert.equal(clampTo(150, 1000, 800), 150);
-});
-
-test("clamp: is the same function as clampTo", () => {
-  assert.equal(clamp(-50, 1000, 800), clampTo(-50, 1000, 800));
-  assert.equal(clamp(9999, 1000, 800), clampTo(9999, 1000, 800));
 });
 
 test("targetFor: an unknown action throws, naming the bad action and the accepted set", () => {

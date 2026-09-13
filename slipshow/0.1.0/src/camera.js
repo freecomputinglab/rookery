@@ -100,10 +100,6 @@ export const targetFor = (action, rect, viewport, opts = {}) => {
 export const clampTo = (pos, docSize, viewportSize) =>
   Math.min(Math.max(pos, 0), Math.max(0, docSize - viewportSize));
 
-// `clamp` is the vertical-only name `src/slipshow.js` and the tests still
-// reach `clampTo` by.
-export const clamp = clampTo;
-
 // The position `unfocus` restores: whatever `focus` saved before it moved,
 // or the top-left of the document at natural scale if nothing was saved
 // (e.g. `unfocus` fires with no prior `focus`). The stack of saved positions
