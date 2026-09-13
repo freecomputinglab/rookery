@@ -7,7 +7,7 @@ labels:
 - chore-timeline-review
 deps:
 - blocked-by:rk-remove-unused-imports-in-when-typ-and-9d534a2a
-closed: false
+closed: true
 ---
 **Cut `when.typ`'s ten-line restatement of the no-wall-clock measurement down to the three lines that are local to the module.**
 

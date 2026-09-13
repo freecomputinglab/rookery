@@ -105,11 +105,15 @@
   // calls `note` from inside one; `citation` wraps its own call below, only
   // when `keywords` is "existing", rather than becoming a context function
   // for every mode.
-  let kw-tags-for(key) = {
+  let kw-tags-for(key, known: none) = {
     if keywords == none { return (:) }
     let slugs = keyword-tags(entry(key).at("keywords", default: none))
     let kept = if keywords == "existing" {
-      let known = tag-data().values().map(t => t.keys()).flatten().dedup()
+      let known = if known != none {
+        known
+      } else {
+        tag-data().values().map(t => t.keys()).flatten().dedup()
+      }
       slugs.filter(s => s in known)
     } else {
       slugs
@@ -125,10 +129,10 @@
   // the right side win a key collision, so an explicit tag always wins over
   // one derived from `keywords`. The package's own `tag` is then dedup'd on
   // top by `tagged-idea` exactly as it was before this merge existed.
-  let note = (key, title: auto, tags: none, show-tags: true, ..args) => (tagged-idea(tag))(
+  let note = (key, title: auto, tags: none, show-tags: true, known: none, ..args) => (tagged-idea(tag))(
     key,
     title: if title == auto { bib-title(entry(key)) } else { title },
-    tags: kw-tags-for(key) + _norm-tags(tags),
+    tags: kw-tags-for(key, known: known) + _norm-tags(tags),
     show-tags: show-tags,
     ..args,
   )
@@ -168,6 +172,15 @@
         )
       }
       _swept.update(n => n + 1)
+      // Computed once for the whole sweep, not once per key: "existing" mode
+      // only ever adds a tag that already exists elsewhere, so the known-tag
+      // set is a fixed point under its own writes and one read up front
+      // answers every key in the loop below.
+      let known = if keywords == "existing" {
+        tag-data().values().map(t => t.keys()).flatten().dedup()
+      } else {
+        none
+      }
       for key in bib.keys().sorted() {
         if key not in _claimed.final() {
           // `[]`, an empty body, NOT omitted: core's `#idea` reads a single
@@ -176,7 +189,7 @@
           // itself the body — unnamed, landing on the sequence counter as
           // `ideas/1.html` rather than under its own key. The empty body
           // keeps `key` in the name slot.
-          note(key, [])
+          note(key, [], known: known)
         }
       }
     },
