@@ -511,4 +511,32 @@
 // `also:` is the one hole no other argument can fill — an undated,
 // unprioritised row joins only because the site's own predicate says so.
 #assert.eq(_on-today(dayrow(), today: NOW, also: r => true), true)
+
+// ---- _sort-key — what puts an in-progress todo at the top ---------------
+//
+// `#todo-table` hands `#panel` one string per row and `#panel` compares it
+// ascending, so the hoist is a leading character rather than a second pass.
+
+// Ascending (`order: "soonest"`, the default): the leading character alone
+// separates an in-progress row from every other one.
+#assert.eq(_sort-key("in-progress", "20260825", "soonest"), "020260825")
+#assert.eq(_sort-key("ready", "20260825", "soonest"), "120260825")
+// So an in-progress row outranks a READY row with an earlier date.
+#assert(
+  _sort-key("in-progress", "20260825", "soonest")
+    < _sort-key("ready", "20260101", "soonest"),
+)
+// An undated row keeps `#panel`'s own "unset sorts last" sentinel, within
+// its own group — and an undated in-progress row still beats a dated one.
+#assert.eq(_sort-key("ready", none, "soonest"), "1\u{ffff}")
+#assert(
+  _sort-key("in-progress", none, "soonest")
+    < _sort-key("ready", "20260101", "soonest"),
+)
+// Under `"newest"` `#panel` reverses the whole list, so the character flips
+// and the hoist survives the reversal.
+#assert(
+  _sort-key("in-progress", "20260825", "newest")
+    > _sort-key("ready", "20260825", "newest"),
+)
 #assert.eq(_on-today(dayrow(), today: NOW, also: none), false)

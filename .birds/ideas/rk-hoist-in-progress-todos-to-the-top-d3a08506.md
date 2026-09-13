@@ -6,7 +6,7 @@ priority: 3
 labels:
 - feat-todos-in-progress
 deps: []
-closed: false
+closed: true
 ---
 A todo whose `status:` is `"in-progress"` sorts by its date like every other
 row, so the thing actually being worked on lands wherever its deadline puts it —

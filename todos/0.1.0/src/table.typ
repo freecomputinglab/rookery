@@ -132,6 +132,23 @@
   "scheduled"
 }
 
+// THE STRING `#panel` ORDERS THE LIST BY. It compares `sort:` ascending and
+// reverses the whole list under `descending:`, so a row is hoisted above every
+// date by a LEADING CHARACTER rather than by a second pass — and that character
+// flips under `"newest"`, because the reversal would otherwise sink exactly the
+// rows the hoist lifted. The priority tie-break below inverts for the same reason.
+//
+// THE UNDATED SENTINEL IS RESTATED HERE. `#panel` maps a `none` sort value to
+// `\u{ffff}` so an unset row sorts last; every row carries a key now, so that
+// branch no longer fires and the sentinel has to ride inside the key.
+#let _sort-key(state, when, order) = {
+  let newest = order == "newest"
+  let lead = if state == "in-progress" {
+    if newest { "1" } else { "0" }
+  } else if newest { "0" } else { "1" }
+  lead + (if when == none { "\u{ffff}" } else { when })
+}
+
 #let todo-table(
   // Pre-computed rows, in `todos()` shape. `none` walks the registry itself, which is
   // what a page wanting "every open todo" means.
@@ -349,9 +366,13 @@
   let rows = ranked
     .map(r => {
       let d = when(r)
+      let state = _state-of(r, graph, today)
+      // A ZERO-PADDED `[year][month][day]` STRING, because `#panel` sorts its sort
+      // field as a plain string — which is date order exactly when it is padded.
+      let stamp = if d == none { none } else { d.display("[year][month][day]") }
       (
         ..r,
-        state: _state-of(r, graph, today),
+        state: state,
         epic: epic-of(r.tags-dict),
         // AN ARRAY, the one non-scalar field here, and legal because `tag` is named in
         // `multi:` below. Sorting is @rookery/search's job: it dedups and sorts the
@@ -361,10 +382,11 @@
         // read as a count of something — so priority 0, the unprioritised default,
         // projects to no pill at all.
         priority: if r.priority == 0 { none } else { "p" + str(r.priority) },
-        // A ZERO-PADDED `[year][month][day]` STRING, because `#panel` sorts its sort
-        // field as a plain string — which is date order exactly when it is padded.
-        when: if d == none { none } else { d.display("[year][month][day]") },
+        when: stamp,
         when-date: d,
+        // NOT A FACET, so it becomes no attribute — `#panel` emits one `data-<field>`
+        // per entry in `facets:` and this is not one of them.
+        sort-key: _sort-key(state, stamp, order),
       )
     })
     .filter(r => overdue or not _past(r.at("when-date", default: none), today))
@@ -573,7 +595,7 @@
     // `facets:` for the reason `multi:` above is.
     union: facets.filter(f => f in _SUBJECT),
     facet-rows: facet-rows,
-    sort: "when",
+    sort: "sort-key",
     descending: order == "newest",
     // WHAT `#idea-row` WOULD HAVE PUT ON THE `<li>` ITSELF. `#panel` owns the list
     // item here, so the row's own classes arrive this way instead: `idea-row` is the
