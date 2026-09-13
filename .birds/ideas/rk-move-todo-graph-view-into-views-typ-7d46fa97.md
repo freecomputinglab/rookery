@@ -7,7 +7,7 @@ labels:
 - chore-todos-review
 deps:
 - blocked-by:rk-destructure-edge-and-pair-tuples-0ae3f2d6
-closed: false
+closed: true
 ---
 Move `#todo-graph-view` out of
 `/home/lox/code/_fcl/rookery/todos/0.1.0/src/graph.typ` into
