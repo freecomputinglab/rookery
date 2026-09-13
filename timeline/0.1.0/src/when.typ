@@ -11,7 +11,6 @@
 // So the reference date is a PARAMETER, resolved by `_today` below, and the
 // last resort is a panic rather than a guess.
 
-#import "fragment.typ": *
 #import "read.typ": *
 
 // Dates compared as zero-padded `[year][month][day]` STRINGS rather than as

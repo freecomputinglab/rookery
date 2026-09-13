@@ -6,7 +6,7 @@ priority: 2
 labels:
 - chore-timeline-review
 deps: []
-closed: false
+closed: true
 ---
 **Destructure the `(index, value)` pair in `view.typ`'s `shares-day` instead of indexing it with `.at(0)`/`.at(1)`.**
 
