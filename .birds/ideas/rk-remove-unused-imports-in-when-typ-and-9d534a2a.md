@@ -6,7 +6,7 @@ priority: 2
 labels:
 - chore-timeline-review
 deps: []
-closed: false
+closed: true
 ---
 **Remove unused module imports from `when.typ` and `ladder.typ`.**
 

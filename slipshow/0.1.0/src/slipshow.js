@@ -376,10 +376,10 @@ function init() {
   window.addEventListener("resize", onResize);
 
   // A row scrolling sideways moves its slides' rails under curves anchored
-  // outside it, and a row's scroll reaches no other listener here.
-  for (const row of deck.querySelectorAll(".slip-row")) {
-    row.addEventListener("scroll", redrawEdges, { passive: true });
-  }
+  // outside it. A `.slip-row`'s scroll event does not bubble to `deck`, so
+  // only a capture-phase listener — which runs top-down on the way to the
+  // event's target regardless of bubbling — sees it here.
+  deck.addEventListener("scroll", redrawEdges, { capture: true, passive: true });
 
   redrawEdges();
 }
