@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-bibtex-review
 deps: []
-closed: false
+closed: true
 ---
 Bind `keywords.typ`'s three regexes once at module scope instead of building
 them fresh inside a function called once per keyword.

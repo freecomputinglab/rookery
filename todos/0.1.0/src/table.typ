@@ -445,8 +445,9 @@
       let phrase = if c != none { c.text } else if pri-band != none {
         "priority " + p.slice(1)
       } else { none }
+      let day = if d != none { _fmt-day(d) } else { none }
       idea-row-body(
-        when: if d != none { _fmt-day(d) } else { pri-label },
+        when: if day != none { day } else { pri-label },
         iso: if d == none { none } else { _iso(d) },
         // `when-class:`/`when-attrs:` ARE @rookery/core's OWN HOLE for exactly this
         // (see `row.typ`): the caller computes the band, the row still asks nothing
@@ -469,7 +470,7 @@
         when-attrs: if phrase == none { (:) } else {
           (
             "data-countdown": phrase,
-            "aria-label": _fmt-day(d) + ", " + phrase,
+            "aria-label": day + ", " + phrase,
             "tabindex": "0",
           )
         },
