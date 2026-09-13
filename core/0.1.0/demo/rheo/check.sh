@@ -147,8 +147,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">38 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 38 ideas"
+  grep -q 'idea-index-count">39 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 39 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -566,6 +566,7 @@ declare -A IDEATED_TITLES=(
   [literate-programming]="Literate programming"
   [fuzzy-search-ranking]="Fuzzy search ranking"
   [testing-edge-cases]="Testing edge cases"
+  [rookery]="Rookery"
 )
 for slug in "${!IDEATED_TITLES[@]}"; do
   p="$H/ideas/$slug.html"
@@ -581,6 +582,28 @@ for slug in "${!IDEATED_TITLES[@]}"; do
   [ "$n" -eq 2 ] ||
     note "ideas/$slug.html contains \"$t\" $n time(s), expected exactly 2 (the <title> and the note's own heading) — the source heading may have been left in the note's body too"
 done
+
+# 24. `#ideate`'s TAG FROM A HEADING LABEL (`content/ideated.typ`). Its fourth
+#     section, `== Rookery <tag:rookery>`, mints with the tag its own heading's
+#     label names, on top of whatever `tags:` the call already applies
+#     (nothing, here).
+grep -q 'idea-tag-rookery' "$H/ideas/rookery.html" ||
+  note "ideas/rookery.html does not carry the idea-tag-rookery class from its heading's <tag:rookery> label"
+# Its sibling with no label at all, and no `tags:` from the call either, wears
+# no tag PILL at all — the control this feature must not touch. A bare
+# `idea-tag-` substring is NOT the right test here: every page in this build
+# carries the project-wide `.idea-tag-note { .. }` rule generated for the
+# THEMED `note` tag used elsewhere in the demo, regardless of this note's own
+# tags — `class="idea-tag` (the pill's own class, present only when a note
+# has at least one visible tag) is what actually distinguishes them.
+if grep -q 'class="idea-tag' "$H/ideas/literate-programming.html"; then
+  note "ideas/literate-programming.html wears a tag pill despite no tags: and no heading label"
+fi
+# `== Testing edge cases <sec:one>` carries a label of a DIFFERENT shape — only
+# the `tag:` prefix is claimed, so this one is left alone: no extra tag, no panic.
+if grep -q 'idea-tag-sec"' "$H/ideas/testing-edge-cases.html"; then
+  note "ideas/testing-edge-cases.html's non-tag: label <sec:one> was misread as a tag"
+fi
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"

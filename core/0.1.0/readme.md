@@ -701,9 +701,43 @@ second `#ideate` call, or another chapter elsewhere in the document, is not
 covered by this check — see "Flat ids, and why" below for cross-document id
 collisions in general.
 
+### Tagging one section from its own heading
+
+In heading mode, a `<tag:x>` LABEL on a section's separating heading tags that
+section's note `x`, on top of whatever the call's own `tags:` already puts on
+every note:
+
+```typst
+#show: ideate.with(separator: heading.where(level: 2), tags: "weeknotes")
+
+== Rookery <tag:rookery>
+
+Minted tagged both `weeknotes` and `rookery` — every other section here still
+gets only `weeknotes`.
+```
+
+Only the `tag:` prefix is claimed. A label of any other shape — `<sec:intro>`,
+a bare `<my-anchor>` — is left untouched and keeps meaning whatever it already
+means to Typst; neither is read as a tag. The tag name is everything after the
+FIRST colon, so `<tag:a:b>` tags a section `a:b`.
+
+The tag is FLAT, the same shape a bare string in `tags:` produces — a label has
+no syntax for a valued one. A section wanting a valued tag, or wanting more
+than this one extra tag, is a section wanting `#idea` written out by hand: one
+Typst element carries at most one label, so a heading cannot carry two.
+
+This needs neither `title: heading` nor `name: heading` — it reads the same
+separating heading either way, whether or not either sentinel is also given.
+With `separator: par` or `separator: none` there is no separating heading to
+label, so a `<tag:x>` written there is ordinary Typst and does nothing special.
+
+Two sections sharing an identical `<tag:x>` label both tag their own note `x`
+without conflict — a repeated Typst label is only ever a problem for a `#ref`
+to it, and `#ideate` writes none.
+
 ### Its two inverted defaults
 
-`ideate(body, separator: par, title: none, name: auto, show-frame: false, show-id: false, ..args)`.
+`ideate(body, separator: par, title: none, name: auto, tags: (), show-frame: false, show-id: false, ..args)`.
 
 Both invert `#idea`'s own defaults, and that inversion is most of the reason the
 function is worth having: an inferred note is not one anybody named, so a frame
@@ -712,8 +746,10 @@ name, that permalink points at a sequence number which means nothing to a reader
 Pass `true` to either to get it back. See "Dropping a note's frame" above for what
 each one governs.
 
-`..args` forwards every other `#idea` argument to every note minted, which is how
-a caller tags a whole block at once:
+`..args` forwards every other `#idea` argument to every note minted. `tags:` is
+its own parameter rather than riding that sink — see "Tagging one section from
+its own heading" below for why — but it is written exactly the same way, and
+tags a whole block at once:
 
 ```typst
 #ideate(tags: "slip")[..]     // every paragraph becomes a note tagged `slip`

@@ -244,7 +244,7 @@
 // arithmetic — no state, no query, no layout — so the block introduces no
 // convergence risk of its own; `#idea` does its own registration inside a
 // context of its own already, and nesting one more changes nothing about that.
-#let ideate(body, separator: par, title: none, name: auto, show-frame: false, show-id: false, ..args) = context {
+#let ideate(body, separator: par, title: none, name: auto, tags: (), show-frame: false, show-id: false, ..args) = context {
   // A PAGED TARGET GETS THE MARKUP IT WAS GIVEN. No note is minted, nothing is
   // wrapped, and `#ideas()` in that build sees nothing from here — a PDF of a
   // block of prose should be that block of prose. The same shape
@@ -289,6 +289,13 @@
   }
   let want = if heading-elem { _level-of(separator) } else if heading-sel { _sel-level(separator) }
 
+  // Every accepted `tags:` form, normalized ONCE into the same dictionary
+  // shape `#idea` itself normalizes `tags:` into (`_norm-tags`, `pure.typ`) —
+  // so a group whose separating heading carries a `<tag:x>` label (the emit
+  // loop below) can union that one extra tag straight into an already-normal
+  // dictionary, rather than reconciling four different input shapes per group.
+  let base-tags = _norm-tags(tags)
+
   // `title:`/`name:` accept the sentinel element function `heading` — the
   // same value `separator:` itself already takes as `heading.where(level:
   // 2)`, so a document naming both reads as one idea rather than two
@@ -327,9 +334,16 @@
   // render as content. Forwarding `title: none` when it was never given is
   // identical to today's behaviour: `#idea`'s own default for that argument
   // is already `none`.
+  //
+  // `tags: base-tags` is bound here as every note's DEFAULT, and the emit
+  // loop below overrides it per group with that group's own tags — an
+  // explicit `tags:` at a call site overrides a value bound by `.with()`,
+  // which is what lets a group whose heading carries a `<tag:x>` label mint
+  // with one extra tag while every other group still gets exactly this one.
   let mint = idea.with(
     show-frame: show-frame,
     show-id: show-id,
+    tags: base-tags,
     ..(if title-from-heading { (:) } else { (title: title) }),
     ..args,
   )
@@ -406,24 +420,34 @@
       group.join()
     } else if _heading-only(group) {
       group.join()
-    } else if not (title-from-heading or name-from-heading) {
-      mint(group.join())
     } else {
       // A group's own separating heading is its first non-blank child — heading
       // mode pushes the matching heading into the fresh group, so it leads
       // every group except the preamble group, which has none at all. Found by
-      // POSITION, since two sections can carry identical heading content.
-      let lead-i = group.position(c => not _blank(c))
+      // POSITION, since two sections can carry identical heading content, and
+      // only in heading mode — par mode and `none` mode split on `parbreak`
+      // (or not at all), so no group there has a separating heading to find.
+      let lead-i = if heading-mode { group.position(c => not _blank(c)) } else { none }
       let lead = if lead-i == none { none } else { group.at(lead-i) }
-      if lead == none or lead.func() != heading or _level-of(lead) != want {
-        // The preamble group has no heading of its own to title or name by —
-        // minted exactly as it would be with neither sentinel given.
-        mint(group.join())
+      let lead-heading = if lead != none and lead.func() == heading and _level-of(lead) == want { lead } else { none }
+
+      // A `<tag:x>` LABEL on that same heading adds one flat tag — `x` — to
+      // this group's own note, on top of whatever `tags:` already puts on
+      // every note `#ideate` mints. Absent whenever there is no separating
+      // heading (the preamble group) or that heading carries no such label.
+      let tag = if lead-heading == none { none } else { _label-tag(lead-heading.at("label", default: none)) }
+      let group-tags = if tag == none { base-tags } else { base-tags + ((tag): none) }
+
+      if not (title-from-heading or name-from-heading) or lead-heading == none {
+        // Neither sentinel reads the heading, or this group (the preamble) has
+        // none of its own to title or name by — minted exactly as it would be
+        // with neither sentinel given, carrying its own tag (if any) either way.
+        mint(group.join(), tags: group-tags)
       } else {
         let rest = (group.slice(0, lead-i) + group.slice(lead-i + 1)).join()
-        let title-arg = if title-from-heading { (title: lead.body) } else { (:) }
+        let title-arg = if title-from-heading { (title: lead-heading.body) } else { (:) }
         if not name-from-heading {
-          mint(rest, ..title-arg)
+          mint(rest, ..title-arg, tags: group-tags)
         } else {
           // `_plain`, NOT `_plain-with(.., _ref-text(reg))`: resolving a `#ref`
           // inside the heading needs the registry's value, and this call is
@@ -436,7 +460,7 @@
           // heading's TITLE, above, is unaffected — it stays real content and
           // is resolved by whatever `show ref:` rule the document installs,
           // same as any other note's title.
-          let plain-text = _plain(lead.body)
+          let plain-text = _plain(lead-heading.body)
           let slug = _slug(plain-text)
           if slug in seen-slugs {
             panic(
@@ -446,7 +470,7 @@
             )
           }
           seen-slugs.push(slug)
-          mint(slug, rest, ..title-arg)
+          mint(slug, rest, ..title-arg, tags: group-tags)
         }
       }
     }

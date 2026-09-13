@@ -759,3 +759,17 @@
   }
   out
 }
+
+// The tag name carried by a `<tag:x>` label on one of `#ideate`'s separating
+// headings, or `none` when there is no such tag — no label at all, a label of
+// some other shape, or `<tag:>` with nothing after the colon. `str()` is the
+// only accessor a label has, and a label built `<tag:a:b>` yields the string
+// `"tag:a:b"`, so the tag name is everything after the FIRST colon rather
+// than a second split on the rest.
+#let _label-tag(l) = {
+  if l == none { return none }
+  let s = str(l)
+  if not s.starts-with("tag:") { return none }
+  let tag = s.slice(4)
+  if tag == "" { none } else { tag }
+}

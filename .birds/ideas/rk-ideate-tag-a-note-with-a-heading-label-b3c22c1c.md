@@ -7,7 +7,7 @@ labels:
 - feat-ideate-tag-labels
 deps:
 - blocked-by:rk-ideate-heading-as-title-and-name-44e0753c
-closed: false
+closed: true
 ---
 A `#ideate` call tags every note it mints identically: `tags:` flows through the
 `..args` sink at `core/0.1.0/src/ideate.typ:247` into the `mint` binding at line

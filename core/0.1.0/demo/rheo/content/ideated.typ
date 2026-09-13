@@ -24,7 +24,17 @@ counter.
 A second section, proving the slug this heading mints under does not collide
 with the first one's.
 
-== Testing edge cases
+== Testing edge cases <sec:one>
 
 A third section, so this fixture has more than the bare minimum needed to
-prove the ids don't collide.
+prove the ids don't collide. Its heading carries a label too — `<sec:one>` —
+proving a label without the `tag:` prefix is left alone: no extra tag on this
+note, and no panic either.
+
+// A fourth section, whose heading carries a `<tag:rookery>` label. Minted
+// with that one extra tag on top of whatever `tags:` this call already
+// applies (nothing, here) — every other section above has none at all.
+== Rookery <tag:rookery>
+
+A fourth section, tagged `rookery` by its own heading's label rather than by
+anything passed to `#ideate` itself.

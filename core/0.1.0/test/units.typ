@@ -20,7 +20,7 @@
   _bib, _bib-keys, _blocks, _body-plain, _body-text, _cite-scan, _dedup-tag,
   _is-inline, _join, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
-  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug,
+  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _label-tag,
   footnote, idea, note-href, note-path,
   tag-index, window,
 )
@@ -597,3 +597,19 @@
 // empty string — a caller error, not a silent id. Not asserted here: a panic
 // aborts the whole compile, so this file's `assert.eq` harness (which needs
 // the compile to finish) cannot observe one — see this file's own header.
+
+// ---- _label-tag — a `<tag:x>` label on a group's separating heading -------
+//
+// `#ideate`'s `<tag:x>` feature reads this off a heading's own label — only
+// the `tag:` prefix is claimed, so any other label a document already uses
+// (an anchor, a `#ref` target) is left alone.
+#assert.eq(_label-tag(<tag:rookery>), "rookery")
+// Some other prefix: not a tag, the label is untouched by this feature.
+#assert.eq(_label-tag(<sec:intro>), none)
+// No prefix at all — a bare anchor label.
+#assert.eq(_label-tag(<my-anchor>), none)
+// `<tag:>` alone: nothing after the colon, so no tag rather than an empty one.
+#assert.eq(_label-tag(<tag:>), none)
+#assert.eq(_label-tag(none), none)
+// Two colons: the tag name is everything after the FIRST one, not a second split.
+#assert.eq(_label-tag(<tag:a:b>), "a:b")
