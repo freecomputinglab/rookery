@@ -38,12 +38,11 @@
 // It takes whatever a log entry takes, so an entry dictionary works here too and
 // is how a close carries its own prose: `done: (timestamp: d, note: [Landed as ..])`.
 //
-// So there is still ONE store and one write path — `done:` folds into the
-// `timeline:` dictionary before anything reads it (`_closing` below), rather than
-// setting a second flag beside it. That is the whole reason the old `closed:`
-// argument was removed in 0.6.0: it wrote the flat marker while
-// `timeline: (closed: d)` wrote the entry, and the two disagreed. Folding cannot
-// disagree.
+// So there is one store and one write path: `done:` folds into the
+// `timeline:` dictionary before anything reads it (`_closing` below), rather
+// than setting a second flag beside it — the flat `todo-closed` marker
+// (below) is derived from that one dictionary, so the two spellings of a
+// close cannot disagree.
 //
 // IT TAKES A DATE, NOT A BOOL. `done: true` is refused with a message, because a
 // log entry needs a date and there is no clock here to stamp one from — see the
@@ -61,9 +60,9 @@
 //
 //   #todo("ship", tags: entries(deadline: d))[..]
 //
-// `created` is rookery's own row field, forwarded through `..args`. There is no
-// `updated`: rookery removed it in 0.6.0 and rookery-timeline derives last-touched
-// from the log. Nothing in this package auto-stamps a date; there is no wall
+// `created` is rookery's own row field, forwarded through `..args`. There is
+// no `updated` field — rookery-timeline derives last-touched from the log
+// instead. Nothing in this package auto-stamps a date; there is no wall
 // clock to stamp from (see rookery-timeline's readme for the measured evidence).
 //
 // A CLOSE IS A DATE however it is written — `done:` or `timeline: (closed: ..)` —
@@ -147,13 +146,10 @@
       // `type()` for the whole callee body, and `todo-tags` needs that builtin.
       kind: type,
       status: status,
-      // THE FLAT MARKER IS DERIVED FROM THE LOG, not from an argument. There used
-      // to be a `closed:` parameter beside `timeline:`, and the two were not
-      // equivalent: MEASURED, `#todo("a", closed: d)` carried `todo-closed` while
-      // `#todo("b", timeline: (closed: d))` did not, so the second read as closed to
-      // `is-closed` and as OPEN to `tags:todo&!todo-closed` — the query this
-      // package's own header calls the payoff of the flat-tag surface. Two ways to
-      // write one fact, one of them silently unfilterable.
+      // THE FLAT MARKER IS DERIVED FROM THE LOG, not from an argument — so
+      // `done:` and `timeline: (closed: ..)` always agree, and
+      // `tags:todo&!todo-closed` (the query this package's header calls the
+      // payoff of the flat-tag surface) never disagrees with `is-closed`.
       //
       // Deriving it here is what makes them one way. `todo-tags` cannot do it: it
       // builds this package's keys and never sees the log, which belongs to

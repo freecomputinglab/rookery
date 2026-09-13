@@ -20,10 +20,10 @@
 // 3. NOT TAGS OF OURS AT ALL — labels are PLAIN, UNNAMESPACED rookery tags,
 //    because a todo's labels ARE rookery tags and namespacing them would break
 //    exactly the filtering and theming that is the point. EVERY DATE comes from
-//    @rookery/timeline's `timeline-log`, including the one this package used to
-//    store itself (see `CLOSED-KEY` below). `created` comes from rookery's own
-//    row field; there is no `updated` field any more — rookery-timeline derives
-//    last-touched from the log.
+//    @rookery/timeline's `timeline-log`, including the todo's close date (see
+//    `CLOSED-KEY` below). `created` comes from rookery's own row field; there
+//    is no `updated` field — rookery-timeline derives last-touched from the
+//    log.
 //
 // DERIVED, NEVER STORED: `blocked`, `ready`, `stale`. Tagging them would let
 // them go stale against the deps and dates that define them. See `graph.typ`.
@@ -80,11 +80,11 @@
 #let DEPS-KEY = "todo-deps"
 #let METADATA-KEY = "todo-metadata"
 
-// `todo-closed` IS NO LONGER A VALUED KEY. The date a todo closed lives in
-// @rookery/timeline's `timeline-log`, under its reserved `closed` stage, alongside
-// every other dated event in the todo's life — which is the whole point of
-// 0.6.0: one store for a todo's timeline instead of a valued tag here, two date
-// keys there, and core's `updated` somewhere else again.
+// `todo-closed` is a flat presence marker, not a valued key. The date a
+// todo closed lives in @rookery/timeline's `timeline-log`, under its
+// reserved `closed` stage, alongside every other dated event in the todo's
+// life — one store for a todo's timeline, rather than a valued tag here and
+// a second date somewhere else.
 //
 // WHAT THIS KEY STILL IS: a FLAT presence marker, valued `none`, written
 // alongside the log entry. It carries no date and is not a second copy of one.
@@ -226,11 +226,9 @@
 // Is this note a todo at all?
 #let is-todo(tags) = TODO-KEY in tags
 
-// THE LOG ALONE, which it can be now that there is one write path. It used to
-// read "the flat marker OR a `closed` log entry", because `#todo(closed: d)` wrote
-// the marker and `entries(timeline: (closed: d))` wrote the entry and neither wrote both.
-// With the marker derived from the log the two cannot disagree, so reading both
-// would only hide a bug rather than tolerate one.
+// THE LOG ALONE — the flat `todo-closed` marker is derived from it (see
+// `todo.typ`'s `_closing`), so the two cannot disagree, and reading both
+// here would only hide a bug rather than tolerate one.
 #let is-closed(tags) = has-stage(tags, CLOSED-STAGE)
 
 // The date it closed, from the log — the only place it is stored.

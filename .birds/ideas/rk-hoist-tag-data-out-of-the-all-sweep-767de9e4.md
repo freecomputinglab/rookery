@@ -7,7 +7,7 @@ labels:
 - chore-bibtex-review
 deps:
 - blocked-by:rk-store-claimed-keys-as-a-dictionary-ec9241ef
-closed: false
+closed: true
 ---
 Compute the "existing tags" lookup once per `all()` sweep instead of once per
 unclaimed bibliography entry.
