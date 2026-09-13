@@ -75,6 +75,38 @@ export const init = async () => {
   const dialogs = document.querySelectorAll("dialog[data-rookery-search]");
   if (roots.length === 0 && dialogs.length === 0) return;
 
+  // WIRED BEFORE THE INDEX IS FETCHED, and that ordering is the whole point:
+  // a trigger registered after an `await` is a dead button whenever the fetch
+  // fails, with nothing on screen and nothing in the console to say so. A modal
+  // with no rows opens and says it has none; `setRows` below fills it in.
+  const modals = new Map();
+  for (const dialog of dialogs) {
+    const elemId = dialog.dataset.rookerySearch || "rookery-search-index";
+    const modal = wireModal(dialog, []);
+    if (modal !== null) modals.set(elemId, modal);
+  }
+  if (modals.size > 0) {
+    for (const trigger of document.querySelectorAll(".rookery-search-trigger")) {
+      const modal = modals.get(trigger.dataset.rookerySearchModal);
+      if (modal === undefined) continue;
+      trigger.addEventListener("click", () => modal.open());
+    }
+
+    // Registered once per page, not once per modal — opens the FIRST modal in
+    // document order, matching telescope's own convention of one global
+    // shortcut. `preventDefault()` because Ctrl+K is a browser binding in some
+    // browsers and the page must win here.
+    document.addEventListener("keydown", (ev) => {
+      if (!(ev.ctrlKey || ev.metaKey) || ev.key.toLowerCase() !== "k") return;
+      // A reader typing in some other field means the literal keystroke, not
+      // the shortcut.
+      const t = ev.target;
+      if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) return;
+      ev.preventDefault();
+      modals.values().next().value?.open();
+    });
+  }
+
   // Shared across bars AND modals, so a page with both fetches and parses the
   // index once. Holds the PROMISE, not the rows: two bars naming the same
   // island must await one fetch, not race two.
@@ -113,35 +145,10 @@ export const init = async () => {
     });
   }
 
-  const modals = new Map();
-  for (const dialog of dialogs) {
-    const elemId = dialog.dataset.rookerySearch || "rookery-search-index";
-    const rows = await rowsFor(elemId);
-    if (rows === null) continue;
-    const modal = wireModal(dialog, rows);
-    if (modal !== null) modals.set(elemId, modal);
-  }
-  if (modals.size === 0) return;
-
-  for (const trigger of document.querySelectorAll(".rookery-search-trigger")) {
-    const modal = modals.get(trigger.dataset.rookerySearchModal);
-    if (modal === undefined) continue;
-    trigger.addEventListener("click", () => modal.open());
-  }
-
-  // Registered once per page, not once per modal — opens the FIRST modal in
-  // document order, matching telescope's own convention of one global
-  // shortcut. `preventDefault()` because Ctrl+K is a browser binding in some
-  // browsers and the page must win here.
-  document.addEventListener("keydown", (ev) => {
-    if (!(ev.ctrlKey || ev.metaKey) || ev.key.toLowerCase() !== "k") return;
-    // A reader typing in some other field means the literal keystroke, not
-    // the shortcut.
-    const t = ev.target;
-    if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) return;
-    ev.preventDefault();
-    modals.values().next().value?.open();
-  });
+  // Each wired modal is fed its rows once the index settles — or fed `null`
+  // when it never does, which is what turns its empty state into the
+  // unavailable-index message rather than a plain "no match found".
+  for (const [elemId, modal] of modals) modal.setRows(await rowsFor(elemId));
 };
 // THE GLOBAL, PUBLISHED IN SOURCE MODE TOO. `vite.config.js` builds an IIFE named
 // `RookerySearch`, so a release carries this object; a project consuming `src/*.js`

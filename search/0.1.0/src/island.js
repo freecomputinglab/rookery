@@ -39,11 +39,18 @@ export const loadIndex = async (elemId) => {
   const base = el.dataset.rookerySearchBase ?? "";
   try {
     const res = await fetch(src);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`@rookery/search: the search index at "${src}" answered ${res.status} — search will be empty.`);
+      return null;
+    }
     const rows = await res.json();
-    if (!Array.isArray(rows)) return null;
+    if (!Array.isArray(rows)) {
+      console.warn(`@rookery/search: the search index at "${src}" is not a JSON array — search will be empty.`);
+      return null;
+    }
     return base === "" ? rows : rows.map((row) => ({ ...row, href: base + row.href }));
-  } catch {
+  } catch (err) {
+    console.warn(`@rookery/search: could not fetch the search index at "${src}" — search will be empty.`, err);
     return null;
   }
 };

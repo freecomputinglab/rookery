@@ -7,7 +7,7 @@ labels:
 - chore-bibtex-review
 deps:
 - blocked-by:rk-hoist-tag-data-out-of-the-all-sweep-767de9e4
-closed: false
+closed: true
 ---
 Add `parse-entry` to the two places that list this package's re-exported
 public functions — it is already public and already undocumented there.

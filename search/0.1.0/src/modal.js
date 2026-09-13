@@ -22,6 +22,12 @@ export const wireModal = (dialog, rows) => {
   // the two into agreement.
   const limit = readLimit(dialog.dataset.rookerySearchLimit, 30);
 
+  // The corpus, re-fed after wiring. `search.js` wires this modal before the
+  // index has loaded so its trigger is live on first paint, then hands the
+  // rows over when they land — or hands over `null` when they never will.
+  let corpus = Array.isArray(rows) ? rows : [];
+  let loaded = Array.isArray(rows);
+
   let hits = [];
   // Bumped by every `renderPreview`, so a `fetch` that lands after the reader
   // has moved on cannot paint over a later selection's pane. Arrow-keying down
@@ -126,7 +132,7 @@ export const wireModal = (dialog, rows) => {
     // With a `tags:` expression and no residual text, that becomes the whole
     // FILTERED corpus ranked the same way — the same sentence one level in.
     const split = splitQuery(q);
-    hits = searchSplit(rows, split, limit);
+    hits = searchSplit(corpus, split, limit);
     // The residual, not the raw input: see `wire`'s `render` above. Marking the
     // literal "tags:" in every note is the failure this avoids. And the tag
     // expression's positive atoms alongside, for the chips — this is the surface
@@ -157,7 +163,9 @@ export const wireModal = (dialog, rows) => {
       delete preview.dataset.rookerySearchLoading;
       const empty = document.createElement("p");
       empty.className = "rookery-search-preview-empty";
-      empty.textContent = "No match found";
+      empty.textContent = loaded
+        ? "No match found"
+        : "Search index unavailable — reload the page, or check the browser console.";
       preview.replaceChildren(empty);
       return;
     }
@@ -213,6 +221,13 @@ export const wireModal = (dialog, rows) => {
       // fresh query without losing what was there before.
       input.focus();
       input.select();
+    },
+    // Called once by `search.js` when the index settles. `null` means it never
+    // will, which is what the empty-state message above reads.
+    setRows: (next) => {
+      loaded = Array.isArray(next);
+      corpus = loaded ? next : [];
+      if (dialog.open) render();
     },
   };
 };
