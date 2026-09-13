@@ -6,7 +6,7 @@ priority: 3
 labels:
 - feat-todos-in-progress
 deps: []
-closed: false
+closed: true
 ---
 A todo whose `status:` is `"in-progress"` looks exactly like one nobody has
 started: the flat tag is emitted, the state is derived, and nothing on the page

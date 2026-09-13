@@ -185,6 +185,45 @@
     opacity: 1;
   }
 
+  /* IN PROGRESS, AS A WASH ON THE WHOLE ROW. The countdown bands below paint the
+   * DATE CELL for how long you have; being under way is a different question, so it
+   * takes a different surface. The green continues the ramp's own construction
+   * rather than borrowing a hue from it: `#b3261e`, `#b3611e` and `#b38f1e` hold red
+   * at 179 and blue at 30 while green climbs, and `#26b31e` is that pair swapped,
+   * which lands past yellow in green.
+   *
+   * 18%, under the weakest band's 22%, because this wash sits UNDERNEATH the date
+   * cell's and the two have to stay tellable apart.
+   *
+   * BOTH LIST SHAPES. `#todo-table` and `#today-panel` build rows through `#panel`,
+   * whose `row-class:` gives an `idea-row`; `#todos-list` and its siblings build
+   * theirs through `_row-classes`, which gives a `todo-row`. Both then carry
+   * `idea-tag-<key>` for every tag the todo wears.
+   *
+   * The padding and its matching negative margin are the date band's own device:
+   * the wash needs room around the text without moving the row off the alignment
+   * its unwashed neighbours keep. */
+  .idea-row.idea-tag-todo-in-progress,
+  .todo-row.idea-tag-todo-in-progress {
+    background-color: var(
+      --todo-row-in-progress-bg,
+      color-mix(in oklab, var(--todo-in-progress-color, #26b31e) 18%, transparent)
+    );
+    border-radius: 3px;
+    padding-inline: 0.3em;
+    margin-inline: -0.3em;
+  }
+
+  /* THE LABEL, in the hue the row is washed with. `idea-tag-in-progress` is the
+   * class both badge shapes already wear — @rookery/core's row chip under the
+   * default `badge-pills: false`, @rookery/search's filter pill under
+   * `#today-panel`'s `badge-pills: true`. NO `todo-` PREFIX here where the row's
+   * class above has one: this comes from the state facet's VALUE, which is bare,
+   * and that one from the tag KEY, which is namespaced. */
+  .idea-tag-in-progress {
+    color: var(--todo-in-progress-color, #26b31e);
+  }
+
   .todo-row-ready {
     --todo-row-line: var(--todo-ready-color, seagreen);
   }
