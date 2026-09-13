@@ -27,8 +27,7 @@
 // passes an explicit one instead: on a note's OWN minted page the permalink
 // must stay a same-page fragment rather than link the page to itself, and
 // `_note-href` would happily compute the latter. Routing that case through
-// here anyway is what keeps every permalink in the output identical — the
-// hand-rolled copy this replaced had already drifted.
+// here anyway is what keeps every permalink in the output identical.
 //
 // Carries no theme properties of its own: it is always emitted inside a
 // container that does (`.idea-box`, `.idea-window`, a minted page's `<h1>`), and
@@ -67,11 +66,12 @@
 // does not: it is always emitted inside a container that does — `.idea-box`,
 // `.idea-window-summary`, or (on a minted page) the `.idea-head` wrapper — and
 // custom properties inherit.
-// `date` IS THE HAT'S OTHER END. Emitted LAST and pushed to the far right of the
-// rule by `margin-left: auto` in the stylesheet, so the hat reads id-on-the-left,
-// date-on-the-right with the frame's top edge between them. It used to render
-// inside the heading (`#idea`) or as a third item in the summary row (`#window`) —
-// two classes in two places for one piece of metadata. Both now pass it here.
+// `date` IS THE HAT'S OTHER END, emitted LAST and pushed to the far right of
+// the rule by `margin-left: auto` in the stylesheet, so the hat reads
+// id-on-the-left, date-on-the-right with the frame's top edge between them.
+// Both `#idea`'s heading and `#window`'s summary row pass it here rather than
+// rendering their own copy, so one piece of metadata gets one class in one
+// place.
 //
 // A STRING, already formatted, not a `datetime`: the two call sites resolve which
 // date to show and how to display it (`#idea` from `created`/the
@@ -92,12 +92,11 @@
 // that only meant to style the card is affected too — that is the intent of
 // sharing the class, not an accident.
 //
-// CLASSES ONLY, no `style` attribute: `theme: (tags-color: ..)` used to reach
-// this pill as an inline style computed right here, and now arrives as a
-// generated `.idea-tag-<tag>` rule instead (`_tags-color-rules`, theme.typ),
-// carried by the class this element already wore. Nothing to do here but wear
-// the class — which is exactly why the theme now also reaches the surfaces this
-// function never touched.
+// CLASSES ONLY, no `style` attribute: a `theme: (tags-color: ..)` colour
+// reaches this pill as a generated `.idea-tag-<tag>` rule (`_tags-color-rules`,
+// theme.typ), carried by the class this element already wears. Wearing the
+// class is the only thing this function does for theming — which is exactly
+// why the theme also reaches surfaces this function never touches.
 // INVISIBLE TAGS ARE DROPPED HERE, at the one funnel every pill goes through —
 // `#idea`'s hat, `_window-content`'s summary hat and a minted note page's hat all
 // call this function, so filtering once covers all three and they cannot drift
@@ -124,9 +123,8 @@
   {
     // ONE PARENTHESISED expression, not three lines of `+ ...`. In a Typst CODE
     // block each line is a statement, so a leading `+` is parsed as UNARY plus
-    // and fails with "cannot apply unary '+' to content" — MEASURED here. The
-    // parens make the whole thing one expression again, exactly as it was when
-    // it was the function's bare body.
+    // and fails with "cannot apply unary '+' to content". The parens make the
+    // whole thing one expression.
     let shown = _visible-tags(tags)
     (
       (if show-id { _permalink(id, href: href) } else { [] })
@@ -144,23 +142,19 @@
 
 // The tab and the heading as ONE element, wherever a note wears a header.
 //
-// NOT two loose siblings, and this is measured rather than tidiness. Typst's
-// HTML export wraps a LEADING INLINE run in a `<p>` of its own depending on what
-// follows it, and it is not decidable per call site: in one build of this
-// package's own `demo/rheo`, one `.idea-box` came out
-// `<div class="idea-box"><p><span class="idea-tab">..</span></p><h2>` and the
-// next `<div class="idea-box"><span class="idea-tab">..</span><h2>` — same
-// construct, same run, different grouping, because their bodies differ. Every
-// stylesheet rule that positions the tab against its heading
-// (`.idea-tab + h*.idea`) silently stops matching in the first form.
+// NOT two loose siblings. Typst's HTML export wraps a LEADING INLINE run in a
+// `<p>` of its own depending on what follows it, and it is not decidable per
+// call site — the same construct comes out wrapped or bare depending on the
+// body. Every stylesheet rule that positions the tab against its heading
+// (`.idea-tab + h*.idea`) silently stops matching in the wrapped form.
 //
 // Inside one `html.elem` the two are always real siblings. `.idea-head` is also
 // the theme container on a minted note page, where there is no `.idea-box` to be
 // one — see `.marrow.typ`, which passes `_themed((:))` here.
 //
 // `#window`'s summary needs none of this: its tab is a direct child of
-// `<summary>`, whose content is inline throughout, and no `<p>` ever appears
-// there (checked in the same build).
+// `<summary>`, whose content is inline throughout, so no `<p>` ever appears
+// there.
 #let _head(tab, heading, attrs: (:)) = html.elem(
   "div",
   attrs: attrs + (class: _c("head"), data-rookery: "head"),
@@ -175,16 +169,14 @@
 
 // THE ONE BOTTOM-OUT RENDERING. A `#window` that has no recursion budget left emits
 // this, wherever it ran out: `#window` itself at depth 0, and `_flatten`'s WK arm for
-// a window nested past the budget. It used to be TWO renderings — a bare `[idea:x]`
-// permalink from the WK arm, and this row from the depth-0 branch — so a bottomed-out
-// window looked like a different KIND of object depending on WHY it bottomed out.
-// Factored here so the two cannot drift again; that drift is what the shared
-// `_permalink`/`_note-file`/`_truncate` helpers all exist to prevent.
+// a window nested past the budget. ONE rendering serves both call sites, so a
+// bottomed-out window looks like the same KIND of object regardless of why it
+// bottomed out — the shared `_permalink`/`_note-file`/`_truncate` helpers exist
+// to keep it that way.
 //
 // The note's TITLE, linked to its own page, in the row shape a page backlink uses
 // (`.idea-page-row` gives it the frame's bar and indent at body size). A TITLELESS
-// note falls back to its permalink — there is nothing else to name it by, and that
-// is the one case the old rendering survives in.
+// note falls back to its permalink — there is nothing else to name it by.
 //
 // Defined HERE, above `_flatten`, for the reason `_blocks` and `_truncate` are: a
 // `#let` closure captures the scope visible AT DEFINITION time, and `_flatten` is one

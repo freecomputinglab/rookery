@@ -43,9 +43,7 @@
 // markup-only syntax, not a callable `ref(...)` constructor), so the two
 // shapes cannot collide. That also lets `link-to:` double as the one knob
 // for both an explicit `#hyperlink(...)` call and the `show ref:` rule,
-// where the previous two-functions-not-one design (`link-to-page`/
-// `link-to-anchor`, each a thin wrapper choosing a hardcoded mode) needed a
-// separate export per mode instead.
+// instead of a separate export per mode.
 //
 // References to anything else (an ordinary figure, a heading, ...) pass
 // through untouched via the `else { it }` branch below — checking
@@ -66,12 +64,6 @@
 // `@idea:x` leaves it at, the signal to fall back to the title/raw-id
 // default. An explicit call has no such fallback chain: its body is
 // whatever the caller wrote, always.
-//
-// MEASURED CORRECTION to this bead's own sketch: it assumed the registry
-// stored a dict with a `.title` field directly. It stores `(title:, body:)`
-// now (added by this bead, since nothing previously persisted the title) —
-// see `#idea`'s registration step. A note with no title (the common
-// frictionless case) falls back to the bare id text, not a blank link.
 #let hyperlink(..args) = {
   let pos = args.pos()
   let link-to = args.named().at("link-to", default: "page")
@@ -171,10 +163,9 @@
 // exceeded", and a nested `#idea` inside a transcluded body re-runs its
 // registration and counter step, inflating later ids.
 //
-// REFUTED APPROACH, do not reintroduce: a `state` depth counter around the
-// expansion. Measured failing on typst 0.14.2 AND 0.15.1 — a self-window still
-// fails identically, because typst hits its nesting cap before the state
-// timeline converges.
+// REFUTED: a `state` depth counter around the expansion — a self-window
+// still fails identically, because typst hits its nesting cap before the
+// state timeline converges.
 //
 // The `show` rules below are LOCALLY SCOPED to the content this function
 // returns — Typst content carries its own style/show-rule modifications
@@ -182,7 +173,7 @@
 // `body` gets reduced when this returned content is finally rendered, no
 // matter how many `#window`s later re-embed it.
 //
-// GOTCHA (measured): do NOT use `it.body.children.first()` to find the
+// GOTCHA: do NOT use `it.body.children.first()` to find the
 // metadata child — the marker's body begins with a SPACE element whenever the
 // markup block spans multiple lines, so `.first()` returns a `space` and
 // fails with `space does not have field "value"`. Use

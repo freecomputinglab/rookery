@@ -35,17 +35,10 @@
 // A nested `#idea` or `#window` emits a references block of its own, INSIDE the
 // enclosing idea's body and therefore BEFORE the enclosing idea's block. Typst
 // partitions positionally, so that inner block sweeps up everything preceding
-// it — including the enclosing idea's own citations. MEASURED before this fix,
-// tracing byte offsets in a minted page for
-// `#idea("outer")[Outer cites @beta2021. #window("multi")]`:
-//
-//      191  CITE Beta 2021       <- Outer's OWN citation
-//      684  idea-references      <- the WINDOW's block; claimed all of it
-//      998  idea-references      <- Outer's own block, nothing left
-//
-// and that last one rendered `<h2>References</h2><ul></ul>` — a visible empty
-// heading, which is precisely what `_own-cited-keys` exists to prevent, arriving
-// through ordering rather than through content.
+// it — including the enclosing idea's own citations — leaving the outer block
+// with nothing and rendering a visible empty `<h2>References</h2><ul></ul>`,
+// which is precisely what `_own-cited-keys` exists to prevent, arriving through
+// ordering rather than through content.
 //
 // So scan the body in order, recording citations AND the nested blocks that
 // will claim them. Both IK and WK count: a nested idea emits a block just as a
@@ -58,8 +51,8 @@
   // A `#window` builds its `figure(kind: WK)` INSIDE a `context` block, so at
   // raw-body time there is no figure here to find — only the announce marker
   // `#window` emits up front for exactly this kind of walk (`_outbound` reads
-  // the same one). MEASURED: scanning for the WK figure alone missed every
-  // window and left the empty heading in place.
+  // the same one). Scanning for the WK figure alone misses every window and
+  // leaves the empty heading in place.
   if node.func() == metadata {
     // DELIBERATELY INDEPENDENT OF `backlink:`. A window claims the citations it
     // is going to render whether or not it counts as a link from here — the two
@@ -72,10 +65,8 @@
     // inside one is reachable ONLY through the value. Descend into it: "a
     // citation belongs to the idea in which you write it, just as footnotes do"
     // is what the documentation promises, and a footnote is written in this
-    // idea. MEASURED before this branch existed, on an idea whose only citation
-    // sat inside `#footnote[...]`: the author-date marker rendered, no
-    // `.idea-references` block was emitted at all, and the reader saw
-    // `(Wajcman 2009)` with nothing anywhere on the site saying what it cited.
+    // idea. Without this branch, a citation inside `#footnote[...]` renders its
+    // author-date marker with no references block anywhere naming what it cited.
     //
     // Counted ONCE, not twice. `_own-cited-keys` scans the RAW body; the
     // rendered footnote content `_footnoted` appends is never fed back through
@@ -104,13 +95,10 @@
 //
 // `windows-claim: false` for a context where nested windows COLLAPSE instead of
 // rendering — a minted page, or any `_flatten` scope out of depth budget. A
-// collapsed window is a bare permalink: it emits no block and therefore claims
-// nothing, so the idea keeps its own citations after all. MEASURED when this
-// was missed: `ideas/before.html` cited Beta 2021, emitted no bibliography at
-// all, and its citation fell back onto an unrelated minted page's block — the
-// same contamination `rookery-bib-minted-m6h` had just fixed, reintroduced from
-// the other side. A nested `#idea` always renders its own box and block, so it
-// stays a claimant either way.
+// collapsed window is a bare permalink: it emits no references block and
+// therefore claims nothing, so the idea keeps its own citations after all. A
+// nested `#idea` always renders its own box and block, so it stays a claimant
+// either way.
 #let _own-cited-keys(body, windows-claim: true) = {
   let keys = _bib-keys()
   if keys.len() == 0 { return () }
@@ -141,17 +129,15 @@
 //
 // Without it they leak into that idea's list, the partition being positional
 // and the idea's own bibliography being the nearest one following them.
-// MEASURED before the fix: an idea's block listed both the prose citation
-// written above it and its own.
 //
 // UNCONDITIONAL, and `title: none`. Whether unclaimed prose citations precede
 // a given idea cannot be determined from inside `#idea` — it never sees page
 // prose — and it cannot be determined by querying either: deciding whether to
 // emit a bibliography from `query(cite)` is CIRCULAR and hard-errors, because
 // with none yet emitted the refs never resolve to cites, so the query finds
-// nothing, so nothing is emitted, so the refs fail. MEASURED. A title-less
-// bibliography with nothing to list renders `<section><ul></ul></section>` —
-// no heading, nothing visible — which is what makes always emitting it safe.
+// nothing, so nothing is emitted, so the refs fail. A title-less bibliography
+// with nothing to list renders `<section><ul></ul></section>` — no heading,
+// nothing visible — which is what makes always emitting it safe.
 #let _sweep-block() = {
   if _bib.final() == none { return [] }
   if _target() == "html" or _target() == "epub" {

@@ -7,7 +7,7 @@ labels:
 - fix-safari-search-modal
 deps:
 - blocked-by:rk-wire-search-triggers-before-the-index-7974cadf
-closed: false
+closed: true
 ---
 `init()` in `/home/lox/code/_fcl/rookery/search/0.1.0/src/search.js` (line 63) is
 one unguarded async chain over every widget this package ships: `initPanels()` at

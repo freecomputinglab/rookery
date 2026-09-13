@@ -18,8 +18,8 @@
 // those files' packages import in turn — so a `#preview` composing
 // `@rheo/tooltip` from inside THIS package would need every consuming project
 // to import `@rheo/tooltip` directly too, just to get its JS auto-injected.
-// That leaky requirement (REJECTED 2026-08-14) is worse than not having the
-// feature; `#hyperlink`/`#window` cover referencing a note without it.
+// That leaky requirement is worse than not having the feature;
+// `#hyperlink`/`#window` cover referencing a note without it.
 
 // THE ENTRYPOINT IS A MANIFEST, not a place to add code. Every name this
 // package exports lives in one of the modules below, and `#import "x.typ": *`

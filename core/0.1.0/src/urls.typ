@@ -28,11 +28,10 @@
 #let _note-file(id) = _dir() + "/" + id.trim(_pfx(), at: start) + ".html"
 
 // The three halves of one note page, in one place: the slug, the file
-// `.marrow.typ` mints it to, and the handle it mints it under. `.marrow.typ`
-// used to derive all three itself — `id.trim(_pfx(), at: start)` for the slug,
-// `_note-file(id)` for the path, `_dir() + ":" + slug` for the handle — which
-// is the mirroring the comment above worries about, spelled out across two
-// files. Now the mirror lives here and marrow reads it.
+// `.marrow.typ` mints it to, and the handle it mints it under. The mirror the
+// comment above worries about — path and handle staying in sync — lives in
+// this one function, and `.marrow.typ` reads it rather than deriving the
+// slug, the path and the handle itself.
 //
 // Must be called from inside `context`: `_pfx` reads the prefix state.
 #let _note-page(id) = {
@@ -78,18 +77,14 @@
 // is right today and that no show rule could reach. So `_note-href` stays exactly
 // as it is.
 //
-// Inside a note body it is a different question, because a body is REPLAYED — onto
-// the vertebra that authored it, into every `#window` transcluding it, and onto its
-// own minted page. When the document converges a `context` there does resolve per
-// insertion and the old code was correct: verified, one stored body yielding
-// `ideas/m.html` at depth 0 and `../ideas/m.html` at depth 1. When it does NOT
-// converge, every copy degenerates to ONE shared value — measured, a single author
-// link came out `../ideas/x.html` on four pages at two depths, 72 links dead from
-// the site root.
+// Inside a note body it is a different question, because a body is REPLAYED —
+// onto the vertebra that authored it, into every `#window` transcluding it,
+// and onto its own minted page — and a non-converging document collapses
+// every copy of a replayed `context` read to ONE shared value.
 //
 // A show rule installed by the enclosing #document has no such failure mode: it
 // applies afresh at each realization, which is why rheo's own cross-vertebra links
-// were always right on transcluded content where this was not. So hand the dest
+// are always right on transcluded content where this is not. So hand the dest
 // over and let rheo's per-#document rule answer per page. A note link is then
 // correct even while something else in the stack fails to converge, instead of only
 // when everything behaves.

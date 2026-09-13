@@ -17,7 +17,6 @@
 // `typst compile` with no `--features html`, even when compiling to PDF. This
 // package accepts that constraint rather than working around it: every
 // invocation, including a plain paged build with no rheo, needs the flag.
-// Document this as a hard requirement (readme bead).
 #let _rheo-ctx() = sys.inputs.at("rheo-context", default: none)
 
 #let _target() = {
@@ -36,7 +35,7 @@
 // imported into `lib.typ` with `#import "pure.typ": *` is visible to anything
 // importing `lib.typ`. `test/units.typ` relies on it directly (twelve of its
 // fifteen imported internals now live in `pure.typ`), and `.marrow.typ`
-// imports eighteen of this file's own internals by name on the same footing —
+// imports several of this file's own internals by name on the same footing —
 // an underscore is a convention here, not a barrier.
 //
 // A RELATIVE import is safe here: it resolves against the package's own
@@ -47,8 +46,8 @@
 
 // ---- CONSUMED BY .marrow.typ — a real API, with no other marker ------------
 //
-// `.marrow.typ` (this package's own, at the package root) imports THIRTY
-// names from `"@rookery/core:0.1.0"`, twenty-eight of them underscore-private. They
+// `.marrow.typ` (this package's own, at the package root) imports THIRTY-THREE
+// names from `"@rookery/core:0.1.0"`, thirty of them underscore-private. They
 // are as load-bearing as anything public here, and nothing else in this file
 // says so. RENAMING OR RE-SIGNING ANY OF THEM MEANS CHANGING `.marrow.typ` IN
 // THE SAME COMMIT.
@@ -95,17 +94,10 @@
 // visible at definition time, and moving them to satisfy a banner would break
 // the thing the banner is protecting.
 //
-// COVERED BY CI as of rheo 0.5.2. `demo/rheo` is still the only thing that
-// proves marrow mints, and it needs the `rheo` binary — but package-`.marrow.typ`
-// support shipped in v0.5.2 (PR #164, released 2026-08-16), so CI installs that
-// release and runs the demo against it. 0.5.2 is also this package's declared
-// `[tool.rheo] min_version`, which is the point: the floor CI tests is the floor
-// the manifest promises, and nothing in rheo enforces that key yet.
-//
-// MEASURED on a from-source build at tag v0.5.2: `rheo compile .` in `demo/rheo`
-// mints all five `ideas/*.html` pages with no warnings and `./check.sh` prints
-// `demo/rheo OK` — all eight blocks, tag-CSS assertions included. Nothing in this
-// package or in `@rookery/search` touches a surface newer than 0.5.2.
+// `demo/rheo` is what proves marrow mints, and needs the `rheo` binary to do
+// it: CI runs it against the release named by this package's own
+// `[tool.rheo] min_version` in `typst.toml`, and nothing in rheo enforces that
+// key.
 
 // The human title of the vertebra a handle names — "Rookery under Rheo" for
 // `index`. Read from `rheo-context`'s `spine-flat`, which every vertebra and
@@ -159,9 +151,7 @@
 // that distinction is load-bearing for backlinks. A minted page carries links
 // of its own (its permalink, its context link, the windows in its own backlinks
 // list), all of which would otherwise be harvested as "this page links to that
-// note" and every note would list every other note's page. MEASURED: without
-// this filter, `ideas/rookery.html` claimed six page backlinks, four of them
-// other minted pages.
+// note" and every note would list every other note's page.
 #let _is-vertebra(handle) = {
   let c = _rheo-ctx()
   if c == none { return false }
@@ -187,18 +177,17 @@
 // A `#context` node's children are not in the content tree until realization,
 // so a `#context`-wrapped idea is invisible to all five.
 //
-// REJECTED, and do not reintroduce it: `#show: rookery.with(exclude-tags: ..)`.
-// A template argument becomes STATE, state is read with `.final()`, and
-// `.final()` needs `#context` — which is precisely what the gate cannot have.
-// Hence the declared half of the list is a plain ARGUMENT on `#idea` and
-// `#tagged-idea` instead. (`invisible-tags` IS a `rookery.with` argument, and
-// the asymmetry is deliberate: that one is pure presentation, and every site it
-// touches already runs inside a `#context`.)
+// `#show: rookery.with(exclude-tags: ..)` cannot do this job: a template
+// argument becomes STATE, state is read with `.final()`, and `.final()` needs
+// `#context` — which is precisely what the gate cannot have. Hence the
+// declared half of the list is a plain ARGUMENT on `#idea` and `#tagged-idea`
+// instead. (`invisible-tags` IS a `rookery.with` argument, and the asymmetry
+// is deliberate: that one is pure presentation, and every site it touches
+// already runs inside a `#context`.)
 //
-// ALSO REJECTED, on measured evidence: gating with
-// `show figure.where(kind: IK): none`. `outline.typ` records the MEASURED fact
-// that a show rule does NOT remove the figure from `query()`, so the outline
-// would go on listing excluded notes — strictly worse than doing nothing.
+// `show figure.where(kind: IK): none` cannot do it either: a show rule does
+// not remove the figure from `query()`, so the outline would go on listing
+// excluded notes — strictly worse than doing nothing.
 //
 // TWO CHANNELS AND HOW THEY COMPOSE:
 //
@@ -210,11 +199,8 @@
 // build puts those notes back. `rookery-exclude` is how a build script carves a
 // further subsection without touching the project source.
 //
-// UNDER RHEO, TODAY: `rheo compile` forwards no `--input`, so the two
-// `sys.inputs` keys currently reach a plain `typst compile` only, while the
-// declared list works everywhere. A rheo-side `--input` flag plus a
-// `rheo.toml [inputs]` table are specced (rheo beads `rheo-cli-input-flag-q12`
-// and `rheo-toml-inputs-table-rih`); nothing here changes when they land.
+// `rheo compile` forwards no `--input`, so the two `sys.inputs` keys reach a
+// plain `typst compile` only, while the declared list works everywhere.
 
 // One `sys.inputs` key as an array of tag names, or `()` when it is absent.
 //
