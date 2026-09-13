@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-todos-review
 deps: []
-closed: false
+closed: true
 ---
 Comment diet: rewrite two comments in
 `/home/lox/code/_fcl/rookery/todos/0.1.0/src/todos.js` and

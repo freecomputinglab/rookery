@@ -86,19 +86,26 @@
   }
   // A REAL SEARCH (`q != ""`) sorts by score descending. AN EMPTY RESIDUAL sorts
   // by date, newest first, the way `_sort-ids` in rookery's `src/pure.typ` does:
-  // split into dated and undated — each `.filter` preserving the incoming
-  // id-ascending order within its split — walk the dated group's distinct stamps
-  // newest to oldest, and append the undated group unchanged at the end.
+  // bucket into dated and undated — appending into each bucket preserves the
+  // incoming id-ascending order within it — walk the dated buckets' distinct
+  // stamps newest to oldest, and append the undated group unchanged at the end.
   name-hits = if q != "" {
     name-hits.sorted(key: e => -1 * e.score)
   } else {
-    let stamp-of(e) = _date-stamp(e.at("created", default: none))
-    let dated = name-hits.filter(e => stamp-of(e) != none)
-    let undated = name-hits.filter(e => stamp-of(e) == none)
-    let ordered = ()
-    for s in dated.map(stamp-of).dedup().sorted().rev() {
-      ordered += dated.filter(e => stamp-of(e) == s)
+    let buckets = (:)
+    let undated = ()
+    for e in name-hits {
+      // One `display()` per row: formatting the datetime is the cost, and the
+      // grouping below would otherwise redo it once per row per distinct date.
+      let s = _date-stamp(e.at("created", default: none))
+      if s == none { undated.push(e) } else {
+        buckets.insert(s, buckets.at(s, default: ()) + (e,))
+      }
     }
+    // Each bucket is already id-ascending — `name-hits` is, and appending keeps
+    // it — so a date-descending walk of the keys yields id-ascending ties.
+    let ordered = ()
+    for s in buckets.keys().sorted().rev() { ordered += buckets.at(s) }
     ordered + undated
   }
   body-hits = body-hits.sorted(key: e => -1 * e.score)
