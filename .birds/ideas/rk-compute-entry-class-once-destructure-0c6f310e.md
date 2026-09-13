@@ -6,7 +6,7 @@ priority: 2
 labels:
 - chore-slipshow-review
 deps: []
-closed: false
+closed: true
 ---
 Two small idiom fixes in one file of `@rookery/slipshow`. Neither changes
 behaviour.

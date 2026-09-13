@@ -9,29 +9,6 @@
 
 #import "fragment.typ": *
 
-// This package's own dates, off a note's tag dictionary — the thing
-// `#tag-data()` hands back per note, or `#tag-value` one key of.
-//
-//   #context deadline-of(tag-data().at("idea:ship"))   // -> datetime or none
-//
-// Takes the DICTIONARY, not a note name, so it needs no registry read of its
-// own and stays a pure function. A caller walking the corpus does one
-// `tag-data()` and calls these per row.
-//
-// `none` when the stage is absent, which is also what a note that never named a
-// date gives — an absent plan is not an error.
-//
-// RE-SOURCED OVER THE LOG in 0.6.0, signatures unchanged. `date-scheduled` and
-// `date-deadline` are no longer tag keys; they are reserved STAGE NAMES inside
-// the single `timeline-log` key (see `fragment.typ`). Keeping these two readers
-// exactly as they were is what let the storage change underneath every consumer
-// without one of them editing a line: @rookery/todos' readiness check,
-// `is-overdue`, `is-upcoming` and `todos-stale` all still call these.
-//
-// THE LATEST entry wins where a stage appears more than once. A todo deferred and
-// then re-deferred has two `scheduled` entries, and "deferred until" means the
-// current deferral rather than the first one ever set. Entries are stored sorted
-// by date, so the last match is the latest.
 // ---- The log, read back ----------------------------------------------------
 //
 // Every reader here is a pure function of a tag DICTIONARY — the thing
