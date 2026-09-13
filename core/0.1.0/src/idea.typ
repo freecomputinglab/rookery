@@ -352,7 +352,6 @@
       // did before 0.6.0 — the element survives to carry the `id` anchor and
       // `h*.idea:empty` collapses it. Putting the derived label here is what
       // printed the body twice; see the banner above the figure.
-      let ttl = if title == none { none } else { title }
       // CLASSES COVER EVERY KEY, valued tags included: `.idea-tag-<key>` is the
       // hook a project styles a tag by, and a tag that carries metadata is no
       // less a tag for it. Only the PILLS below are restricted to flat tags.
@@ -360,7 +359,8 @@
       // `idea-tag-<tag>` in the HTML names the tag just as plainly as a pill does,
       // and it is the hook a stylesheet (or a `tags-color` rule) reaches it by.
       // See `_invisible-tags`/`_visible-tags` (state.typ).
-      let cls = (_c(""),) + _visible-tags(tags.keys()).map(l => _c("tag-" + l))
+      let visible = _visible-tags(tags.keys())
+      let cls = (_c(""),) + visible.map(l => _c("tag-" + l))
       // The flat tags — those whose value is `none`. This is what `show-tags:`
       // renders as pills: a valued tag's name alone says nothing useful in a
       // pill (`depends-on` with no dependencies shown), so a package carrying
@@ -396,9 +396,9 @@
           html.elem(
             "h" + str(level + 1),
             attrs: (id: id, class: cls.join(" "), data-rookery: "idea")
-              + _tags-attr(_visible-tags(tags.keys())),
-            if ttl == none { [] } else {
-              html.elem("span", attrs: (class: _c("title"), data-rookery: "title"), ttl)
+              + _tags-attr(visible),
+            if title == none { [] } else {
+              html.elem("span", attrs: (class: _c("title"), data-rookery: "title"), title)
             },
           ),
         )
@@ -407,7 +407,7 @@
         // so a tag can style the whole card, not just the heading; the
         // heading's own class list (above) is untouched for existing
         // stylesheets.
-        let box-cls = (_c("box"),) + _visible-tags(tags.keys()).map(l => _c("tag-" + l))
+        let box-cls = (_c("box"),) + visible.map(l => _c("tag-" + l))
         _sweep-block()
         // Bracketed so a link written INSIDE this note counts as the note's,
         // not as its page's — see `_edge`.
@@ -432,7 +432,7 @@
             attrs: _themed(
               (class: box-cls.join(" "), data-rookery: "box")
                 + (if show-frame { (:) } else { ("data-rookery-bare": "bare") })
-                + _tags-attr(_visible-tags(tags.keys())),
+                + _tags-attr(visible),
             ),
             header + _footnoted(body) + _refs-block(_own-cited-keys(body)),
           ),
@@ -460,7 +460,7 @@
         // combined PDF fails to build without them. MEASURED.
         _sweep-block()
         _bracket(align(start, {
-          if ttl != none { heading(depth: level, ttl) }
+          if title != none { heading(depth: level, title) }
           if date != none { text(gray, date); linebreak() }
           _footnoted(body)
         }) + _refs-block(_own-cited-keys(body)), IK)

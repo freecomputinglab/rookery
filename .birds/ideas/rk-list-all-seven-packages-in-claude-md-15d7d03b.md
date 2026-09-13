@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-repo-docs
 deps: []
-closed: false
+closed: true
 ---
 The repo's own `CLAUDE.md` describes a five-package repository. There are seven.
 Two packages — `bibtex` and `slipshow` — are not named anywhere in it, and four
