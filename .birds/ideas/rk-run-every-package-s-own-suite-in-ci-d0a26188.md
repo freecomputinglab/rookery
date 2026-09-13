@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-ci
 deps: []
-closed: false
+closed: true
 ---
 Three suites in this repo never run in CI: `bibtex` has no step at all, and the
 node test suites of `search` and `slipshow` — 123 cases and 3 files respectively

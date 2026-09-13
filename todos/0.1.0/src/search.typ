@@ -140,7 +140,8 @@
   closed: false,
   sync: none,
 ) = context {
-  let graph = todo-graph()
+  let rows = todos()
+  let graph = todo-graph(rows: rows)
   assert-acyclic(graph)
   // Validated HERE rather than by importing `@rookery/search`'s own
   // parameter validator: this file has no edge to that package (see the file
@@ -154,7 +155,6 @@
         + "namespace in the query string.",
     )
   }
-  let rows = todos()
   if not closed { rows = rows.filter(r => not r.closed) }
   rows = _by-priority(rows)
 

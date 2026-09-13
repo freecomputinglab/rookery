@@ -17,8 +17,8 @@
 //     the whole project. @rookery/timeline resolves `today:` against the
 //     document date and panics when neither is available.
 
-#import "@rookery/core:0.1.0": ideas, window
-#import "@rookery/timeline:0.1.0": entries, deadline-of, is-overdue, scheduled-of, updated-of
+#import "@rookery/core:0.1.0": window
+#import "@rookery/timeline:0.1.0": entries, is-overdue, updated-of
 #import "target.typ": *
 #import "tags.typ": *
 #import "todo.typ": *
@@ -197,9 +197,9 @@
   closed: true,
   windows: false,
 ) = context {
-  let graph = todo-graph()
-  assert-acyclic(graph)
   let rows = todos()
+  let graph = todo-graph(rows: rows)
+  assert-acyclic(graph)
   if not closed { rows = rows.filter(r => not r.closed) }
   if tags != none {
     let want = if std.type(tags) == str { (tags,) } else { tags }
@@ -220,9 +220,10 @@
 // Open, unblocked, and not deferred past `today`. The deferral clause is what
 // makes this br's `ready` rather than merely "not blocked" — see `is-ready`.
 #let todos-ready(title: none, today: none, limit: none, windows: false) = context {
-  let graph = todo-graph()
+  let all = todos()
+  let graph = todo-graph(rows: all)
   assert-acyclic(graph)
-  let rows = _by-priority(todos().filter(r => is-ready(r, graph, today: today)))
+  let rows = _by-priority(all.filter(r => is-ready(r, graph, today: today)))
   if limit != none { rows = rows.slice(0, calc.min(limit, rows.len())) }
   // `extra:` is dropped on the windows path: `todo-row-ready` styles the
   // border-left of a flex row, and a window row is neither.
@@ -239,10 +240,11 @@
 // The naming is the whole value of the view: a list of blocked things without
 // their blockers tells you nothing you could act on.
 #let todos-blocked(title: none, windows: false) = context {
-  let graph = todo-graph()
+  let all = todos()
+  let graph = todo-graph(rows: all)
   assert-acyclic(graph)
   let rows = _by-priority(
-    todos().filter(r => not r.closed and is-blocked(r, graph)),
+    all.filter(r => not r.closed and is-blocked(r, graph)),
   )
   let why = r => [blocked by #blockers-of(r, graph).join(", ")]
   if windows {
@@ -275,7 +277,8 @@
 // was touched, and reporting silence as staleness would flag every undated
 // project wholesale.
 #let todos-stale(title: none, today: none, older-than: 30, windows: false) = context {
-  let graph = todo-graph()
+  let all = todos()
+  let graph = todo-graph(rows: all)
   assert-acyclic(graph)
   assert(
     std.type(older-than) == int and older-than >= 0,
@@ -294,7 +297,7 @@
   // should.
   let stale(u) = is-overdue(entries(deadline: u + duration(days: older-than)), today: today)
   let touched = r => updated-of(r, r.tags-dict)
-  let rows = todos().filter(r => {
+  let rows = all.filter(r => {
     if r.closed { return false }
     let u = touched(r)
     if u == none { return false }
@@ -318,9 +321,9 @@
 //
 // Totals by status, priority and type, over every todo in the rookery.
 #let todos-stats(title: none, today: none) = context {
-  let graph = todo-graph()
-  assert-acyclic(graph)
   let rows = todos()
+  let graph = todo-graph(rows: rows)
+  assert-acyclic(graph)
   let count(pred) = rows.filter(pred).len()
 
   // Built once as (key, value) pairs, rendered twice — so the two targets
