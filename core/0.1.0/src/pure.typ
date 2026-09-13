@@ -241,18 +241,24 @@
 #let _sort-ids(ids, reg, sort) = {
   let by-id = ids.sorted()
   if sort != "date" { return by-id }
+  // One `display()` per id: formatting the datetime is the cost here, and
+  // grouping by date would otherwise redo it once per id per distinct date.
   let stamp-of(id) = {
     let m = reg.at(id).at("created", default: none)
     if m == none { none } else { m.display("[year][month][day]") }
   }
-  let dated = by-id.filter(id => stamp-of(id) != none)
-  let undated = by-id.filter(id => stamp-of(id) == none)
-  let ordered = ()
-  // `dated` is already in ascending-id order and `filter` preserves it, so
-  // each date's group comes out id-ascending inside a date-descending walk.
-  for s in dated.map(stamp-of).dedup().sorted().rev() {
-    ordered += dated.filter(id => stamp-of(id) == s)
+  let buckets = (:)
+  let undated = ()
+  for id in by-id {
+    let s = stamp-of(id)
+    if s == none { undated.push(id) } else {
+      buckets.insert(s, buckets.at(s, default: ()) + (id,))
+    }
   }
+  // Each bucket is already id-ascending — `by-id` is, and appending keeps it —
+  // so a date-descending walk of the keys yields id-ascending ties.
+  let ordered = ()
+  for s in buckets.keys().sorted().rev() { ordered += buckets.at(s) }
   ordered + undated
 }
 

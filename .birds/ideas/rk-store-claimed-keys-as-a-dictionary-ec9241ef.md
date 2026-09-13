@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-bibtex-review
 deps: []
-closed: false
+closed: true
 ---
 Store the claimed-key set as a dictionary instead of an array, so checking
 whether a key is already claimed is a hash lookup instead of a linear scan.
