@@ -159,7 +159,7 @@
   // appear in the output of a build that asked for it to leave no trace.
   let all-tags-color = _theme.final().at("tags-color", default: (:))
   let visible = _visible-tags(all-tags-color.keys())
-  let tags-color = all-tags-color.pairs().filter(p => p.at(0) in visible).to-dict()
+  let tags-color = all-tags-color.pairs().filter(((tag, _)) => tag in visible).to-dict()
   let rules = tags-color
     .pairs()
     .map(((tag, def)) => {

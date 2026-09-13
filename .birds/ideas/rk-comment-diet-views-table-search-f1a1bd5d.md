@@ -8,7 +8,7 @@ labels:
 deps:
 - blocked-by:rk-move-todo-graph-view-into-views-typ-7d46fa97
 - blocked-by:rk-format-a-row-date-once-in-todo-table-2f322ddd
-closed: false
+closed: true
 ---
 Comment diet: rewrite three comment blocks in
 `/home/lox/code/_fcl/rookery/todos/0.1.0/src/views.typ`,

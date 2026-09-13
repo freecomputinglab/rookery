@@ -201,7 +201,7 @@
         // Flat tags only, matching `#idea`'s own hat: a valued tag's name alone
         // says nothing useful in a pill, so `show-tags:` shows the plain ones.
         tags: if show-tags {
-          rec.at("tags", default: (:)).pairs().filter(p => p.at(1) == none).map(p => p.at(0))
+          rec.at("tags", default: (:)).pairs().filter(((_, v)) => v == none).map(((k, _)) => k)
         } else { () },
         date: date,
         show-id: show-id,

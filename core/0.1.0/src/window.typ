@@ -265,8 +265,8 @@
     if pred == none { () } else {
       reg
         .pairs()
-        .filter(p => pred(p.at(1).at("tags", default: (:))))
-        .map(p => p.at(0))
+        .filter(((_, rec)) => pred(rec.at("tags", default: (:))))
+        .map(((id, _)) => id)
         .filter(id => id not in named)
         .sorted()
     }

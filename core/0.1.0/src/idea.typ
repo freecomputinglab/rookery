@@ -365,7 +365,7 @@
       // renders as pills: a valued tag's name alone says nothing useful in a
       // pill (`depends-on` with no dependencies shown), so a package carrying
       // metadata in tags renders it it own way instead of polluting the hat.
-      let flat-tags = tags.pairs().filter(p => p.at(1) == none).map(p => p.at(0))
+      let flat-tags = tags.pairs().filter(((_, v)) => v == none).map(((k, _)) => k)
       if _target() == "html" or _target() == "epub" {
         // The permalink is the ONLY way to discover an auto-generated id —
         // there is no `show heading` rule and no template to hook into, so

@@ -177,17 +177,14 @@
 }
 
 // Applied per row by `#ideas`. Not exported: a caller projects through
-// `ideas(index: ..)` rather than reaching for this.
+// `ideas(index: ..)` rather than reaching for this. The shape of `index` is
+// checked once, by `ideas()`, before the walk starts.
 #let _project(index, tags) = {
   if index == none { return (:) }
-  assert(
-    type(index) == dictionary and "rookery-tag-index" in index,
-    message: "@rookery/core: `index:` must be a value built by `tag-index(..)` — got " + repr(index),
-  )
   index
     .rookery-tag-index
     .pairs()
-    .map(p => (p.at(0), _project-one(p.at(0), p.at(1), tags)))
+    .map(((field, spec)) => (field, _project-one(field, spec, tags)))
     .to-dict()
 }
 
@@ -298,6 +295,12 @@
 #let ideas(tags: none, match: "any", index: none, values: false) = {
   _assert-tags(tags, "#ideas'")
   _assert-match(match, "#ideas'")
+  if index != none {
+    assert(
+      type(index) == dictionary and "rookery-tag-index" in index,
+      message: "@rookery/core: `index:` must be a value built by `tag-index(..)` — got " + repr(index),
+    )
+  }
   let reg = _registry.final()
   // ONE resolver for the whole walk, not one per row: it closes over the registry
   // and nothing else, so every row's title flattens against the same corpus.
@@ -306,10 +309,9 @@
   let keep = _tag-pred(tags, match)
   reg
     .pairs()
-    .sorted(key: p => p.at(0))
-    .filter(p => keep == none or keep(p.at(1).at("tags", default: (:))))
-    .map(p => {
-      let (id, rec) = p
+    .sorted(key: ((id, _)) => id)
+    .filter(((_, rec)) => keep == none or keep(rec.at("tags", default: (:))))
+    .map(((id, rec)) => {
       (
         id: id,
         name: _norm(id),
@@ -398,6 +400,6 @@
   _registry
     .final()
     .pairs()
-    .map(p => (p.at(0), p.at(1).at("tags", default: (:))))
+    .map(((id, rec)) => (id, rec.at("tags", default: (:))))
     .to-dict()
 }
