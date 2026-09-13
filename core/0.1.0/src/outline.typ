@@ -23,33 +23,20 @@
 // The registry holds notes, and a link in a page's own prose belongs to no
 // note — so the page itself has to be asked.
 //
-// ASKED AS A CONTENT QUESTION, and BEACONED, rather than swept out of the
-// document with `query`. This used to be one bundle-wide
-// `query(metadata|link|ref)` walked in document order with a depth counter, and
-// that shape is what put a rookery site over Typst's five-iteration relayout cap.
-// The sweep's result builds the backlink list on every page `.marrow.typ` mints,
-// and those minted pages replay note bodies — so they emit `link`, `ref` and
-// `metadata` elements that the same sweep then sees. The query fed the pages it
-// queried, and each round of that costs one iteration of a budget capped at
-// `MAX_ITERS = 5` (typst-library/src/introspection/convergence.rs).
-//
-// MEASURED on an 82-note site, warning counts with ANSI stripped: 4 with the
-// sweep, 2 with it stubbed out entirely. Past the cap `state("rheo-handle")`
-// reads stop converging, and a note's page-relative href degenerates to ONE
-// value shared by every page it is replayed onto — which is how 72 links came
-// out `../ideas/<slug>.html` from the site root and 404'd. A converging site
-// does not have that problem: verified on a small rookery site, where the same
-// stored body yielded `ideas/m.html` at depth 0 and `../ideas/m.html` at depth 1,
-// both correct, from unmodified code.
-//
-// So each vertebra now scans its OWN content — `_page-outbound` below, a plain
-// content walk with no introspection at all — and publishes the answer as one
-// labelled `metadata` beacon, exactly the shape rheo uses for its own per-vertebra
-// metadata. `_page-links` reads `query(<rookery-page-links>)`, a selector a
-// minted page never contributes to, so the loop is closed: the input no longer
-// grows when marrow mints. `#show: rookery` is what emits it (see `template.typ`),
-// which is also what scopes it to vertebrae — a minted page applies the project's
-// `idea-page-template`, not `rookery()`, so it publishes nothing here.
+// ASKED AS A CONTENT QUESTION, and BEACONED, rather than swept from the whole
+// document. Each vertebra scans its OWN content — `_page-outbound` below, a
+// plain content walk with no introspection at all — and publishes the
+// answer as one labelled `metadata` beacon, the same shape rheo uses for its
+// own per-vertebra metadata. `_page-links` reads
+// `query(<rookery-page-links>)`, a selector a minted page never contributes
+// to, which is what keeps the query's input from growing as `.marrow.typ`
+// mints pages: a bundle-wide sweep of every `metadata`/`link`/`ref` would
+// instead see the minted pages' replayed note bodies too, feeding a relayout
+// budget capped at `MAX_ITERS = 5`
+// (typst-library/src/introspection/convergence.rs). `#show: rookery` is what
+// emits the beacon (see `template.typ`), which is also what scopes it to
+// vertebrae — a minted page applies the project's `idea-page-template`, not
+// `rookery()`, so it publishes nothing here.
 //
 // Four shapes count, the same four `_outbound` counts inside a note:
 //
@@ -91,13 +78,11 @@
   if f == metadata {
     let v = node.value
     if type(v) != dictionary { return out }
-    // AN EMPTY ARRAY, NOT A FALL-THROUGH, when the window does not count as a
-    // link. Reaching this marker does two jobs at once (see the comment above):
-    // it counts as a page link AND it stops the walk, so whatever the
-    // transcluded body links to belongs to that note rather than to this page.
-    // `backlink: false` drops only the first. Descending instead would make a
-    // page inherit every link inside every note it renders — the exact opposite
-    // of what the flag is for.
+    // AN EMPTY ARRAY, NOT A FALL-THROUGH: this marker both counts as a page
+    // link and stops the walk (see the comment above), and `backlink: false`
+    // drops only the first — descending instead would make a page inherit
+    // every link inside every note it renders, the exact opposite of what
+    // the flag is for.
     if "rookery-window" in v {
       return if v.at("backlink", default: true) { v.rookery-window } else { () }
     }
@@ -141,10 +126,10 @@
   // layout and sees all of them.
   //
   // `state("rheo-handle").at(el.location())`, NOT `.get()` inside the window:
-  // the positional read is the convergent one. Reading the state from inside
-  // `#window`'s own context was tried and REVERTED — MEASURED, it made a
-  // document with minted pages fail to converge in five attempts, cycling
-  // `none -> "rheo" -> "ideas:index" -> "ideas:author-cleanup"`.
+  // the page a marker sits on is resolved positionally. A `.get()` read from
+  // inside the window's own context is not convergent — with minted pages in
+  // the document, the value observed depends on where the surrounding layout
+  // has got to.
   //
   // A hand-written window is found by BOTH this and the content walk; the
   // dedupe below makes that harmless.
@@ -200,23 +185,19 @@
 // Depth from real nesting means the outline is correct with zero ceremony,
 // matching `#idea`'s own "hatch without ceremony" design.
 //
-// MEASURED, the reason this tracks TWO separate depths (`idea-depth`,
-// `window-depth`) instead of one: a `show figure.where(kind: ...): ...`
-// rule (which is all `_flatten`'s IK rule is) does NOT remove the original
-// figure from `query()` — exactly like `show ref: hyperlink` leaves a `ref`
-// still queryable as one (see `_page-links`'s own comment, "a ref also
-// renders into a link, so it can be seen twice"). So a note windowed
-// (possibly transitively, A-windows-B-windows-C) onto THIS page re-exposes
-// every `figure(kind: IK)` its stored body ever contained, each a REAL
-// match here, indistinguishable by `kind` alone from one actually hatched
-// on this page. Confirmed by a two-page reproduction with mutual
-// transclusion (rookery.ohrg.org's index.typ <-> concepts.typ, via
-// `#window((<rookery>, <idea>), ...)`): without this check, ideas authored
-// elsewhere surfaced nested under the WRONG local idea, several levels deep
-// and wrongly attributed. A note is only ever counted at `window-depth ==
-// 0`, i.e. not currently inside ANY `#window`'s content, cascaded through
-// any number of levels — `idea-depth` (recorded before ITS OWN bracket
-// opens) is then a clean count of real enclosing `#idea`s alone.
+// TWO separate depths are tracked (`idea-depth`, `window-depth`), not one: a
+// `show figure.where(kind: ...): ...` rule (all `_flatten`'s IK rule is)
+// does NOT remove the original figure from `query()` — exactly like `show
+// ref: hyperlink` leaves a `ref` still queryable as one (see `_page-links`'s
+// own comment, "a ref also renders into a link, so it can be seen twice").
+// So a note windowed (possibly transitively, A-windows-B-windows-C) onto
+// THIS page re-exposes every `figure(kind: IK)` its stored body ever
+// contained, each a REAL match here, indistinguishable by `kind` alone from
+// one actually hatched on this page. A note is only ever counted at
+// `window-depth == 0` — not currently inside ANY `#window`'s content,
+// cascaded through any number of levels — so `idea-depth` (recorded before
+// ITS OWN bracket opens) is then a clean count of real enclosing `#idea`s
+// alone.
 //
 // Scoped to the CURRENT page (`origin`, in `_page-links` terms) unless
 // `rookery-wide`: `query()` sees the whole spine (it compiles as one Typst
@@ -229,21 +210,20 @@
 // all: only vertebrae count. `.marrow.typ` mints one page per note, each
 // re-rendering that note's stored body, and a stored body's nested
 // `figure(kind: IK)`s stay queryable through the show rule that rebuilds
-// them (the same fact the `window-depth` check above turns on). The per-page
-// form never had to care — a minted page's handle is `ideas:<slug>`, which
-// simply is not `here` — so this hazard arrives with `rookery-wide`, and
-// `handle not in spine` is the answer (the same predicate `_is-vertebra`
-// applies for `_page-links`, spelled against the handle list this function
-// already builds for ordering, so it costs one pass instead of one walk of
-// `spine-flat` per entry). MEASURED on a three-vertebra spine: without it,
-// `ideas:b-one` and `ideas:i-one` each re-exposed the nested idea in their
-// own stored body, listing it a second time.
+// them — the same fact the `window-depth` check above turns on — so without
+// a filter, a minted page would double-list every note it re-renders. The
+// per-page form never had to care, since a minted page's handle
+// (`ideas:<slug>`) is simply not `here`; `handle not in spine` is the
+// answer here (the same predicate `_is-vertebra` applies for `_page-links`,
+// spelled against the handle list this function already builds for
+// ordering, so it costs one pass instead of one walk of `spine-flat` per
+// entry).
 //
-// That guard is gated on `multi-page` and must be: MEASURED on the combined
-// PDF, where `.marrow.typ` is skipped outright, every vertebra's
+// That guard is gated on `multi-page`, and must be: on the combined PDF,
+// where `.marrow.typ` is skipped outright, every vertebra's
 // `state("rheo-handle")` is the empty string — a str, and not in the spine,
-// so an ungated check swallowed the entire outline. Applying the guard only
-// where the hazard exists is also why no exemption for `""` is needed.
+// so an ungated check would swallow the entire outline. Applying the guard
+// only where the hazard exists is also why no exemption for `""` is needed.
 //
 // WHERE THERE IS ONLY ONE PAGE, the two forms agree and list the whole spine
 // — which is the right answer, not a degradation: "this page's ideas" and
@@ -255,22 +235,14 @@
 //   - plain `typst compile` with no rheo, because nothing publishes
 //     `state("rheo-handle")` at all, so `here` and every handle are `none`.
 //
-// The second used to be an early `return ()` on a non-str `here`, which made
-// a standalone `#ideas-outline()` render its title over an empty list. Not
-// worth keeping: the comparison below already gives the correct answer, and
-// the two one-page targets now behave identically instead of one listing
-// everything and the other nothing.
-//
 // Neither reorders (see `multi-page` below): a one-page target has one page
 // order, its own, and the two forms would otherwise disagree about it on the
 // very target where they list the same set.
 //
-// Untitled ideas (the bare `#idea[body]` form, auto-numbered) are omitted —
-// nothing to label them with, and an outline entry is a heading text, not
-// an id. Each entry links to `el.location()` directly, no href/label
-// reconstruction: VERIFIED to resolve cross-page too under rheo's bundle
-// export (`../<page>.html#loc-N`, the same shape `#link(label(id))` gets),
-// so `rookery-wide` needs no second linking path.
+// Each entry links to `el.location()` directly, no href/label
+// reconstruction — this resolves cross-page too under rheo's bundle export
+// (`../<page>.html#loc-N`, the same shape `#link(label(id))` gets), so
+// `rookery-wide` needs no second linking path.
 #let _ideas-outline-data(rookery-wide: false) = {
   let here = state("rheo-handle").get()
   let c = _rheo-ctx()
@@ -329,11 +301,11 @@
     let m = el.body.children.find(x => x.func() == metadata)
     if m == none { continue }
     let v = m.value
-    // AN OUTLINE ENTRY NAMES A NOTE, so it takes the note's NAME rather than its
-    // authored title — the title where there is one, the note's opening words
-    // where there is not (see `#idea`'s title-vs-label banner). This used to skip
-    // every titleless note on the reasoning that there was "nothing to label them
-    // with"; there is now.
+    // AN OUTLINE ENTRY NAMES A NOTE, so it takes the note's NAME rather than
+    // its authored title — the title where there is one, the note's opening
+    // words where there is not (see `#idea`'s title-vs-label banner). The
+    // skip below survives only for a note with no name at all: an empty
+    // body and no title.
     //
     // `_rec-label` (pure.typ) is that name, shared with `ideas()`, a reference's
     // link text and a window's summary, and it reads the payload's `title`
@@ -342,9 +314,6 @@
     // `label` field (computed before there was a registry) stops at "Meeting
     // with ". It reads that field as its fallback, so a payload written by an
     // older rookery in the same document still degrades rather than panicking.
-    //
-    // The skip survives for a note with NO name at all — an empty body and no
-    // title — because an entry still needs something to say.
     let name = _rec-label(v, ref-text)
     if name == none { continue }
     // `tags` with a default, not `v.tags`: this metadata is read on the paged
@@ -362,16 +331,12 @@
     ))
   }
 
-  // SPINE ORDER, explicitly. `query()` returns document order, and MEASURED
-  // (typst 0.15.1, rheo 0.5.1) that already IS spine order today — verified
-  // against a spine deliberately ordered AGAINST filename order with two
-  // `[[spine.section]]`s, where `("aaa-first:gamma", "beta", "zzz-last:alpha")`
-  // came out in exactly that sequence rather than alphabetically. So this
-  // reorders nothing at present. It is here to make the guarantee the
+  // SPINE ORDER, explicitly. `query()` already returns spine order today, so
+  // this reorders nothing at present — it is here to make the guarantee the
   // OUTLINE's rather than one borrowed from how rheo happens to assemble its
-  // bundle: an author who reorders the spine is entitled to have the index of
-  // their rookery follow, and nothing else in this package would notice if
-  // that coincidence ever ended.
+  // bundle: an author who reorders the spine is entitled to have the index
+  // of their rookery follow, and nothing else in this package would notice
+  // if that coincidence ever ended.
   //
   // Bucketing, not `.sorted(key:)`: within one vertebra the entries must keep
   // document order EXACTLY, because that order is what carries the nesting
@@ -393,11 +358,10 @@
   // ahead of its siblings in the pre-order walk; at the ROOT it deliberately
   // does not ("Root-level index.typ is a normal leaf; only nested dirs treat
   // it as a landing page" — rheo's `reticulate/spine.rs`), so the root index
-  // lands wherever the alphabet puts it. MEASURED on rookery.ohrg.org:
-  // `("about", "concepts", "index", "install")`. Hoisting it here is what
-  // makes the two cases read the same way — a landing page first, at every
-  // level — rather than the root being the one place the front door turns up
-  // in the middle.
+  // lands wherever the alphabet puts it. Hoisting it here is what makes the
+  // two cases read the same way — a landing page first, at every level —
+  // rather than the root being the one place the front door turns up in the
+  // middle.
   //
   // Exactly the handle `"index"`, not any handle ENDING in it: a nested
   // `sub:index` is already first within its own subtree by rheo's own rule,
@@ -535,12 +499,10 @@
   // `_themed`, AND IT IS NOT OPTIONAL HERE. The theme travels as inline custom
   // properties, which inherit DOWN the DOM, and this title is a SIBLING of the
   // `<ul>` rather than a descendant — the same reason `_nest-outline` themes the
-  // outermost `<ul>` itself. MEASURED without it, on a project setting
-  // `border-color: #ff0000, rule-width: 3px, label-font: Berkeley Mono`: the
-  // list drew a 3px red rule while the hat above it drew a 2px last-resort
-  // purple stub in the reader's plain monospace — a corner in two colours and
-  // two widths. With it, both read `--idea-rule-width`/`--idea-border-color` and
-  // the title reads `--idea-label-font`.
+  // outermost `<ul>` itself. Without it, a themed project's list reads
+  // `--idea-rule-width`/`--idea-border-color`/`--idea-label-font` while this
+  // untethered title falls back to core's own defaults instead — a rule and
+  // a hat in two different colours, widths and fonts on the same page.
   //
   // The paged target keeps the real `heading()`: there it IS a document
   // structure, it belongs in the PDF outline, and nothing is styling it by

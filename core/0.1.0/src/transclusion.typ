@@ -68,28 +68,23 @@
 // `limit:` is therefore meaningful in both (it truncates the body that folding
 // hides) and the two are orthogonal.
 //
-// CLICK BUDGET (HTML/EPUB) — the whole point of this shape, modelled on
-// Forester (www.forester-notes.org, whose `tree.xsl` renders every transcluded
-// tree as a `<details>` whose `<summary>` holds the title and an
-// `<a class="slug">[tfmt-0006]</a>`):
+// CLICK BUDGET (HTML/EPUB), modelled on Forester (www.forester-notes.org)'s
+// `<details>`/`<summary>` rendering of a transcluded tree:
 //
 //   - clicking ANYWHERE in the summary — title, date, the whitespace between
 //     them — folds or unfolds, and does nothing else;
 //   - clicking the `[idea:etal]` permalink, and only that, opens the note's
 //     own page.
 //
-// So the transcluded body is NOT a link and there is no trailing arrow. Both
-// were tried and removed. An outer <a> around the body is invalid the moment
-// that body contains its own link (MEASURED: browsers and typst's HTML export
-// both truncate the outer anchor where the inner one starts and never resume
-// it, so only "the first bit" stays clickable), and the arrow was a second
-// navigational affordance competing with the permalink for the same click.
+// So the transcluded body is NOT a link: an outer `<a>` around it is invalid
+// the moment the body contains its own link (browsers and typst's HTML
+// export both truncate the outer anchor where the inner one starts and never
+// resume it, so only "the first bit" stays clickable).
 //
-// The disclosure is native `<details>`/`<summary>`: this package ships no JS,
-// and a `:target`/checkbox CSS hack would need a unique control id per window.
-// An `<a>` INSIDE `<summary>` does not break the toggle — only an `<a>` around
-// the whole summary does, which is what the earlier folded-row design got
-// wrong. The permalink navigates on its own click; the summary keeps the rest.
+// The disclosure is native `<details>`/`<summary>`, since this package ships
+// no JS. An `<a>` INSIDE `<summary>` does not break the toggle — only an
+// `<a>` around the whole summary does — so the permalink navigates on its
+// own click while the summary keeps the rest.
 //
 // `show-date` is OFF by default, same as `#idea`'s own — a date is always
 // RESOLVED and stored on the note's registry record regardless, so passing
@@ -100,59 +95,44 @@
 // Must be called from inside a `context` block: `_permalink` reads the page
 // handle and the prefix state. Both callers already are.
 #let _window-content(id, rec, shown, folded, show-date, show-tags, show-frame: true, show-id: true, show-label: true, foldable: true, reserve-title: true, show-background: true, windows-claim: false) = {
-  // `created`, matching `#idea`'s own hat. There was an `updated` field here
-  // until 0.6.0 and this hat showed it, on the argument that a reader wants to
-  // know when a note was last touched. Core no longer answers that: a
-  // hand-maintained `updated:` is a second date that can contradict the note's
-  // actual history, and @rookery/timeline now stores a dated log and derives
-  // last-touched from it. A project wanting that in a window hat passes it, or
-  // reads `updated-of(entry, tags)` there.
+  // `created`, matching `#idea`'s own hat. A hand-maintained `updated:` field
+  // would be a second date that can contradict the note's actual history, so
+  // core carries none: `@rookery/timeline` stores a dated log and derives
+  // last-touched from it. A project wanting that in a window hat passes it,
+  // or reads `updated-of(entry, tags)` there.
   let date = if show-date and rec.created != none {
     rec.created.display("[year]-[month]-[day]")
   } else { none }
 
-  // THE NAME THIS WINDOW SHOWS, hoisted above the target branch because BOTH arms
-  // need it — the HTML summary and the paged head. Bound inside the HTML arm it
-  // was out of scope in the paged one, which `demo/pure/paged.typ` is what catches.
+  // THE NAME THIS WINDOW SHOWS, hoisted above the target branch because BOTH
+  // arms need it — bound only inside the HTML arm it was out of scope in the
+  // paged one, which `demo/pure/paged.typ` catches.
   //
-  // A LABEL, and this one is a DELIBERATE CALL rather than an obvious case.
+  // A `#window` is normally a REFERENCE to another note, and `folded: true`
+  // (the common case, and what every index built out of windows uses) shows
+  // the summary ALONE with no body under it — so it needs a name, which is
+  // exactly the situation a derived name is for. Unfolded, a derived label
+  // does sit above the body it came from and prints it twice; accepted here,
+  // since the alternative is an unnamed disclosure control nobody can
+  // recognise or click with intent. `.at` with a default, so a record
+  // written by an older rookery in the same document degrades to no name
+  // rather than panicking.
   //
-  // A `#window` is a REFERENCE to another note, and its summary is the clickable
-  // thing that names it — so it needs a name, and `folded: true` (the common case,
-  // and what every index built out of windows uses) shows the summary ALONE with
-  // no body under it. That is exactly the situation a derived name is for.
+  // `show-label: false` PICKS THE OTHER FIELD instead (see `#idea`'s
+  // title-vs-label banner in idea.typ): `label` is the derived name — the
+  // authored title where there is one, else the body's own first sixty
+  // characters — and `title` is only ever the AUTHORED one, `none` on a note
+  // nobody titled. Wanted where a window is a RENDERING rather than a
+  // reference — a slipshow's slide — where the derived label would repeat
+  // the body's own first line; the cost is a titleless slide's summary going
+  // empty. `label` is a str, `title` is content, and both arms below take
+  // either without conversion.
   //
-  // UNFOLDED, a derived label does sit above the body it came from, which is the
-  // duplication this split exists to avoid elsewhere. Accepted here: the
-  // alternative is an unnamed disclosure control, and a window with nothing in its
-  // summary cannot be recognised or clicked with intent.
-  //
-  // `.at` with a default, so a record written by an older rookery in the same
-  // document degrades to no name rather than panicking.
-  //
-  // `show-label: false` PICKS THE OTHER FIELD, and the two are genuinely
-  // different things (see `#idea`'s title-vs-label banner in idea.typ): `label`
-  // is the derived name — the authored title where there is one, else the body's
-  // own first sixty characters — and `title` is only ever the AUTHORED one,
-  // `none` on a note nobody titled. So this is the switch between "name this
-  // window somehow" and "name it only if its author did".
-  //
-  // Wanted where a window is not a reference but a RENDERING — a slipshow's
-  // slide, say, where a derived label sits directly above the very first line it
-  // was derived from and prints it twice. The cost, stated in the readme: a
-  // TITLELESS note's summary is then empty, and an empty summary on a `folded:
-  // true` window is a disclosure control nobody can recognise.
-  //
-  // TYPE DIFFERENCE IS DELIBERATE and needs no conversion: `label` is a str,
-  // `title` is content, and both arms below take either — the HTML span wraps it
-  // and the paged head passes it to `strong`.
-  //
-  // `_rec-label` RESOLVES A REFERENCE IN THE TITLE, which is why the registry is
-  // read here rather than the record's own `label` field taken as final: a note
-  // titled [Meeting with #ref(<idea:x>)] has a registration-time label of
-  // "Meeting with " and nothing more, that label being computed before there was
-  // a registry to resolve against. One state resolution per window, and a window
-  // has already cost its caller one to find the record it passes in.
+  // `_rec-label` RESOLVES A REFERENCE IN THE TITLE, which is why the registry
+  // is read here rather than the record's own `label` field taken as final:
+  // a note titled [Meeting with #ref(<idea:x>)] has a registration-time
+  // label of "Meeting with " and nothing more, computed before there was a
+  // registry to resolve against.
   let name = if show-label {
     let reg = _registry.final()
     _rec-label(rec, _ref-text(reg))
@@ -179,10 +159,10 @@
     // the `<details>` body would hide the id whenever the window is folded, and
     // it has to be visible and clickable in both states.
     //
-    // THE DATE GOES IN THE TAB, not beside the title as a third item in this row.
-    // `.idea-window-date` is gone with it: a date is the same object on a card and
-    // on a window, so it wears the same class in the same place, and the summary
-    // row is back to a tab plus a title.
+    // THE DATE GOES IN THE TAB, not beside the title as a third item in this
+    // row: a date is the same object on a card and on a window, so it wears
+    // the same class in the same place, and the summary row stays a tab plus
+    // a title.
     // `div` rather than `summary` when nothing can toggle: a `<summary>` outside
     // a `<details>` is not a control, and leaving the tag behind would promise a
     // click that does nothing. THE ROLE IS UNCHANGED either way, so every
@@ -238,11 +218,10 @@
     // would be claimed by whatever bibliography follows on the host page —
     // an enclosing idea's list, or a sweep block belonging to no one.
     //
-    // Cross-page citation links to the note's own minted page were considered
-    // and REJECTED: redirecting a citation means de-registering it, and a
-    // de-registered citation renders nothing, so the package would have to
-    // format the marker itself — which means parsing the bibliography and
-    // reimplementing what Typst already does. Do not reintroduce them.
+    // Cross-page citation links to the note's own minted page are REJECTED:
+    // redirecting one means de-registering it, and Typst renders a
+    // de-registered citation as nothing, so the package would have to format
+    // the marker itself — reimplementing Typst's own bibliography.
     //
     // Both take `shown`, not the untruncated body — the caller already applied
     // `limit:`, and a window must not list a footnote or a citation whose
@@ -254,11 +233,11 @@
     let win-cls = (_c("window"),) + visible.map(l => _c("tag-" + l))
     html.elem(
       "div",
-      // `data-rookery-bare` only when the frame is off, exactly as `idea.typ`
-      // emits it on a card: an attribute present with a falsy VALUE would still
-      // match the `[data-rookery-bare]` selector in `core.css`. The other two
-      // ride the same rule for the same reason — `data-rookery-static` is what
-      // core.css keys the pointer cursor off, `data-rookery-no-bg` the tint.
+      // `data-rookery-bare`/`data-rookery-static`/`data-rookery-no-bg` only
+      // when frame/foldable/background are off respectively, for the reason
+      // stated above (`reserve-title`): a falsy VALUE still matches the
+      // selector. `data-rookery-static` is what core.css keys the pointer
+      // cursor off, `data-rookery-no-bg` the tint.
       attrs: _themed(
         (class: win-cls.join(" "), data-rookery: "window")
           + (if show-frame { (:) } else { ("data-rookery-bare": "bare") })
@@ -294,36 +273,34 @@
 // state, and that is the whole termination argument — each expansion below
 // recurses with `depth - 1` baked into a fresh scope, so a self-window or an
 // A-windows-B/B-windows-A cycle bottoms out at 0 rather than re-expanding
-// forever. (The `state` depth counter this supersedes is REFUTED and must not
-// come back: measured failing on typst 0.14.2 AND 0.15.1, where a self-window
-// still hit the nesting cap before the state timeline converged.)
+// forever. A `state` depth counter cannot replace this: a self-window still
+// hits the nesting cap before its timeline converges.
 //
-// MEASURED, the second half of the termination argument: when both an outer
+// The second half of the termination argument: when both an outer
 // `_flatten(.., depth: n)` scope and an inner `_flatten(.., depth: n-1)` scope
 // carry a rule for the same selector, the INNER one wins and the outer does
-// NOT re-fire on content the inner already claimed. Verified on typst 0.15.1
-// with a two-level `show figure.where(kind: K)` reproduction: output was
-// `OUTER(INNER)`, not a "maximum show rule depth exceeded". Since every
-// expansion below wraps its body in a fresh `_flatten` scope — including at
-// `depth: 1`, where the rule collapses — every generated WK figure is always
-// claimed by a strictly smaller budget.
+// NOT re-fire on content the inner already claimed (verified with a two-level
+// `show figure.where(kind: K)` reproduction). Since every expansion below
+// wraps its body in a fresh `_flatten` scope — including at `depth: 1`,
+// where the rule collapses — every generated WK figure is always claimed by
+// a strictly smaller budget.
 //
 // `depth` here is the budget of the note whose body this IS, so a window found
 // in it may only unfurl when there is a level left over for it: hence `depth >
 // 1` throughout, and `depth: 1` (the default, and what registration flattens a
 // body at) is the collapse. See the scale at `_window-depth`.
 #let _flatten(body, depth: 1) = {
-  // MEASURED DEFECT this fixes: a `@idea:other` inside a note's body rendered
-  // as a bare figure number ("2") on the note's minted page, while rendering
-  // correctly in situ. `show ref: hyperlink` is installed by `#show:
-  // rookery` on the VERTEBRA, and a minted page is a separate `#document`
-  // that `.marrow.typ` contributes at the bundle root — outside every
-  // vertebra's show-rule scope. So the stored body has to carry the rule
+  // `show ref: hyperlink` is installed by `#show: rookery` on the VERTEBRA,
+  // and a minted page is a separate `#document` that `.marrow.typ`
+  // contributes at the bundle root — outside every vertebra's show-rule
+  // scope. Without a rule of its own, a `@idea:other` inside a note's body
+  // renders as a bare figure number on the note's minted page even though it
+  // renders correctly in situ, so the stored body has to carry the rule
   // with it, the same way it carries the IK/WK rules below. Always the
-  // page-preferring default here regardless of what the vertebra's own
-  // `show ref:` was configured to — a nested reference inside a
-  // transcluded/minted body has no access to that outer choice, so it gets
-  // the same default an unconfigured document would.
+  // page-preferring default here regardless of the vertebra's own `show
+  // ref:` configuration — a nested reference inside a transcluded/minted
+  // body has no access to that outer choice, so it gets the same default an
+  // unconfigured document would.
   //
   // Attaching it here also covers a `#window` rendered anywhere else the
   // document-level rule happens not to reach, and cannot double-apply: the
@@ -360,8 +337,8 @@
         html.elem(
           "h" + str(v.level + 1),
           attrs: attrs,
-          // Reads the `#metadata` payload, which as of 0.6.0 carries the DERIVED
-          // title too — see `resolved-title`'s banner in idea.typ for why the
+          // Reads the `#metadata` payload, which carries the DERIVED title too
+          // — see `resolved-title`'s banner in idea.typ for why the
           // derivation is hoisted above the figure to reach both channels.
           (if v.title == none { [] } else {
             html.elem("span", attrs: (class: _c("title"), data-rookery: "title"), v.title)
@@ -411,7 +388,7 @@
   // With budget left, it renders as a real window instead, identical to the
   // same `#window` written at the top level — same summary, same disclosure,
   // same `folded`/`limit`/`show-date`, which is why `#window` records all four
-  // on the WK marker rather than the bare id it used to carry.
+  // on the WK marker.
   //
   // Bracketed as a WINDOW, not left bare: the expanded body's links belong to
   // the note it came from, and its nested `#idea`s are echoes rather than this
@@ -448,9 +425,8 @@
         _flatten(rec.raw, depth: depth - 1)
       }
       let shown = _truncate(inner, v.limit)
-      // `.at(..., default: false)`, not a bare field access: a WK marker
-      // minted before this bead (or by an older rookery version) carries no
-      // `show-tags` key at all.
+      // `.at(..., default: false)`, not a bare field access: a WK marker from
+      // an older rookery version may carry no `show-tags` key at all.
       _bracket(
         _window-content(
           id,
@@ -461,8 +437,8 @@
           v.at("show-tags", default: false),
           // `.at(.., default: true)` for the same reason `show-tags` above uses
           // one, but defaulting the OTHER way: core's default for `show-frame`
-          // is `true`, so a marker minted before this key existed must read as a
-          // framed window.
+          // is `true`, so a marker with no such key must read as a framed
+          // window.
           show-frame: v.at("show-frame", default: true),
           show-id: v.at("show-id", default: true),
           show-label: v.at("show-label", default: true),

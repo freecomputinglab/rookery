@@ -9,7 +9,7 @@ deps:
 - blocked-by:rk-cache-bib-keys-drop-dead-cite-walk-871b6099
 - blocked-by:rk-stamp-each-id-once-in-sort-ids-ef520fb1
 - blocked-by:rk-name-the-note-sequence-counter-dd93145f
-closed: false
+closed: true
 ---
 `pure.typ` and `state.typ` are 1211 lines, 815 of them comment lines. Much of
 that is version history, migration notes, tracker ids wearing a version's

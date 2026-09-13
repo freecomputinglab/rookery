@@ -78,37 +78,28 @@
   // For a window that RENDERS a note rather than referring to it — see
   // `_window-content`'s own comment on `name`.
   show-label: true,
-  // `false` renders this window with NO disclosure at all — no `<details>`, no
-  // `<summary>`, nothing to click and nothing that can hide the body. For a
-  // window that IS the thing being read rather than a reference to it: a
-  // slipshow's slide, where a stray click that folded the slide shut would be
-  // a bug and never an intention.
-  //
-  // Distinct from `folded`, which sets the initial state of a disclosure that
-  // exists. `folded` is inert when this is `false` — see `_window-content`.
+  // `false` renders this window with NO disclosure at all — no `<details>`,
+  // no `<summary>`, nothing to click and nothing that can hide the body. For
+  // a window that IS the thing being read, not a reference to it: a
+  // slipshow's slide, where a stray click folding it shut would be a bug.
+  // Distinct from `folded`, which sets the initial state of a disclosure
+  // that exists — `folded` is inert when this is `false` (`_window-content`).
   foldable: true,
-  // `false` drops the blank line a TITLELESS window's summary reserves where
-  // its title would have gone (`core.css`'s titleless-reservation rule). On a
-  // slide that line is dead space above the body.
-  //
-  // NO EFFECT on a window whose note has a title: the reservation only ever
-  // applied to a summary with no title span, so a titled window keeps its
-  // ordinary spacing whatever this says.
+  // `false` drops the blank line a TITLELESS window's summary reserves for
+  // where its title would go (`core.css`'s titleless-reservation rule) —
+  // dead space above a slide's body. No effect on a titled window, which
+  // never hit that reservation to begin with.
   reserve-title: true,
-  // `false` drops the window's hover tint. Independent of `show-frame`, which
-  // takes the left rule and the indent and leaves the tint alone — a slide
-  // wants the frame gone and the tint kept, which is why these are two
-  // switches and not one.
+  // `false` drops the window's hover tint, independent of `show-frame`
+  // (which takes the rule and indent but leaves the tint alone) — a slide
+  // wants the frame gone and the tint kept, hence two switches.
   show-background: true,
   // Whether this window COUNTS AS A LINK from wherever it sits to the note it
-  // shows. `true` is right for what a window usually is — you wrote it in a
-  // note's prose, so that note refers to this one. `false` is for a DERIVED
-  // view: a deck, an index, a preview, where the window renders a note rather
-  // than pointing at it, and where letting it announce would fill every note's
-  // Backlinks with pages nobody wrote a link on.
-  //
-  // It does NOT stop the announce marker being emitted — see the comment on the
-  // marker itself below, which is load-bearing.
+  // shows. `true` is right for an ordinary window written in a note's prose;
+  // `false` is for a DERIVED view — a deck, an index, a preview — where the
+  // window renders a note rather than pointing at it, so it should not fill
+  // that note's Backlinks with pages nobody wrote a link on. It does NOT stop
+  // the announce marker being emitted — see the marker itself below.
   backlink: true,
   depth: auto,
   tags: none,
@@ -185,23 +176,19 @@
   // LABELLED, so `query()` can find it as well as the content walk.
   //
   // `_page-outbound` walks a vertebra's content at `#show: rookery` time to
-  // build its backlink beacon, and that walk CANNOT ENTER A CONTEXT BLOCK — the
-  // body does not exist until layout. So a `#window` emitted from inside one
-  // announced itself to nobody, and every note it transcluded lost its backlink
-  // from the page transcluding it. Not a corner case: any package that computes
-  // which notes to window must do so inside a context, since reading the
-  // registry needs one. MEASURED with `@rookery/todos`'s
-  // `#todos-ready(windows: true)`, which produced no backlinks at all while a
-  // hand-written window on the same page produced them.
+  // build its backlink beacon, and that walk CANNOT ENTER A CONTEXT BLOCK —
+  // the body does not exist until layout. So a `#window` emitted from inside
+  // one announces itself to nobody, and every note it transcludes loses its
+  // backlink from the page transcluding it. Not a corner case: any package
+  // that computes which notes to window must do so inside a context, since
+  // reading the registry needs one (`@rookery/todos`'s
+  // `#todos-ready(windows: true)` is one such caller).
   //
-  // The label costs nothing here and lets `_page-links` pick these up by query
-  // instead. THE MARKER STAYS OUTSIDE THE CONTEXT BLOCK BELOW, which is the
-  // whole point: `_page-links` resolves which page it sits on with
-  // `state("rheo-handle").at(el.location())`, the positional read
-  // `_ideas-outline-data` already uses. Reading `.get()` from inside the
-  // context instead was tried and REVERTED — it made a document with minted
-  // pages fail to converge in five attempts, because the value observed
-  // depended on where the surrounding layout had got to.
+  // The label costs nothing here and lets `_page-links` pick these up by
+  // query instead. THE MARKER STAYS OUTSIDE THE CONTEXT BLOCK BELOW: that is
+  // what lets `_page-links` resolve which page it sits on from the marker's
+  // own location rather than from a read inside this context (see
+  // `_page-links` for why the positional read is the one that converges).
   // `backlink` RIDES THE PAYLOAD; the element is emitted either way, and that
   // is not a detail to tidy later. THREE readers walk this marker and only two
   // of them are backlinks:
@@ -227,30 +214,24 @@
   // Named ids first, in call-site order, and the only ones that can be wrong:
   // a tag scan reads the registry it filters, so it cannot name a missing note.
   //
-  // EXCLUDED IS NOT MISSING. A note this build dropped for its tags (see
-  // `_resolve-excluded`, base.typ) is deliberately absent, and a `#window` on it
-  // renders NOTHING rather than failing the build — otherwise turning on an
-  // exclusion breaks the public build wherever a surviving note or page links to
-  // a removed one, which would make the feature unusable in the one scenario it
-  // exists for. Filtered out of `named` here, so every consumer of that array
-  // below (the sort, the tag merge, the rendering) simply never sees it.
+  // EXCLUDED IS NOT MISSING: a note this build dropped for its tags (see
+  // `_resolve-excluded`, base.typ) is deliberately absent, so a `#window` on
+  // it renders NOTHING rather than failing the build. Filtered out of
+  // `named` here, so nothing below — the sort, the tag merge, the rendering
+  // — ever sees it.
   //
-  // A TYPO STILL PANICS, message unchanged, and telling the two apart is the
-  // entire reason `_excluded-ids` exists (state.typ). Dropping the panic
-  // outright was the alternative and it is worse: a misspelt name would then
-  // silently render nothing, which is the class of mistake this package fails
-  // loudly on everywhere else.
+  // A TYPO STILL PANICS, message unchanged: `_excluded-ids` (state.typ) is
+  // what tells the two apart, so a misspelt name fails loudly rather than
+  // silently rendering nothing.
   //
-  // CANNOT BE RESCUED, and no later bead should try: the `@idea:x` MARKUP form
-  // is a Typst `ref` to a label minted by the very `#idea` that got removed, so
-  // it is a hard `label does not exist` error neither this package nor rheo can
-  // intercept. An author whose notes may be excluded routes links to them
-  // through `#window`, `#hyperlink` or `#note-href` — never through `@`.
-  //
-  // ALSO REJECTED: minting the hidden anchor and label for an excluded note so
-  // `@`-refs keep resolving. That leaks the excluded note's id into the public
-  // build's HTML, which for a `private` tag is precisely what the feature exists
-  // to prevent.
+  // The `@idea:x` MARKUP form CANNOT BE RESCUED — it is a Typst `ref` to a
+  // label minted by the very `#idea` that got removed, a hard `label does
+  // not exist` error neither this package nor rheo can intercept, so an
+  // author routes links to a note that may be excluded through `#window`,
+  // `#hyperlink` or `#note-href` instead. Minting a hidden anchor/label to
+  // keep such refs resolving is rejected for the same reason exclusion
+  // exists: it would leak the excluded note's id into the public build's
+  // HTML.
   let gone = _excluded-ids.final()
   let named = ids.map(n => _pfx() + n).filter(id => {
     if id in reg { return true }
@@ -427,10 +408,9 @@
 //
 // Must be called INSIDE a `#context` block — it reads `_registry.final()`.
 #let idea-body(name, depth: 1, limit: none) = context {
-  // Both asserts are copied verbatim from `#window`, which takes the same two
-  // parameters with the same meaning — the messages have to agree, or one call
-  // site teaches a rule the other contradicts. `>= 1` on `limit` for the reason
-  // stated there.
+  // `#window` and `idea-body` take these same two parameters with the same
+  // meaning, so their assert messages have to agree — see `#window`'s own
+  // asserts for the reason `limit` requires `>= 1`.
   assert(
     depth == auto or (type(depth) == int and depth >= 0),
     message: "@rookery/core: #idea-body's `depth` must be auto or a "
@@ -440,9 +420,8 @@
   let id = _pfx() + _norm(name)
   let reg = _registry.final()
   if id not in reg {
-    // EXCLUDED IS NOT MISSING — the same distinction `#window` above draws, for
-    // the same reason and through the same state. An excluded note renders as
-    // nothing; a typo still panics with the message unchanged.
+    // EXCLUDED IS NOT MISSING, as above: an excluded note renders as nothing;
+    // a typo still panics.
     if id in _excluded-ids.final() { return [] }
     panic("@rookery/core: #idea-body unknown note '" + id + "'")
   }
