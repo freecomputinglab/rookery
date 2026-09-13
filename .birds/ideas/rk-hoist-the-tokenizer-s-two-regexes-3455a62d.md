@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-search-review
 deps: []
-closed: false
+closed: true
 ---
 `_tokenize` builds a fresh `regex("^[0-9]+$")` for every token of every note's
 body. The corpus pass is the most expensive thing this package does at build

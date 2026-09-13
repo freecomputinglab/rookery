@@ -304,7 +304,7 @@
   // `_registry.final()` would be one state resolution per note on the page.
   let ref-text = _ref-text(_registry.final())
   let out = ()
-  for el in query(selector(metadata).or(selector(figure.where(kind: IK)))) {
+  for el in query(selector(<rookery-edge>).or(selector(figure.where(kind: IK)))) {
     let f = el.func()
     if f == metadata {
       let v = el.value

@@ -41,7 +41,11 @@
 // own bracket apart from a WINDOW's — `_page-links`/`_outbound` don't care
 // which, only "how deep", so this is purely additive: an extra key on the
 // same dict, ignored by every existing reader.
-#let _edge(edge, container) = metadata((rookery-edge: edge, rookery-container: container))
+//
+// Carries `<rookery-edge>` so `_ideas-outline-data` can query the edges
+// directly instead of fetching every `metadata` element in the bundle; the
+// label is shared by every edge because nothing ever `ref`s one.
+#let _edge(edge, container) = [#metadata((rookery-edge: edge, rookery-container: container))<rookery-edge>]
 #let _bracket(body, container) = _edge("open", container) + body + _edge("close", container)
 
 // ONE rendering of ONE window — summary row, disclosure, body — shared by
@@ -446,16 +450,14 @@
       let shown = _truncate(inner, v.limit)
       // `.at(..., default: false)`, not a bare field access: a WK marker
       // minted before this bead (or by an older rookery version) carries no
-      // `show-tags` key at all. NOTE: `v.show-date` just above is a bare
-      // field access with no such guard — a pre-existing risk this bead does
-      // not touch.
+      // `show-tags` key at all.
       _bracket(
         _window-content(
           id,
           rec,
           shown,
           v.folded,
-          v.show-date,
+          v.at("show-date", default: false),
           v.at("show-tags", default: false),
           // `.at(.., default: true)` for the same reason `show-tags` above uses
           // one, but defaulting the OTHER way: core's default for `show-frame`
