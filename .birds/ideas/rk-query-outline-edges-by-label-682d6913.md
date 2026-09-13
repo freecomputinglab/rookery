@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-core-review
 deps: []
-closed: false
+closed: true
 ---
 The outline's document walk queries EVERY `metadata` element in the bundle in
 order to find its own edge markers. Label the markers and query the label.

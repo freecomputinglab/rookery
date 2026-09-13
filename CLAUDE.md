@@ -2,12 +2,15 @@
 
 The `@rookery` family of [Rheo](https://rheo.ohrg.org) Typst packages: atomic,
 interlinked, transcludable notes (`core`), fuzzy search over them (`search`),
-a dated lifecycle log (`timeline`), todos/epics/a dependency DAG
-(`todos`), and dated meeting notes (`meetings`). Each package lives in
-`<name>/<version>/` (e.g. `search/0.1.0/`) and mirrors the same layout:
-`typst.toml`, `src/`, a `Justfile`, and `flake.nix`. Two of them (`search`,
-`todos`) also ship JS via `package.json`/vite — see "Pure-Typst packages"
-below for the two that don't.
+a dated lifecycle log (`timeline`), todos/epics/a dependency DAG (`todos`),
+dated meeting notes (`meetings`), a BibTeX reader and `#citation` note
+constructor (`bibtex`), and an endlessly scrolling presentation over notes
+(`slipshow`). Each package lives in `<name>/<version>/` (e.g. `search/0.1.0/`)
+and mirrors the same layout: `typst.toml`, `src/`, and a `Justfile`, plus a
+`flake.nix` where the package pins a toolchain of its own (`search` for
+node/pnpm, `slipshow` likewise). Three of them (`search`, `todos`, `slipshow`)
+also ship JS via `package.json`/vite — see "Pure-Typst packages" below for the
+four that don't.
 
 This repo was split out of `rheo-packages` (`freecomputinglab/rheo-packages`)
 on 2026-08-30, once `@rookery` needed a repository URL of its own to resolve
@@ -29,6 +32,26 @@ derived in `todos` and nowhere else, so a panel that cannot press them is the
 one thing every consuming site hand-rolls. `#todos-search` still reaches for
 nothing in `search` — see that package's `search.typ` for which half of the
 old rule still holds.
+
+Those two edges are not the whole graph. Every package imports `core`, and two
+also import `timeline`:
+
+```
+core      -> nothing
+search    -> core
+bibtex    -> core
+slipshow  -> core
+timeline  -> core
+meetings  -> core, timeline
+todos     -> core, timeline, search, slipshow
+```
+
+`timeline` is `todos`'s heaviest edge — seven files import it:
+`src/today.typ:14`, `src/skin.typ:19-20`, `src/views.typ:21`,
+`src/graph.typ:8`, `src/table.typ:32,37`, `src/todo.typ:4`, `src/tags.typ:37`.
+Its `slipshow` edge is one file, `src/deck.typ:27`, and its `search` edge is
+the one file described above, `src/table.typ:30`. `meetings`'s `timeline` edge
+is `src/lib.typ:22`.
 
 ## Build
 
@@ -98,13 +121,14 @@ TARGET DIR` where `DIR` already exists as a directory writes the link
 entry first rather than trying to overwrite it, then confirm with `jj status`
 that nothing landed in the tree.
 
-Then `just build` the package (skip this for `core`/`timeline`/`meetings`, the
-three dist-less pure-Typst packages — see "Pure-Typst packages" below) and `rheo
+Then `just build` the package (skip this for `core`/`timeline`/`meetings`/
+`bibtex`, the four dist-less pure-Typst packages — see "Pure-Typst packages"
+below) and `rheo
 compile` a test project that imports it. No per-package devShell needed
 either for most work: this repo's own root `flake.nix`/`.envrc` provide
 `just` and `typst`, and direnv finds them by walking up from anywhere under
-the repo. `search/0.1.0` carries its own `flake.nix` on top of that, for
-`node`/`pnpm` pinned to that package specifically.
+the repo. `search/0.1.0` and `slipshow/0.1.0` each carry their own `flake.nix`
+on top of that, for `node`/`pnpm` pinned to that package specifically.
 
 ## Pattern: consuming the injected `rheo-context`
 
@@ -200,15 +224,15 @@ rheo" (A) or "works standalone, rheo optionally enhances it" (B).
 
 ## Pure-Typst packages
 
-`core`, `timeline` and `meetings` are pure Typst (+ CSS) — no `package.json`, no
-`pnpm-lock.yaml`, no build step at all: `typst.toml`'s `entrypoint` and
-`css_stylesheet` point straight at `src/` — editing `src/` takes effect
-immediately, nothing to rebuild or forget to re-run.
+`core`, `timeline`, `meetings` and `bibtex` are pure Typst (+ CSS) — no
+`package.json`, no `pnpm-lock.yaml`, no build step at all: `typst.toml`'s
+`entrypoint` and `css_stylesheet` point straight at `src/` — editing `src/`
+takes effect immediately, nothing to rebuild or forget to re-run.
 
-`search` and `todos` are ORDINARY built packages — `package.json` + vite.
-`search` shares core's name-space and hard-imports it, and is nonetheless
-built because search is only worth having with JavaScript; core ships none.
-Splitting kept that true instead of trading it away.
+`search`, `todos` and `slipshow` are ORDINARY built packages — `package.json`
++ vite. `search` shares core's name-space and hard-imports it, and is
+nonetheless built because search is only worth having with JavaScript; core
+ships none. Splitting kept that true instead of trading it away.
 
 The built shape is narrower than "everything lives in `dist/`", though: a
 built package's `entrypoint` and `css_stylesheet` point at `src/` — vite only
@@ -227,8 +251,8 @@ own; only the optimized bundle is genuinely missing outside a release.
 `package.json` present means `pnpm install && pnpm run build`; its absence
 means no build step at all. The release archive step tars `src/` always, and
 ADDS `dist/` on top of it when the build produced one — so
-`core`/`timeline`/`meetings` ship their `src/` directly, and `search`/`todos`
-ship both `src/`
+`core`/`timeline`/`meetings`/`bibtex` ship their `src/` directly, and
+`search`/`todos`/`slipshow` ship both `src/`
 (entrypoint, stylesheet, source-mode scripts) and `dist/` (the optimized JS
 bundle).
 
