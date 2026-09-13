@@ -9,7 +9,7 @@ deps:
 - blocked-by:rk-resolve-visible-tags-once-in-idea-0c57019f
 - blocked-by:rk-query-outline-edges-by-label-682d6913
 - blocked-by:rk-move-config-helpers-out-of-data-typ-2d9d7cdd
-closed: false
+closed: true
 ---
 Nine closures in this package index into a `(key, value)` pair with `.at(0)` /
 `.at(1)` instead of destructuring it. The package already uses the destructuring

@@ -58,11 +58,11 @@
 //
 // `only:` parses just the named keys out of `src`, so a large library costs
 // what it's USED rather than what it contains. `auto` (the default) parses
-// the whole file, exactly as before this parameter existed — not `none`,
-// which would read as "parse nothing". A key `only` names that `src` doesn't
-// carry is dropped silently; nothing here errors on it, because `entry(key)`
-// already asserts on a missing key at the point something asks for it,
-// which is a more useful place to fail than factory construction.
+// the whole file — not `none`, which would read as "parse nothing". A key
+// `only` names that `src` doesn't carry is dropped silently; nothing here
+// errors on it, because `entry(key)` already asserts on a missing key at the
+// point something asks for it, which is a more useful place to fail than
+// factory construction.
 #let bibtex(
   src,
   tagged-idea: _core-tagged-idea,
@@ -85,11 +85,9 @@
   // per-call one, and this is the only way back to the factory's.
   let _show-fields = show-fields
   let src = if type(src) == array { src.join("\n") } else { src }
-  // `only:` filters the SOURCE before parsing, not the parsed result after —
-  // the whole point is that a library's cost scales with what's kept rather
-  // than with the file. A key `only` names that the file doesn't carry is
-  // silently dropped here; `entry(key)` below is where that turns into an
-  // error, at the point something actually asks for it.
+  // `only:` filters the source before parsing, not the parsed result after
+  // — see the header comment above for why, and for the missing-key
+  // contract.
   let bib = if only == auto { parse-bib(src) } else {
     let chunks = bib-chunks(src)
     let kept = only.filter(k => k in chunks).map(k => chunks.at(k))
