@@ -409,7 +409,17 @@ export const wirePanel = (container, n) => {
   return { container, apply };
 };
 
+// ONE PANEL'S FAILURE IS ONE PANEL'S. `wirePanel` reads shapes the Typst side
+// is trusted to have emitted, and a page mixing an older build's markup with
+// this script is enough to throw — which, uncaught, would also take the
+// search modal wired after it.
 export const initPanels = () => {
   let n = 0;
-  for (const c of document.querySelectorAll(".panel")) wirePanel(c, n++);
+  for (const c of document.querySelectorAll(".panel")) {
+    try {
+      wirePanel(c, n++);
+    } catch (err) {
+      console.error("@rookery/search: a #panel could not be wired and is left as a plain list.", c, err);
+    }
+  }
 };

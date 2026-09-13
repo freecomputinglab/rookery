@@ -64,8 +64,15 @@ export const init = async () => {
   // Panels are wired FIRST and unconditionally, because they are independent of
   // the search bar: a page may carry panels and no bar at all, and the early
   // return below would otherwise skip them.
-  initPanels();
-  initUrlSync();
+  // Guarded individually: panels, URL sync and search are independent
+  // features that happen to share one entry point, and one of them failing
+  // must not silently disable the other two.
+  try { initPanels(); } catch (err) {
+    console.error("@rookery/search: panels could not be initialised.", err);
+  }
+  try { initUrlSync(); } catch (err) {
+    console.error("@rookery/search: URL sync could not be initialised.", err);
+  }
 
   // The dialog ALSO carries `data-rookery-search` (it shares the bar's
   // island-lookup attribute), so the bar query must exclude it — otherwise a
@@ -195,9 +202,14 @@ if (typeof document !== "undefined") {
 // Auto-init in a browser. Guarded so the parity fixture can `import` this module
 // under node, where there is no document and nothing to wire.
 if (typeof document !== "undefined") {
+  const boot = () => {
+    init().catch((err) => {
+      console.error("@rookery/search: initialisation failed.", err);
+    });
+  };
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", boot);
   } else {
-    init();
+    boot();
   }
 }

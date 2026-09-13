@@ -5,6 +5,7 @@ title: Browser smoke tests for the search modal
 priority: 5
 labels:
 - fix-safari-search-modal
+- test-browser
 deps:
 - blocked-by:rk-wire-search-triggers-before-the-index-7974cadf
 - blocked-by:rk-stand-up-the-shared-browser-harness-cbc3ae56

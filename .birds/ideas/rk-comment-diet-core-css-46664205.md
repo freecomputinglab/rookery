@@ -6,7 +6,7 @@ priority: 2
 labels:
 - chore-core-review
 deps: []
-closed: false
+closed: true
 ---
 `core.css` is 1738 lines and 1213 of them — seventy per cent — are inside
 comments. Most of that prose is a measurement log: the browser, the viewport,
