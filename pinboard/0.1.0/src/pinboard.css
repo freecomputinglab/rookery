@@ -28,16 +28,17 @@
      is a spacing parameter for the initial grid, not a rendered height, so
      nothing here may pin the card to a fixed height. */
   height: auto;
-  /* Not transparent: cards overlap while a layout settles. `Canvas` is the
-     reader's own page colour, so a card stays opaque under a dark theme too. */
-  background: var(--pinboard-card-bg, Canvas);
+  /* Transparent, so a card carries the board's own ground rather than a second
+     one over it. A project whose cards overlap enough to need them opaque sets
+     `--pinboard-card-bg` — `Canvas` for the reader's page colour, which holds
+     under a dark theme too. */
+  background: var(--pinboard-card-bg, transparent);
   /* ROOM FOR THE HAT above the air. A window's id sits a whole
      `--idea-label-size` above the frame's top edge — core lifts the tab there
      — so a card owing only its own padding would clip the id. Read from the
      property core lifts by, never a pixel count, so a project retheming the
      label keeps the corner inside the card. */
   padding: calc(var(--idea-label-size, 0.57rem) + 0.5em) 0.75em 0.6em;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
 }
 
 /* Core pays half the lift back as `padding-top` on the figure it wraps a

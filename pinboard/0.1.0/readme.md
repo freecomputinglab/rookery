@@ -38,8 +38,8 @@ is no second set of properties to keep in step.
   language of its own: `ideas(tags: "..")` already narrows, and the result is
   handed straight in.
 - **`folded:`** the state a card the reader has never touched opens in.
-  `true` gives a board of titles alone, which is the McPhee arrangement;
-  `false` (the default) shows each note's body under its title. It is an
+  `true` (the default) gives a board of titles alone, which is the McPhee
+  arrangement; `false` shows each note's body under its title. It is an
   initial state only — a card whose state is in the store is restored to
   that instead, and a reader may open or shut any card whatever this says.
 

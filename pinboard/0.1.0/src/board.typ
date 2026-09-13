@@ -20,12 +20,14 @@
 // shows every note. A caller wanting less calls `ideas(tags: ..)` itself and
 // hands the result in, rather than this package growing a query language of
 // its own. `folded:` is the INITIAL state of a card the reader has never
-// touched — `true` for a board of titles alone, McPhee-fashion; a card whose
-// state is in the store is restored to that instead (`src/pinboard.js`).
+// touched, and defaults to `true`: a board of titles alone is the McPhee
+// arrangement, and the one a reader takes in whole. `false` opens every card's
+// body instead. A card whose state is in the store is restored to that rather
+// than to this (`src/pinboard.js`).
 //
 // `ideas()` reads `_registry.final()` and must run inside `#context`, so the
 // whole body is one.
-#let pinboard(id: "default", notes: none, folded: false) = context {
+#let pinboard(id: "default", notes: none, folded: true) = context {
   let rows = if notes != none { notes } else { ideas() }
   html.elem("div", attrs: (class: "pinboard", "data-pinboard": id), {
     for row in rows {
