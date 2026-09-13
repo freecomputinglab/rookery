@@ -8,9 +8,9 @@
   min-height: 480px;
 }
 
-/* Position rides on `--pin-x`/`--pin-y`, written by `src/pinboard.js` (and,
-   once the drag bird lands, by pointer movement) — never `style.left`/
-   `style.top` directly, so that later code has one property pair to touch. */
+/* Position rides on `--pin-x`/`--pin-y`, written by `src/pinboard.js` and by
+   `src/drag.js` during a drag — never `style.left`/`style.top` directly, so
+   both have one property pair to touch. */
 .pinboard-card {
   position: absolute;
   translate: var(--pin-x, 0) var(--pin-y, 0);
@@ -21,12 +21,18 @@
   box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
 }
 
+/* While dragging, the card must track the pointer exactly rather than ease
+   behind it, so any transition on `translate` is suspended for the duration. */
+.pinboard-card[data-dragging] {
+  transition: none;
+  cursor: grabbing;
+}
+
 .pinboard-card-handle {
   display: block;
   padding: 0.5em 0.75em;
   background: var(--pinboard-handle-bg, #eee);
   font-weight: 600;
-  /* A promise the drag bird keeps. */
   cursor: grab;
 }
 

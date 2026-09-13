@@ -7,7 +7,7 @@ labels:
 - feat-pinboard
 deps:
 - blocked-by:rk-scaffold-rookery-pinboard-c9b5e67f
-closed: false
+closed: true
 ---
 A pinboard's whole point is that the author moves the cards. This bird makes a card
 draggable by its handle.
