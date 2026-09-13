@@ -9,7 +9,7 @@ deps:
 - blocked-by:rk-store-claimed-keys-as-a-dictionary-ec9241ef
 - blocked-by:rk-hoist-tag-data-out-of-the-all-sweep-767de9e4
 - blocked-by:rk-document-parse-entry-as-public-870253e9
-closed: false
+closed: true
 ---
 Comment diet: `lib.typ`'s `only:` parameter is explained twice in one file,
 and once with a historical aside that has no present-tense meaning.
