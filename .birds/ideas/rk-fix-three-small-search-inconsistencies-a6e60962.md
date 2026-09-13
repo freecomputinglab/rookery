@@ -6,7 +6,7 @@ priority: 2
 labels:
 - chore-search-review
 deps: []
-closed: false
+closed: true
 ---
 Three small inconsistencies in `@rookery/search`, one per file: a target read
 that bypasses the module's own helper, a positional pair index where the package

@@ -112,7 +112,7 @@
     let d = dated.at(i).timestamp
     if not _has-time(d) { return false }
     let day = d.display("[year][month][day]")
-    let others = dated.enumerate().filter(p => p.at(0) != i).map(p => p.at(1).timestamp)
+    let others = dated.enumerate().filter(((idx, _)) => idx != i).map(((_, e)) => e.timestamp)
     others.any(o => o.display("[year][month][day]") == day)
   }
 
