@@ -60,6 +60,15 @@ export { initUrlSync, wireRadioGroup } from "./urlsync.js";
 // Everything that needs ROWS — the bars, the modals, the Ctrl+K binding —
 // necessarily waits for them, and until they land a search input is inert in
 // exactly the way it already is on a page carrying no index at all.
+// `navigator.platform` is deprecated but is the only field that separates
+// macOS and iPadOS from everything else in every shipping browser today;
+// `userAgentData.platform` is not implemented in Safari, which is precisely
+// the browser this has to be right for. Guarded for node, where the parity
+// fixture imports this module and there is no navigator.
+const APPLE =
+  typeof navigator !== "undefined" &&
+  /Mac|iPhone|iPad|iPod/.test(navigator.platform ?? "");
+
 export const init = async () => {
   // Panels are wired FIRST and unconditionally, because they are independent of
   // the search bar: a page may carry panels and no bar at all, and the early
@@ -97,6 +106,14 @@ export const init = async () => {
       const modal = modals.get(trigger.dataset.rookerySearchModal);
       if (modal === undefined) continue;
       trigger.addEventListener("click", () => modal.open());
+      // THE HINT FOLLOWS THE PLATFORM, because the binding already does: the
+      // keydown listener below opens on `ctrlKey || metaKey`, and on a Mac or
+      // an iPad the discoverable modifier is Command — Control-K there is a
+      // text-field binding that eats the keystroke before the page sees it.
+      // The markup says `Ctrl K` because Typst builds one page for every
+      // visitor and cannot know which is reading it.
+      const key = trigger.querySelector(".rookery-search-key");
+      if (key !== null && APPLE) key.textContent = "⌘ K";
     }
 
     // Registered once per page, not once per modal — opens the FIRST modal in

@@ -9,7 +9,7 @@ deps:
 - blocked-by:rk-resolve-visible-tags-once-in-idea-0c57019f
 - blocked-by:rk-cache-bib-keys-drop-dead-cite-walk-871b6099
 - blocked-by:rk-destructure-pair-maps-across-core-de56c4bd
-closed: false
+closed: true
 ---
 The counter that gives an unnamed note its id is addressed by its string key in
 three places in `idea.typ`, while every other piece of document-wide state in
