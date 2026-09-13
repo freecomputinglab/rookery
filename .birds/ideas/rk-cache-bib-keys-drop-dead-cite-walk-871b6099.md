@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-core-review
 deps: []
-closed: false
+closed: true
 ---
 The bibliography key list is re-parsed out of the raw `.bib`/`.yml` bytes on
 every single call, once per note render, per window, per nested expansion and

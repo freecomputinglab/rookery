@@ -5,6 +5,10 @@
 // either `,` or `;` as the separator depending on export settings, so both
 // are accepted.
 
+#let _NON-ALNUM = regex("[^a-z0-9]+")
+#let _EDGE-HYPHENS = regex("^-+|-+$")
+#let _KEYWORD-SEP = regex("[,;]")
+
 // Trimmed, lowercased, every run of non-alphanumeric characters collapsed to
 // one hyphen, leading/trailing hyphens stripped. A tag with a space silently
 // breaks its CSS class downstream — `idea-tag-<tag>`'s class attribute is
@@ -13,8 +17,8 @@
 // `humanities` — so every keyword goes through this before it becomes a tag.
 #let _slugify(s) = {
   let s = lower(s.trim())
-  let s = s.replace(regex("[^a-z0-9]+"), "-")
-  s.replace(regex("^-+|-+$"), "")
+  let s = s.replace(_NON-ALNUM, "-")
+  s.replace(_EDGE-HYPHENS, "")
 }
 
 // The raw `keywords` field value (a string, or `none` for an entry that
@@ -23,5 +27,5 @@
 // nothing.
 #let keyword-tags(raw) = {
   if raw == none { return () }
-  raw.split(regex("[,;]")).map(_slugify).filter(s => s != "")
+  raw.split(_KEYWORD-SEP).map(_slugify).filter(s => s != "")
 }
