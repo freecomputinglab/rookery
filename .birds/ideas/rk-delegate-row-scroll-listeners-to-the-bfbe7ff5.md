@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-slipshow-review
 deps: []
-closed: false
+closed: true
 ---
 Replace N per-row `scroll` listeners with one delegated listener on the deck
 in `@rookery/slipshow`'s controller. `init()` in `src/slipshow.js` currently

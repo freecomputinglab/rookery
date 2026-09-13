@@ -86,10 +86,9 @@
 /* ONE SLIP. No fixed height — see the file header — and, by default, no
    spacing of its own either: a slip is exactly its card, and the rhythm
    between two slips is whatever `@rookery/core` already gives two cards in a
-   column. This package used to add `3rem 1.5rem` of padding and another
-   `3rem` between slips, which on a deck the reader walks into one slip at a
-   time reads as a page of empty space with a note somewhere in it — the
-   generous frame was sized for a deck that showed everything at once.
+   column. A deck the reader walks into one slip at a time has no use for a
+   wide frame around each one — that reads as a page of empty space with a
+   note somewhere in it.
 
    TWO CUSTOM PROPERTIES RATHER THAN TWO LITERALS, because zero is a default
    and not a decree: a deck that wants the old airy frame back sets

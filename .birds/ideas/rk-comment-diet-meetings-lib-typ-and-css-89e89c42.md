@@ -5,7 +5,8 @@ title: 'Comment diet: meetings'' lib.typ and CSS'
 priority: 3
 labels:
 - chore-meetings-review
-deps: []
+deps:
+- blocked-by:rk-hoist-meetings-css-safe-regex-to-module-c2b9e625
 closed: false
 ---
 /home/lox/code/_fcl/rookery/meetings/0.1.0/src/lib.typ is 253 lines, 134 of
