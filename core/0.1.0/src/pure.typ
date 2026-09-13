@@ -736,3 +736,26 @@
   message: "@rookery/core: " + where + " `limit` must be none or a positive "
     + "integer (the number of leading blocks to show) — got " + repr(v),
 )
+
+// A URL-safe slug from a heading's plain text: lowercased, every run of
+// characters outside `[a-z0-9]` collapsed to one `-`, with no leading or
+// trailing `-`. `#ideate`'s `name: heading` sentinel uses this to name a
+// section's note after its own heading, so inserting or reordering sections
+// does not renumber every id after it the way the package counter would.
+//
+// A heading of nothing but punctuation slugs to the empty string, which is a
+// caller error rather than a silent id — an unnamed note already has a
+// well-defined identity (the counter), so minting one under an empty name
+// would be worse than refusing.
+#let _slug(s) = {
+  let out = lower(s).replace(regex("[^a-z0-9]+"), "-").trim("-")
+  if out == "" {
+    panic(
+      "@rookery/core: `#ideate`'s `name: heading` could not build a name "
+        + "from the heading " + repr(s) + " — nothing is left once "
+        + "punctuation is stripped. Retitle the section, or drop "
+        + "`name: heading` for this call.",
+    )
+  }
+  out
+}

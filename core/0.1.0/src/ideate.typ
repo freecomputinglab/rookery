@@ -244,7 +244,7 @@
 // arithmetic — no state, no query, no layout — so the block introduces no
 // convergence risk of its own; `#idea` does its own registration inside a
 // context of its own already, and nesting one more changes nothing about that.
-#let ideate(body, separator: par, show-frame: false, show-id: false, ..args) = context {
+#let ideate(body, separator: par, title: none, name: auto, show-frame: false, show-id: false, ..args) = context {
   // A PAGED TARGET GETS THE MARKUP IT WAS GIVEN. No note is minted, nothing is
   // wrapped, and `#ideas()` in that build sees nothing from here — a PDF of a
   // block of prose should be that block of prose. The same shape
@@ -289,13 +289,50 @@
   }
   let want = if heading-elem { _level-of(separator) } else if heading-sel { _sel-level(separator) }
 
+  // `title:`/`name:` accept the sentinel element function `heading` — the
+  // same value `separator:` itself already takes as `heading.where(level:
+  // 2)`, so a document naming both reads as one idea rather than two
+  // unrelated conventions. Classified here, beside `separator:`, and for the
+  // same reason: a bad argument must be rejected even on a body with nothing
+  // to split (the single-paragraph early return below).
+  let title-from-heading = type(title) == function and title == heading
+  let name-from-heading = type(name) == function and name == heading
+  if name != auto and not name-from-heading {
+    panic(
+      "ideate: `name:` must be `auto` (the package counter — the default) or "
+        + "the sentinel `heading` (name every note after the heading that "
+        + "starts it). A fixed name would mint every note in this body under "
+        + "one id. Got: " + repr(name),
+    )
+  }
+  if (title-from-heading or name-from-heading) and not heading-mode {
+    panic(
+      "ideate: `title: heading` and `name: heading` both read the heading "
+        + "that STARTS each note, so they need `separator: heading.where(level: "
+        + "2)` (or another level) — with the separator actually given here "
+        + "there is no heading to read. Got separator: " + repr(separator),
+    )
+  }
+
   // `show-frame`/`show-id` default to FALSE here, inverting `#idea`'s own
   // defaults. That inversion is most of the reason this function is worth
   // having: an inferred note is not one anybody named, so a frame and a
   // permalink around every paragraph is chrome nobody asked for — and with no
   // name, the permalink points at a sequence number that means nothing to a
   // reader. Both are ordinary `#idea` arguments; pass `true` to get them back.
-  let mint = idea.with(show-frame: show-frame, show-id: show-id, ..args)
+  //
+  // `title:` is forwarded only when it is NOT the `heading` sentinel — the
+  // sentinel names where to find each note's own title, not a title itself,
+  // and forwarding it verbatim would hand `#idea` an element function to
+  // render as content. Forwarding `title: none` when it was never given is
+  // identical to today's behaviour: `#idea`'s own default for that argument
+  // is already `none`.
+  let mint = idea.with(
+    show-frame: show-frame,
+    show-id: show-id,
+    ..(if title-from-heading { (:) } else { (title: title) }),
+    ..args,
+  )
 
   // Fact 4: one paragraph, no sequence, nothing to split.
   if not body.has("children") { return mint(body) }
@@ -357,14 +394,61 @@
   // `_heading-only` is LAST and has the same shape for the same reason: a
   // heading names the run of notes under it and is emitted bare rather than
   // becoming a card whose entire body is a title.
+  //
+  // Slugs minted so far BY THIS CALL, so two sections here that read the same
+  // name panic instead of silently sharing an id. A second `#ideate` call, or
+  // another chapter elsewhere in the document, is not this call's problem —
+  // see the readme for why that collision is left for a caller to notice.
+  let seen-slugs = ()
   for group in groups {
     if group.all(_blank) { continue }
     if _no-content(group) {
       group.join()
     } else if _heading-only(group) {
       group.join()
-    } else {
+    } else if not (title-from-heading or name-from-heading) {
       mint(group.join())
+    } else {
+      // A group's own separating heading is its first non-blank child — heading
+      // mode pushes the matching heading into the fresh group, so it leads
+      // every group except the preamble group, which has none at all. Found by
+      // POSITION, since two sections can carry identical heading content.
+      let lead-i = group.position(c => not _blank(c))
+      let lead = if lead-i == none { none } else { group.at(lead-i) }
+      if lead == none or lead.func() != heading or _level-of(lead) != want {
+        // The preamble group has no heading of its own to title or name by —
+        // minted exactly as it would be with neither sentinel given.
+        mint(group.join())
+      } else {
+        let rest = (group.slice(0, lead-i) + group.slice(lead-i + 1)).join()
+        let title-arg = if title-from-heading { (title: lead.body) } else { (:) }
+        if not name-from-heading {
+          mint(rest, ..title-arg)
+        } else {
+          // `_plain`, NOT `_plain-with(.., _ref-text(reg))`: resolving a `#ref`
+          // inside the heading needs the registry's value, and this call is
+          // itself about to ADD to that same registry — reading it here
+          // MEASURED as a rheo build that never converges (`document did not
+          // converge within five attempts`), the registry's value now
+          // depending on this very node's own output. A `#ref` inside a
+          // heading therefore contributes nothing to its slug, exactly as
+          // `_plain` treats one anywhere else with no registry to hand. The
+          // heading's TITLE, above, is unaffected — it stays real content and
+          // is resolved by whatever `show ref:` rule the document installs,
+          // same as any other note's title.
+          let plain-text = _plain(lead.body)
+          let slug = _slug(plain-text)
+          if slug in seen-slugs {
+            panic(
+              "ideate: two sections in this body slug to the same name, \""
+                + slug + "\" — retitle \"" + plain-text + "\" (or its earlier "
+                + "namesake) so each mints under its own id.",
+            )
+          }
+          seen-slugs.push(slug)
+          mint(slug, rest, ..title-arg)
+        }
+      }
     }
   }
 }

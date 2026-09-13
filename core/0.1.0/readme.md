@@ -654,9 +654,56 @@ Anything else passed as `separator:` — `heading` with no level, `pagebreak`,
 `line`, `raw`, `heading.with(level: 2)`, `heading.where(level: 2)` — fails
 `#ideate`'s own check with a panic naming both accepted forms.
 
+### Titling and naming notes from their own heading
+
+In heading mode, `title:` and `name:` each accept the element function
+`heading` as a sentinel — the same value `separator:` itself already takes as
+`heading.where(level: 2)`, so naming both reads as one idea stated twice
+rather than two unrelated conventions:
+
+```typst
+#show: ideate.with(separator: heading.where(level: 2), title: heading, name: heading)
+```
+
+`== Literate programming` then mints a note whose `title:` is
+`[Literate programming]` — the heading's own content, references and all — and
+whose id is `idea:literate-programming`, a slug of the heading's text
+(lowercased, non-alphanumeric runs collapsed to one `-`). **The heading itself
+leaves the note's body**: `#idea` already renders `title` as the note's own
+heading, so leaving the source heading in place too would print it twice.
+
+A `#ref` inside the heading contributes nothing to the SLUG — only the title
+keeps it, as real content, resolved by whatever `show ref:` rule the document
+installs. A heading worth naming a note after is worth writing in plain
+words; a heading built entirely from a reference has nothing else to slug on
+and fails `_slug`'s own empty-name check.
+
+| | `none`/`auto` (default) | fixed value | `heading` |
+| --- | --- | --- | --- |
+| `title:` | no title (today's behaviour) | the same content on every note | each note's own heading, as content |
+| `name:` | the package counter (today's behaviour) | — not accepted; see below | a slug of each note's own heading |
+
+An id minted from a heading survives inserting or reordering sections —
+unlike the package counter, which renumbers everything after the insertion
+point — which is the reason to prefer `name: heading` for anything worth
+linking to.
+
+Both sentinels are **heading mode only**: with `separator: par` or `separator:
+none` there is no heading to read, and either one there fails with a panic. A
+fixed `name:` is refused too, for a different reason — it would mint every
+note in the body under one id — so `name:` accepts only `auto` or `heading`.
+`title:` keeps accepting a fixed value, exactly as it always has: every note
+minted gets that same title, sentinel or not.
+
+Two sections in one `#ideate` call whose headings slug to the same name fail
+with a panic naming both, rather than silently minting one over the other. A
+second `#ideate` call, or another chapter elsewhere in the document, is not
+covered by this check — see "Flat ids, and why" below for cross-document id
+collisions in general.
+
 ### Its two inverted defaults
 
-`ideate(body, separator: par, show-frame: false, show-id: false, ..args)`.
+`ideate(body, separator: par, title: none, name: auto, show-frame: false, show-id: false, ..args)`.
 
 Both invert `#idea`'s own defaults, and that inversion is most of the reason the
 function is worth having: an inferred note is not one anybody named, so a frame

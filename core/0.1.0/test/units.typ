@@ -20,7 +20,7 @@
   _bib, _bib-keys, _blocks, _body-plain, _body-text, _cite-scan, _dedup-tag,
   _is-inline, _join, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
-  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content,
+  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug,
   footnote, idea, note-href, note-path,
   tag-index, window,
 )
@@ -576,3 +576,24 @@
 #assert(not _heading-only((text("prose"),)))
 #assert(not _heading-only((heading(depth: 2)[A heading], text("prose"))))
 #assert(not _heading-only(()))
+
+// ---- _slug — a heading's plain text as a URL-safe name ---------------------
+//
+// `#ideate`'s `name: heading` sentinel names a note after the slug of the
+// heading that starts it, so an id survives inserting or reordering sections.
+//
+// Ordinary words: lowercased, spaces collapsed to single hyphens.
+#assert.eq(_slug("The Art of Computer Programming"), "the-art-of-computer-programming")
+// Mixed case throughout, not only a leading capital.
+#assert.eq(_slug("WEB and the two tangles"), "web-and-the-two-tangles")
+// Punctuation becomes a hyphen, and a RUN of it collapses to exactly one —
+// two separate punctuation marks must not leave a double hyphen behind.
+#assert.eq(_slug("Fuzzy search: ranking, scoring & sorting"), "fuzzy-search-ranking-scoring-sorting")
+// Leading and trailing punctuation is TRIMMED, not turned into a leading or
+// trailing hyphen.
+#assert.eq(_slug("--Leading and trailing--"), "leading-and-trailing")
+#assert.eq(_slug("  Padded with spaces  "), "padded-with-spaces")
+// A heading of nothing but punctuation panics rather than slugging to the
+// empty string — a caller error, not a silent id. Not asserted here: a panic
+// aborts the whole compile, so this file's `assert.eq` harness (which needs
+// the compile to finish) cannot observe one — see this file's own header.

@@ -6,7 +6,7 @@ priority: 3
 labels:
 - feat-ideate-heading-fields
 deps: []
-closed: false
+closed: true
 ---
 `#ideate` (`core/0.1.0/src/ideate.typ:247`) mints one note per group, and every
 note it mints gets the SAME arguments: `mint` is bound ONCE at line 298, above

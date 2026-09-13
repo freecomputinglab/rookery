@@ -147,8 +147,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">35 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 35 ideas"
+  grep -q 'idea-index-count">38 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 38 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -555,6 +555,32 @@ grep -q '>Cited note<' "$R" ||
   note "ref-titled.html's <h1> does not name the note its title references"
 grep -q '<title>About Cited note</title>' "$R" ||
   note "ref-titled.html's <title> does not resolve its title's reference"
+
+
+# 23. `#ideate`'s HEADING AS TITLE AND NAME (`content/ideated.typ`). Every `==`
+#     section there mints its own note, titled and named after its own
+#     heading rather than sharing one fixed title and the package's
+#     auto-incrementing counter — so the pages below are named by SLUG, never
+#     by a sequence number.
+declare -A IDEATED_TITLES=(
+  [literate-programming]="Literate programming"
+  [fuzzy-search-ranking]="Fuzzy search ranking"
+  [testing-edge-cases]="Testing edge cases"
+)
+for slug in "${!IDEATED_TITLES[@]}"; do
+  p="$H/ideas/$slug.html"
+  [ -f "$p" ] || { note "no minted page at ideas/$slug.html — #ideate's name: heading did not slug this section"; continue; }
+  t="${IDEATED_TITLES[$slug]}"
+  grep -q "<title>$t</title>" "$p" ||
+    note "ideas/$slug.html's <title> is not its own heading's text ($t)"
+  #   Exactly TWICE: the <title> above and the note's own <h1>/<h2> heading.
+  #   A third occurrence would mean the source heading survived into the
+  #   note's body as well as becoming its title — the same double-print guard
+  #   check 12 pins for a DERIVED title, run here for an AUTHORED one instead.
+  n=$(grep -o "$t" "$p" | wc -l)
+  [ "$n" -eq 2 ] ||
+    note "ideas/$slug.html contains \"$t\" $n time(s), expected exactly 2 (the <title> and the note's own heading) — the source heading may have been left in the note's body too"
+done
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"
