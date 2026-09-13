@@ -84,11 +84,10 @@
       body-hits.push((..e, score: body-score-val, kind: "body"))
     }
   }
-  // A REAL SEARCH (`q != ""`) sorts by score descending. AN EMPTY RESIDUAL sorts
-  // by date, newest first, the way `_sort-ids` in rookery's `src/pure.typ` does:
-  // bucket into dated and undated — appending into each bucket preserves the
-  // incoming id-ascending order within it — walk the dated buckets' distinct
-  // stamps newest to oldest, and append the undated group unchanged at the end.
+  // A REAL SEARCH (`q != ""`) sorts by score descending. Otherwise: bucket into
+  // dated and undated — appending into each bucket preserves the incoming
+  // id-ascending order within it — walk the dated buckets' distinct stamps
+  // newest to oldest, and append the undated group unchanged at the end.
   name-hits = if q != "" {
     name-hits.sorted(key: e => -1 * e.score)
   } else {

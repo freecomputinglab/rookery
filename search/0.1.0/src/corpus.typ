@@ -7,46 +7,38 @@
 #import "lookup.typ": *
 
 // The inline path's corpus pass cannot lean on Typst's memo: rheo emits many
-// documents from one build and the memo does not carry across them, so a
-// 200-note rookery with 40 emitting vertebrae paid about 118 ms a page against
-// the 15 ms its own JSON costs — the whole build scaled by the page count, on
-// exactly the sites big enough to want search.
-//
+// documents from one build and a per-page memo does not carry across them, so
 // `.marrow.typ` next to this file runs ONCE at the bundle root, compresses the
-// whole rookery there, and publishes the result into this state. KEYED BY NOTE
-// ID rather than by position, `#search-index` selecting and ordering its own
-// rows; the knobs that change the terms are in the key too, so an index built
-// with different `body-terms`/`df-ceiling` never reads another's terms.
+// whole rookery there, and publishes the result into this state for the
+// per-page path to read back.
 //
-// EMPTY WITHOUT RHEO, which is the whole fallback: `.final()` gives `(:)`, every
-// lookup misses, and `#search-index` compresses inline. The same happens under
-// rheo for a tag-filtered index — see the miss path at its call site.
+// Keyed by note id rather than by position, since `#search-index` selects and
+// orders its own rows, and by `body-terms`/`df-ceiling` too, since those knobs
+// change the terms themselves — an index built with different knobs never
+// reads another's.
+//
+// Empty without rheo: `.final()` gives `(:)`, every lookup misses, and
+// `#search-index` compresses inline instead. The same happens under rheo for
+// a tag-filtered index — see the miss path at its call site.
 //
 // `mode: "asset"`, the default, reads none of this: the marrow writes the
 // finished index to a file and a page carries only a pointer at it.
 #let _corpus-cache = state("rookery-search-corpus", (:))
 
 // The whole island row set, built once at the bundle root, for the inline path
-// to read back instead of deriving it per page.
+// to read back instead of deriving it per page: `_corpus-cache` above hoists
+// only the compressed body terms, so without this a page still calls
+// `search-ideas("")` to walk the registry, flatten every body and rank the
+// result, once per page. This holds the finished rows in `_rank`'s empty-query
+// order, keyed by the same compression knobs; every field but the href is
+// page-invariant, so a page's own job is to prefix `page` with its own depth.
 //
-// `_corpus-cache` above hoists the compressed BODY TERMS and nothing else, so
-// each page still called `search-ideas("")` to select and order its rows — and
-// that call walks the registry, flattens every note's body to plain text and
-// ranks the result, once per page. This state holds the finished rows in
-// `_rank`'s empty-query order, keyed by the same compression knobs. Every field
-// on them is page-invariant except the href, so a page's whole remaining job is
-// to prefix `page` with its own depth.
+// Reading the rows back this way still does not rescue the inline path — see
+// `#search-index`'s own documentation for the numbers behind that and for why
+// `mode: "asset"` is the default instead.
 //
-// MEASURED on a 320-note, 360-page site, both runs on the same tree: inline
-// mode costs 26.0s deriving its rows per page and 17.7s reading them back from
-// here, with peak RSS 5.6 GB against 3.5 GB. The islands are byte-identical,
-// checked on a root page and two nested ones. It does NOT rescue the inline
-// path — the remaining 17.7s is Typst carrying a 112 kB text node through 360
-// documents, which is what `mode: "asset"` (2.3s) removes outright — so this is
-// the inline path's floor, not an alternative to switching.
-//
-// EMPTY WITHOUT RHEO, like `_corpus-cache`: no bundle root, no marrow, every
-// lookup misses, and `#search-index` derives its rows as it always did.
+// Empty without rheo, like `_corpus-cache`: no bundle root, no marrow, every
+// lookup misses, and `#search-index` derives its rows directly.
 #let _rows-cache = state("rookery-search-rows", (:))
 
 // The cache key for one set of compression knobs. A string rather than a dict
@@ -115,8 +107,8 @@
 // TWO MODES, AND THE DEFAULT IS `"asset"`. Under `"asset"` the build writes ONE
 // `rookery/search/index.json` from `.marrow.typ` and each page carries only an
 // empty `<script>` pointing at it; `src/island.js` fetches it. Under `"inline"`
-// the page carries the JSON itself, as this function always did. The row schema
-// is identical either way — the difference is where the bytes live and, under
+// the page carries the JSON itself. The row schema is identical either way —
+// the difference is where the bytes live and, under
 // `"asset"`, that a row's `href` is site-root-relative with the page's own depth
 // prefix published beside it as `data-rookery-search-base`.
 //

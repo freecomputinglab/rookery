@@ -59,9 +59,9 @@
 }
 
 // A MULTI-VALUED FACET'S ATTRIBUTE — the values joined and PADDED WITH A SPACE AT
-// BOTH ENDS, which is the shape `#filter-panel`'s own `data-panel-tags` has taken
-// since it shipped. Same shape, so `panel.js` tokenizes both with one line and the
-// padding keeps a substring test from half-matching a value that is another's prefix.
+// BOTH ENDS, the same shape `#filter-panel`'s own `data-panel-tags` takes. Same
+// shape, so `panel.js` tokenizes both with one line and the padding keeps a
+// substring test from half-matching a value that is another's prefix.
 //
 // A VALUE MAY NOT CONTAIN WHITESPACE, asserted rather than escaped: a space would
 // split one value into two tokens, and the pill for the half neither matches anything
@@ -295,7 +295,7 @@
   // `union:` below — this argument only says the group holds a set.
   multi: (),
   // WHICH GROUPS ANSWER ONE QUESTION, and therefore OR WITH EACH OTHER rather than
-  // ANDing. Every other group composes as it always did: a row must satisfy each of
+  // ANDing. Every other group still composes that way: a row must satisfy each of
   // them, and — if any group named here has a pill pressed — at least ONE of these.
   //
   //   union: ("epic", "tag"),
@@ -310,16 +310,11 @@
   // an empty list on every corpus anyone has. The reader's reading of two subject pills
   // is "either", and that is what this declares.
   //
-  // NOT A REPLACEMENT FOR `multi:`, which is about one group holding a SET per row. A
-  // multi-valued group already ORs internally; this says how a group composes with the
-  // groups BESIDE it, and the two are freely combined — @rookery/todos' `tag` group is
-  // both.
+  // NOT A REPLACEMENT FOR `multi:`, which is about one group holding a SET per row —
+  // the two compose freely, and @rookery/todos' `tag` group is both.
   //
-  // WHY NOT MERGE THE GROUPS INSTEAD. Because they are genuinely two: they are derived
-  // differently (one off `epic-*`, one off the flat keys), they chip differently, and a
-  // reader wants the epics gathered rather than strewn through an alphabetical tag row.
-  // What was wrong was never the grouping, only the composition — so only the
-  // composition is declared.
+  // THE GROUPS STAY SEPARATE rather than merging, because they are derived, chipped
+  // and read differently; only their composition needed a knob.
   //
   // A SINGLE ENTRY IS A NO-OP, by construction: one pressed union group behaves exactly
   // as it did. So this only ever changes the two-groups-pressed case.
@@ -597,8 +592,8 @@
       // indistinguishable once written. Absent when no facet is multi-valued.
       if multi.len() > 0 { a.insert("data-panel-multi", multi.join(" ")) }
       // WHICH GROUPS OR WITH EACH OTHER — see `union:`. Present only when declared,
-      // so a panel that never asked for it carries the markup it always did and the
-      // script reads the plain AND.
+      // so a panel that never asked for it carries the same markup as one with no
+      // `union:` groups at all, and the script reads the plain AND.
       if union.len() > 0 { a.insert("data-panel-union", union.join(" ")) }
       a
     },

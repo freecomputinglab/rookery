@@ -7,7 +7,7 @@ labels:
 - chore-core-review
 deps:
 - blocked-by:rk-cache-bib-keys-drop-dead-cite-walk-871b6099
-closed: false
+closed: true
 ---
 Four comments in the reading modules name a tracker item — three issue ids and
 one "(readme bead)" TODO — which the project's comment rules forbid outright.

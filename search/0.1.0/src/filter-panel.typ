@@ -1,23 +1,17 @@
 // `#filter-panel` — a panel over the ideas carrying ONE tag, with a hand-named pill
 // per tag.
 //
-// WHY IT IS NOT MORE ARGUMENTS ON `#panel`. That widget facets on PROJECTED FIELDS:
-// `facets: ("status", "kind")` reads `r.at(field)` and mints one pill per value any row
-// carries. This is the other shape — the rows are "every note tagged `todo`", the pills
-// are a list of TAG NAMES the caller writes down, and the same tags come back as chips
-// on the row. Neither half is expressible as a facet, and bending `#panel` into both
-// would leave one function with two mutually exclusive halves.
+// DIFFERENT FROM `#panel`, WHICH FACETS ON PROJECTED FIELDS: `facets: ("status",
+// "kind")` reads `r.at(field)` and mints one pill per value any row carries. Here
+// the rows are "every note tagged `todo`", the pills are a list of TAG NAMES the
+// caller writes down, and the same tags come back as chips on the row — neither
+// half is expressible as a facet.
 //
-// IT READS `ideas()` ITSELF, which departs from `panel.typ`'s own banner ("PANELS TAKE
-// AN INDEX, THEY NEVER BUILD ONE"), and the departure is the point rather than an
-// oversight. That rule exists to stop a per-view walk of the value store; the cost of
-// keeping it here would be a wrapper in every consuming site, which is exactly what
-// this export was asked for to delete — a site should import one name and call it. The
-// walk is one `ideas()` per panel, and a caller that already has rows (because it built
-// them from another package's projection) passes them through `rows:` and no walk
-// happens at all.
+// READS `ideas()` ITSELF, departing from `panel.typ`'s own rule ("PANELS TAKE AN
+// INDEX, THEY NEVER BUILD ONE"): the walk is one `ideas()` per panel, and a caller
+// that already has rows passes them through `rows:` and no walk happens at all.
 //
-// THE ROW IS `#idea-row`, from @rookery/core core. Nothing about the row's markup or
+// THE ROW IS `#idea-row`, from @rookery/core. Nothing about the row's markup or
 // the chip's shape is written here — that function exists so this file cannot be a
 // fourth copy of it.
 
@@ -66,14 +60,13 @@
   // Only ideas carrying this tag become rows. `none` means every idea.
   tag: none,
   // Tag names, in order. Each becomes one pill AND, where a row carries it, one chip.
-  // AUTHORED rather than derived, which WAS the difference from `#panel`'s facets.
+  // AUTHORED rather than derived — the widget's pills are tag NAMES, where `#panel`'s
+  // are projected field VALUES.
   //
-  // `auto` DERIVES THEM: every FLAT tag any listed row carries, sorted — so the pill order
-  // is stable across builds, `ideas()` being ordered by id while the set of tags it
-  // turns up is not. That is the mode for a panel whose pills should not need
-  // maintaining: a tag written on one note today has a pill tomorrow, and nothing
-  // anywhere declares the list. Narrow it with `tag-filter:` below, which is how a
-  // whole namespaced family stays out.
+  // `auto` DERIVES THEM: every FLAT tag any listed row carries, sorted for build
+  // stability (`ideas()` orders by id; the set of tags it turns up does not). A tag
+  // written on one note today has a pill tomorrow, with nothing to maintain — narrow
+  // it with `tag-filter:` below to keep a whole namespaced family out.
   //
   // AN AUTHORED LIST IS STILL RIGHT where the pills are a VOCABULARY rather than an
   // inventory — the kinds a note can be, in an order a reader expects, with the
@@ -85,30 +78,21 @@
   //
   //   tag-filter: t => not t.starts-with("venue-")
   //
-  // WHY A PREDICATE AND NOT A LIST OF NAMES TO EXCLUDE. With `pills: auto` the whole
-  // value of the row is that nothing declares it, and a list of exclusions is that same
-  // maintenance burden back again — one entry per tag instead of one per pill. What a
-  // caller wants to drop is a FAMILY, and its families are its own: a namespacing
-  // prefix here, some other scheme on the next site. A predicate says it in one line
-  // and needs no vocabulary from this package.
-  //
-  // IT APPLIES TO AN AUTHORED LIST TOO, so a blacklist beats a pill written by hand:
-  // one question, one answer, whichever way the list arrived.
+  // A PREDICATE RATHER THAN A LIST OF EXCLUSIONS, so dropping a whole FAMILY (a
+  // namespacing prefix, some other scheme) costs one line and no vocabulary from this
+  // package. Applies to an authored list too, so a blacklist beats a pill written by
+  // hand either way.
   //
   // THE SAME ARGUMENT NAME @rookery/todos' `#filter-panel` takes for its own `tag`
-  // group. Two panels and two derivations — that one also drops the todo namespace and
-  // the epics — but one word for "which tags earn a pill", so a site can hold the
-  // predicate in one `let` and hand it to both.
+  // group, so a site can hold one predicate and hand it to both.
   tag-filter: none,
   // WHICH TAGS BECOME CHIPS on the rows, if not the pills. `auto` is the pill list when
   // that list is authored, and NOTHING when it is derived.
   //
-  // THAT ASYMMETRY IS ABOUT THE GRID rather than about tags. `#idea-row` is
-  // `<gutter> 1fr auto auto` and the chip strip is the last `auto`, so a chip per tag
-  // makes the strip as wide as the widest row's whole tag list and squeezes every title
-  // on the page to pay for it. An authored list is short by construction and was always
-  // safe there; a derived one is however long the corpus is. @rookery/todos' panel
-  // leaves its derived `tag` group off its badge strip for exactly this reason.
+  // THAT ASYMMETRY IS ABOUT THE GRID: `#idea-row` is `<gutter> 1fr auto auto` and the
+  // chip strip is the last `auto`, so a chip per tag makes the strip as wide as the
+  // widest row's whole tag list — safe for a short authored list, not for a derived
+  // one however long the corpus is.
   //
   // SO A PANEL CAN HAVE BOTH: `pills: auto` for a filter that needs no maintaining, and
   // `chips: ("todo", "meeting", ..)` for the few tags worth reading off a row. A row
@@ -316,11 +300,11 @@
       let d = when(r)
       // ONE READ, reused below rather than recomputed per list and per attribute.
       let row-tags = _row-tags(r)
-      // TWO LISTS PER ROW, and they were one until `chips:` could differ from `pills:`.
-      // `pressable` is what the SCRIPT matches on and must be the PILL set: a pill whose
-      // tag never reaches `data-panel-tags` is a button that hides every row. `shown` is
-      // what the reader SEES. Collapsing them again is how a derived pill row would
-      // silently start printing the whole corpus's tags onto every row.
+      // TWO LISTS PER ROW, because `chips:` can differ from `pills:`. `pressable` is
+      // what the SCRIPT matches on and must be the PILL set: a pill whose tag never
+      // reaches `data-panel-tags` is a button that hides every row. `shown` is what the
+      // reader SEES. Collapsing the two would print a derived pill row's whole tag set
+      // onto every row.
       let pressable = carried.filter(t => row-tags.contains(t))
       let shown = chips.filter(t => row-tags.contains(t))
       idea-row(
