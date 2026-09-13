@@ -7,7 +7,7 @@ labels:
 - chore-core-review
 deps:
 - blocked-by:rk-cache-bib-keys-drop-dead-cite-walk-871b6099
-closed: false
+closed: true
 ---
 Nearly half of `data.typ` is the template's argument validation and theme
 resolution, which belongs with the template that is their only caller. Move
