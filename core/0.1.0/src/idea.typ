@@ -48,10 +48,10 @@
   // below and further down at render time — str has no `.map`, so the error
   // surfaced as an opaque method-not-found far from the actual mistake.
   //
-  // As of 0.5.0 the normalized shape is a DICTIONARY: keys are tag names,
-  // values are arbitrary Typst values, and a plain tag's value is `none`.
-  // `_norm-tags` maps all four accepted forms onto it, so everything below
-  // reads `.keys()` for the names and touches values only where it means to.
+  // The normalized shape is a DICTIONARY: keys are tag names, values are
+  // arbitrary Typst values, and a plain tag's value is `none`. `_norm-tags`
+  // maps all four accepted forms onto it, so everything below reads `.keys()`
+  // for the names and touches values only where it means to.
   _assert-tags(tags, "#idea's")
   let tags = _norm-tags(tags)
   let pos = args.pos()
@@ -63,62 +63,41 @@
   let named = name != none
   let base = if named { _norm(name) } else { none }
 
-  // ---- THE EXCLUSION GATE, and it sits HERE for a reason -------------------
+  // THE EXCLUSION GATE sits ABOVE the `figure(kind: IK)` below rather than
+  // beside it. A note carrying an excluded tag is not hidden, it is ABSENT: no
+  // figure, no metadata, no registry entry, no Typst label, no minted page, no
+  // `ideas()` row, no search-index entry, no feeds beacon, no outline entry, no
+  // backlink. FIVE things walk for that marker STRUCTURALLY, before
+  // realization — `_flatten`'s IK rule (transclusion.typ), `_outbound`
+  // (links.typ), `_std-footnotes` and `_footnotes` (pure.typ), and
+  // `_ideas-outline-data`'s `query()` (outline.typ) — so the marker must never
+  // exist rather than exist and be suppressed, which is why the decision reads
+  // no `#context`: `_resolve-excluded` (base.typ) takes `sys.inputs` and a
+  // plain argument instead of a state.
   //
-  // A note carrying an excluded tag is not hidden, it is ABSENT: no figure, no
-  // metadata, no registry entry, no Typst label, no minted page, no `ideas()`
-  // row, no search-index entry, no feeds beacon, no outline entry, no backlink.
-  // See `_resolve-excluded` (base.typ) for the two channels, how they compose,
-  // and why the list is an ARGUMENT rather than a `rookery.with()` state.
-  //
-  // ABOVE the `figure(kind: IK)` below, and that is the whole architecture of
-  // this gate rather than a convenience. FIVE things walk for that marker
-  // STRUCTURALLY, before realization — `_flatten`'s IK rule (transclusion.typ),
-  // `_outbound` (links.typ), `_std-footnotes` and `_footnotes` (pure.typ), and
-  // `_ideas-outline-data`'s `query()` (outline.typ) — so the marker cannot be
-  // built and then suppressed. It has to never exist, which means the decision
-  // has to be made with NO `#context`, which is why `_resolve-excluded` reads
-  // `sys.inputs` and a plain argument instead of a state.
-  //
-  // TAG KEYS, so a VALUED tag excludes exactly as a plain one does: a tag
+  // TAG KEYS, so a VALUED tag excludes exactly as a plain one does — a tag
   // carrying metadata is no less a tag, the same rule `cls` below follows.
   let excluded = _resolve-excluded(exclude-tags)
   if tags.keys().any(t => t in excluded) {
-    // TWO THINGS ONLY, and nothing else. Both are invisible.
-    //
-    // 1. THE COUNTER STILL STEPS for an unnamed note. Deliberate, not an
-    //    oversight: an unnamed note takes its id from this counter, so skipping
-    //    the step shifts every LATER unnamed note's id — `ideas/3.html` in the
-    //    dev build would silently become `ideas/2.html` in the public one. One
-    //    inert content node per excluded note buys stable URLs across every
-    //    build variant, which is the whole point of a feature whose output is
-    //    several builds of one source tree.
-    //
-    //    `counter.step()` RETURNS CONTENT: emitted as the block's value here,
-    //    never inside a code block whose value is used — the trap recorded
-    //    above at the non-excluded path's own `.step()`.
-    //
-    // 2. THE ID GOES ON `_excluded-ids`, named notes only — an unnamed note has
-    //    no id anything could link to by name. That state is what lets
-    //    `#window`/`#hyperlink`/`#idea-body` tell "deliberately excluded from
-    //    this build" from "typo" and degrade instead of panicking. It holds
-    //    STRINGS and nothing else: no body, no title, no tags, nothing to
-    //    flatten or serialize, which is what keeps an excluded note free.
-    //
-    //    The `#context` wrapper is needed because `_pfx()` reads
-    //    `_prefix.final()`. Safe here where it is fatal around the figure: this
-    //    emits no content, so there is nothing for a structural walk to miss.
     return {
+      // THE COUNTER STILL STEPS for an excluded unnamed note: skipping it
+      // would shift every LATER unnamed note's id between build variants
+      // (`ideas/3.html` in one build silently becoming `ideas/2.html` in
+      // another with fewer excluded notes). `counter.step()` RETURNS CONTENT,
+      // so it is emitted here as the block's value rather than discarded
+      // inside a code block whose value is used.
       if not named { _seq.step() }
       if named {
+        // THE ID GOES ON `_excluded-ids`, named notes only — an unnamed note
+        // has no id anything could link to by name. That state is what lets
+        // `#window`/`#hyperlink`/`#idea-body` tell "deliberately excluded from
+        // this build" from "typo" and degrade instead of panicking, and it
+        // holds STRINGS only: no body, title or tags to flatten or serialize.
         context {
-          // THE ID IS BUILT OUT HERE, NOT INSIDE THE `update` CLOSURE, and this
-          // is the trap the non-excluded path below already records against
-          // `doc-date`: an updater closure runs LAZILY, at `.final()` time,
-          // where context is unknown — so a `_pfx()` call inside it fails with
-          // "can only be used when context is known" the moment any reader
-          // resolves this state. MEASURED here: `#window`'s own
-          // `_excluded-ids.final()` was the reader that tripped it.
+          // Built HERE rather than inside the `update` closure below: an
+          // updater closure runs LAZILY, at `.final()` time, where context is
+          // unknown, so a `_pfx()` call inside it fails with "can only be used
+          // when context is known" the moment any reader resolves this state.
           let id = _pfx() + base
           _excluded-ids.update(r => if id in r { r } else { r + (id,) })
         }
@@ -128,7 +107,7 @@
 
   // ---- TITLE vs LABEL, and the distinction is the whole point ---------------
   //
-  // A note travels under two names, and conflating them was a real defect:
+  // A note travels under two names:
   //
   //   `title`  the AUTHORED title, `none` when the author gave none. This is what
   //            gets PRINTED AS A HEADING above the note's own body — its card, its
@@ -140,22 +119,10 @@
   //            the first 60 characters of the body (`_derived-title`, pure.typ),
   //            else `none`.
   //
-  // WHY THEY CANNOT BE ONE VALUE. MEASURED on a real project's content
-  // (`phdash/rookery`, which has ten-odd bare `#idea[..]`/`#todo[..]` notes):
-  // deriving into `title` printed the body twice —
-  //
-  //   <h2><span class="idea-title">Call scooter palace about the title</span></h2>
-  //   </div>Call scooter palace about the title</div>
-  //
-  // — and the same on the note's minted page, `<h1>` then `<p>`. An AUTHORED title
-  // never does this because it differs from the body; a DERIVED one IS the body,
-  // and the reader is already looking at it. So a derived name is only ever useful
-  // where the body is absent.
-  //
-  // THAT THE LABEL IS WANTED is not in doubt: the same phdash template hand-rolls
-  // `if r.text == "" { r.name } else { r.title }` in eight places, deriving a name
-  // badly because rookery published none. `ideas()` now carries `label` so nobody
-  // has to.
+  // WHY THEY CANNOT BE ONE VALUE: an AUTHORED title differs from the body, so
+  // printing it adds information; a DERIVED one IS the body, so printing it as a
+  // heading too puts the same text on the card twice. A derived name is only
+  // ever useful where the body is absent.
   //
   // A STRING, never content, so a consumer can put it in an attribute, a
   // `lower(..)`, a sort key or a JSON index without asking what shape it is.
@@ -183,8 +150,8 @@
     // transcluded/minted parent, without re-running the context block below
     // (which would re-register and, for an auto id, re-step the counter).
     //
-    // `tags` here is the DICTIONARY, as of 0.5.0 — `_flatten`'s IK rule and
-    // `#ideas-outline` both read it back and must take `.keys()` for names.
+    // `tags` here is the DICTIONARY — `_flatten`'s IK rule and `#ideas-outline`
+    // both read it back and must take `.keys()` for names.
     // `title` is the AUTHORED one — `_flatten`'s IK rule PRINTS it as a heading, so
     // it must never be the derived label (see the banner above). `label` rides
     // along for `#ideas-outline`, which NAMES rather than renders.
@@ -223,17 +190,10 @@
       // stored on the registry record above, so a #window of this note can
       // still show it even when the note's own hat (here) does not.
       //
-      // `created`, and ONLY `created`. There used to be an `updated:` beside it,
-      // and the argument for showing it here was that "the date a reader wants off
-      // the top of a card is when the note was last touched". That argument was
-      // right and this package was the wrong place to answer it: a hand-maintained
-      // `updated:` is a second date the author has to remember, and it can
-      // contradict what actually happened to the note. A note's LIFECYCLE is
-      // @rookery/timeline' business as of 0.6.0 — it stores a dated log and
-      // derives last-touched from it, so a project wanting that reads
-      // `updated-of(entry, tags)` there rather than a field here. Core keeps the
-      // one date it can resolve without being told anything: when the note was
-      // created. `_window-content` reads the same field off the registry record.
+      // `created`, and ONLY `created`: resolved here from the explicit argument,
+      // else the containing document's own `#set document(date:)`. A note's
+      // LIFECYCLE is `@rookery/timeline`'s subject, not core's — it stores a
+      // dated log and derives last-touched from it.
       let date = if show-date and resolved-created != none {
         resolved-created.display("[year]-[month]-[day]")
       } else { none }
@@ -293,15 +253,14 @@
       //
       // `tags` is the normalized DICTIONARY, stored as `#idea` received it —
       // already deduped, because a `tagged-idea` wrapper prepends its own tag
-      // via `_dedup-tag` before calling in. TAGS ARE UNORDERED as of 0.5.0:
-      // key order is unspecified and nothing may depend on it.
+      // via `_dedup-tag` before calling in. TAGS ARE UNORDERED: key order is
+      // unspecified and nothing may depend on it.
       //
-      // It takes part in the identity comparison below, and the dictionary
-      // changes what that catches. MEASURED: typst dictionary `==` is
-      // ORDER-INSENSITIVE, so two pins of one id whose tags differ only in
-      // order no longer collide — which is correct now that order carries no
-      // meaning. Two whose tag VALUES differ do collide, exactly as they
-      // already did when `raw` or `origin` differed.
+      // It takes part in the identity comparison below: typst dictionary `==`
+      // is ORDER-INSENSITIVE, so two pins of one id whose tags differ only in
+      // key order do not collide, which is correct since order carries no
+      // meaning. Two whose tag VALUES differ do collide, the same as when
+      // `raw` or `origin` differ.
       // TWO FIELDS, not one: `title` is the authored one and is what gets printed
       // as a heading; `label` is what to call this note elsewhere. See the banner
       // above the figure for why conflating them printed the body twice.
@@ -348,10 +307,10 @@
         [#figure([], kind: "rheo-idea-anchor", supplement: none)#label(id)]
       }
 
-      // THE AUTHORED TITLE ONLY. A titleless note renders an EMPTY heading, as it
-      // did before 0.6.0 — the element survives to carry the `id` anchor and
-      // `h*.idea:empty` collapses it. Putting the derived label here is what
-      // printed the body twice; see the banner above the figure.
+      // THE AUTHORED TITLE ONLY. A titleless note renders an EMPTY heading —
+      // the element survives to carry the `id` anchor and `h*.idea:empty`
+      // collapses it. Putting the derived label here is what printed the body
+      // twice; see the banner above the figure.
       // CLASSES COVER EVERY KEY, valued tags included: `.idea-tag-<key>` is the
       // hook a project styles a tag by, and a tag that carries metadata is no
       // less a tag for it. Only the PILLS below are restricted to flat tags.
@@ -380,17 +339,15 @@
         // span, which nothing styles by default: it stays a hook a project can
         // reach for, and `#window`'s summary wraps its title the same way.
         //
-        // THE DATE IS IN THE TAB TOO, at its far right, and no longer a second
-        // child of the heading. It belongs to the frame rather than to the
-        // sentence: read inside the `<h2>` it was a subtitle, and it made a
-        // titleless note's heading non-empty for nothing (see the note below on
-        // `h*.idea:empty`).
+        // THE DATE IS IN THE TAB TOO, at its far right, not a child of the
+        // heading: it belongs to the frame rather than to the sentence, which
+        // keeps a titleless note's heading empty even when dated (see the note
+        // below on `h*.idea:empty`).
         //
         // The heading element survives even with NO children — a titleless note.
         // Its `id` attribute is the note's in-page anchor, the destination of every
         // `@idea:etal` fragment link, so dropping the element would break them;
-        // `h*.idea:empty` in the stylesheet is what keeps it from taking any space,
-        // and it now applies to a dated titleless note as well.
+        // `h*.idea:empty` in the stylesheet is what keeps it from taking any space.
         let header = _head(
           _permalink-tab(id, tags: if show-tags { flat-tags } else { () }, date: date, show-id: show-id),
           html.elem(
@@ -415,20 +372,18 @@
         // THE REFERENCES BLOCK GOES INSIDE THE CARD, beside the footnotes block
         // rather than under the card's floor. Both are apparatus for this note,
         // and the card's `border-left` and `padding-left` are what say so: a
-        // sibling gets neither, so its "References" heading hung flush against
-        // the page's own margin while the footnotes one line above it sat at the
-        // note's text margin. MEASURED in `demo/pure/build/root.html`: the card
-        // closed, then `<div class="idea-references">` opened outside it.
-        // Document order is unchanged by the move, which is what leaves Typst's
-        // POSITIONAL citation partitioning alone — the block still follows the
-        // body, so it still claims exactly this note's citations.
+        // block outside the card sits flush against the page's own margin
+        // instead of the note's text margin. Document order is unchanged by the
+        // move, which is what leaves Typst's POSITIONAL citation partitioning
+        // alone — the block still follows the body, so it still claims exactly
+        // this note's citations.
         _bracket(
           html.elem(
             "div",
             // `data-rookery-bare` ONLY when the frame is off — an unconditional
             // attribute with a `"false"` value would still match
-            // `[data-rookery-bare]`, and a card that keeps its frame has to emit
-            // exactly the markup it emitted before this argument existed.
+            // `[data-rookery-bare]`, so a framed card omits the attribute
+            // entirely rather than set it false.
             attrs: _themed(
               (class: box-cls.join(" "), data-rookery: "box")
                 + (if show-frame { (:) } else { ("data-rookery-bare": "bare") })
@@ -443,12 +398,8 @@
         // INSIDE the `figure(kind: IK)` that marks the note, and a Typst
         // figure CENTRES its body. On html/epub that is inert — the figure
         // exports as `<figure>` and CSS decides — but on a paged target it
-        // centred every note in the document: headings, prose, raw blocks and
-        // all. MEASURED on rookery.ohrg.org's PDF, and reproduced down to a
-        // bare `#figure(kind: "k", supplement: none)[long paragraph]`, which
-        // centres while the same text outside one does not. A rheo project
-        // with no notes in it was left-aligned, which is what placed the
-        // defect here rather than in rheo.
+        // centres every note in the document: headings, prose, raw blocks and
+        // all, while the same content outside a figure is left-aligned.
         //
         // `start`, not `left`: it follows text direction, so an RTL document
         // is not forced the wrong way round. The figure is not optional — it
@@ -457,7 +408,7 @@
         // The paged target needs these just as much as HTML does, and it is
         // not cosmetic there: a citation with no bibliography anywhere is a
         // HARD ERROR (`label <key> does not exist in the document`), so a
-        // combined PDF fails to build without them. MEASURED.
+        // combined PDF fails to build without them.
         _sweep-block()
         _bracket(align(start, {
           if title != none { heading(depth: level, title) }
@@ -480,6 +431,7 @@
 //
 // — and `#note("x")[...]` is exactly `#idea("x", tags: (note: none))[...]`.
 // No new parameter on `#idea`, no recognised set of tags, no subclassing.
+// `@rookery/todos` builds its whole `#todo`/`#epic` surface on this.
 //
 // SEVERAL TAGS ARE POSITIONAL, for a family that is a narrowing of a broader
 // one rather than a thing of its own:
@@ -492,11 +444,6 @@
 // each call site to write `tags: ("person",)` and finding the one that forgot.
 // One tag is the common case and needs no array: the sink takes them bare.
 //
-// REPLACES the hardcoded `note`/`todo` this package exported through 0.4.1.
-// Two names could never be the right two, and a project or a package wanting a
-// third had to reimplement the forwarding below. `@rookery/todos` builds
-// its whole `#todo`/`#epic` surface on this.
-//
 // The returned function forwards every other argument (level, title, created,
 // show-date, show-tags) and the POSITIONAL SINK untouched, so
 // `#note[body]`, `#note("name")[body]` and `#note(<name>)[body]` all work
@@ -506,15 +453,12 @@
 // whose tag means something richer than its own presence. A CALLER'S OWN VALUE
 // FOR THAT TAG WINS OUTRIGHT — `#todo("x", tags: (todo: (state: "open")))`
 // keeps `(state: "open")` — and there is no deep merge between the two.
-// `_dedup-tag`'s "already a key" guard is what implements that.
-//
-// IT TAKES ONE TAG, and the factory refuses `value:` alongside several rather
-// than guess. "The same value for each of them" is not a thing any caller has
-// wanted, and a per-tag mapping would collide with the values that are
-// themselves dictionaries (`(todo: (state: "open"))`) — there would be no way
-// to read `value: (a: 1)` as either. A multi-tag family that needs a value for
-// one of its tags composes: build the plain factory, and let the call site or a
-// thin wrapper name the value in `tags:`.
+// `_dedup-tag`'s "already a key" guard is what implements that. IT TAKES ONE
+// TAG: a per-tag mapping would collide with the values that are themselves
+// dictionaries (`(todo: (state: "open"))`) — there would be no way to read
+// `value: (a: 1)` as either. A multi-tag family that needs a value for one of
+// its tags composes: build the plain factory, and let the call site or a thin
+// wrapper name the value in `tags:`.
 //
 // THE TRAP, do not reintroduce: `#let note = idea.with(tags: (note: none))`.
 // An explicit `tags:` argument at the call site OVERRIDES a value bound by
@@ -525,19 +469,16 @@
 // factory's returned closure calls the `idea` captured in PACKAGE scope, so a
 // project writing `#let idea = idea.with(exclude-tags: E)` does NOT thereby
 // reach `#let note = tagged-idea("note")` — that wrapper would keep hatching
-// the very notes the project asked to have excluded, which is the worst failure
-// shape available: a silently incomplete exclusion in a published build. Hence
-// the documented project pattern is two bindings sharing one list:
+// the very notes the project asked to have excluded. Hence the documented
+// project pattern is two bindings sharing one list:
 //
 //   #let EX = ("protected", "private")
 //   #let idea = idea.with(exclude-tags: EX)
 //   #let note = tagged-idea("note", exclude-tags: EX)
 //
 // It is named on the RETURNED CLOSURE as well, defaulting to the factory's own
-// value, and that is deliberate: without it a caller writing
-// `#note("x", exclude-tags: (..))` would land the argument in `..args` and
-// Typst would error on a duplicate named argument. With it, the factory binding
-// is the default and a call site can still override.
+// value, so a caller writing `#note("x", exclude-tags: (..))` overrides it
+// rather than landing the argument in `..args` as a duplicate named argument.
 #let tagged-idea(..own, value: none, exclude-tags: ()) = {
   // The sink has to be policed: `value:` and `exclude-tags:` are matched first
   // and `..own` takes whatever is left, so a misspelt `values:` would land in
@@ -584,8 +525,8 @@
 // caller asking "what is this tagged" is filtering, not dereferencing.
 //
 // EVERY key, valued tags included: a tag that carries metadata is still a tag,
-// and this is the "what is this tagged" question. KEY ORDER IS UNSPECIFIED as
-// of 0.5.0 — tags are unordered, and nothing may depend on the sequence.
+// and this is the "what is this tagged" question. KEY ORDER IS UNSPECIFIED —
+// tags are unordered, and nothing may depend on the sequence.
 //
 // The VALUES are deliberately not here. `tag-value` below fetches one, and
 // `tag-data` (data.typ) fetches the whole store in bulk.

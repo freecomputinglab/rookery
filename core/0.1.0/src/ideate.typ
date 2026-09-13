@@ -66,21 +66,6 @@
 //     consumer's show rule outright: `#show heading: ..` over a plain function
 //     is `error: only element functions can be used as selectors`.
 //
-// A heading's level lives in one of TWO different fields depending on how it
-// was written, MEASURED on typst 0.15.1 (see `_level-of` below):
-//
-//   written as                    | .fields()             | .at("level") | .at("depth")
-//   ------------------------------|------------------------|--------------|-------------
-//   `== Markup two` (markup)      | (depth: 2, body: ..)   | ABSENT       | 2
-//   `#heading(level: 2)[x]`       | (level: 2, body: ..)   | 2            | ABSENT
-//   `heading(level: 2)[]` (spec)  | (level: 2, body: [])   | 2            | ABSENT
-//
-// A markup heading — what a body being ideated actually contains — carries
-// `depth`, never `level`; the `separator:` spec a caller writes carries
-// `level`, never `depth`. Reading the same field off both sides would compare
-// `level` to nothing and match no heading ever, so both sides go through
-// `_level-of`, which checks `level` first and falls back to `depth`.
-//
 // PAR MODE DISCARDS ITS SEPARATOR; HEADING KEEPS IT. In par mode the
 // `parbreak()` between two paragraphs belongs to neither and is thrown away.
 // In heading mode the matching heading STARTS the group that follows it
@@ -125,13 +110,8 @@
 //      dropped or they mint empty notes.
 //   4. A single-paragraph body is not a sequence at all and has no `.children`.
 //      `c.has("children")` is the test.
-//   5. NOT EVERY CHILD WAS WRITTEN BY THE AUTHOR. A body handed to `#ideate` as
-//      a document show rule inside a rheo project ends with a trailing `context`
-//      child — rheo's own page postamble, appended to every page. It renders
-//      nothing, but it is not whitespace either, so fact 3's filter lets it
-//      through and it used to mint one bodyless note per page. A group with
-//      nothing an author wrote in it is emitted UNWRAPPED rather than minted or
-//      dropped: dropping it would delete the postamble.
+//
+// A fifth fact, not about markup at all, is explained beside `_inert` below.
 
 #import "base.typ": *
 #import "idea.typ": *
@@ -180,14 +160,12 @@
 // has to survive — but not a note either.
 //
 // FACT 5, the one that is not about markup at all. A body handed to `#ideate`
-// as a DOCUMENT SHOW RULE inside a rheo project ends with a trailing `context`
-// child that the author never typed: rheo appends its own page postamble to
-// every page. MEASURED on `waterline`'s `weeknotes.typ`, whose children ended
-// `.. | parbreak | context | space` — so the final group was `(context, space)`,
-// which `_blank` alone reads as non-blank, and every page in that build minted
-// one extra note whose entire visible content was the empty `page-refs` block
-// `#idea` emits for everything (`bib.typ`'s `_sweep-block`). An anonymous,
-// bodyless note that a tag query returned beside the real ones.
+// as a document show rule under rheo ends with a trailing `context` child that
+// the author never typed — rheo's own page postamble, appended to every page.
+// It is neither authored content nor whitespace, so fact 3's blank filter lets
+// it through, and a group holding only this (and stray whitespace) is emitted
+// UNWRAPPED rather than minted or dropped: minting it would produce an
+// anonymous, bodyless note; dropping it would delete the postamble.
 //
 // `metadata` is here for the same reason and needs no trick, being an ordinary
 // function: `metadata(1).func() == metadata`.
@@ -282,35 +260,16 @@
   // split, or a caller only discovers the typo on the one body that happens to
   // have more than one paragraph in it.
   //
-  // Five spellings, four modes:
-  //
-  //   par                       every paragraph is a note (the default)
-  //   parbreak                  the same thing; the previous default, kept working
-  //   heading.where(level: 2)   every `==` starts a note — the bracket-free form
-  //   heading(level: 2)[]       the same, as an element; nothing to parse
-  //   none                      nothing splits: the whole body is ONE note
-  //
   // `par` NAMES THE SPLIT, IT DOES NOT CHANGE IT. There is no `par` element in a
-  // markup content tree (fact 1) — MEASURED, `[One.\n\nTwo.]` holds
-  // `space, text, parbreak, text, space` and no `par` anywhere — so both par-mode
-  // spellings still split on `parbreak`. `par` is simply the honest name for what
-  // a caller is asking for; `parbreak` is the mechanism underneath. They are
-  // distinct values (`par == parbreak` is `false`), so both can be accepted by
-  // identity.
+  // markup content tree (fact 1), so both par-mode spellings still split on
+  // `parbreak`. `par` is simply the honest name for what a caller is asking
+  // for; `parbreak` is the mechanism underneath. They are distinct values
+  // (`par == parbreak` is `false`), so both can be accepted by identity.
   //
-  // `heading(level: 2)` BARE IS ILLEGAL TYPST and never reaches here: `heading`
-  // takes its body positionally, so it fails at the call site with `missing
-  // argument: body`. That is what the selector form is FOR. It cannot be fixed
-  // here either — the only way would be exporting a `heading` of our own with an
-  // optional body, which shadows the element for everyone star-importing this
-  // package, and MEASURED that breaks every consumer's `#show heading:` rule with
-  // `only element functions can be used as selectors`. `heading.with(level: 2)`
-  // is a `function` whose bound arguments cannot be read back, so it stays
-  // unsupported too.
-  //
-  // Classified ONCE, before even the single-paragraph early return below: a bad
-  // separator must be rejected even when there is nothing to split, or a caller
-  // only discovers the typo on the one body that happens to have two paragraphs.
+  // `heading(level: 2)` bare cannot reach here — Typst rejects it at the call
+  // site (see the file header). `heading.with(level: 2)` is a `function` whose
+  // bound arguments cannot be read back, so it is refused too rather than
+  // guessed at.
   let none-mode = separator == none
   let heading-elem = type(separator) == content and separator.func() == heading
   let heading-sel = type(separator) == selector
@@ -356,12 +315,11 @@
   // the same emit rules below. Nothing needs a separate mint path — a single
   // group with content in it is minted, which is the whole of what `none` means.
   //
-  // One honest consequence, and it is worth stating rather than discovering: in
+  // One consequence worth stating rather than leaving to be discovered: in
   // `none` mode the trailing `context` postamble of fact 5 sits INSIDE the note
   // rather than beside it, there being only one group and that group having
-  // content. It renders nothing, it is what `#ideate` did for every note before
-  // `_no-content` existed, and leaving it in place beats reordering an author's
-  // children to hoist it out.
+  // content. It renders nothing, and leaving it in place beats reordering an
+  // author's children to hoist it out.
   let groups = if none-mode { (body.children,) } else {
     let groups = ()
     let current = ()

@@ -9,7 +9,7 @@ deps:
 - blocked-by:rk-resolve-visible-tags-once-in-idea-0c57019f
 - blocked-by:rk-destructure-pair-maps-across-core-de56c4bd
 - blocked-by:rk-name-the-note-sequence-counter-dd93145f
-closed: false
+closed: true
 ---
 `idea.typ` and `ideate.typ` are 1051 lines, 763 of them comment lines.
 `idea.typ` litigates two removed features and cites a private downstream

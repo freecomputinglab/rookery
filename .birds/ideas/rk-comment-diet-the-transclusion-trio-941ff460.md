@@ -8,7 +8,7 @@ labels:
 deps:
 - blocked-by:rk-query-outline-edges-by-label-682d6913
 - blocked-by:rk-destructure-pair-maps-across-core-de56c4bd
-closed: false
+closed: true
 ---
 `transclusion.typ`, `window.typ` and `outline.typ` are 1606 lines, 1047 of them
 comment lines — and three of those stories are told twice, in two files each.
