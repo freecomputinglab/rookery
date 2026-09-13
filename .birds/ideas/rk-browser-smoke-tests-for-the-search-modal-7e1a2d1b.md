@@ -9,7 +9,7 @@ labels:
 deps:
 - blocked-by:rk-wire-search-triggers-before-the-index-7974cadf
 - blocked-by:rk-stand-up-the-shared-browser-harness-cbc3ae56
-closed: false
+closed: true
 ---
 A reader on Safari (macOS and iPad) reported that clicking the search button in a
 rookery site's header does nothing, while the same click on Firefox and Brave
