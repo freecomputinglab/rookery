@@ -2,9 +2,10 @@
 // `[data-pinboard]` container already on the page, computes a flow layout
 // for its cards with `src/layout.js`, writes each card's position as
 // `--pin-x`/`--pin-y` custom properties for `src/pinboard.css` to place it
-// with, and wires the handle drag from `src/drag.js`. Position rides on
-// those two properties, and not `style.left`/`style.top`, so the flow
-// layout and the drag both go through the same pair.
+// with, and wires the handle drag from `src/drag.js` and the collapse
+// toggle from `src/collapse.js`. Position rides on those two properties, and
+// not `style.left`/`style.top`, so the flow layout and the drag both go
+// through the same pair.
 //
 // Injected on every page of a rheo project, most of which carry no board at
 // all, so absent a `[data-pinboard]` this finds nothing and returns silently
@@ -12,6 +13,7 @@
 
 import { flowPositions } from "./layout.js";
 import { makeDraggable, writePosition } from "./drag.js";
+import { makeCollapsible } from "./collapse.js";
 
 function layOutBoard(board) {
   const cards = [...board.querySelectorAll(":scope > .pinboard-card")];
@@ -25,6 +27,7 @@ function layOutBoard(board) {
     writePosition(card, pt.x, pt.y);
   }
   makeDraggable(board);
+  makeCollapsible(board);
 }
 
 function init() {

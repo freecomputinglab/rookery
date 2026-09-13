@@ -15,6 +15,10 @@
   position: absolute;
   translate: var(--pin-x, 0) var(--pin-y, 0);
   width: 300px;
+  /* A collapsed card shrinks to fit its handle. `layout.js`'s `cardHeight` is
+     a spacing parameter for the initial grid, not a rendered height, so
+     nothing here may pin the card to a fixed height. */
+  height: auto;
   border: 1px solid var(--pinboard-card-border, #ccc);
   /* Not transparent: cards overlap while a layout settles. */
   background: var(--pinboard-card-bg, #fff);
@@ -29,11 +33,35 @@
 }
 
 .pinboard-card-handle {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
   padding: 0.5em 0.75em;
   background: var(--pinboard-handle-bg, #eee);
   font-weight: 600;
   cursor: grab;
+}
+
+/* No default button chrome: the toggle reads as part of the handle, not a
+   form control dropped onto it. */
+.pinboard-card-toggle {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+  border: 1px solid var(--pinboard-toggle-border, #999);
+  border-radius: 3px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pinboard-card-toggle:focus-visible {
+  outline: 2px solid var(--pinboard-focus-ring, #4a90d9);
+  outline-offset: 1px;
 }
 
 .pinboard-card-body {
@@ -41,4 +69,11 @@
   /* One long note must not make a card taller than the board. */
   max-height: 200px;
   overflow: auto;
+}
+
+/* `data-collapsed` is the single source of truth for a card's state (see
+   `src/collapse.js`) — this rule is the only place the body's visibility is
+   decided, and it must never be set from JavaScript as an inline style. */
+.pinboard-card[data-collapsed] .pinboard-card-body {
+  display: none;
 }

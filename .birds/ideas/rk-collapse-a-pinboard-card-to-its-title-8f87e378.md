@@ -7,7 +7,7 @@ labels:
 - feat-pinboard
 deps:
 - blocked-by:rk-drag-a-pinboard-card-by-its-handle-1d0aa913
-closed: false
+closed: true
 ---
 A card on a pinboard can be reduced to its title alone, and the board is then a
 field of labels rather than a wall of prose.

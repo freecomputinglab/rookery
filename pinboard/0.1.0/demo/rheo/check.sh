@@ -15,11 +15,16 @@ note() { echo "FAIL: $*"; fail=1; }
 
 want=$(grep -c '#idea(' content/index.typ)
 got=$(grep -o 'data-pinboard-id' "$H/index.html" 2>/dev/null | wc -l | tr -d ' ')
+toggles=$(grep -o 'pinboard-card-toggle' "$H/index.html" 2>/dev/null | wc -l | tr -d ' ')
 
 grep -q 'data-pinboard=' "$H/index.html" || note "index.html carries no data-pinboard container"
 
 if [ "$got" -ne "$want" ]; then
   note "index.html carries $got data-pinboard-id attributes, wanted $want (one per #idea() note in content/index.typ)"
+fi
+
+if [ "$toggles" -ne "$want" ]; then
+  note "index.html carries $toggles pinboard-card-toggle buttons, wanted $want (one per card, so every card can collapse without JavaScript)"
 fi
 
 if [ "$fail" -eq 0 ]; then

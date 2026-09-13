@@ -26,7 +26,25 @@
           // `row.href` is `none` there — render the title as plain content
           // rather than passing `none` to `link()`.
           let heading = if row.href != none { link(row.href, row.title) } else { row.title }
-          html.elem("header", attrs: (class: "pinboard-card-handle"), heading)
+          // The toggle is the FIRST child of the handle, and is emitted here
+          // rather than injected by `src/collapse.js`, so a card can collapse
+          // with JavaScript disabled or still loading.
+          html.elem(
+            "header",
+            attrs: (class: "pinboard-card-handle"),
+            {
+              html.elem(
+                "button",
+                attrs: (
+                  class: "pinboard-card-toggle",
+                  type: "button",
+                  "aria-expanded": "true",
+                ),
+                [−],
+              )
+              heading
+            },
+          )
           html.elem("div", attrs: (class: "pinboard-card-body"), [#row.body])
         },
       )
