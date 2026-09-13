@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-timeline-review
 deps: []
-closed: false
+closed: true
 ---
 **Hoist loop-invariant date-key computation out of `upcoming-rows`'s row filter.**
 

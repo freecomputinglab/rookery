@@ -475,7 +475,7 @@
   // would silently drop the only place a dangling dep surfaces in this view.
   // (`#todos-validate` reports it separately, and the graph payload still
   // carries it under `unresolved`.)
-  let shown-names = rows.map(r => r.name)
+  let shown-names = rows.map(r => (r.name, true)).to-dict()
   let shown-deps(r) = r.deps.filter(d => d not in graph.nodes or d in shown-names)
 
   // PAGED TARGET: there is no layout engine for a directed graph Typst-side
