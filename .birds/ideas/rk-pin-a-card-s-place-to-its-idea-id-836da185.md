@@ -7,7 +7,7 @@ labels:
 - feat-pinboard
 deps:
 - blocked-by:rk-collapse-a-pinboard-card-to-its-title-8f87e378
-closed: false
+closed: true
 ---
 This is the bird the whole package exists for. A card stays where the author put it
 while the note underneath it goes on being edited — the position belongs to the IDEA,

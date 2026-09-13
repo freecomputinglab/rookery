@@ -20,9 +20,10 @@ body goes on changing underneath, wherever the note itself is edited.
 ## `#pinboard(id:, notes:)`
 
 - **`id:`** names THIS board. It becomes `data-pinboard="<id>"` on the
-  container — the storage key a saved layout keys on once dragging and
-  persistence land. A project running two boards gives them two ids.
-  Defaults to `"default"`.
+  container, and is the whole of the storage key
+  (`rookery-pinboard:<id>`) a saved layout keys on. A project running two
+  boards gives them two ids; renaming a board's id starts a fresh layout
+  under a new key. Defaults to `"default"`.
 - **`notes:`** an explicit array of [`ideas()`](../../core/0.1.0) rows to show
   instead of the whole corpus. `none` (the default) shows every note. This is
   how a caller narrows the board without this package growing a query
@@ -39,15 +40,20 @@ imports, never a package's internal ones.
 
 ## What this release is
 
-The package, and a board that renders: cards laid out left to right and
-wrapping into rows, each linking to its note's own minted page. It is a
-scaffold for the mechanisms chained behind it, each adding one thing to a
-board that already compiles and already appears on screen:
+A board of cards, each draggable by its handle and collapsible to its title,
+whose arrangement is pinned to the note underneath it rather than to the
+page, the file, or the build. A card's place is keyed on `core`'s own stable
+per-note id, so it survives edits to the note's title and prose, and moves
+with the note between files. The layout lives in the reader's own browser,
+under `localStorage` at `rookery-pinboard:<board id>` — per-browser, not
+shared between readers and not committed to the project. Under `rheo watch`,
+a save reloads the whole page (rheo has no lighter refresh hook), and the
+board comes back exactly as it was left, because every card's position is
+re-read from that store on boot rather than recomputed.
 
-- **No dragging.** Cards sit where the flow layout puts them.
-- **No collapsing.** Every card shows its whole body.
-- **No persistence of any kind.** Nothing here saves a layout, and none
-  survives a reload.
+A note with no stored entry — one written since the board was last
+arranged — falls back to a flow layout: laid out left to right and wrapping
+into rows, in the first free slot of the grid.
 
 ## Requirements
 

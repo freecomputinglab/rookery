@@ -6,8 +6,13 @@
 //
 // Position rides on the `--pin-x`/`--pin-y` custom properties `src/pinboard.js`
 // already writes; `readPosition`/`writePosition` are the one pair of helpers
-// that touch them, so the bird that persists positions has one place to
-// hook rather than three call sites to find.
+// that touch them.
+//
+// `makeDraggable`'s `opts.onChange` is called once per drag, with the card,
+// when the gesture ends — not on every `pointermove`, which would mean a
+// synchronous storage write per frame. `src/pinboard.js` supplies the
+// callback that persists a card's new position via `src/store.js`; this
+// module has no dependency on storage at all.
 
 export function readPosition(card) {
   return {
@@ -44,7 +49,7 @@ export function clampPosition(pos, size, boardSize) {
   };
 }
 
-export function makeDraggable(board) {
+export function makeDraggable(board, opts = {}) {
   let topZ = 1;
   let drag = null;
 
@@ -88,6 +93,7 @@ export function makeDraggable(board) {
     if (!drag) return;
     delete drag.card.dataset.dragging;
     board.releasePointerCapture(event.pointerId);
+    opts.onChange?.(drag.card);
     drag = null;
   }
 

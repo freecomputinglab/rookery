@@ -30,14 +30,17 @@ export function setCollapsed(card, collapsed) {
   button.textContent = collapsed ? "+" : "−";
 }
 
-// `opts` is unused today — reserved for a future caller that needs to pass
-// per-board collapse options without changing this signature again.
-export function makeCollapsible(board, opts) {
+// `opts.onChange`, when given, is called with the card once per toggle,
+// after `setCollapsed` — `src/pinboard.js` supplies the callback that
+// persists the card's new collapsed state via `src/store.js`; this module
+// has no dependency on storage at all.
+export function makeCollapsible(board, opts = {}) {
   board.addEventListener("click", (event) => {
     const toggle = event.target.closest(".pinboard-card-toggle");
     if (!toggle) return;
     const card = toggle.closest(".pinboard-card");
     if (!card) return;
     setCollapsed(card, !isCollapsed(card));
+    opts.onChange?.(card);
   });
 }
