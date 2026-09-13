@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-slipshow-review
 deps: []
-closed: false
+closed: true
 ---
 Stop recomputing a slip's on-page geometry once per INCOMING edge in
 `@rookery/slipshow`'s connector layer. `collect()` in `src/edges.js` measures

@@ -179,25 +179,28 @@
   if depth == 0 { "" } else { range(depth).map(x => "../").join() }
 }
 
-// Every bibliography key cited in this content, in document order.
-//
-// Walks for BOTH `ref` and `cite`: `@key` markup is a `ref` element until
-// realization and becomes a `cite` only then, so a walk looking for `cite`
-// alone finds nothing — MEASURED, it returned `()` for a body full of `@key`
-// citations. `#cite(<key>)` written explicitly is already a `cite`.
-//
-// Intersecting with `_bib-keys()` is what makes this correct rather than merely
-// plausible: `@idea:etal` and a reference to a heading are `ref` elements too,
-// and only the ones naming a bibliography key are citations.
-#let _cite-walk(node) = {
-  let out = ()
-  if type(node) != content { return out }
-  if node.func() == ref { return (str(node.target),) }
-  if node.func() == cite { return (str(node.key),) }
-  if node.has("children") { for k in node.children { out += _cite-walk(k) } }
-  else if node.has("body") { out += _cite-walk(node.body) }
-  else if node.has("child") { out += _cite-walk(node.child) }
-  out
+// Every key in `cfg` (an `arguments` value shaped like `_bib`'s content, or
+// `none`), as an array of strings. Pure function of its argument so
+// `#show: rookery` can publish the result once instead of every caller
+// re-parsing the source.
+#let _bib-keys-of(cfg) = {
+  if cfg == none { return () }
+  let src = cfg.pos().first()
+  let sources = if type(src) == array { src } else { (src,) }
+  let keys = ()
+  for s in sources {
+    let text = str(s)
+    // Format is detected from the CONTENT, since bytes carry no filename. A
+    // Hayagriva file is a YAML mapping and has no `@type{` entry headers; a
+    // BibTeX file is nothing but those.
+    let entries = text.matches(regex("@\\w+\\s*\\{\\s*([^,\\s]+)\\s*,"))
+    if entries.len() > 0 {
+      keys += entries.map(m => m.captures.first())
+    } else {
+      keys += yaml(s).keys()
+    }
+  }
+  keys
 }
 
 // Prepends `tag`, unless the caller already passed it — `#todo("x", tags:

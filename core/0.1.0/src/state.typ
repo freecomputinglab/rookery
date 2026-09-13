@@ -122,6 +122,13 @@
 // by the beads that render the blocks.
 #let _bib = state("rheo-idea-bib", none)
 
+// The key list of the configured bibliography, published once by
+// `#show: rookery` so `_own-cited-keys` does not re-parse the whole source
+// on every note, window and page. `none` means "not published" — a document
+// that writes `_bib` directly (the unit fixture) still gets the answer from
+// the fallback parse below.
+#let _bib-key-cache = state("rheo-idea-bib-keys", none)
+
 // Every key in the configured source, as an array of strings.
 //
 // A KEY-EXISTENCE CHECK, NOT A PARSER. It reads no author, no date and no
@@ -131,31 +138,9 @@
 // Growing this into a BibTeX parser is an explicit non-goal: the package reuses
 // Typst's bibliography infrastructure rather than reimplementing it.
 #let _bib-keys() = {
-  let cfg = _bib.final()
-  if cfg == none { return () }
-  let src = cfg.pos().first()
-  let sources = if type(src) == array { src } else { (src,) }
-  let keys = ()
-  for s in sources {
-    let text = str(s)
-    // Format is detected from the CONTENT, since bytes carry no filename. A
-    // Hayagriva file is a YAML mapping and has no `@type{` entry headers; a
-    // BibTeX file is nothing but those.
-    let entries = text.matches(regex("@\\w+\\s*\\{\\s*([^,\\s]+)\\s*,"))
-    if entries.len() > 0 {
-      keys += entries.map(m => m.captures.first())
-    } else {
-      // Hayagriva is a mapping of key -> entry, so its keys ARE the keys.
-      keys += yaml(s).keys()
-    }
-  }
-  keys
-}
-
-#let _cited-keys(body) = {
-  let keys = _bib-keys()
-  if keys.len() == 0 { return () }
-  _cite-walk(body).filter(k => k in keys)
+  let cached = _bib-key-cache.final()
+  if cached != none { return cached }
+  _bib-keys-of(_bib.final())
 }
 // ---- Minted-page configuration: template, syndication, index page -------
 //

@@ -177,11 +177,15 @@
   //
   // `_ => v`, never a bare value that happens to be callable — see
   // `_idea-page-template` for why `state.update` needs the wrapper.
-  _bib.update(_ => if bibliography == none { none } else {
+  let bib-args = if bibliography == none { none } else {
     let named = bibliography.named()
     if "style" not in named { named.insert("style", "chicago-author-date") }
     arguments(..bibliography.pos(), ..named)
-  })
+  }
+  _bib.update(_ => bib-args)
+  // Parsed ONCE for the document. `_own-cited-keys` runs per note, per window
+  // and per page, and the answer cannot change during a build.
+  _bib-key-cache.update(_bib-keys-of(bib-args))
   // `_ => f`, not `f` — see `_idea-page-template`.
   _idea-page-template.update(_ => idea-page-template)
   _syndicate.update(syndicate)

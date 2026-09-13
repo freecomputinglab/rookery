@@ -28,7 +28,7 @@
 
 // ---- Whose citation is it, when a note contains another block? ------------
 //
-// `_cited-keys` answers "what does this content cite", which is a CONTENT
+// `_cite-scan` answers "what does this content cite", which is a CONTENT
 // question. An idea's own block needs a narrower, POSITIONAL one: "what will
 // still be unclaimed by the time my block renders".
 //
@@ -44,7 +44,7 @@
 //      998  idea-references      <- Outer's own block, nothing left
 //
 // and that last one rendered `<h2>References</h2><ul></ul>` — a visible empty
-// heading, which is precisely what `_cited-keys` exists to prevent, arriving
+// heading, which is precisely what `_own-cited-keys` exists to prevent, arriving
 // through ordering rather than through content.
 //
 // So scan the body in order, recording citations AND the nested blocks that
