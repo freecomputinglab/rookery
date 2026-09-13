@@ -7,7 +7,7 @@ labels:
 - fix-safari-search-modal
 deps:
 - blocked-by:rk-isolate-each-widget-s-wiring-in-search-e10dfb64
-closed: false
+closed: true
 ---
 `#search-modal` draws a keyboard hint beside its magnifier icon, and it always
 reads `Ctrl K`. On macOS and iPadOS that is the wrong key to advertise, and it is

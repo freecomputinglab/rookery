@@ -1,20 +1,14 @@
-// `#idea-row` — ONE ROW SHAPE for every list of notes.
+// `#idea-row` — ONE ROW SHAPE for every list of notes: when, title, cells and
+// badges, shared by this package's own callers and by `@rookery/search` and
+// `@rookery/timeline`.
 //
-// `when | title | badges` had been written five times across this repo and its first
-// consumer, and the badge chip was specified in three stylesheets: this package's hat
-// pill, `@rookery/search`'s own chips, and `@rookery/timeline`'s
-// `.upcoming-stage` — whose comment says outright that it "copies the SHAPE instead,
-// the same way @rookery/search's own chips do". One object, three hand copies.
-// This is the object.
-//
-// WHY IT LIVES IN CORE. rookery-search and rookery-timeline both already import this
-// package, so the row costs no new package edge; search could not host it, because
-// rheo scans only a PROJECT's own imports and never a package's — a project reaching
-// search's row THROUGH rookery-timeline would get the markup with neither that
-// package's CSS nor its JS, which is a silent failure its own readme documents. Core
-// also already owns everything the five copies reach for: `.idea-tag`, and the
-// generated `@layer rookery-tags` rules that publish `--idea-tag-bg` /
-// `--idea-tag-color` / `--idea-tag-line` per themed tag.
+// WHY IT LIVES IN CORE. rookery-search and rookery-timeline both already
+// import this package. rheo scans only a PROJECT's own imports and never a
+// package's, so a project reaching this row THROUGH one of them would get the
+// markup with neither that package's CSS nor its JS. Core already owns
+// everything a row reaches for: `.idea-tag`, and the generated `@layer
+// rookery-tags` rules that publish `--idea-tag-bg` / `--idea-tag-color` /
+// `--idea-tag-line` per themed tag.
 //
 // NO JAVASCRIPT, and no breach of core's no-JS rule: a row is markup plus a class
 // contract. Interaction stays in rookery-search.
@@ -45,19 +39,16 @@
 // `render:` returns in an `<li class="panel-row" data-<field>=..>` of its own — so a
 // `#panel` row rendered with `#idea-row` nests one `<li>` inside another.
 //
-// The alternative was a consumer re-emitting these four spans to drop the wrapper,
-// which is the fifth hand copy this file's header exists to prevent. So: the shape
-// lives here once, and the wrapper is the part a caller can decline.
+// The shape lives here once, and the wrapper is the part a caller can decline.
 //
 // NO `tags`, `extra` OR `attrs` — those all describe the `<li>`, and a caller reaching
 // for this function has its own.
 //
 // `when-class:` AND `when-attrs:` ARE THE SAME HOLE AS `attrs:` (below), ONE LEVEL IN.
 // A consumer that wants to say something about the DATE — @rookery/todos bands the
-// cell by how close a deadline is, and hangs the phrase off it as a tooltip — could
-// otherwise only reach that span by re-emitting all four of them, which is the fifth
-// hand copy this file's header exists to prevent. It is not a breach of "the row asks
-// no questions": the CALLER computes the band and the label; the row still asks nothing
+// cell by how close a deadline is, and hangs the phrase off it as a tooltip — reaches
+// that span through these rather than re-emitting the row. It is not a breach of "the
+// row asks no questions": the CALLER computes the band and the label; the row still asks nothing
 // about what a date means, it only carries what it was handed. Core defines no
 // `.idea-row-when-*` classes of its own and styles none of them — those names belong to
 // the consumer, exactly as `data-panel-*` on the `<li>` does.

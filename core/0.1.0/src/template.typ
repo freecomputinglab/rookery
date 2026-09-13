@@ -19,17 +19,7 @@
 #import "outline.typ": *
 #import "data.typ": *
 
-// The 20 knobs `#show: rookery` accepts, checked before anything is published.
-//
-// Extracted from `rookery` below rather than inlined in it: the function was 158
-// code lines, 13 of them asserts, and a reader asking what `#show: rookery`
-// actually DOES had to scroll past the whole validation wall to reach the state
-// updates that answer them. Nothing here is reusable — it exists once, for one
-// caller — and that is fine: the split is for the reader, not for reuse.
-//
-// Every message is verbatim from where it was, including the ones that name no
-// function (`prefix`, `ref-target`): these are the TEMPLATE's arguments, so
-// there is no `#function's` to name.
+// Every `#show: rookery` argument, checked before anything is published.
 #let _validate-config(
   prefix,
   note-dir,
@@ -244,10 +234,8 @@
 // The theme dictionary as CSS, from both the `theme:` dictionary and the
 // granular arguments beside it.
 //
-// Extracted alongside `_validate-config` above and for the same reason. It
-// returns the resolved dictionary rather than publishing it, so the state
-// update stays in `rookery` with the seven others — publishing is the part of
-// that function a reader wants to see in one place.
+// Returns the resolved dictionary rather than publishing it, so the state
+// update stays in `rookery` with the seven others.
 #let _resolve-theme(
   theme,
   link-color,
@@ -519,13 +507,11 @@
   // styling `_themed` still applies everywhere it already did (see that
   // function and its callers) — this does not replace them, it gives
   // anything ELSE on the page a `:root` to inherit from. Custom properties
-  // inherit DOWN the DOM, but only from an ancestor that carries them: before
-  // this, that was ever only `.idea-box`/`.idea-window`/etc, so a sibling
-  // element with no rookery ancestor (a `<dialog>` in a site's own header, a
-  // search bar not nested inside a note) saw nothing. MEASURED bug this
-  // fixes: `@rookery/search`'s `#search-modal` reading an empty string
-  // for `--idea-border-color` and having to carry its own copy of the theme
-  // table to cope (see the banner above `_THEME-KEYS`).
+  // inherit DOWN the DOM, but only from an ancestor that carries them, which
+  // is why a document-scope `:root` block is emitted in addition to the
+  // per-container inline styles: a sibling element with no rookery ancestor (a
+  // `<dialog>` in a site's own header, a search bar not nested inside a note)
+  // would otherwise see nothing.
   //
   // EXACTLY ONCE PER OUTPUT PAGE: `#show: rookery` is applied PER FILE, and
   // under rheo one FILE is one VERTEBRA is one OUTPUT PAGE (the same fact
@@ -572,8 +558,7 @@
   // THE PAGE-LEVEL LINK BEACON, one per vertebra: which notes THIS page links to
   // in its own prose, for the page half of a minted page's backlink list. Read
   // `_page-links`'s banner in outline.typ for why this is beaconed rather than
-  // swept out of the document with `query`, and for the 72 dead links the sweep
-  // was ultimately responsible for.
+  // swept out of the document with `query`.
   //
   // HERE, in the template, because this is the only place holding the whole page:
   // `doc` is the vertebra's entire content, and "what does this page link to

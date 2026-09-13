@@ -37,13 +37,10 @@
 // Each key maps to exactly one custom property, and `core.css` reads each
 // through `var(--x, <default>)`. Adding a knob means adding a line here and a
 // `var()` there — nothing else.
-// The two that carry the look are `link-color` and `fold-color`, and the
-// contrast between them is the point: BOTH are hover backgrounds, so they
-// compare like with like, and the lighter one belongs to the fold (a block
-// that only opens and closes) while the stronger one belongs to every link
-// (which actually goes somewhere). Forester makes the same split with one blue
-// at two alphas; rookery defaults to two hues, a light blue and a purple, so
-// the difference survives being read quickly.
+// The two that carry the look are `link-color` and `fold-color`: both are
+// hover backgrounds, so they compare like with like, and the lighter one
+// belongs to the fold (a block that only opens and closes) while the
+// stronger one belongs to every link (which actually goes somewhere).
 //
 // `border-color` (the `.idea-box`/`.idea-window` left rule) has no default of
 // its own — `core.css` falls it back to `link-color` first, so a note's
@@ -61,11 +58,11 @@
 // `rule-width` is the other odd one out: a LENGTH, not a colour, and it sets ONE
 // thickness for every line that frames a note — the left rule on a card and a
 // window, the tab that rules off the top of both, and `#ideas-outline`'s own rule
-// and row markers. They are one system and they were four literals; a project
-// that wants a heavier or lighter frame moves this and they all follow, including
-// the corner arithmetic that has to know the rule's width to close on it. The
-// separators above a footnotes, references or page-references block are NOT
-// governed by it: those are apparatus rules, not the note's frame.
+// and row markers. They are one system: a project that wants a heavier or
+// lighter frame moves this and they all follow, including the corner arithmetic
+// that has to know the rule's width to close on it. The separators above a
+// footnotes, references or page-references block are NOT governed by it: those
+// are apparatus rules, not the note's frame.
 // CONSUMED BY @rookery/search, and not through an import. That package
 // emits rookery's properties onto its own `#search-bar` span and `#search-modal`
 // dialog, because neither has an `.idea-*` ancestor to inherit them from — a
@@ -114,10 +111,9 @@
 // themed, mirroring `_theme-style()`'s `none` contract above so an unthemed
 // document still emits nothing at all.
 //
-// RULES, NOT AN INLINE STYLE, and that is the whole point of the shape. These
-// colours used to be an inline `style` attribute on the one pill
-// `_permalink-tab` builds, which reached exactly that element and nothing else.
-// Every OTHER surface a themed tag should colour already wears the same
+// RULES, NOT AN INLINE STYLE, and that is the whole point of the shape. An
+// inline `style` attribute could only ever reach the one pill `_permalink-tab`
+// builds. Every OTHER surface a themed tag should colour already wears the same
 // `idea-tag-<tag>` class — the note heading and the card (`idea.typ`), an
 // outline row (`outline.typ`), and the chips `@rookery/search` builds IN
 // THE BROWSER, long after Typst has run and therefore unreachable by any inline
@@ -147,7 +143,7 @@
 // `background` otherwise. `_resolve-tags-color` rejects an entry with neither,
 // so a themed tag always publishes a line colour.
 //
-// Reads the normalized `tags-color` dict (`_resolve-tags-color`, data.typ),
+// Reads the normalized `tags-color` dict (`_resolve-tags-color`, template.typ),
 // where each tag maps to a dict with optional `background` and/or `text` keys,
 // both already CSS-stringified (hex or passthrough) — and whose KEY is already
 // validated as a usable CSS class, which is what makes interpolating it into a

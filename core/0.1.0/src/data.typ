@@ -22,14 +22,6 @@
 //
 //   #context ideas(index: INDEX)   // rows carry .cycle .kind .deadline .stage
 //
-// WHY THIS EXISTS. Until now there were two accessors and nothing between them:
-// `ideas()` strips tag VALUES and publishes only names (see the `tags:` field
-// above for the measured reason), and `tag-data()` hands back every value of
-// every note. So a view needing three tag values per row had to walk the entire
-// value store. MEASURED in a consuming project: four separate views on one page
-// each opened with `let store = tag-data()` and then looked up per row — four
-// full walks of the corpus to read a handful of fields.
-//
 // SCALARS ONLY, AND ASSERTED. That assert is the whole contract, not a
 // nicety. The ban on values riding a row exists because a value is ARBITRARY —
 // content in a row is a silent `json.encode` blob. A projection makes values
@@ -39,7 +31,7 @@
 // ONE WALK. The index is resolved once for the whole `ideas()` call, not per
 // row and not per view. Callers are expected to build ONE index per page and
 // pass it to everything on it; nothing here caches, because a self-caching
-// accessor would put the four-walk problem straight back behind a nicer name.
+// accessor would hide a full corpus walk behind a nicer name.
 
 // The reserved row fields a projection may not shadow. Naming a field `href`
 // and silently replacing every link on the page is the failure this prevents.
@@ -59,9 +51,9 @@
 
 // Three extractor forms and no more. Each may carry `stamp: true`.
 //
-// NOT `as:`. MEASURED on typst 0.15.1: `as` is a reserved keyword and
-// `(key: "x", as: "date")` fails to parse with "expected named or keyed pair,
-// found string" — so the conversion flag cannot wear the name that reads best.
+// NOT `as:`. `as` is a reserved keyword, so `(key: "x", as: "date")` fails to
+// parse with "expected named or keyed pair, found string" — the conversion
+// flag cannot wear the name that reads best.
 //
 //   (key: "<tag key>")      that tag's value, or none
 //   (family: "<prefix>")    the first flat tag whose key starts with the prefix,
@@ -69,8 +61,7 @@
 //                           candidates, so a note carrying two of a family
 //                           resolves to the earliest LISTED rather than to
 //                           whichever `.keys()` happens to yield first — tags
-//                           are unordered as of 0.5.0 and nothing may depend on
-//                           their order
+//                           are unordered and nothing may depend on their order
 //   (from: <function>)      called with the note's whole tag dictionary
 //
 // `from:` is not a convenience. A derived value — "the current stage of a dated
@@ -213,9 +204,9 @@
 //    created: datetime or none)
 //
 // `tags` is the note's tag NAMES, every key including the valued ones, and
-// TAGS ARE UNORDERED as of 0.5.0: key order is unspecified and nothing may
-// depend on it. A consumer wanting a stable sequence sorts them itself.
-// The VALUES are not here — `tag-data()` below hands over the whole store.
+// TAGS ARE UNORDERED: key order is unspecified and nothing may depend on it.
+// A consumer wanting a stable sequence sorts them itself. The VALUES are not
+// here — `tag-data()` below hands over the whole store.
 //
 // `#tags-of(name)` exposes ONE note's tags too, and still does. This field is
 // the bulk form and the cheap one: `tags-of` resolves `_registry.final()` once
@@ -271,19 +262,6 @@
 // returns. What changes is that it arrives ATTACHED TO THE ROW instead of
 // needing a keyed lookup per row, and it is paid for only when asked.
 //
-// IT EXISTS SO THE NARROW DEFAULT IS A DEFAULT AND NOT A RESTRICTION. A
-// projection is asserted-scalar, which is what makes it safe for a browser
-// panel; but requiring one before a view can render a list would make this
-// accessor hostile. Typst-side rendering legitimately wants arbitrary values: a
-// datetime to format, a back-pointer id to follow, a path to render as `raw`, and
-// the full key list to emit one CSS class per tag.
-//
-// THE SCALAR RULE IS ENFORCED AT THE PANEL, NOT HERE. A value from this tier
-// cannot cross into an HTML `data-` attribute or a JSON island without going
-// through `tag-index` first, and the consumer emitting attributes is what says so
-// — see `@rookery/search`'s panel. Nothing here polices it, because
-// Typst-side use is legitimate and unrestricted.
-//
 // IT COMPOSES WITH `tags:`, which is what keeps it from being a cliff:
 // `ideas(tags: "submission", values: true)` narrows FIRST and attaches values
 // only to the survivors, so the cost is proportional to what was asked for rather
@@ -331,8 +309,7 @@
         // Use this wherever a note is REFERRED TO rather than rendered: a row in
         // an index, an entry in a list, a node in a graph, a sort key, a search
         // string. It exists precisely so a consumer stops writing
-        // `if r.text == "" { r.name } else { r.title }` — a real project had eight
-        // copies of that before this field existed.
+        // `if r.text == "" { r.name } else { r.title }`.
         //
         // A `str`, always, so it drops into `lower(..)`, an HTML attribute or a
         // JSON index with no cast. The fallback to `name` is what makes it total.
