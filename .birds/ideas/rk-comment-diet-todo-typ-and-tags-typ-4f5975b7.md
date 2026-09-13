@@ -7,7 +7,7 @@ labels:
 - chore-todos-review
 deps:
 - blocked-by:rk-hoist-priority-of-s-regex-to-module-ea715ded
-closed: false
+closed: true
 ---
 Comment diet: rewrite six comment blocks in
 `/home/lox/code/_fcl/rookery/todos/0.1.0/src/todo.typ` and
