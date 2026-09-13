@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-todos-review
 deps: []
-closed: false
+closed: true
 ---
 Resolve `todos()` once per view, not twice, across six functions in two
 files: `/home/lox/code/_fcl/rookery/todos/0.1.0/src/views.typ` and

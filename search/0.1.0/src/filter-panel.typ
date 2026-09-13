@@ -251,10 +251,13 @@
   // is a partition rather than a `.rev()` of the whole list. The stamp is a zero-padded
   // `[year][month][day]` STRING, so this is a plain string sort in date order and no
   // `datetime` comparison happens anywhere.
-  let stamp = r => _date-stamp(when(r))
-  let asc = rows.filter(r => stamp(r) != none).sorted(key: stamp)
-  let dated = if order == "soonest" { asc } else { asc.rev() }
-  let undated = rows.filter(r => stamp(r) == none)
+  // One `when(r)` and one `display()` per row: the adapter is caller code and
+  // the stamp is a datetime format, and both were being redone per filter and
+  // per sort-key read.
+  let stamped = rows.map(r => (row: r, stamp: _date-stamp(when(r))))
+  let asc = stamped.filter(e => e.stamp != none).sorted(key: e => e.stamp)
+  let dated = (if order == "soonest" { asc } else { asc.rev() }).map(e => e.row)
+  let undated = stamped.filter(e => e.stamp == none).map(e => e.row)
   let rows = dated + undated
 
   // DERIVED OR AUTHORED, and after this line the rest of the function cannot tell:
@@ -272,7 +275,14 @@
   // list can name a tag by typo or one nothing carries yet, which would ship as dead
   // chrome. A no-op on the derived path — it came from the rows — and kept as one line
   // rather than two so both modes leave here having been asked the same question.
-  let carried = named.filter(t => rows.any(r => _row-tags(r).contains(t)))
+  // ONE PASS OVER THE ROWS, not one per pill: `pills: auto` derives its list
+  // from the rows themselves, so a per-pill scan is quadratic in exactly the
+  // case the mode exists for. A dictionary key test answers the same question.
+  let seen = (:)
+  for r in rows {
+    for t in _row-tags(r) { seen.insert(t, true) }
+  }
+  let carried = named.filter(t => t in seen)
 
   // THE CHIP VOCABULARY, which is the pill list only by default and only when that list
   // was authored: see `chips:` for why a derived list must not reach the badge strip.
@@ -304,19 +314,21 @@
   let draw = if render != none { render } else {
     r => {
       let d = when(r)
+      // ONE READ, reused below rather than recomputed per list and per attribute.
+      let row-tags = _row-tags(r)
       // TWO LISTS PER ROW, and they were one until `chips:` could differ from `pills:`.
       // `pressable` is what the SCRIPT matches on and must be the PILL set: a pill whose
       // tag never reaches `data-panel-tags` is a button that hides every row. `shown` is
       // what the reader SEES. Collapsing them again is how a derived pill row would
       // silently start printing the whole corpus's tags onto every row.
-      let pressable = carried.filter(t => _row-tags(r).contains(t))
-      let shown = chips.filter(t => _row-tags(r).contains(t))
+      let pressable = carried.filter(t => row-tags.contains(t))
+      let shown = chips.filter(t => row-tags.contains(t))
       idea-row(
         when: if d == none { none } else { _fmt-day(d) },
         iso: if d == none { none } else { _iso(d) },
         title: r.at("label", default: r.at("name", default: "")),
         href: r.at("href", default: none),
-        tags: _row-tags(r),
+        tags: row-tags,
         // `#idea-row` places a dictionary as its own chip and anything else in the
         // strip verbatim (see `row.typ`), which is the hole `tag-pill` goes through:
         // the pill is wired to the same press as the block above with no script of
@@ -344,7 +356,7 @@
           //
           // Same padding, same reason. `#panel` emits the same attribute from its own
           // `tags:` adapter.
-          "data-panel-all-tags": " " + _row-tags(r).join(" ") + " ",
+          "data-panel-all-tags": " " + row-tags.join(" ") + " ",
         ),
       )
     }

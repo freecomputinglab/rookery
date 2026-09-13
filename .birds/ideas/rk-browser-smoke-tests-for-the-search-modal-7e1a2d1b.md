@@ -130,10 +130,10 @@ Touches: /home/lox/code/_fcl/rookery/search/0.1.0/test/browser.mjs, /home/lox/co
 ## Non-goals
 
 - Do NOT add this to `/home/lox/code/_fcl/rookery/.github/workflows/check.yml`.
-  Wiring suites into CI is the separate bird
-  `rk-run-every-package-s-own-suite-in-ci-d0a26188`, which rewrites that file;
-  editing it here would conflict with that bird on landing. Say in the report
-  that CI wiring is deliberately left to it.
+  Running real browsers in CI means provisioning three engine builds into the
+  workflow image, which is a decision with its own cost and its own bird; this
+  one gives the repo a suite that runs locally in the package's devShell. Say in
+  the report that CI wiring is deliberately left unfiled.
 - Do NOT convert the existing linkedom suite to Playwright. The 17 `*.test.mjs`
   files are fast unit tests of pure functions and stay exactly as they are.
 - Do NOT add visual or screenshot comparison. Four behavioural assertions per
