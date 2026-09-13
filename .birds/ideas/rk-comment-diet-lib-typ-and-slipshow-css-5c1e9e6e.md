@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-slipshow-review
 deps: []
-closed: false
+closed: true
 ---
 Trim two comments in `@rookery/slipshow` that violate this repo's own comment
 rubric (`/home/lox/code/_fcl/rookery/CLAUDE.md`, "Comment style" section):
