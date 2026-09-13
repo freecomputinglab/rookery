@@ -10,7 +10,7 @@ deps:
 - blocked-by:rk-stamp-and-tag-filter-panel-rows-once-b74611b3
 - blocked-by:rk-hoist-the-tokenizer-s-two-regexes-3455a62d
 - blocked-by:rk-fix-three-small-search-inconsistencies-a6e60962
-closed: false
+closed: true
 ---
 `@rookery/search`'s eleven Typst modules are 2525 lines, 1434 of them comment
 lines. The prose is in much better shape than `@rookery/core`'s — almost no

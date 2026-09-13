@@ -109,7 +109,7 @@
     //    `_prefix.final()`. Safe here where it is fatal around the figure: this
     //    emits no content, so there is nothing for a structural walk to miss.
     return {
-      if not named { counter("rheo-ideas-seq").step() }
+      if not named { _seq.step() }
       if named {
         context {
           // THE ID IS BUILT OUT HERE, NOT INSIDE THE `update` CLOSURE, and this
@@ -197,12 +197,12 @@
     #metadata((body: body, title: title, label: note-label, named: named, base: base, level: level, tags: tags, show-frame: show-frame, show-id: show-id))
     // counter.step() RETURNS CONTENT: emit it here, never inside a code block
     // whose value is used, or it silently turns the id into content.
-    #if not named { counter("rheo-ideas-seq").step() }
+    #if not named { _seq.step() }
     #context {
       let id = if named {
         _pfx() + base
       } else {
-        let n = counter("rheo-ideas-seq").get().first()
+        let n = _seq.get().first()
         _pfx() + str(n)
       }
 

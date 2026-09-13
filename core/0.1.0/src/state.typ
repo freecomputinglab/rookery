@@ -321,6 +321,10 @@
 // a hidden referenceable anchor, an HTML heading (only when `title` is given)
 // carrying that id and an `idea`/`idea-tag-<tag>` class list, and a registry
 // entry other beads (#window, #hyperlink) read from.
+// An unnamed note's id is this counter's value at its call site. Stepped by
+// `#idea` for every unnamed note, INCLUDING one the exclusion gate dropped,
+// so a note's id does not depend on which build variant it was compiled in.
+#let _seq = counter("rheo-ideas-seq")
 #let _registry = state("rheo-ideas", (:))
 
 // ---- The excluded ids — "deliberately absent", not "never existed" ---------
