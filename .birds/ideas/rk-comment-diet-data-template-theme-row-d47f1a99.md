@@ -9,7 +9,7 @@ deps:
 - blocked-by:rk-cache-bib-keys-drop-dead-cite-walk-871b6099
 - blocked-by:rk-move-config-helpers-out-of-data-typ-2d9d7cdd
 - blocked-by:rk-destructure-pair-maps-across-core-de56c4bd
-closed: false
+closed: true
 ---
 `data.typ`, `template.typ`, `theme.typ` and `row.typ` are 1423 lines, 750 of
 them comment lines. Three of those files explain themselves by recounting how

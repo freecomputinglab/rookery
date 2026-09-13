@@ -86,9 +86,6 @@
 // window found INSIDE this one", and one level of that budget is already spent
 // on rendering the window itself.
 //
-// MIGRATION off the old scale, where `0` was the default and `n` unfurled `n`
-// nested levels: add one. A project that set `window-depth: 2` wants `3`.
-//
 // Document-wide state for the same reason `_prefix` is (`#show: rookery` is
 // applied per FILE, and a note written in one vertebra can be windowed from
 // another), read with `.final()` so every reader agrees. `#window`'s own
@@ -166,9 +163,7 @@
 // project. Marrow's text is inlined into rheo's synthesized bundle root, so a
 // relative `#import "template.typ"` there would resolve against the PROJECT
 // root and, worse, name a file only one particular project has. A state is
-// the only channel that runs from a vertebra to the bundle root. VERIFIED on
-// typst 0.15.1 that a state can hold a function, that `.final()` returns it
-// callable, and that the document still converges.
+// the only channel that runs from a vertebra to the bundle root.
 //
 // Register a NAMED top-level function, not an inline closure built inside the
 // template that installs it: a fresh closure per vertebra puts a different
@@ -184,17 +179,11 @@
 
 // Whether `.marrow.typ` should emit a `<feeds:item>` beacon alongside each
 // minted note page — see the "syndicate" comment in `.marrow.typ` for the
-// contract. A plain value, not a function, so this carries the same wrapper
-// discipline as `_idea-page-template` in reverse: `.update(syndicate)`, NOT
-// `.update(_ => syndicate)` — the `_ =>` wrapper exists only to stop
-// `state.update` from calling a FUNCTION value as an updater, and a bool is
-// not one.
+// contract.
 #let _syndicate = state("rheo-idea-syndicate", false)
 
 // Whether `.marrow.typ` should mint an `ideas/index.html` landing page for the
-// whole rookery. Same wrapper discipline as `_syndicate` above and for the same
-// reason: a bool is not a function, so `.update(index-page)` is right and
-// `.update(_ => index-page)` would store a closure.
+// whole rookery.
 //
 // DEFAULT OFF. A project with its own index — ohrg.org's homepage is a
 // `#window(tags: "post", ..)`, weeknotes' is the same — must not find a second
@@ -202,9 +191,7 @@
 #let _index-page = state("rheo-idea-index-page", false)
 
 // Whether `.marrow.typ` should render the Context section (a link back to
-// the vertebra a note was written on) on each minted note page. Same
-// wrapper discipline as `_syndicate`/`_index-page`: `.update(v)`, not
-// `.update(_ => v)` — a bool is not a function.
+// the vertebra a note was written on) on each minted note page.
 //
 // DEFAULT ON, unlike `_index-page`: Context is how a reader who landed on a
 // note's standalone page finds their way back to where it was written, and
@@ -212,15 +199,14 @@
 #let _show-context = state("rheo-idea-show-context", true)
 
 // Whether `.marrow.typ` should render the Backlinks section (every note and
-// page that links here) on each minted note page. Same wrapper discipline
-// and same DEFAULT ON reasoning as `_show-context` above — this is the OTHER
-// half of a minted page's navigational footer, not a separate feature with
-// different defaults.
+// page that links here) on each minted note page. Same DEFAULT ON reasoning
+// as `_show-context` above — this is the OTHER half of a minted page's
+// navigational footer, not a separate feature with different defaults.
 #let _show-backlinks = state("rheo-idea-show-backlinks", true)
 
 // Whether `.marrow.typ` should print the authored title as the `<h1>` on a
-// note's own minted page. Same wrapper discipline and same DEFAULT ON
-// reasoning as `_show-context`/`_show-backlinks` above.
+// note's own minted page. Same DEFAULT ON reasoning as
+// `_show-context`/`_show-backlinks` above.
 //
 // MINTED PAGE ONLY. A `#window` summary, an `@ref` and an outline row all
 // still call the note by its title (or derived label) regardless of this
@@ -230,8 +216,7 @@
 #let _show-title = state("rheo-idea-show-title", true)
 
 // How `.marrow.typ` should NAME a vertebra in the Context and Backlinks
-// sections of a minted note page. Same wrapper discipline as the three above:
-// `.update(v)`, not `.update(_ => v)` — a string is not a function.
+// sections of a minted note page.
 //
 //   "title"  rheo's own spine title for the page (the default)
 //   "path"   the page's source path, content dir and extension dropped:
@@ -284,11 +269,6 @@
 // context, because its gate sits above the `figure(kind: IK)` marker that five
 // structural walks depend on (see `#idea`'s gate). The asymmetry is deliberate
 // — do not "unify" the two onto one surface.
-//
-// A plain value, so `.update(invisible-tags)` — NOT `.update(_ => ..)`. The
-// `_ =>` wrapper exists only to stop `state.update` from calling a FUNCTION
-// value as an updater, and an array is not one. Same discipline as `_syndicate`
-// above.
 #let _invisible-tags = state("rheo-idea-invisible-tags", ())
 
 // Tag names minus the invisible ones.
@@ -330,30 +310,21 @@
 // ---- The excluded ids — "deliberately absent", not "never existed" ---------
 //
 // Every NAMED note `#idea`'s exclusion gate dropped from this build, as a plain
-// ARRAY OF STRINGS of full ids. No bodies, no titles, no tags, no dates —
-// nothing to flatten and nothing to serialize, which is what keeps an excluded
-// note genuinely free rather than merely invisible. See `_resolve-excluded`
-// (base.typ) for what excludes a note and why the decision is context-free.
+// ARRAY OF STRINGS of full ids — no bodies, titles, tags or dates, which is
+// what keeps an excluded note genuinely free rather than merely invisible.
+// See `_resolve-excluded` (base.typ) for what excludes a note and why.
 //
-// ITS ONLY JOB is letting a consumer tell a note the build removed on purpose
-// from a note that never existed. `#window`, `#hyperlink` and `#idea-body`
-// otherwise treat both identically and panic `unknown note`, so turning on an
-// exclusion would break the public build wherever a surviving note or page
-// links to a removed one. With this, they render nothing (or the bare id) for an
-// excluded target while a genuine TYPO still panics, which is the distinction
-// worth having.
+// ITS ONLY JOB is telling a consumer a note the build removed on purpose from
+// one that never existed: `#window`, `#hyperlink` and `#idea-body` otherwise
+// treat both identically and panic `unknown note`, so this lets them render
+// nothing (or the bare id) for an excluded target while a genuine typo still
+// panics.
 //
 // UNNAMED NOTES ARE NOT HERE, and cannot be: an auto-numbered note has no id
-// anything could name it by, so there is nothing for a consumer to look up.
+// anything could name it by.
 //
 // Read with `.final()`, like `_registry` and `_prefix` above and for the same
-// reason: a note may be excluded in one file and linked from another, and
-// `.final()` is what makes every reader agree regardless of which file it sits
-// in.
-//
-// `.update(r => ..)` is the UPDATER form and is correct here — the value is an
-// array, not a function, so the `_ =>` wrapper the states below carry (see
-// `_idea-page-template`) is neither needed nor wanted.
+// reason: a note may be excluded in one file and linked from another.
 #let _excluded-ids = state("rheo-ideas-excluded", ())
 
 // Stepped ONCE per rendered idea box. It exists only so two renderings of the

@@ -48,7 +48,7 @@
 
 // ---- _norm-tags — every accepted `tags:` form, as ONE dictionary -----------
 //
-// The tag store is a DICTIONARY as of 0.5.0: keys are tag names, values are
+// The tag store is a DICTIONARY: keys are tag names, values are
 // arbitrary Typst values, and a plain tag is one whose value is `none`. This is
 // what lets a tag carry metadata — `(depends-on: ("a", "b"))` — instead of only
 // naming itself, and it is the primitive `@rookery/todos` and
@@ -128,15 +128,15 @@
 // depth. Those are not tag filtering, and handing over a whole outline entry
 // would make the entry's shape a public contract this package then has to keep.
 //
-// THE DICT, not an array of names, as of 0.5.0 — that is what lets a project
-// filter on a tag's VALUE rather than only on its presence:
+// THE DICT, not an array of names — that is what lets a project filter on a
+// tag's VALUE rather than only on its presence:
 //
 //   filter: t => t.at("priority", default: 4) <= 1
 //
-// BREAKING for a 0.4.1 predicate written against the array. `t => "phd" in t`
-// keeps working unchanged (MEASURED: `in` tests dictionary KEYS), but
-// `t.map(..)`, `t.any(..)`, `t.all(..)` and `t.at(0)` do not — a dictionary has
-// no `.any`/`.all` at all, and its `.at` takes a key, not an index.
+// A `filter:` predicate is therefore handed the tag DICTIONARY: `t => "phd" in
+// t` tests dictionary KEYS, but `t.map(..)`, `t.any(..)`, `t.all(..)` and
+// `t.at(0)` are not available on it — a dictionary has no `.any`/`.all` at
+// all, and its `.at` takes a key, not an index.
 //
 // Still `none` when neither is set, and that matters — it is what lets
 // `_prune-outline` skip its walk entirely for an unfiltered outline. Do not
@@ -321,26 +321,15 @@
   } else if c.func() == ref { resolve(c)
   } else if c.has("text") { c.text
   } else if c.func() == smartquote {
-    // A SMART QUOTE IS ITS OWN ELEMENT, and it used to contribute nothing —
-    // every apostrophe and quotation mark simply vanished from a note's plain
-    // text. VERIFIED tree shape for `[Read Anil's "quoted"]` on typst 0.15.1:
+    // `smartquote` is its own element with no `text`, `children` or `body`, so
+    // it needs its own branch or every apostrophe and quotation mark in a
+    // title vanishes from a note's plain text.
     //
-    //   sequence -> text="Read Anil", smartquote, text="s", smartquote,
-    //               text="quoted", smartquote
-    //
-    // `smartquote` has no `text`, no `children` and no `body`, so it fell through
-    // to the final `else { "" }`. MEASURED consequence on a real rookery:
-    // `ideas().text` for a note titled `Read Anil's 'Rumour is the exploit'` was
-    // `"Read Anils Rumour is the exploit"`, so no search could ever match an
-    // apostrophe.
-    //
-    // ASCII, NOT THE CURLY GLYPH, and this is a decision rather than laziness:
-    // which curly form a smart quote renders as (opening or closing) depends on
-    // its POSITION in the paragraph, and the element does not carry that —
-    // `double: bool` is its ONLY field (VERIFIED: `fields()` is exactly
-    // `(double: false)` for `'` and `(double: true)` for `"`). The straight form
-    // is one deterministic answer, it is what the author typed in the source, and
-    // it is what a reader searching for `Anil's` will type. A plain-text
+    // ASCII, NOT THE CURLY GLYPH: `double: bool` is the element's only field,
+    // so which curly form it renders as (opening or closing, which depends on
+    // its position in the paragraph) is not knowable here. The straight form
+    // is one deterministic answer, it is what the author typed in the source,
+    // and it is what a reader searching for `Anil's` will type. A plain-text
     // projection is not the place to reproduce typography.
     if c.at("double", default: true) { "\"" } else { "'" }
   } else if c.func() == [ ].func() {
@@ -429,9 +418,9 @@
 }
 
 // Plain text of a note's BODY, for `ideas()`. Every registry body has been
-// through `_flatten` since v6y.7, wrapping it in a `show`-rule scope that
-// Typst represents as a `styled` node hanging off `.child` — unwrap that
-// first, the same way `_blocks` above does. Otherwise follows `_plain`'s
+// through `_flatten`, which wraps it in a `show`-rule scope that Typst
+// represents as a `styled` node hanging off `.child` — unwrap that first,
+// the same way `_blocks` above does. Otherwise follows `_plain`'s
 // branches (`.has("text")`, a space element, `.children`, `.body`), except a
 // `parbreak` or `item` emits a boundary space so blocks and list entries
 // don't glue together the way `_plain`'s title walker would let them
@@ -484,32 +473,26 @@
 // minted page's `<title>`, an `ideas/index.html` row, a `#window` summary, a
 // bottomed-out window link, an outline entry.
 //
-// WHY IT EXISTS. `#idea[body]` — the frictionless, auto-numbered form — used to
-// be identifiable only by its `[idea:1]` permalink, and every place that names a
-// note for a reader fell back to something unhelpful: the slug, the bare id, or
-// (in `#ideas-outline`) skipping the note entirely.
+// `_body-plain` above is exactly the right source: it walks the body to text
+// and collapses every whitespace run to one space, so a multi-block,
+// multi-line body arrives here as one clean line with nothing to tidy
+// afterwards.
 //
-// `_body-plain` above is exactly the right source: it walks the body to text and
-// collapses every whitespace run to one space, so a multi-block, multi-line body
-// arrives here as one clean line with nothing to tidy afterwards.
-//
-// `.clusters()`, NEVER `s.slice(0, limit)`, and this is measured rather than
-// cautious: Typst's `str.slice` takes BYTE offsets and PANICS when one lands
-// inside a multi-byte character. A body containing any non-ASCII text — an
-// accent, an em dash, one of Typst's own smart quotes — would fail the build at
-// a boundary invisible in the source. `.clusters()` returns grapheme clusters,
-// so the count is what a reader means by "characters" and the slice is always
-// safe. VERIFIED on typst 0.15.1: `"héllo wörld naïve"` is 17 clusters, and
-// `.clusters().slice(0, 5).join()` is `"héllo"`.
+// `.clusters()`, NEVER `s.slice(0, limit)`: Typst's `str.slice` takes BYTE
+// offsets and panics when one lands inside a multi-byte character, so a body
+// containing any non-ASCII text — an accent, an em dash, one of Typst's own
+// smart quotes — would fail the build at a boundary invisible in the source.
+// `.clusters()` returns grapheme clusters, so the count is what a reader
+// means by "characters" and the slice is always safe.
 //
 // AN EMPTY BODY DERIVES NOTHING and stays `none`. `#idea("x")[]` is legal and
 // has no text to name itself with; returning `""` would put an empty
 // `<span class="idea-title">` in every such heading and defeat the
-// `h*.idea:empty` rules in `core.css` that exist to collapse exactly that.
-// It is now the ONLY case those rules are reached by.
+// `h*.idea:empty` rules in `core.css` that exist to collapse exactly that —
+// the only case those rules are reached by.
 //
-// The limit is a parameter for the tests' sake, not a knob: `#idea` never passes
-// one, and there is deliberately no way for a project to change it.
+// The limit is a parameter for the tests' sake, not a knob: `#idea` never
+// passes one, and there is deliberately no way for a project to change it.
 #let _derived-title(raw, limit: 60) = {
   let s = _body-plain(raw)
   if s == "" { return none }
@@ -604,70 +587,38 @@
 // `body.children.slice(0, limit)` is WRONG: whitespace (`space`/`parbreak`)
 // children make it select nothing, and list items are bare `item` children
 // with no wrapping `list` element, so a naive slice also cuts lists in half.
-// This groups consecutive `item`s into one block and drops whitespace.
-// Compares `repr(c.func())` against "space"/"parbreak" because there is no
-// public element function to compare those against directly.
+// This groups consecutive `item`s into one block and drops whitespace,
+// comparing `repr(c.func())` against "space"/"parbreak"/"item"/"styled"
+// because none of those has a public element function to compare against
+// directly.
 //
-// THE TWO WHITESPACE KINDS ARE NOT THE SAME BOUNDARY, and treating them as one
-// is what stopped the item grouping ever firing. MEASURED (typst 0.15.1) — the
-// children of `[Intro. #parbreak() - a - b]` are, in order:
+// A `space` BETWEEN two `item`s is list punctuation, not a boundary — every
+// markup list carries one there — while a `parbreak` between them genuinely
+// ends the list, so only `parbreak` resets the run; both still emit no block
+// of their own. `item` covers all three list kinds (`-`, `+` and `/ term:`
+// items are all `item` children), so one branch groups all three.
 //
-//   space text space parbreak space item space item space
+// Every registry body has been through `_flatten`, which wraps it in a
+// `show`-rule scope that Typst represents as a `styled` node exposing the
+// wrapped content as `.child`, not the `sequence` it wraps — unwrapped first,
+// below, the same way `_body-text` above does.
 //
-// Every markup list carries a `space` BETWEEN its items, so clearing
-// `prev-item` on `space` cleared it before the next `item` was ever seen: each
-// item became its own block and `#window("x", limit: 2)` on an intro plus a
-// four-item list showed the intro and ONE bullet, the cut-a-list-in-half
-// outcome the grouping exists to prevent. A `space` between two `item`s is list
-// punctuation; a `parbreak` between them genuinely ends the list. So only
-// `parbreak` resets the run. Both still emit no block of their own.
+// A `space` between two INLINE siblings is separator content, not noise, and
+// is kept: dropping it rejoins two runs with nothing between them. Between
+// BLOCK-level siblings the gap is drawn by margins rather than content, so
+// there the node is dropped. Inline siblings therefore ACCUMULATE into one
+// block, keeping the `space` nodes between them, and only a block-level
+// sibling starts a new one — which also makes a one-paragraph body count as
+// ONE block, so `limit: n` counts the blocks the name promises rather than
+// cutting a sentence in half.
 //
-// `item` covers all three list kinds — `-`, `+` and `/ term:` items are all
-// `item` children (measured), so one branch groups all three.
-//
-// MEASURED REGRESSION FIX: every registry body has been through `_flatten`
-// since v6y.7, which wraps it in a `show`-rule scope — Typst represents that
-// as a `styled` node with `.has("children") == false`, not the `sequence` it
-// wraps. Without unwrapping, `_blocks` always fell into the single-block
-// fallback below, silently disabling `limit:` truncation for every note.
-// `styled` (like `space`/`parbreak`) has no public function value to compare
-// against directly, hence `repr(...)`. A `styled` node exposes the wrapped
-// content as `.child` — verified this stays a single layer even with two
-// `show` rules in the scope (`_flatten` sets exactly two), but loop anyway
-// in case that ever changes.
-//
-// Defined HERE, above `_flatten`, rather than beside `#window` where it is
-// also used: `_flatten`'s WK rule applies `limit:` too when it expands a
-// nested window, and a `#let` closure captures the scope visible AT
-// DEFINITION time.
-//
-// A `space` between two INLINE siblings is not separator noise either, and
-// dropping it is what made truncation rejoin two runs with nothing between
-// them. MEASURED on rookery.ohrg.org content: "...three layers, because..."
-// came out "...three layers,because..." once a `limit:` slice put a text run
-// back against a `raw` span. Between BLOCK-level siblings the gap really is
-// drawn by margins rather than content, so there the node must still go.
-//
-// So inline siblings ACCUMULATE into one block, keeping the `space` nodes
-// between them, and only a block-level sibling starts a new one. That is also
-// the fix for the count: a body that is one paragraph is now ONE block, so
-// `limit: n` counts the blocks the name promises and can no longer cut a
-// sentence in half. It is why neither `#idea-body` nor `#search-modal` could
-// ship a default `limit:` before.
-//
-// Inline and block are told apart BY NAME, because typst exposes no predicate.
-// MEASURED `repr(func())` values (typst 0.15.1) that decide the shape of the
-// test: `raw`, `quote` and `equation` each name BOTH their inline and their
-// block form, so those three are asked for their own `block` field instead; a
-// `"..."` smartquote arrives as a `sequence`; `#text(gray)[x]` arrives as
-// `styled`; `#idea`'s own marker arrives as `metadata`, invisible, and used to
-// consume a whole `limit` slot on its own.
-//
-// UNKNOWN NAMES DEFAULT TO BLOCK, deliberately: an element missing from the
-// list then behaves exactly as every element did before the list existed — its
-// own block — so the worst a gap in it can do is leave one old dropped space
-// in place. The other direction would merge two real blocks into one and make
-// `limit:` show more than it was asked for.
+// Inline and block are told apart BY NAME, because Typst exposes no
+// predicate: `raw`, `quote` and `equation` each name both their inline and
+// their block form, so those three are asked for their own `block` field
+// instead. UNKNOWN NAMES DEFAULT TO BLOCK, deliberately — an element missing
+// from the list then behaves exactly as every element did before the list
+// existed, so the worst a gap in it can do is leave one dropped space rather
+// than merge two real blocks into one.
 #let _INLINE-FUNCS = (
   "text", "emph", "strong", "link", "footnote", "super", "sub", "strike",
   "underline", "overline", "highlight", "box", "h", "linebreak", "metadata",
@@ -747,10 +698,9 @@
 
 // ---- Argument validators shared by more than one public function ----------
 //
-// `tags`, `match` and `limit` are checked identically by several functions, and
-// before these existed each wrote its own six-line `assert` with its own copy of
-// the message. MEASURED at 0.4.0: 32 assert blocks in `lib.typ`, `tags` written
-// out four times, `match` three, `limit` twice.
+// `tags`, `match` and `limit` are checked identically by several functions,
+// so each lives here once rather than as its own copy of the assert and its
+// message.
 //
 // `where` is the caller's own name as it already appears in the message —
 // "#idea", "#ideas'", "#window's" — so the text a reader sees is byte for byte
