@@ -8,7 +8,7 @@ labels:
 deps:
 - blocked-by:rk-hoist-the-order-array-position-lookup-cc62b00f
 - blocked-by:rk-compute-entry-class-once-destructure-0c6f310e
-closed: false
+closed: true
 ---
 Trim a fact restated three times across two files of `@rookery/slipshow`,
 against this repo's own comment rubric (`/home/lox/code/_fcl/rookery/CLAUDE.md`,

@@ -99,7 +99,7 @@
 #let find-cycle(graph) = {
   let adj = (:)
   for name in graph.nodes.keys() { adj.insert(name, ()) }
-  for e in graph.edges { adj.insert(e.at(0), adj.at(e.at(0)) + (e.at(1),)) }
+  for (from, to) in graph.edges { adj.insert(from, adj.at(from) + (to,)) }
 
   let colour = (:)
   for name in adj.keys() { colour.insert(name, "white") }
@@ -123,7 +123,7 @@
       if c == "grey" {
         // Back edge. The cycle is the grey stack from `kid` onward, closed by
         // `kid` again.
-        let path = stack.map(f => f.at(0))
+        let path = stack.map(((node, _)) => node)
         let start = path.position(n => n == kid)
         return path.slice(start) + (kid,)
       }
@@ -236,7 +236,7 @@
   if graph.unresolved.len() > 0 {
     problems.push(
       "depends on a note that does not exist: "
-        + graph.unresolved.map(p => p.at(0) + " -> " + p.at(1)).join(", "),
+        + graph.unresolved.map(((from, dep)) => from + " -> " + dep).join(", "),
     )
   }
 
@@ -263,7 +263,7 @@
   let open-names = rows.map(r => r.name)
   (
     rows: rows,
-    edges: graph.edges.filter(e => e.at(0) in open-names and e.at(1) in open-names),
+    edges: graph.edges.filter(((from, to)) => from in open-names and to in open-names),
   )
 }
 
@@ -298,7 +298,7 @@
 
   let deps = (:)
   for name in graph.nodes.keys() { deps.insert(name, ()) }
-  for e in graph.edges { deps.insert(e.at(0), deps.at(e.at(0)) + (e.at(1),)) }
+  for (from, to) in graph.edges { deps.insert(from, deps.at(from) + (to,)) }
 
   let layer = (:)
   for name in graph.nodes.keys() { layer.insert(name, 0) }
@@ -377,9 +377,9 @@
   let kids = (:)
   for name in graph.nodes.keys() { kids.insert(name, ()) }
   let has-dep = (:)
-  for e in graph.edges {
-    kids.insert(e.at(1), kids.at(e.at(1)) + (e.at(0),))
-    has-dep.insert(e.at(0), true)
+  for (from, to) in graph.edges {
+    kids.insert(to, kids.at(to) + (from,))
+    has-dep.insert(from, true)
   }
 
   let ranked = names => names.map(n => graph.nodes.at(n)).sorted(key: _rank).map(r => r.name)
@@ -518,8 +518,8 @@
 
   let payload = (
     nodes: nodes,
-    edges: edges.map(e => (from: e.at(0), to: e.at(1))),
-    unresolved: graph.unresolved.map(e => (from: e.at(0), to: e.at(1))),
+    edges: edges.map(((from, to)) => (from: from, to: to)),
+    unresolved: graph.unresolved.map(((from, dep)) => (from: from, to: dep)),
   )
 
   html.elem(

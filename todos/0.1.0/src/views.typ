@@ -347,7 +347,7 @@
     // `align(start)` for the same figure-centring reason as `_list` above.
     return align(start, {
       if title != none { strong(title); linebreak() }
-      pairs.map(pr => text(gray, pr.at(0)) + " " + str(pr.at(1))).join(", ")
+      pairs.map(((key, value)) => text(gray, key) + " " + str(value)).join(", ")
     })
   }
 
@@ -368,7 +368,7 @@
       html.elem(
         "ul",
         attrs: (class: "todo-stat-list"),
-        pairs.map(pr => cell(pr.at(0), pr.at(1))).join(),
+        pairs.map(((key, value)) => cell(key, value)).join(),
       )
     },
   )
