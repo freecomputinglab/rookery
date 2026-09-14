@@ -54,6 +54,29 @@
 // with no date, or a panel with no `today:`, is not overdue — it is unmeasured.
 #let _past(d, today) = d != none and today != none and _tl.days-until(d, today) < 0
 
+// A COUNTDOWN LEVEL AS A BAND NUMBER. The cutoffs that produce the level are
+// @rookery/timeline's and stay there; this is only the ordering of the three
+// it returns, plus the fourth band every unmeasured row falls to.
+#let _LEVEL-BAND = ("urgent": 0, "soon": 1, "later": 2)
+#let _BANDS = 4
+
+// WHICH BAND A ROW READS IN: the sooner of the two ladders, so the hottest
+// priority rises to the top whatever its date and a deadline landing tomorrow
+// rises there whatever its priority. An in-progress row is band 0 outright —
+// someone is on it now, which is the one fact neither ladder can express.
+//
+// `rungs: _BANDS` rather than `priority-rung`'s own default of three: the
+// priority ladder has to be as long as the date ladder for the two to
+// interleave, and the coolest band is where an unprioritised row lands.
+#let _band(row, days, scale) = {
+  if row.status == "in-progress" { return 0 }
+  let c = _tl.countdown(days)
+  let date-band = if c == none { _BANDS - 1 } else { _LEVEL-BAND.at(c.level) }
+  let rung = priority-rung(row.priority, scale, rungs: _BANDS)
+  let pri-band = if rung == none { _BANDS - 1 } else { rung }
+  calc.min(date-band, pri-band)
+}
+
 // THE STATE FACET — where the declared status and the derived one meet.
 //
 // `status-of` (tags.typ) deliberately never answers "blocked": that is a question
@@ -133,20 +156,25 @@
 }
 
 // THE STRING `#panel` ORDERS THE LIST BY. It compares `sort:` ascending and
-// reverses the whole list under `descending:`, so a row is hoisted above every
-// date by a LEADING CHARACTER rather than by a second pass — and that character
-// flips under `"newest"`, because the reversal would otherwise sink exactly the
-// rows the hoist lifted. The priority tie-break below inverts for the same reason.
+// reverses the whole list under `descending:`, so every field ahead of the
+// date is complemented under `"newest"` — otherwise the reversal sinks
+// exactly the rows the ordering lifted. The date itself is not complemented:
+// reversing it is what `"newest"` means.
 //
-// THE UNDATED SENTINEL IS RESTATED HERE. `#panel` maps a `none` sort value to
-// `\u{ffff}` so an unset row sorts last; every row carries a key now, so that
-// branch no longer fires and the sentinel has to ride inside the key.
-#let _sort-key(state, when, order) = {
+// FOUR FIELDS, widest first: the band, then in-progress, then whether the row
+// carries a date at all — a scheduled or deadlined todo reads above one that
+// is in the band on priority alone — then the date. An undated row keeps
+// `#panel`'s own `\u{ffff}` sentinel, and the priority pre-sort is what orders
+// those rows among themselves.
+#let _sort-key(band, state, when, order) = {
   let newest = order == "newest"
-  let lead = if state == "in-progress" {
-    if newest { "1" } else { "0" }
-  } else if newest { "0" } else { "1" }
-  lead + (if when == none { "\u{ffff}" } else { when })
+  let flip(i, n) = if newest { str(n - 1 - i) } else { str(i) }
+  (
+    flip(band, _BANDS)
+      + flip(if state == "in-progress" { 0 } else { 1 }, 2)
+      + flip(if when == none { 1 } else { 0 }, 2)
+      + (if when == none { "\u{ffff}" } else { when })
+  )
 }
 
 #let todo-table(
@@ -230,10 +258,17 @@
   // todo-shaped one: a deadline where there is one, else the scheduled date, which is
   // the question a list of outstanding work is actually asking.
   when: none,
-  // `"soonest"` (the default here, where rookery-search defaults to `"newest"`) puts
-  // the earliest date first, because a deadline already behind you is the most urgent
-  // thing on the page. Undated rows sort last either way — see `#panel`.
-  order: "soonest",
+  // THREE VALUES. `"urgency"` (the default) bands rows by the sooner of a
+  // countdown level and a priority rung — see `_band` — and inside a band
+  // lists in-progress rows first, then dated rows earliest first, then
+  // undated rows by priority. `"soonest"` puts the earliest date first with
+  // no banding, because a deadline already behind you is the most urgent
+  // thing on the page. `"newest"` reverses that. Undated rows sort last under
+  // either of the latter two — see `#panel`. `"urgency"` needs a `today:` to
+  // band by date at all; with none passed, every row's date-band is the
+  // coolest one and the order falls back to priority bands with dated rows
+  // first inside each — not an error, just a coarser order.
+  order: "urgency",
   // HOW LONG YOU HAVE, as a WASH ON THE DATE CELL — the same three bands
   // @rookery/timeline draws on `#upcoming`, off the same `countdown()`, on the
   // same family `--rookery-heat-*` ramp. What differs is where the colour lands: that
@@ -316,10 +351,10 @@
   render: none,
 ) = context {
   assert(
-    order in ("newest", "soonest"),
-    message: "@rookery/todos: #todo-table's `order` must be \"newest\" (the most "
-      + "recent date first) or \"soonest\" (the earliest first) — got "
-      + repr(order),
+    order in ("urgency", "newest", "soonest"),
+    message: "@rookery/todos: #todo-table's `order` must be \"urgency\" (band by "
+      + "countdown and priority, the default), \"newest\" (the most recent date "
+      + "first) or \"soonest\" (the earliest first) — got " + repr(order),
   )
 
   let all = if rows != none { rows } else { todos() }
@@ -376,6 +411,9 @@
       // A ZERO-PADDED `[year][month][day]` STRING, because `#panel` sorts its sort
       // field as a plain string — which is date order exactly when it is padded.
       let stamp = if d == none { none } else { d.display("[year][month][day]") }
+      let band = _band(r, if d == none or today == none { none } else {
+        _tl.days-until(d, today)
+      }, scale)
       (
         ..r,
         state: state,
@@ -390,9 +428,22 @@
         priority: if r.priority == 0 { none } else { "p" + str(r.priority) },
         when: stamp,
         when-date: d,
+        // NOT A FACET (see `sort-key` below): a caller's `render:` can still read it,
+        // and a following bird filters on it.
+        band: band,
         // NOT A FACET, so it becomes no attribute — `#panel` emits one `data-<field>`
         // per entry in `facets:` and this is not one of them.
-        sort-key: _sort-key(state, stamp, order),
+        //
+        // ONLY `"urgency"` BANDS. Passing the coolest band for every row under the
+        // other two orders makes that leading field constant, which leaves the key
+        // ordering by exactly what it ordered by before those bands existed —
+        // in-progress, then dated, then date — with one extra constant character in
+        // front.
+        sort-key: if order == "urgency" {
+          _sort-key(band, state, stamp, order)
+        } else {
+          _sort-key(_BANDS - 1, state, stamp, order)
+        },
       )
     })
     .filter(r => overdue or not _past(r.at("when-date", default: none), today))

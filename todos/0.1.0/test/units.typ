@@ -547,31 +547,29 @@
 // Some other status is not, by itself, a reason to be on today.
 #assert.eq(_on-today(dayrow(status: "deferred"), today: NOW), false)
 
-// ---- _sort-key — what puts an in-progress todo at the top ---------------
+// ---- _band — the sooner of the countdown ladder and the priority ladder --
+
+// The hottest priority in use is band 0 whatever its date.
+#assert.eq(_band((status: "open", priority: 4), 200, (4, 3, 2)), 0)
+// A deadline tomorrow is band 0 whatever its priority.
+#assert.eq(_band((status: "open", priority: 2), 1, (4, 3, 2)), 0)
+// The ladders interleave: third-hottest priority, three weeks out.
+#assert.eq(_band((status: "open", priority: 2), 21, (4, 3, 2)), 2)
+// Neither ladder says anything: the coolest band.
+#assert.eq(_band((status: "open", priority: 0), none, (4, 3, 2)), 3)
+// In progress outranks both ladders.
+#assert.eq(_band((status: "in-progress", priority: 0), none, (4, 3, 2)), 0)
+
+// ---- _sort-key — what puts a row ahead of another one --------------------
 //
 // `#todo-table` hands `#panel` one string per row and `#panel` compares it
-// ascending, so the hoist is a leading character rather than a second pass.
+// ascending, so a wider field wins by a leading character rather than by a
+// second pass.
 
-// Ascending (`order: "soonest"`, the default): the leading character alone
-// separates an in-progress row from every other one.
-#assert.eq(_sort-key("in-progress", "20260825", "soonest"), "020260825")
-#assert.eq(_sort-key("ready", "20260825", "soonest"), "120260825")
-// So an in-progress row outranks a READY row with an earlier date.
-#assert(
-  _sort-key("in-progress", "20260825", "soonest")
-    < _sort-key("ready", "20260101", "soonest"),
-)
-// An undated row keeps `#panel`'s own "unset sorts last" sentinel, within
-// its own group — and an undated in-progress row still beats a dated one.
-#assert.eq(_sort-key("ready", none, "soonest"), "1\u{ffff}")
-#assert(
-  _sort-key("in-progress", none, "soonest")
-    < _sort-key("ready", "20260101", "soonest"),
-)
-// Under `"newest"` `#panel` reverses the whole list, so the character flips
-// and the hoist survives the reversal.
-#assert(
-  _sort-key("in-progress", "20260825", "newest")
-    > _sort-key("ready", "20260825", "newest"),
-)
+// Inside one band a dated row reads above an undated one, and band 0 reads
+// above band 1 whatever the dates say.
+#assert(_sort-key(0, "open", none, "urgency") < _sort-key(1, "open", "20260101", "urgency"))
+#assert(_sort-key(0, "open", "20261231", "urgency") < _sort-key(0, "open", none, "urgency"))
+// Complementing survives the reversal `descending:` applies under "newest".
+#assert(_sort-key(0, "open", "20260825", "newest") > _sort-key(1, "open", "20260825", "newest"))
 #assert.eq(_on-today(dayrow(), today: NOW, also: none), false)

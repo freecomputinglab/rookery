@@ -7,7 +7,7 @@ labels:
 - feat-todo-band-order
 deps:
 - blocked-by:rk-scale-the-priority-ramp-from-listed-rows-c0476e1e
-closed: false
+closed: true
 ---
 `#todo-table` orders rows by date alone, so the most important todo on a site
 sinks below every dated one. Interleave the two ladders the package already

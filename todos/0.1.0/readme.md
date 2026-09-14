@@ -517,6 +517,39 @@ measured, so no row is dropped and no band drawn. Neither touches a dated row's
 ordering — a date is the firmer statement, and priority washes such a row only where
 the countdown has nothing to say.
 
+**`order: "urgency"`, the default, interleaves the same two ladders** so the top
+priority on the page floats to the top alongside whatever is due today. A row's
+*band* is the sooner of its `@rookery/timeline` countdown level and its priority
+rung:
+
+| band | countdown level | priority rung |
+|------|-----------------|---------------|
+| 0    | `urgent` — overdue, today, tomorrow | hottest priority in use |
+| 1    | `soon` — 2 to 7 days | second hottest |
+| 2    | `later` — 8 to 14 days | third hottest |
+| 3    | no level — more than 14 days out, or undated | fourth hottest and below, or unprioritised |
+
+A row sits in the lowest-numbered band it qualifies for by *either* ladder: a
+todo due tomorrow is band 0 whatever its priority, and the hottest priority in
+use is band 0 however far out its date sits, or if it has none at all. An
+in-progress row is band 0 outright — someone is already on it, which is the
+one fact neither ladder can express.
+
+**Within one band**, rows read in-progress first, then the dated rows earliest
+first, then the undated rows by priority — the same priority order the date
+column's own undated sort above uses. That middle rule is the point of the
+band system: a scheduled or deadlined todo still outranks one that is only in
+the band on priority.
+
+`order: "soonest"` and `order: "newest"` keep the panel's older, unbanded
+order — the earliest date first, or the latest — with in-progress rows still
+hoisted above either and undated rows still sorting last by priority.
+
+`"urgency"` needs `today:` to band by date at all, same as the countdown and
+overdue washes above: with none passed, every row's date-band is the coolest
+one and the order falls back to the priority bands alone, with dated rows
+first inside each — not an error, just a coarser order.
+
 Pass `facets:` to narrow the groups — `facets: ("epic", "state", "priority")` drops
 the tag pills — and `pill-rows:` to lay the remaining ones out differently. Its
 entries are `(label: <content or none>, facets: (<group names>))`, one per line, the

@@ -121,8 +121,9 @@ being worked on is on for today whatever its dates say.
   tags: entries(deadline: datetime(year: 2026, month: 10, day: 30)),
 )[Being worked on now, due at the end of next month.]
 
-An OVERDUE todo — a deadline already behind `TODAY`. `#todo-table` lists it first
-and paints its date cell solid red; `overdue: false` drops it from the panel instead.
+An OVERDUE todo — a deadline already behind `TODAY`. `#todo-table` bands it to the
+top with every other row that is due now, already late, or in progress, and paints
+its date cell solid red; `overdue: false` drops it from the panel instead.
 
 #todo(
   "invoice",
