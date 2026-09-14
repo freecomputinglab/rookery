@@ -156,6 +156,20 @@
 // `context`, and equals the `.func()` of a real context child.
 #let _ctx-fn = [#context none].func()
 
+// Extract the tag value from a `#ideate-tag` metadata beacon, or `none` if this
+// child is not a beacon. A beacon carries `metadata` with a dictionary value
+// holding the key `rookery-ideate-tags`.
+#let _ideate-tag-value(c) = {
+  if c.func() != metadata { return none }
+  if type(c.value) != dictionary { return none }
+  if "rookery-ideate-tags" not in c.value { return none }
+  c.value.rookery-ideate-tags
+}
+
+// Strip beacons from a group before joining for the minted body. Beacons are
+// apparatus (like the lead heading), not authored content.
+#let _strip-beacons(children) = children.filter(c => _ideate-tag-value(c) == none)
+
 // Emits nothing on its own and carries nothing an author wrote. Not blank — it
 // has to survive — but not a note either.
 //
@@ -434,20 +448,22 @@
       let lead = if lead-i == none { none } else { group.at(lead-i) }
       let lead-heading = if lead != none and lead.func() == heading and _level-of(lead) == want { lead } else { none }
 
-      // A `<tag:x>` LABEL on that same heading adds one flat tag — `x` — to
-      // this group's own note, on top of whatever `tags:` already puts on
-      // every note `#ideate` mints. Absent whenever there is no separating
-      // heading (the preamble group) or that heading carries no such label.
-      let tag = if lead-heading == none { none } else { _label-tag(lead-heading.at("label", default: none)) }
-      let group-tags = if tag == none { base-tags } else { base-tags + ((tag): none) }
+      // Scan the group for `#ideate-tag` metadata beacons and union their values
+      // into the base tags, right-biased on key conflict (later beacons win).
+      // Works under any separator mode, not just heading mode.
+      let beacon-tags = group.fold((:), (acc, c) => {
+        let v = _ideate-tag-value(c)
+        if v == none { acc } else { acc + _norm-tags(v) }
+      })
+      let group-tags = base-tags + beacon-tags
 
       if not (title-from-heading or name-from-heading or name-fn) or lead-heading == none {
         // Neither sentinel reads the heading, or this group (the preamble) has
         // none of its own to title or name by — minted exactly as it would be
         // with neither sentinel given, carrying its own tag (if any) either way.
-        mint(group.join(), tags: group-tags)
+        mint(_strip-beacons(group).join(), tags: group-tags)
       } else {
-        let rest = (group.slice(0, lead-i) + group.slice(lead-i + 1)).join()
+        let rest = _strip-beacons(group.slice(0, lead-i) + group.slice(lead-i + 1)).join()
         let title-arg = if title-from-heading { (title: lead-heading.body) } else { (:) }
         if not (name-from-heading or name-fn) {
           mint(rest, ..title-arg, tags: group-tags)

@@ -20,7 +20,7 @@
   _bib, _bib-keys, _blocks, _body-plain, _body-text, _cite-scan, _dedup-tag,
   _is-inline, _join, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
-  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _label-tag,
+  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _ideate-tag-value,
   footnote, idea, note-href, note-path, slug,
   tag-index, window,
 )
@@ -606,18 +606,15 @@
 #assert.eq(slug([Week 37: Intro]), "week-37-intro")
 #assert.eq(slug("already a string"), "already-a-string")
 
-// ---- _label-tag — a `<tag:x>` label on a group's separating heading -------
+// ---- _ideate-tag-value — extract tag value from `#ideate-tag` beacon -------
 //
-// `#ideate`'s `<tag:x>` feature reads this off a heading's own label — only
-// the `tag:` prefix is claimed, so any other label a document already uses
-// (an anchor, a `#ref` target) is left alone.
-#assert.eq(_label-tag(<tag:rookery>), "rookery")
-// Some other prefix: not a tag, the label is untouched by this feature.
-#assert.eq(_label-tag(<sec:intro>), none)
-// No prefix at all — a bare anchor label.
-#assert.eq(_label-tag(<my-anchor>), none)
-// `<tag:>` alone: nothing after the colon, so no tag rather than an empty one.
-#assert.eq(_label-tag(<tag:>), none)
-#assert.eq(_label-tag(none), none)
-// Two colons: the tag name is everything after the FIRST one, not a second split.
-#assert.eq(_label-tag(<tag:a:b>), "a:b")
+// A beacon carries `metadata` with a dictionary value holding `rookery-ideate-tags`.
+// The predicate returns the raw payload value (caller normalizes with `_norm-tags`),
+// or `none` for non-beacons.
+#assert.eq(_ideate-tag-value([#metadata((rookery-ideate-tags: "rookery"))]), "rookery")
+// Array of tag strings.
+#assert.eq(_ideate-tag-value([#metadata((rookery-ideate-tags: ("a", "b")))]), ("a", "b"))
+// Plain metadata with different key: not a beacon.
+#assert.eq(_ideate-tag-value([#metadata((other: 1))]), none)
+// Non-metadata content: not a beacon.
+#assert.eq(_ideate-tag-value([text]), none)

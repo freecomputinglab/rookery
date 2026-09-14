@@ -763,16 +763,9 @@
 // slugged form suitable for use as an id component.
 #let slug(content) = _slug(_plain(content))
 
-// The tag name carried by a `<tag:x>` label on one of `#ideate`'s separating
-// headings, or `none` when there is no such tag — no label at all, a label of
-// some other shape, or `<tag:>` with nothing after the colon. `str()` is the
-// only accessor a label has, and a label built `<tag:a:b>` yields the string
-// `"tag:a:b"`, so the tag name is everything after the FIRST colon rather
-// than a second split on the rest.
-#let _label-tag(l) = {
-  if l == none { return none }
-  let s = str(l)
-  if not s.starts-with("tag:") { return none }
-  let tag = s.slice(4)
-  if tag == "" { none } else { tag }
-}
+// Public metadata beacon for ideate tags: wrap tag(s) to emit from a section's own
+// content. `tags` accepts the same four forms as `#idea`'s own `tags:` — `none`,
+// a string, an array of strings, or a dictionary — and is normalized by `_norm-tags`
+// when read back in the beacon scanner. Place inline within a paragraph to tag
+// the next-nearest group, or anywhere in a section's body under `separator: heading`.
+#let ideate-tag(tags) = [#metadata((rookery-ideate-tags: tags))]

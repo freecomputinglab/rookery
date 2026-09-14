@@ -6,7 +6,7 @@ priority: 3
 labels:
 - feat-ideate-tag-beacon
 deps: []
-closed: false
+closed: true
 ---
 # Replace `#ideate`'s `<tag:x>` label with a metadata beacon
 

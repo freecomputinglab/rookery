@@ -583,13 +583,13 @@ for slug in "${!IDEATED_TITLES[@]}"; do
     note "ideas/$slug.html contains \"$t\" $n time(s), expected exactly 2 (the <title> and the note's own heading) — the source heading may have been left in the note's body too"
 done
 
-# 24. `#ideate`'s TAG FROM A HEADING LABEL (`content/ideated.typ`). Its fourth
-#     section, `== Rookery <tag:rookery>`, mints with the tag its own heading's
-#     label names, on top of whatever `tags:` the call already applies
+# 24. `#ideate`'s TAG FROM `#ideate-tag` BEACON (`content/ideated.typ`). Its
+#     fourth section, `== Rookery`, mints with the tag its body's `#ideate-tag("rookery")`
+#     beacon names, on top of whatever `tags:` the call already applies
 #     (nothing, here).
 grep -q 'idea-tag-rookery' "$H/ideas/rookery.html" ||
-  note "ideas/rookery.html does not carry the idea-tag-rookery class from its heading's <tag:rookery> label"
-# Its sibling with no label at all, and no `tags:` from the call either, wears
+  note "ideas/rookery.html does not carry the idea-tag-rookery class from its #ideate-tag beacon"
+# Its sibling with no beacon and no `tags:` from the call either, wears
 # no tag PILL at all — the control this feature must not touch. A bare
 # `idea-tag-` substring is NOT the right test here: every page in this build
 # carries the project-wide `.idea-tag-note { .. }` rule generated for the
@@ -597,12 +597,13 @@ grep -q 'idea-tag-rookery' "$H/ideas/rookery.html" ||
 # tags — `class="idea-tag` (the pill's own class, present only when a note
 # has at least one visible tag) is what actually distinguishes them.
 if grep -q 'class="idea-tag' "$H/ideas/literate-programming.html"; then
-  note "ideas/literate-programming.html wears a tag pill despite no tags: and no heading label"
+  note "ideas/literate-programming.html wears a tag pill despite no tags: and no beacon"
 fi
-# `== Testing edge cases <sec:one>` carries a label of a DIFFERENT shape — only
-# the `tag:` prefix is claimed, so this one is left alone: no extra tag, no panic.
+# `== Testing edge cases <sec:one>` carries a label `<sec:one>` — this is
+# unrelated to tagging (tags use `#ideate-tag`, not labels), so this label
+# is left alone: no extra tag, no panic.
 if grep -q 'idea-tag-sec"' "$H/ideas/testing-edge-cases.html"; then
-  note "ideas/testing-edge-cases.html's non-tag: label <sec:one> was misread as a tag"
+  note "ideas/testing-edge-cases.html's unrelated label <sec:one> was misread as a tag"
 fi
 
 # 25. `#ideate`'s FUNCTION FORM FOR `name:` (`content/ideated-named.typ`). A

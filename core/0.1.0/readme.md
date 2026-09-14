@@ -701,39 +701,37 @@ second `#ideate` call, or another chapter elsewhere in the document, is not
 covered by this check — see "Flat ids, and why" below for cross-document id
 collisions in general.
 
-### Tagging one section from its own heading
+### Tagging a section with `#ideate-tag`
 
-In heading mode, a `<tag:x>` LABEL on a section's separating heading tags that
-section's note `x`, on top of whatever the call's own `tags:` already puts on
-every note:
+Tag a section by placing an `#ideate-tag(tags)` metadata beacon anywhere in that
+section's own content. The beacon accepts the same four tag forms as `#idea`'s own
+`tags:` — `none`, a string, an array of strings, or a dictionary (for valued tags):
 
 ```typst
 #show: ideate.with(separator: heading.where(level: 2), tags: "weeknotes")
 
-== Rookery <tag:rookery>
+== Rookery
+
+#ideate-tag("rookery")
 
 Minted tagged both `weeknotes` and `rookery` — every other section here still
 gets only `weeknotes`.
 ```
 
-Only the `tag:` prefix is claimed. A label of any other shape — `<sec:intro>`,
-a bare `<my-anchor>` — is left untouched and keeps meaning whatever it already
-means to Typst; neither is read as a tag. The tag name is everything after the
-FIRST colon, so `<tag:a:b>` tags a section `a:b`.
+Place the beacon inline within a paragraph (so it belongs to that section's own
+flat sequence, not nested inside a list item or `#strong[..]`). Under `separator:
+par`, place it inline with the text it tags; under `separator: heading` or
+`separator: none`, it can sit anywhere in the section's body. The beacon renders
+nothing — it is pure apparatus, like the heading itself.
 
-The tag is FLAT, the same shape a bare string in `tags:` produces — a label has
-no syntax for a valued one. A section wanting a valued tag, or wanting more
-than this one extra tag, is a section wanting `#idea` written out by hand: one
-Typst element carries at most one label, so a heading cannot carry two.
+Multiple beacons in one section are allowed. Values are unioned document-order,
+right-biased on key conflict (a later beacon's value for a key wins). `#ideate-tag`
+works under ALL separator modes, not only heading mode — unlike the old
+`<tag:x>` label approach, which worked only when a section had a separating
+heading to label.
 
-This needs neither `title: heading` nor `name: heading` — it reads the same
-separating heading either way, whether or not either sentinel is also given.
-With `separator: par` or `separator: none` there is no separating heading to
-label, so a `<tag:x>` written there is ordinary Typst and does nothing special.
-
-Two sections sharing an identical `<tag:x>` label both tag their own note `x`
-without conflict — a repeated Typst label is only ever a problem for a `#ref`
-to it, and `#ideate` writes none.
+Valued tags (dictionaries) and multiple tags per section are now possible — no
+ceiling on cardinality or value syntax.
 
 ### Naming sections with a custom function
 

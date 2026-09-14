@@ -1,5 +1,5 @@
 #import "lib.typ": demo
-#import "@rookery/core:0.1.0": ideate
+#import "@rookery/core:0.1.0": ideate, ideate-tag
 
 #show: demo
 
@@ -31,10 +31,9 @@ prove the ids don't collide. Its heading carries a label too — `<sec:one>` —
 proving a label without the `tag:` prefix is left alone: no extra tag on this
 note, and no panic either.
 
-// A fourth section, whose heading carries a `<tag:rookery>` label. Minted
-// with that one extra tag on top of whatever `tags:` this call already
-// applies (nothing, here) — every other section above has none at all.
-== Rookery <tag:rookery>
+== Rookery
 
-A fourth section, tagged `rookery` by its own heading's label rather than by
-anything passed to `#ideate` itself.
+A fourth section, tagged `rookery` by an `#ideate-tag` beacon placed in its own
+body.
+
+#ideate-tag("rookery")
