@@ -47,6 +47,31 @@
 //
 //   #show: ideate.with(separator: heading.where(level: 2), tags: "weeknotes")
 //
+// ---- Tagging: a value, a function, or a beacon ---------------------------
+//
+// `tags:` takes any of `#idea`'s own forms — `none`, a string, an array, a
+// dictionary — and puts them on EVERY note the call mints. It also takes a
+// FUNCTION of `(content, labels)`, the same pair `title:` and `name:` take,
+// called once per section on the heading that starts it:
+//
+//   #show: ideate.with(
+//     separator: heading.where(level: 2),
+//     tags: (content, labels) => (slug(content),),
+//   )
+//
+//   == LIMINAL      // minted tagged `liminal`
+//   == Rheo         // minted tagged `rheo`
+//
+// The point is that ONE function can feed `title:`, `name:` and `tags:`, so a
+// note's id cannot drift from its tag, and a section titled something new
+// needs nothing declared anywhere to carry a tag of its own.
+//
+// It reads the SEPARATING HEADING, so like `title:` and `name:` it needs
+// heading mode; the preamble group (no heading of its own) is not called and
+// keeps whatever `tags:` would otherwise give it, which for a function is
+// nothing. `#ideate-tag` remains the per-section override and works under
+// every separator mode — it is unioned last, so a beacon beats the function.
+//
 // `par` NAMES THE SPLIT; IT DOES NOT CHANGE IT. There is no `par` element in a
 // markup content tree (fact 1 below), so both par-mode spellings still split on
 // `parbreak`. `par` is the honest name for what a caller is asking for and
@@ -303,15 +328,23 @@
   }
   let want = if heading-elem { _level-of(separator) } else if heading-sel { _sel-level(separator) }
 
-  // Every accepted `tags:` form, normalized ONCE into the same dictionary
-  // shape `#idea` itself normalizes `tags:` into (`_norm-tags`, `pure.typ`) —
-  // so a group whose separating heading carries a `<tag:x>` label (the emit
-  // loop below) can union that one extra tag straight into an already-normal
-  // dictionary, rather than reconciling four different input shapes per group.
-  let base-tags = _norm-tags(tags)
-
   let title-fn = type(title) == function
   let name-fn = type(name) == function
+  let tags-fn = type(tags) == function
+
+  // Every NON-FUNCTION `tags:` form, normalized ONCE into the same dictionary
+  // shape `#idea` itself normalizes `tags:` into (`_norm-tags`, `pure.typ`) —
+  // so a group's own `#ideate-tag` beacons (the emit loop below) union straight
+  // into an already-normal dictionary rather than reconciling four different
+  // input shapes per group.
+  //
+  // A FUNCTION HAS NO VALUE TO NORMALIZE HERE: it computes a per-section value
+  // the emit loop normalizes as it goes, and there is no document-wide tag to
+  // fall back on, so the base is empty. Handing `_norm-tags` the function
+  // instead fails inside the array branch with `cannot access fields on
+  // user-defined functions`, which names neither this argument nor this call.
+  let base-tags = if tags-fn { (:) } else { _norm-tags(tags) }
+
   if name != auto and not name-fn {
     panic(
       "ideate: `name:` must be `auto` (the package counter — the default) or a "
@@ -320,12 +353,14 @@
         + repr(name),
     )
   }
-  if (title-fn or name-fn) and not heading-mode {
+  if (title-fn or name-fn or tags-fn) and not heading-mode {
     panic(
-      "ideate: `title:` and `name:` functions both read the heading that "
-        + "STARTS each note, so they need `separator: heading.where(level: 2)` "
-        + "(or another level) — with the separator actually given here there is "
-        + "no heading to read. Got separator: " + repr(separator),
+      "ideate: `title:`, `name:` and `tags:` functions all read the heading "
+        + "that STARTS each note, so they need `separator: heading.where(level: "
+        + "2)` (or another level) — with the separator actually given here there "
+        + "is no heading to read. A body split by paragraph tags every note the "
+        + "same, which a plain `tags:` value already says; `#ideate-tag` tags "
+        + "one section under any separator. Got separator: " + repr(separator),
     )
   }
 
@@ -345,8 +380,9 @@
   // `tags: base-tags` is bound here as every note's DEFAULT, and the emit
   // loop below overrides it per group with that group's own tags — an
   // explicit `tags:` at a call site overrides a value bound by `.with()`,
-  // which is what lets a group whose heading carries a `<tag:x>` label mint
-  // with one extra tag while every other group still gets exactly this one.
+  // which is what lets a group carrying an `#ideate-tag` beacon (or a `tags:`
+  // function that reads its heading) mint with tags of its own while every
+  // other group still gets exactly this one.
   let mint = idea.with(
     show-frame: show-frame,
     show-id: show-id,
@@ -438,6 +474,22 @@
       let lead = if lead-i == none { none } else { group.at(lead-i) }
       let lead-heading = if lead != none and lead.func() == heading and _level-of(lead) == want { lead } else { none }
 
+      // HOISTED OUT of the titling branch below, where it used to live: a
+      // `tags:` function reads the same two arguments and is called for groups
+      // that branch never reaches.
+      let labels = if lead-heading == none { () } else {
+        (lead-heading.at("label", default: none),).filter(l => l != none)
+      }
+
+      // A `tags:` FUNCTION IS PER-SECTION, computed from the heading that
+      // starts this group — the same `(content, labels)` pair `title:` and
+      // `name:` take, so one function can feed all three and a note's id
+      // cannot drift from its tag. The preamble group has no heading to read
+      // and is left with the base tags alone rather than called with `none`.
+      let fn-tags = if tags-fn and lead-heading != none {
+        _norm-tags((tags)(lead-heading.body, labels))
+      } else { (:) }
+
       // Scan the group for `#ideate-tag` metadata beacons and union their values
       // into the base tags, right-biased on key conflict (later beacons win).
       // Works under any separator mode, not just heading mode.
@@ -445,7 +497,10 @@
         let v = _ideate-tag-value(c)
         if v == none { acc } else { acc + _norm-tags(v) }
       })
-      let group-tags = base-tags + beacon-tags
+      // BEACONS LAST, so they stay the per-section override they are under a
+      // plain `tags:` — a section that computes `report` from its heading and
+      // also carries `#ideate-tag((report: "final"))` gets the valued one.
+      let group-tags = base-tags + fn-tags + beacon-tags
 
       if not (title-fn or name-fn) or lead-heading == none {
         // Neither function computes the heading, or this group (the preamble) has
@@ -454,7 +509,6 @@
         mint(_strip-beacons(group).join(), tags: group-tags)
       } else {
         let rest = _strip-beacons(group.slice(0, lead-i) + group.slice(lead-i + 1)).join()
-        let labels = (lead-heading.at("label", default: none),).filter(l => l != none)
         let title-arg = if title-fn { (title: (title)(lead-heading.body, labels)) } else { (:) }
         if not name-fn {
           mint(rest, ..title-arg, tags: group-tags)

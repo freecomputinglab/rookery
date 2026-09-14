@@ -739,7 +739,7 @@
 
 // A URL-safe slug from a heading's plain text: lowercased, every run of
 // characters outside `[a-z0-9]` collapsed to one `-`, with no leading or
-// trailing `-`. `#ideate`'s `name: heading` sentinel uses this to name a
+// trailing `-`. `#ideate` callers pass this to a `name:` function to name a
 // section's note after its own heading, so inserting or reordering sections
 // does not renumber every id after it the way the package counter would.
 //

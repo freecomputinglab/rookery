@@ -680,10 +680,11 @@ and fails `_slug`'s own empty-name check.
 | --- | --- | --- | --- |
 | `title:` | no title (today's behaviour) | the same content on every note | a function `(content, labels) => content` — each note's own computed title |
 | `name:` | the package counter (today's behaviour) | — not accepted; see below | `(content, labels) => string` — a custom id computed per section |
+| `tags:` | no tags | the same tags on every note | `(content, labels) => tags` — each note's own computed tags |
 
 An id minted from a heading survives inserting or reordering sections —
 unlike the package counter, which renumbers everything after the insertion
-point — which is the reason to prefer `name: heading` for anything worth
+point — which is the reason to prefer a `name:` function for anything worth
 linking to.
 
 All heading-reading forms are **heading mode only**: with `separator: par` or
@@ -731,14 +732,65 @@ heading to label.
 Valued tags (dictionaries) and multiple tags per section are now possible — no
 ceiling on cardinality or value syntax.
 
+### Tagging every section from its heading with a `tags:` function
+
+`tags:` also accepts a **function** of `(content, labels)` — the same pair
+`title:` and `name:` take — called once per section on the heading that starts
+it. Where a plain `tags:` value puts the same tags on every note, a function
+computes each section's own:
+
+```typst
+#import "@rookery/core:0.1.0": ideate, slug
+
+#show: ideate.with(
+  separator: heading.where(level: 2),
+  tags: (content, labels) => (slug(content),),
+)
+
+== LIMINAL              // minted tagged `liminal`
+== Digital Theory Lab   // minted tagged `digital-theory-lab`
+```
+
+The function returns any of the four tag forms — a string, an array, a
+dictionary for valued tags, or `none` for no tag at all — and its result is
+normalized exactly as a literal `tags:` would be.
+
+The point is that ONE function can feed `title:`, `name:` and `tags:` at once, so
+a note's id cannot drift from its tag, and a section titled something new needs
+nothing declared anywhere to carry a tag of its own:
+
+```typst
+#let section(content, labels) = slug(content)
+
+#show: ideate.with(
+  separator: heading.where(level: 2),
+  title: (content, labels) => content,
+  name: (content, labels) => "26w37-" + section(content, labels),
+  tags: section,
+)
+```
+
+Three things follow from it reading the separating heading:
+
+- It needs **heading mode**, like `title:` and `name:`, and panics under
+  `separator: par`/`none` naming all three. A body split by paragraph tags every
+  note the same, which a plain `tags:` value already says.
+- The **preamble group** (content before the first separating heading) has no
+  heading to pass, so the function is not called for it and it carries no tags —
+  the same way a `name:` lambda leaves the preamble on the package counter.
+- **`#ideate-tag` still wins.** Beacons are unioned after the function's result,
+  so a section that computes `report` from its heading and also carries
+  `#ideate-tag((report: "final"))` gets the valued one. The function is the rule;
+  the beacon is the exception.
+
 ### Naming sections with a custom function
 
 `name:` accepts a function that computes each section's id from its heading and
-labels, substituting for both the `heading` sentinel and the package counter.
+labels, substituting for the package counter.
 The function receives two arguments:
 
 - **`content`**: the separating heading's own body as raw Typst content — the
-  same value `title: heading` passes to `title:`. The caller decides how to
+  same value a `title:` function receives. The caller decides how to
   project it: lowercasing and stripping punctuation (via `slug()`, exported from
   this package), keeping structure, or using it to index a table are all valid.
 - **`labels`**: the heading's own Typst labels as an ARRAY. `()` for a bare
@@ -757,7 +809,7 @@ decisions a caller makes, and the function calls the shots.
 
 #show: ideate.with(
   separator: heading.where(level: 2),
-  title: heading,
+  title: (content, labels) => content,
   name: (content, labels) => "26w37-" + slug(content),
 )
 
@@ -767,9 +819,8 @@ Minted as `idea:26w37-waterline`.
 ```
 
 The preamble group (content before the first separating heading) has no heading
-to pass to the lambda and still mints under the package counter, exactly as it
-does under `name: heading`. A lambda names the sections; the preamble is
-unaffected.
+to pass to the lambda and still mints under the package counter. A lambda names
+the sections; the preamble is unaffected.
 
 **A `#ref` inside the heading contributes nothing to the lambda's input** —
 `content` is the heading's raw body, and what the lambda sees of a reference is
@@ -784,17 +835,17 @@ attempt it unless you have a very specific reason.
 `slug()` is exported from this package and accepts either content or a string,
 returning a URL-safe slug (lowercased, non-alphanumeric runs collapsed to one
 hyphen, leading and trailing hyphens removed). It is the projection `ideate`
-uses for its own `name: heading` sentinel, and a convenient default for any
-lambda that wants to slug the heading text:
+uses for its own ids, and a convenient default for any lambda that wants to slug
+the heading text:
 
 ```typst
 name: (content, labels) => slug(content)
 ```
 
-is the one-line function that replaces what a `heading` sentinel would have meant.
+is the one-line function for naming every section after its own heading.
 
 Two sections that call the lambda and produce the same id fail with a panic
-naming both, just as `name: heading` does. A second `#ideate` call, or another
+naming both. A second `#ideate` call, or another
 chapter elsewhere in the document, is not covered by this check — see "Flat
 ids, and why" below for cross-document id collisions in general.
 
