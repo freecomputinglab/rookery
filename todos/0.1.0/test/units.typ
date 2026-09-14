@@ -88,6 +88,10 @@
 // Unprioritised, and a `p` absent from the scale, take no rung at all.
 #assert.eq(priority-rung(0, (7, 2)), none)
 #assert.eq(priority-rung(4, (7, 2)), none)
+// A scale drawn from three listed priorities puts the hottest of THEM on
+// rung 0, whatever larger priority exists elsewhere in the rookery.
+#assert.eq(priority-rung(4, (4, 3, 2)), 0)
+#assert.eq(priority-rung(4, (9, 4, 3, 2)), 1)
 #assert.eq(type-of(todo-tags(kind: "feature")), "feature")
 #assert.eq(type-of(todo-tags()), none)
 

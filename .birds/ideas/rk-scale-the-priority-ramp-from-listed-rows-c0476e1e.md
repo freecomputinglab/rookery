@@ -6,7 +6,7 @@ priority: 4
 labels:
 - feat-todo-band-order
 deps: []
-closed: false
+closed: true
 ---
 `#todo-table` places a row's priority on the heat ramp against
 `priority-scale()`, which walks **every** todo in the rookery — closed ones

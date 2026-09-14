@@ -501,10 +501,13 @@ elsewhere.
 
 An **undated** row shows its own priority number where the date would go — `P9`, `P2`,
 whatever it carries — coloured by its RUNG: its index among the three highest
-priorities in use on the site, so the top priority takes the ramp's own red, the
+priorities this panel lists, so the top priority takes the ramp's own red, the
 second orange, the third yellow, and every priority beyond those three rungs shares
-the coolest one. The priority chip leaves the badge strip either way, being the same
-fact at the other end of the row. The undated rows also *sort* by their priority,
+the coolest one. The scale is drawn from what this panel lists, not from every
+priority in the rookery, so a closed todo elsewhere at a higher priority never sets
+a rung none of this panel's rows can reach. The priority chip leaves the badge strip
+either way, being the same fact at the other end of the row. The undated rows also
+*sort* by their priority,
 descending, with an unprioritised row last — which is what the date sort alone cannot
 say, keying every undated row alike. `undated-priority: false` leaves them in registry
 order with an empty cell.

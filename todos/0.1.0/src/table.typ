@@ -331,9 +331,6 @@
   // function has always done — a caller narrowing `rows:` below the corpus has to
   // say so explicitly by passing both.
   let graph = todo-graph(rows: if corpus != none { corpus } else { all })
-  // ONCE, not per row: `priority-rung` places a priority on the ramp relative to
-  // this scale, and the scale itself does not change while rendering one panel.
-  let scale = priority-scale()
 
   let keep = if filter != none { filter } else { r => not r.closed }
   let when = if when != none { when } else {
@@ -362,6 +359,15 @@
     let s = all.filter(keep).sorted(key: rank)
     if order == "newest" { s.rev() } else { s }
   }
+
+  // THE SCALE IS THE PRIORITIES THIS PANEL LISTS, not every priority in the
+  // rookery: `priority-scale()` walks closed todos too, and one closed todo at
+  // a priority no open row carries sets a rung nothing on the page can reach,
+  // sliding every listed row one step cooler than it is.
+  //
+  // ONCE, not per row: `priority-rung` places a priority relative to this
+  // scale, and the scale does not change while rendering one panel.
+  let scale = ranked.map(r => r.priority).filter(p => p > 0).dedup().sorted().rev()
 
   let rows = ranked
     .map(r => {
