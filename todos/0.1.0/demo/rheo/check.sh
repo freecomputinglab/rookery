@@ -110,7 +110,9 @@ python3 - "$H/index.html" <<'PANEL' || fail=1
 import re, sys
 h = open(sys.argv[1]).read()
 i = h.index("Filter them in groups")
-seg = h[i:h.index("Today —", i)]
+# Stops before the `bands:` narration and its own #todo-table call, a second
+# panel in this same section — the assertions below are about the first one.
+seg = h[i:h.index("narrows the same panel to band 0 alone", i)]
 
 bad = 0
 def note(m):
@@ -255,7 +257,7 @@ def rows_of(seg):
 # carries a pill. This is the assertion that would catch the knob wired the
 # wrong way round.
 i = h.index("Filter them in groups")
-table_rows = rows_of(h[i:h.index("Today —", i)])
+table_rows = rows_of(h[i:h.index("narrows the same panel to band 0 alone", i)])
 if any("panel-pill" in r for r in table_rows):
     note("a #todo-table row carries a panel-pill; badge-pills should default off")
 

@@ -254,6 +254,12 @@ an empty cell.
 
 #todo-table(today: TODAY, visible: 6, noun: "open todos")
 
+`bands: (0,)` narrows the same panel to band 0 alone — overdue, due today or
+tomorrow, at the hottest priority in use, or in progress — without touching
+how any row earns its band.
+
+#todo-table(today: TODAY, bands: (0,), noun: "todos", visible: none)
+
 == Today — `#today-panel`
 
 Where the panel above lists everything open, this one answers a narrower

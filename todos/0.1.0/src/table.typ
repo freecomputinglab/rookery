@@ -310,6 +310,20 @@
   // IT NEEDS A `today:` for the same reason `countdown:` does — with no reference date
   // no row is measured, so nothing is dropped and no overdue band is drawn.
   overdue: true,
+  // WHICH BANDS ARE LISTED. `auto` (the default) is all of them. An array of
+  // band numbers keeps only those: `bands: (0,)` is a day view — what is
+  // overdue, due today or tomorrow, at the hottest priority in use, in
+  // progress, or named by `hoist:` — and nothing else.
+  //
+  // A ROW'S BAND IS DECIDED AGAINST THE WHOLE PANEL, then filtered on. The
+  // priority half of the ladder is a rung on the scale of priorities this
+  // panel lists, so narrowing the rows first would redraw the scale from the
+  // survivors and make every one of them rung 0.
+  //
+  // IT NEEDS A `today:` to mean what it says. With no reference date no row is
+  // measured, every row's date band is the coolest one, and `bands: (0,)`
+  // keeps only the in-progress, hoisted and top-priority rows.
+  bands: auto,
   // WHAT AN UNDATED ROW DOES WITH ITS PRIORITY. `true` gives the priority both of the
   // jobs a date would have done: it ORDERS the undated rows among themselves (the
   // highest priority first, an unprioritised row last) and it stands IN THE DATE CELL
@@ -368,6 +382,11 @@
     message: "@rookery/todos: #todo-table's `order` must be \"urgency\" (band by "
       + "countdown and priority, the default), \"newest\" (the most recent date "
       + "first) or \"soonest\" (the earliest first) — got " + repr(order),
+  )
+  assert(
+    bands == auto or type(bands) == array,
+    message: "@rookery/todos: #todo-table's `bands` must be `auto` (every band) "
+      + "or an array of band numbers, as in `bands: (0,)` — got " + repr(bands),
   )
 
   let all = if rows != none { rows } else { todos() }
@@ -460,6 +479,7 @@
       )
     })
     .filter(r => overdue or not _past(r.at("when-date", default: none), today))
+    .filter(r => bands == auto or r.band in bands)
 
   let draw = if render != none { render } else {
     r => {

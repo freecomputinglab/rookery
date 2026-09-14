@@ -563,6 +563,27 @@ overdue washes above: with none passed, every row's date-band is the coolest
 one and the order falls back to the priority bands alone, with dated rows
 first inside each — not an error, just a coarser order.
 
+**`bands:` narrows the panel to the bands named**, an array of band numbers —
+`bands: (0,)` keeps only band 0, the default `auto` keeps every band. A row's
+band is still decided against the whole panel first, so trimming the list to
+one band never redraws the priority scale from the rows left behind. A day
+view is band 0 with nothing else changed:
+
+```typst
+#todo-table(
+  today: TODAY,
+  bands: (0,),
+  badge-pills: true,
+  visible: none,
+  placeholder: "Filter today",
+  empty: [Nothing for today.],
+)
+```
+
+The four extra arguments are what make this read as a day view rather than a
+worklist: every badge pressable, no scroll box, and its own placeholder and
+empty text.
+
 Pass `facets:` to narrow the groups — `facets: ("epic", "state", "priority")` drops
 the tag pills — and `pill-rows:` to lay the remaining ones out differently. Its
 entries are `(label: <content or none>, facets: (<group names>))`, one per line, the

@@ -7,7 +7,7 @@ labels:
 - feat-todo-band-order
 deps:
 - blocked-by:rk-add-a-hoist-predicate-to-todo-table-7ccfc18f
-closed: false
+closed: true
 ---
 `#todo-table` computes a band per row and orders by it, but always lists every
 band. Add a `bands:` parameter so a page can show one band alone — which is
