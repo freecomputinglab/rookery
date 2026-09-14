@@ -4,7 +4,7 @@
 // this demo exists to exercise: the name is rookery's, the version here knows about
 // todos, and importing it from the wrapper is the whole of opting in.
 #import "@rookery/todos:0.1.0": (
-  done, epic, today-panel, todo, todo-graph-view, todo-table, todos-blocked,
+  done, epic, todo, todo-graph-view, todo-table, todos-blocked,
   todos-list, todos-ready, todos-search, todos-stale, todos-stats,
   todos-validate, window,
 )
@@ -82,7 +82,7 @@ dates are one concept owned by one package.
 
 A todo SCHEDULED weeks ago and still open. `is-scheduled-now` asks whether
 the date has arrived, not whether it is today — so a schedule from July is
-still `#today-panel`'s problem for as long as this stays open.
+still the top band's problem for as long as this stays open.
 
 #todo(
   "mirror",
@@ -100,8 +100,9 @@ A todo with a DEADLINE, from the same package.
   tags: entries(deadline: datetime(year: 2026, month: 9, day: 15)),
 )[Ready now, and due next month.]
 
-A todo whose DEADLINE FALLS TODAY — the boundary `#today-panel`'s default
-`horizon: 0` draws: due today, exactly, neither yet upcoming nor overdue.
+A todo whose DEADLINE FALLS TODAY — well inside the top band's countdown
+boundary, which reaches through tomorrow rather than stopping at today
+exactly.
 
 #todo(
   "renew",
@@ -260,18 +261,19 @@ how any row earns its band.
 
 #todo-table(today: TODAY, bands: (0,), noun: "todos", visible: none)
 
-== Today — `#today-panel`
+== Today — `bands: (0,)`
 
-Where the panel above lists everything open, this one answers a narrower
-question: what is due today, what is already late, what was scheduled and
-never done, and whatever is prioritised over everything else regardless of
-its date. `renew` is due exactly today; `invoice` is three weeks overdue;
+Where the panel above lists everything open, `bands: (0,)` narrows it to a
+single question: what is due today or tomorrow, what is already late, what
+was scheduled and never done, and whatever is prioritised over everything
+else regardless of its date. `renew` is due exactly today — a deadline
+landing tomorrow reads in this band too; `invoice` is three weeks overdue;
 `mirror` was scheduled for July and is still open, so it counts as today's
 problem however long ago that date arrived; `ship`, this corpus's one
 priority-9 todo, joins on priority alone. `retro` stays off the list — its
 own scheduled date is in December, and that has not arrived yet.
 
-#today-panel(today: TODAY, noun: "todos")
+#todo-table(today: TODAY, bands: (0,), badge-pills: true, visible: none, noun: "todos")
 
 == The dependency graph
 

@@ -195,10 +195,10 @@
    * 18%, under the weakest band's 22%, because this wash sits UNDERNEATH the date
    * cell's and the two have to stay tellable apart.
    *
-   * BOTH LIST SHAPES. `#todo-table` and `#today-panel` build rows through `#panel`,
-   * whose `row-class:` gives an `idea-row`; `#todos-list` and its siblings build
-   * theirs through `_row-classes`, which gives a `todo-row`. Both then carry
-   * `idea-tag-<key>` for every tag the todo wears.
+   * ONE LIST SHAPE builds `idea-row`: `#todo-table` builds rows through
+   * `#panel`, whose `row-class:` gives it. `#todos-list` and its siblings
+   * build theirs through `_row-classes` instead, which gives a `todo-row`.
+   * Both then carry `idea-tag-<key>` for every tag the todo wears.
    *
    * The padding and its matching negative margin are the date band's own device:
    * the wash needs room around the text without moving the row off the alignment
@@ -217,7 +217,7 @@
   /* THE LABEL, in the hue the row is washed with. `idea-tag-in-progress` is the
    * class both badge shapes already wear — @rookery/core's row chip under the
    * default `badge-pills: false`, @rookery/search's filter pill under
-   * `#today-panel`'s `badge-pills: true`. NO `todo-` PREFIX here where the row's
+   * `badge-pills: true`. NO `todo-` PREFIX here where the row's
    * class above has one: this comes from the state facet's VALUE, which is bare,
    * and that one from the tag KEY, which is namespaced. */
   .idea-tag-in-progress {

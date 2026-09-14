@@ -100,7 +100,7 @@
 // 6. Closing is real, not a flag — both a settled cfp and a merely-lapsed one
 //    (deadline behind us, nothing ever sent) must show `has-stage(.., CLOSED-STAGE)`
 //    true on their OWN minted tags, because `@rookery/todos`' `is-closed` (and
-//    everything built on it, like a consumer's `today-panel`) reads exactly that
+//    everything built on it, like a consumer's `todo-table`) reads exactly that
 //    entry, not a flat boolean this package could get away with faking.
 #cfp(
   "closing-settled",

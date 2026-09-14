@@ -201,9 +201,9 @@ if not bad:
 sys.exit(bad)
 PANEL
 
-# `#today-panel`'s SELECTION, asserted on the isolated section rather than the
-#    whole page — `#todo-table` above already lists every one of these todos,
-#    so a check against the full page would pass even if the day view selected
+# BAND 0's SELECTION, asserted on the isolated section rather than the whole
+#    page — `#todo-table` above already lists every one of these todos, so a
+#    check against the full page would pass even if `bands: (0,)` selected
 #    nothing of its own. `retro`'s absence is the one negative claim: its
 #    scheduled date is in December, and `is-scheduled-now` must not read that
 #    as arrived.
@@ -222,25 +222,26 @@ rows = re.findall(r'class="idea-row-title" href="ideas/([a-z-]+)\.html"', seg)
 want = {"mirror", "invoice", "renew", "ship", "migrate"}
 got = set(rows)
 if got != want:
-    note(f"the today panel lists {sorted(got)}, wanted {sorted(want)} — the "
+    note(f"band 0 lists {sorted(got)}, wanted {sorted(want)} — the "
          f"scheduled-in-the-past todo (mirror), the overdue one (invoice), the "
          f"one due exactly today (renew), the corpus's one priority-9 todo "
          f"(ship), and the one being worked on right now (migrate)")
 if "retro" in got:
-    note("retro (scheduled for December, not yet arrived) appears in the today panel")
+    note("retro (scheduled for December, not yet arrived) appears in band 0")
 
 if not bad:
-    print(f"  today-panel: {sorted(got)}")
+    print(f"  band 0: {sorted(got)}")
 sys.exit(bad)
 TODAY
 
-# `badge-pills:` — OFF on `#todo-table`, ON on `#today-panel`. Asserted on the
-#    OUTPUT because the whole claim is about markup nothing else exercises:
-#    the knob draws every badge in a row's strip as the same pressable
-#    `.panel-pill` the block above the list draws, and it must do that ONLY
-#    in the day view. `ship` is the row to check — it carries both plain tags
-#    (`data-tag=" frontend phd "`, asserted above) — so its row must carry a
-#    pill for each, and no `#todo-table` row must carry a pill at all.
+# `badge-pills:` — OFF on the worklist's `#todo-table` call, ON on the day
+#    view's. Asserted on the OUTPUT because the whole claim is about markup
+#    nothing else exercises: the knob draws every badge in a row's strip as
+#    the same pressable `.panel-pill` the block above the list draws, and it
+#    must do that ONLY where it is passed. `ship` is the row to check — it
+#    carries both plain tags (`data-tag=" frontend phd "`, asserted above) —
+#    so its row must carry a pill for each, and no worklist row must carry a
+#    pill at all.
 python3 - "$H/index.html" <<'PILLS' || fail=1
 import re, sys
 h = open(sys.argv[1]).read()
@@ -261,7 +262,7 @@ table_rows = rows_of(h[i:h.index("narrows the same panel to band 0 alone", i)])
 if any("panel-pill" in r for r in table_rows):
     note("a #todo-table row carries a panel-pill; badge-pills should default off")
 
-# THE DAY VIEW (`#today-panel`, `badge-pills: true`): every badge in a row's
+# THE DAY VIEW (`bands: (0,)`, `badge-pills: true`): every badge in a row's
 # own strip is the same pressable pill the block above the list draws.
 i = h.index("Today —")
 today_rows = rows_of(h[i:h.index("The dependency graph", i)])
@@ -275,14 +276,14 @@ row_pills = [
     for p in re.findall(r'<button type="button" class="panel-pill[^"]*"[^>]*>', r)
 ]
 if not any('data-panel-facet="tag"' in p for p in row_pills):
-    note("no today-panel row carries a tag pill")
+    note("no band-0 row carries a tag pill")
 for p in row_pills:
     if 'aria-pressed="false"' not in p:
         note(f"an in-row pill ships no aria-pressed=\"false\": {p}")
 
 ship_row = next((r for r in today_rows if "ideas/ship.html" in r), None)
 if ship_row is None:
-    note("no today-panel row links to ideas/ship.html")
+    note("no band-0 row links to ideas/ship.html")
 else:
     ship_tags = set(
         re.findall(r'data-panel-facet="tag" data-panel-value="([^"]*)"', ship_row)

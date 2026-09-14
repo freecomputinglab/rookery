@@ -48,8 +48,8 @@ todos     -> core, timeline, search, slipshow
 pinboard  -> core
 ```
 
-`timeline` is `todos`'s heaviest edge — seven files import it:
-`src/today.typ:14`, `src/skin.typ:19-20`, `src/views.typ:21`,
+`timeline` is `todos`'s heaviest edge — six files import it:
+`src/skin.typ:19-20`, `src/views.typ:21`,
 `src/graph.typ:8`, `src/table.typ:32,37`, `src/todo.typ:4`, `src/tags.typ:37`.
 Its `slipshow` edge is one file, `src/deck.typ:27`, and its `search` edge is
 the one file described above, `src/table.typ:30`. `meetings`'s `timeline` edge

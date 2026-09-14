@@ -355,8 +355,9 @@
   // several hundred rows carrying between one and six tags each. See the
   // comment where the strip is built, below, for the fuller argument.
   //
-  // ON BY DEFAULT in `#today-panel`, where a handful of rows are read whole
-  // rather than scrolled, so the grid-width cost above does not apply.
+  // WORTH TURNING ON for a day view — `bands: (0,)` — where a handful of
+  // rows are read whole rather than scrolled, so the grid-width cost above
+  // does not apply.
   //
   // DOES NOTHING under a caller-supplied `render:`, which owns the whole row
   // and never calls the `badges:` this knob changes.

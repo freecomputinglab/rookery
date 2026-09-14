@@ -130,12 +130,12 @@ for the argument in full; this package just inherits it, one level up.
 
 `#cfp` is built on [`@rookery/todos`](../../todos/0.1.0)' own `todo(..)`, not
 a bare tagged note, and that buys a reader two things for free. A cfp shows
-up in `#today-panel`/`#todo-table` with no separate wiring — an open call is
+up in `#todo-table` with no separate wiring — an open call is
 work outstanding, the same as any other todo — and it closes CORRECTLY the
 moment it is answered or its deadline lapses: `#cfp` computes the real close
 date itself (the earliest real answer, or the deadline if it lapsed
 unanswered) and passes it as `todo(..)`'s `done:`, a real dated log entry
-rather than a flag. `is-closed`, `#today-panel`, a consumer's own worklists —
+rather than a flag. `is-closed`, `#todo-table`, a consumer's own worklists —
 everything reading that log agrees, because there is only the one log to
 read. `priority:` is `@rookery/todos`' own as well, unchanged: a project
 already running that package's worklists gets its cfps sorted into them

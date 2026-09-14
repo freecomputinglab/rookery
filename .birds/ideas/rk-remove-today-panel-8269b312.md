@@ -7,7 +7,7 @@ labels:
 - feat-todo-band-order
 deps:
 - blocked-by:rk-filter-todo-table-by-band-67fc9bfb
-closed: false
+closed: true
 ---
 `#todo-table(bands: (0,))` now answers the question `#today-panel` was built to
 answer, so the day view is a second implementation of the panel's own top band.

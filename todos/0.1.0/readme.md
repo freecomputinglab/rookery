@@ -448,8 +448,9 @@ the list draws**, and joins the tag group into it at the same time — the two a
 knob because they are one decision: a tag a reader can already see on a row is a tag
 they want to press, and a strip mixing chip-shaped state with pill-shaped state says
 two things in two conventions on one line. `false` (the default here, for the grid
-reason above) keeps every badge a chip and keeps tags off the row entirely; `#today-panel`
-below turns it on, where the strip is a handful of rows rather than a scrolling worklist.
+reason above) keeps every badge a chip and keeps tags off the row entirely;
+`badge-pills: true` is worth it where the strip is a handful of rows read
+whole rather than a scrolling worklist.
 
 **To keep a whole tag family out of the group**, pass `tag-filter:` — a predicate over
 the tag key, which narrows the group and cannot widen it:
@@ -599,76 +600,6 @@ ships by default. `sync: none` — the default — leaves the panel local to the
 page. `@rookery/search`'s readme, under its own `sync:` section, is the
 reference for the parameter shape, the reserved `q` name, and the
 one-key-per-page rule.
-
-## A day view: `#today-panel`
-
-```typst
-#today-panel(today: TODAY, noun: "todos")
-```
-
-Where `#todo-table` lists everything open, `#today-panel` answers the
-narrower question a person actually asks first thing: what is on for today,
-what is being worked on right now, and what is important regardless of its
-date. It lists the union of five things — a todo marked in progress, a
-deadline falling today, a deadline already behind today, a scheduled date
-that has arrived, and whichever priority sits at the top of the open corpus
-— and a todo needs to satisfy only one of them to make the list. Everything
-past the selection is `#todo-table`'s own: the pills, the
-date-cell ramp, the row shape, and every knob that view already takes
-(`rows:`, `filter:`, `facets:`, `pill-rows:`, `sync:`, and the rest), because
-`#today-panel` draws nothing of its own — it hands `#todo-table` a smaller
-list and gets the same widget back. Two defaults change on the way in.
-`visible:` is `none` here where `#todo-table` defaults to `8`: a day view is
-meant to be read whole, not scrolled. `badge-pills:` is `true` here where
-`#todo-table` defaults to `false`: a handful of rows read whole does not pay
-the grid-width cost that default exists to avoid, so every badge in a row's
-strip — including its tags — is drawn as the same pressable pill the block
-above the list draws, and pressing a tag on a row filters the list exactly as
-pressing its twin above does.
-
-**A todo marked in progress is always on the list.** `status: "in-progress"`
-(or its shorthand `active: true`) puts a todo on today's list whatever its
-dates or priority say, and sorts it above every dated row — the same hoist
-`#todo-table` gives an in-progress row everywhere else. It is the one clause
-here with no argument to turn it off: there is no site that wants its day
-view to hide the thing its author has declared they are working on right
-now.
-
-**Overdue work stays on the list by default.** `#todo-table` already paints
-an overdue deadline's date cell solid red; this view keeps that row in front
-of you rather than dropping it, because a day view that quietly hides what
-is already late is worse than none. `overdue: false` removes those rows
-outright, for a site that logs lapsed work elsewhere.
-
-**A scheduled todo counts as "for today" from the day it arrives, not only
-on that day** — `is-scheduled-now` semantics, inherited whole from
-`@rookery/timeline`. A todo scheduled for last month, still open, sits on
-today's list until it closes. This is the one behaviour worth naming before
-it surprises a reader on a live site: "scheduled" here does not mean "due".
-
-Four arguments belong to this view alone:
-
-- **`horizon:`** widens the deadline half only — how many days past today
-  still count as due soon, passed straight to `is-upcoming`'s `within:`. `0`
-  by default: due today, exactly. It does not touch the overdue, scheduled,
-  or priority clauses.
-- **`overdue:`** whether a deadline already behind you is listed at all.
-  `true` by default, for the reason above.
-- **`priority:`** which todos join on importance alone, regardless of date.
-  `auto` (the default) reads the topmost priority actually carried by the
-  rows this panel is choosing FROM — the open corpus after `filter:`, not
-  the narrower "on for today" list this same call is about to produce,
-  which would make the band depend on its own result. An integer floors it
-  explicitly: every row at that priority or above joins, whatever `auto`
-  would have picked. `none` turns the whole priority half off, leaving a
-  plain dated list.
-- **`also:`** a predicate that ORs extra rows IN — the one hole this
-  package cannot fill for itself, for a site with a reason a todo belongs on
-  today's list that no date or priority captures. It is easy to reach for
-  the wrong argument here: `filter:` narrows the corpus this panel chooses
-  from before the day's question is even asked, so it can only ever remove
-  rows; `also:` widens the answer to that question, adding rows back in from
-  among whatever `filter:` left standing. `none` (the default) adds none.
 
 ## Decks: #todo-slipshow
 
