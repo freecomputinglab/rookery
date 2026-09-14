@@ -63,12 +63,15 @@
 // WHICH BAND A ROW READS IN: the sooner of the two ladders, so the hottest
 // priority rises to the top whatever its date and a deadline landing tomorrow
 // rises there whatever its priority. An in-progress row is band 0 outright —
-// someone is on it now, which is the one fact neither ladder can express.
+// someone is on it now, which is the one fact neither ladder can express —
+// and so is any row `hoist:` says yes to, a site's own reason for urgency
+// that no date and no priority can capture.
 //
 // `rungs: _BANDS` rather than `priority-rung`'s own default of three: the
 // priority ladder has to be as long as the date ladder for the two to
 // interleave, and the coolest band is where an unprioritised row lands.
-#let _band(row, days, scale) = {
+#let _band(row, days, scale, hoist: none) = {
+  if hoist != none and hoist(row) { return 0 }
   if row.status == "in-progress" { return 0 }
   let c = _tl.countdown(days)
   let date-band = if c == none { _BANDS - 1 } else { _LEVEL-BAND.at(c.level) }
@@ -254,6 +257,16 @@
   // is always right — a closed todo is not outstanding work. A site with a second way
   // of finishing (a call answered before its deadline lapsed, say) passes its own.
   filter: none,
+  // ROWS THIS SITE PUTS IN THE TOP BAND, as a predicate over a row —
+  // `r => bool`, `none` for none of them. A site may have a reason a todo is
+  // urgent that no date and no priority captures — a hand-set tag meaning "on
+  // for today whatever the dates say" — and band 0 is otherwise derived
+  // entirely from the two ladders.
+  //
+  // NOT `filter:`, which decides which rows are rows at all. This one cannot
+  // add a row or remove one; it only moves a row that is already listed into
+  // the top band.
+  hoist: none,
   // THE DATE IS AN ADAPTER, as it is in rookery-search's own panel. The default is the
   // todo-shaped one: a deadline where there is one, else the scheduled date, which is
   // the question a list of outstanding work is actually asking.
@@ -413,7 +426,7 @@
       let stamp = if d == none { none } else { d.display("[year][month][day]") }
       let band = _band(r, if d == none or today == none { none } else {
         _tl.days-until(d, today)
-      }, scale)
+      }, scale, hoist: hoist)
       (
         ..r,
         state: state,

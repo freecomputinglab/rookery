@@ -559,6 +559,18 @@
 #assert.eq(_band((status: "open", priority: 0), none, (4, 3, 2)), 3)
 // In progress outranks both ladders.
 #assert.eq(_band((status: "in-progress", priority: 0), none, (4, 3, 2)), 0)
+// A hoisted row is band 0 with no date and no priority at all.
+#assert.eq(
+  _band((status: "open", priority: 0, tags-dict: ("today": none)), none, (4, 3, 2), hoist: r => "today" in r.tags-dict),
+  0,
+)
+// The predicate only promotes: a row it says nothing about keeps its ladder band.
+#assert.eq(
+  _band((status: "open", priority: 0, tags-dict: (:)), none, (4, 3, 2), hoist: r => "today" in r.tags-dict),
+  3,
+)
+// `hoist: none` is the default and changes nothing.
+#assert.eq(_band((status: "open", priority: 0, tags-dict: (:)), none, (4, 3, 2)), 3)
 
 // ---- _sort-key — what puts a row ahead of another one --------------------
 //

@@ -7,7 +7,7 @@ labels:
 - feat-todo-band-order
 deps:
 - blocked-by:rk-band-todo-table-by-urgency-and-priority-93eeda98
-closed: false
+closed: true
 ---
 `#todo-table`'s band 0 is derived from dates and priority, and that is every
 reason a todo can be urgent **except** the one only the site knows: a hand-set

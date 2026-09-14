@@ -535,6 +535,19 @@ use is band 0 however far out its date sits, or if it has none at all. An
 in-progress row is band 0 outright — someone is already on it, which is the
 one fact neither ladder can express.
 
+**`hoist:` puts a row in band 0 for a reason of the site's own**, as a
+predicate over a row — `r => bool`. Neither ladder can read a hand-set tag
+meaning "on for today whatever the dates say", so a site with such a
+convention passes it here rather than hand-rolling the band itself:
+
+```typst
+#todo-table(today: TODAY, hoist: r => "today" in r.tags-dict)
+```
+
+It only promotes: a row `hoist:` says nothing about keeps whichever band the
+two ladders already put it in, and there is no way to use it to sink a row to
+a cooler band.
+
 **Within one band**, rows read in-progress first, then the dated rows earliest
 first, then the undated rows by priority — the same priority order the date
 column's own undated sort above uses. That middle rule is the point of the
