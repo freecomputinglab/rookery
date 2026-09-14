@@ -1,0 +1,7 @@
+default:
+    @echo "@rookery/cfps: pure Typst package, entrypoint is src/lib.typ directly — nothing to build"
+
+test:
+    mkdir -p test/build
+    typst compile --features html --root . --format html test/smoke.typ test/build/smoke.html
+    @echo "smoke OK"

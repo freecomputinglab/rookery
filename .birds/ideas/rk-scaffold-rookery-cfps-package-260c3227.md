@@ -6,7 +6,7 @@ priority: 2
 labels:
 - feat-cfps-package
 deps: []
-closed: false
+closed: true
 ---
 ## What this is
 
