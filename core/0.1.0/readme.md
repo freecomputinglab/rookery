@@ -678,22 +678,22 @@ installs. A heading worth naming a note after is worth writing in plain
 words; a heading built entirely from a reference has nothing else to slug on
 and fails `_slug`'s own empty-name check.
 
-| | `none`/`auto` (default) | fixed value | `heading` |
-| --- | --- | --- | --- |
-| `title:` | no title (today's behaviour) | the same content on every note | each note's own heading, as content |
-| `name:` | the package counter (today's behaviour) | — not accepted; see below | a slug of each note's own heading |
+| | `none`/`auto` (default) | fixed value | `heading` | function |
+| --- | --- | --- | --- | --- |
+| `title:` | no title (today's behaviour) | the same content on every note | each note's own heading, as content | — not available; use `heading` or `none` |
+| `name:` | the package counter (today's behaviour) | — not accepted; see below | a slug of each note's own heading | `(content, labels) => string` — a custom id computed per section |
 
 An id minted from a heading survives inserting or reordering sections —
 unlike the package counter, which renumbers everything after the insertion
 point — which is the reason to prefer `name: heading` for anything worth
 linking to.
 
-Both sentinels are **heading mode only**: with `separator: par` or `separator:
-none` there is no heading to read, and either one there fails with a panic. A
-fixed `name:` is refused too, for a different reason — it would mint every
-note in the body under one id — so `name:` accepts only `auto` or `heading`.
-`title:` keeps accepting a fixed value, exactly as it always has: every note
-minted gets that same title, sentinel or not.
+All heading-reading forms are **heading mode only**: with `separator: par` or
+`separator: none` there is no heading to read, and any of them there fails with
+a panic. A fixed `name:` is refused too, for a different reason — it would mint
+every note in the body under one id — so `name:` accepts only `auto`, `heading`,
+or a function. `title:` keeps accepting a fixed value, exactly as it always has:
+every note minted gets that same title, sentinel or not.
 
 Two sections in one `#ideate` call whose headings slug to the same name fail
 with a panic naming both, rather than silently minting one over the other. A
@@ -734,6 +734,73 @@ label, so a `<tag:x>` written there is ordinary Typst and does nothing special.
 Two sections sharing an identical `<tag:x>` label both tag their own note `x`
 without conflict — a repeated Typst label is only ever a problem for a `#ref`
 to it, and `#ideate` writes none.
+
+### Naming sections with a custom function
+
+`name:` accepts a function that computes each section's id from its heading and
+labels, substituting for both the `heading` sentinel and the package counter.
+The function receives two arguments:
+
+- **`content`**: the separating heading's own body as raw Typst content — the
+  same value `title: heading` passes to `title:`. The caller decides how to
+  project it: lowercasing and stripping punctuation (via `slug()`, exported from
+  this package), keeping structure, or using it to index a table are all valid.
+- **`labels`**: the heading's own Typst labels as an ARRAY. `()` for a bare
+  heading, `(<tag:waterline>,)` for a single labelled one. A Typst element
+  carries at most one label today, so the array is never longer than 1; it is an
+  array so the signature does not change if that ever stops being true, and so
+  a lambda never has to guard against two types.
+
+The function must return the note's id as a **non-empty string**. Everything a
+caller does with the heading content is their own business — whether it includes
+a `#ref`, how it handles markup, and how it writes the result back are all
+decisions a caller makes, and the function calls the shots.
+
+```typst
+#import "@rookery/core:0.1.0": ideate, slug
+
+#show: ideate.with(
+  separator: heading.where(level: 2),
+  title: heading,
+  name: (content, labels) => "26w37-" + slug(content),
+)
+
+== Waterline <tag:waterline>
+
+Minted as `idea:26w37-waterline`.
+```
+
+The preamble group (content before the first separating heading) has no heading
+to pass to the lambda and still mints under the package counter, exactly as it
+does under `name: heading`. A lambda names the sections; the preamble is
+unaffected.
+
+**A `#ref` inside the heading contributes nothing to the lambda's input** —
+`content` is the heading's raw body, and what the lambda sees of a reference is
+its marker element, with no registry to resolve it against. A caller who wants
+to resolve one themselves (e.g., to slugify a reference's target name instead of
+its marker) can do so, but doing so inside a function that is itself about to
+add to the registry carries a measurable risk: the registry's value can then
+depend on this very node's own output, breaking `ideate`'s convergence. Read
+`ideate.typ`'s own comments at line 460 for the measured failure, and do not
+attempt it unless you have a very specific reason.
+
+`slug()` is exported from this package and accepts either content or a string,
+returning a URL-safe slug (lowercased, non-alphanumeric runs collapsed to one
+hyphen, leading and trailing hyphens removed). It is the projection `ideate`
+uses for its own `name: heading` sentinel, and a convenient default for any
+lambda that wants to slug the heading text:
+
+```typst
+name: (content, labels) => slug(content)
+```
+
+is identical to `name: heading`.
+
+Two sections that call the lambda and produce the same id fail with a panic
+naming both, just as `name: heading` does. A second `#ideate` call, or another
+chapter elsewhere in the document, is not covered by this check — see "Flat
+ids, and why" below for cross-document id collisions in general.
 
 ### Its two inverted defaults
 

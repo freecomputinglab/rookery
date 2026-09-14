@@ -304,20 +304,23 @@
   // to split (the single-paragraph early return below).
   let title-from-heading = type(title) == function and title == heading
   let name-from-heading = type(name) == function and name == heading
-  if name != auto and not name-from-heading {
+  let name-fn = type(name) == function and not name-from-heading
+  if name != auto and not name-from-heading and not name-fn {
     panic(
-      "ideate: `name:` must be `auto` (the package counter — the default) or "
+      "ideate: `name:` must be `auto` (the package counter — the default), "
         + "the sentinel `heading` (name every note after the heading that "
-        + "starts it). A fixed name would mint every note in this body under "
+        + "starts it), or a function of `(content, labels)` returning the note's "
+        + "id as a string. A fixed name would mint every note in this body under "
         + "one id. Got: " + repr(name),
     )
   }
-  if (title-from-heading or name-from-heading) and not heading-mode {
+  if (title-from-heading or name-from-heading or name-fn) and not heading-mode {
     panic(
-      "ideate: `title: heading` and `name: heading` both read the heading "
-        + "that STARTS each note, so they need `separator: heading.where(level: "
-        + "2)` (or another level) — with the separator actually given here "
-        + "there is no heading to read. Got separator: " + repr(separator),
+      "ideate: `title: heading`, `name: heading`, and `name:` functions all "
+        + "read the heading that STARTS each note, so they need "
+        + "`separator: heading.where(level: 2)` (or another level) — with the "
+        + "separator actually given here there is no heading to read. Got "
+        + "separator: " + repr(separator),
     )
   }
 
@@ -438,7 +441,7 @@
       let tag = if lead-heading == none { none } else { _label-tag(lead-heading.at("label", default: none)) }
       let group-tags = if tag == none { base-tags } else { base-tags + ((tag): none) }
 
-      if not (title-from-heading or name-from-heading) or lead-heading == none {
+      if not (title-from-heading or name-from-heading or name-fn) or lead-heading == none {
         // Neither sentinel reads the heading, or this group (the preamble) has
         // none of its own to title or name by — minted exactly as it would be
         // with neither sentinel given, carrying its own tag (if any) either way.
@@ -446,31 +449,45 @@
       } else {
         let rest = (group.slice(0, lead-i) + group.slice(lead-i + 1)).join()
         let title-arg = if title-from-heading { (title: lead-heading.body) } else { (:) }
-        if not name-from-heading {
+        if not (name-from-heading or name-fn) {
           mint(rest, ..title-arg, tags: group-tags)
         } else {
-          // `_plain`, NOT `_plain-with(.., _ref-text(reg))`: resolving a `#ref`
-          // inside the heading needs the registry's value, and this call is
-          // itself about to ADD to that same registry — reading it here
-          // MEASURED as a rheo build that never converges (`document did not
-          // converge within five attempts`), the registry's value now
-          // depending on this very node's own output. A `#ref` inside a
-          // heading therefore contributes nothing to its slug, exactly as
-          // `_plain` treats one anywhere else with no registry to hand. The
-          // heading's TITLE, above, is unaffected — it stays real content and
-          // is resolved by whatever `show ref:` rule the document installs,
-          // same as any other note's title.
-          let plain-text = _plain(lead-heading.body)
-          let slug = _slug(plain-text)
-          if slug in seen-slugs {
+          // Both paths produce one name-value string, then share the collision
+          // check and the mint call.
+          let name-value = if name-fn {
+            let labels = (lead-heading.at("label", default: none),).filter(l => l != none)
+            let out = (name)(lead-heading.body, labels)
+            if type(out) != str or out == "" {
+              panic(
+                "ideate: `name:`'s function must return this note's id as a "
+                  + "non-empty string. Got: " + repr(out),
+              )
+            }
+            out
+          } else {
+            // `_plain`, NOT `_plain-with(.., _ref-text(reg))`: resolving a `#ref`
+            // inside the heading needs the registry's value, and this call is
+            // itself about to ADD to that same registry — reading it here
+            // MEASURED as a rheo build that never converges (`document did not
+            // converge within five attempts`), the registry's value now
+            // depending on this very node's own output. A `#ref` inside a
+            // heading therefore contributes nothing to its slug, exactly as
+            // `_plain` treats one anywhere else with no registry to hand. The
+            // heading's TITLE, above, is unaffected — it stays real content and
+            // is resolved by whatever `show ref:` rule the document installs,
+            // same as any other note's title.
+            let plain-text = _plain(lead-heading.body)
+            _slug(plain-text)
+          }
+          if name-value in seen-slugs {
             panic(
               "ideate: two sections in this body slug to the same name, \""
-                + slug + "\" — retitle \"" + plain-text + "\" (or its earlier "
-                + "namesake) so each mints under its own id.",
+                + name-value + "\" — retitle the section, or its earlier "
+                + "namesake so each mints under its own id.",
             )
           }
-          seen-slugs.push(slug)
-          mint(slug, rest, ..title-arg, tags: group-tags)
+          seen-slugs.push(name-value)
+          mint(name-value, rest, ..title-arg, tags: group-tags)
         }
       }
     }

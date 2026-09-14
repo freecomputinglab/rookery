@@ -147,8 +147,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">39 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 39 ideas"
+  grep -q 'idea-index-count">41 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 41 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -604,6 +604,21 @@ fi
 if grep -q 'idea-tag-sec"' "$H/ideas/testing-edge-cases.html"; then
   note "ideas/testing-edge-cases.html's non-tag: label <sec:one> was misread as a tag"
 fi
+
+# 25. `#ideate`'s FUNCTION FORM FOR `name:` (`content/ideated-named.typ`). A
+#     lambda receives each section's heading and labels, returns a custom id.
+#     The lambda encodes `labels.len()` in the id, making the array argument
+#     observable from a PATH. Sections with and without labels mint with
+#     different counts, proving both branches of the lambda call work.
+p="$H/ideas/wk-1-waterline.html"
+[ -f "$p" ] || note "no minted page at ideas/wk-1-waterline.html — `name:` function did not build this id"
+grep -q '<title>Waterline</title>' "$p" ||
+  note "ideas/wk-1-waterline.html's <title> is not 'Waterline' — the function names the note without changing its title"
+
+p="$H/ideas/wk-0-rheo.html"
+[ -f "$p" ] || note "no minted page at ideas/wk-0-rheo.html — `name:` function did not build this id"
+grep -q '<title>Rheo</title>' "$p" ||
+  note "ideas/wk-0-rheo.html's <title> is not 'Rheo'"
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"

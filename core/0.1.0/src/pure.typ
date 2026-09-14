@@ -751,14 +751,17 @@
   let out = lower(s).replace(regex("[^a-z0-9]+"), "-").trim("-")
   if out == "" {
     panic(
-      "@rookery/core: `#ideate`'s `name: heading` could not build a name "
-        + "from the heading " + repr(s) + " — nothing is left once "
-        + "punctuation is stripped. Retitle the section, or drop "
-        + "`name: heading` for this call.",
+      "@rookery/core: text could not be slugged to a name — nothing is left once "
+        + "punctuation is stripped. Got: " + repr(s),
     )
   }
   out
 }
+
+// Public slug function: converts content or a string to a URL-safe slug.
+// Takes raw content (like a heading's body) or a string, and returns the
+// slugged form suitable for use as an id component.
+#let slug(content) = _slug(_plain(content))
 
 // The tag name carried by a `<tag:x>` label on one of `#ideate`'s separating
 // headings, or `none` when there is no such tag — no label at all, a label of

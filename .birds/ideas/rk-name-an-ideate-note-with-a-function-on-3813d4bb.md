@@ -6,7 +6,7 @@ priority: 3
 labels:
 - feat-ideate-name-fn
 deps: []
-closed: false
+closed: true
 ---
 `#ideate`'s `name:` accepts `auto` (the package counter) or the sentinel `heading`
 (a slug of the heading that starts each note) and nothing else — a fixed string is

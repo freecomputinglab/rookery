@@ -21,7 +21,7 @@
   _is-inline, _join, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
   _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _label-tag,
-  footnote, idea, note-href, note-path,
+  footnote, idea, note-href, note-path, slug,
   tag-index, window,
 )
 
@@ -597,6 +597,14 @@
 // empty string — a caller error, not a silent id. Not asserted here: a panic
 // aborts the whole compile, so this file's `assert.eq` harness (which needs
 // the compile to finish) cannot observe one — see this file's own header.
+
+// ---- slug — public function to slug content or strings ---------------------
+//
+// `slug` takes raw content (like a heading's body) or a string and returns the
+// URL-safe slugged form, the same as `_slug` but accepting content directly.
+#assert.eq(slug([Waterline]), "waterline")
+#assert.eq(slug([Week 37: Intro]), "week-37-intro")
+#assert.eq(slug("already a string"), "already-a-string")
 
 // ---- _label-tag — a `<tag:x>` label on a group's separating heading -------
 //
