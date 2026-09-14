@@ -310,31 +310,22 @@
   // dictionary, rather than reconciling four different input shapes per group.
   let base-tags = _norm-tags(tags)
 
-  // `title:`/`name:` accept the sentinel element function `heading` — the
-  // same value `separator:` itself already takes as `heading.where(level:
-  // 2)`, so a document naming both reads as one idea rather than two
-  // unrelated conventions. Classified here, beside `separator:`, and for the
-  // same reason: a bad argument must be rejected even on a body with nothing
-  // to split (the single-paragraph early return below).
-  let title-from-heading = type(title) == function and title == heading
-  let name-from-heading = type(name) == function and name == heading
-  let name-fn = type(name) == function and not name-from-heading
-  if name != auto and not name-from-heading and not name-fn {
+  let title-fn = type(title) == function
+  let name-fn = type(name) == function
+  if name != auto and not name-fn {
     panic(
-      "ideate: `name:` must be `auto` (the package counter — the default), "
-        + "the sentinel `heading` (name every note after the heading that "
-        + "starts it), or a function of `(content, labels)` returning the note's "
-        + "id as a string. A fixed name would mint every note in this body under "
-        + "one id. Got: " + repr(name),
+      "ideate: `name:` must be `auto` (the package counter — the default) or a "
+        + "function of `(content, labels)` returning the note's id as a string. "
+        + "A fixed name would mint every note in this body under one id. Got: "
+        + repr(name),
     )
   }
-  if (title-from-heading or name-from-heading or name-fn) and not heading-mode {
+  if (title-fn or name-fn) and not heading-mode {
     panic(
-      "ideate: `title: heading`, `name: heading`, and `name:` functions all "
-        + "read the heading that STARTS each note, so they need "
-        + "`separator: heading.where(level: 2)` (or another level) — with the "
-        + "separator actually given here there is no heading to read. Got "
-        + "separator: " + repr(separator),
+      "ideate: `title:` and `name:` functions both read the heading that "
+        + "STARTS each note, so they need `separator: heading.where(level: 2)` "
+        + "(or another level) — with the separator actually given here there is "
+        + "no heading to read. Got separator: " + repr(separator),
     )
   }
 
@@ -345,10 +336,9 @@
   // name, the permalink points at a sequence number that means nothing to a
   // reader. Both are ordinary `#idea` arguments; pass `true` to get them back.
   //
-  // `title:` is forwarded only when it is NOT the `heading` sentinel — the
-  // sentinel names where to find each note's own title, not a title itself,
-  // and forwarding it verbatim would hand `#idea` an element function to
-  // render as content. Forwarding `title: none` when it was never given is
+  // `title:` is forwarded only when it is NOT a function — a function
+  // computes a PER-SECTION title, so it must not be forwarded as a fixed
+  // value to every group. Forwarding `title: none` when it was never given is
   // identical to today's behaviour: `#idea`'s own default for that argument
   // is already `none`.
   //
@@ -361,7 +351,7 @@
     show-frame: show-frame,
     show-id: show-id,
     tags: base-tags,
-    ..(if title-from-heading { (:) } else { (title: title) }),
+    ..(if title-fn { (:) } else { (title: title) }),
     ..args,
   )
 
@@ -457,21 +447,21 @@
       })
       let group-tags = base-tags + beacon-tags
 
-      if not (title-from-heading or name-from-heading or name-fn) or lead-heading == none {
-        // Neither sentinel reads the heading, or this group (the preamble) has
+      if not (title-fn or name-fn) or lead-heading == none {
+        // Neither function computes the heading, or this group (the preamble) has
         // none of its own to title or name by — minted exactly as it would be
-        // with neither sentinel given, carrying its own tag (if any) either way.
+        // with neither function given, carrying its own tag (if any) either way.
         mint(_strip-beacons(group).join(), tags: group-tags)
       } else {
         let rest = _strip-beacons(group.slice(0, lead-i) + group.slice(lead-i + 1)).join()
-        let title-arg = if title-from-heading { (title: lead-heading.body) } else { (:) }
-        if not (name-from-heading or name-fn) {
+        let labels = (lead-heading.at("label", default: none),).filter(l => l != none)
+        let title-arg = if title-fn { (title: (title)(lead-heading.body, labels)) } else { (:) }
+        if not name-fn {
           mint(rest, ..title-arg, tags: group-tags)
         } else {
           // Both paths produce one name-value string, then share the collision
           // check and the mint call.
           let name-value = if name-fn {
-            let labels = (lead-heading.at("label", default: none),).filter(l => l != none)
             let out = (name)(lead-heading.body, labels)
             if type(out) != str or out == "" {
               panic(

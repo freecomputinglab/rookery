@@ -7,7 +7,7 @@ labels:
 - feat-ideate-title-name-fn
 deps:
 - blocked-by:rk-ideate-tags-via-metadata-beacon-8c4920a3
-closed: false
+closed: true
 ---
 # Drop the `heading` sentinel: `title:`/`name:` take content or a function
 

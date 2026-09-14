@@ -1,5 +1,5 @@
 #import "lib.typ": demo
-#import "@rookery/core:0.1.0": ideate, ideate-tag
+#import "@rookery/core:0.1.0": ideate, ideate-tag, slug
 
 #show: demo
 
@@ -11,7 +11,7 @@
 // `ideas/`, and for the source heading NOT surviving into that page's body —
 // `#idea` already renders `title` as the note's own heading, so leaving the
 // source heading in place too would print it twice.
-#show: ideate.with(separator: heading.where(level: 2), title: heading, name: heading)
+#show: ideate.with(separator: heading.where(level: 2), title: (content, labels) => content, name: (content, labels) => slug(content))
 
 == Literate programming
 

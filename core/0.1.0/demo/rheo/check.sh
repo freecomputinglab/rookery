@@ -557,11 +557,11 @@ grep -q '<title>About Cited note</title>' "$R" ||
   note "ref-titled.html's <title> does not resolve its title's reference"
 
 
-# 23. `#ideate`'s HEADING AS TITLE AND NAME (`content/ideated.typ`). Every `==`
+# 23. `#ideate`'s FUNCTION-FORM TITLE AND NAME (`content/ideated.typ`). Every `==`
 #     section there mints its own note, titled and named after its own
-#     heading rather than sharing one fixed title and the package's
-#     auto-incrementing counter — so the pages below are named by SLUG, never
-#     by a sequence number.
+#     heading via function forms `(content, labels) => ...` rather than sharing
+#     one fixed title and the package's auto-incrementing counter — so the pages
+#     below are named by SLUG, never by a sequence number.
 declare -A IDEATED_TITLES=(
   [literate-programming]="Literate programming"
   [fuzzy-search-ranking]="Fuzzy search ranking"
@@ -570,7 +570,7 @@ declare -A IDEATED_TITLES=(
 )
 for slug in "${!IDEATED_TITLES[@]}"; do
   p="$H/ideas/$slug.html"
-  [ -f "$p" ] || { note "no minted page at ideas/$slug.html — #ideate's name: heading did not slug this section"; continue; }
+  [ -f "$p" ] || { note "no minted page at ideas/$slug.html — #ideate's name function did not slug this section"; continue; }
   t="${IDEATED_TITLES[$slug]}"
   grep -q "<title>$t</title>" "$p" ||
     note "ideas/$slug.html's <title> is not its own heading's text ($t)"

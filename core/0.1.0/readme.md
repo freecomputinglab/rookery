@@ -656,13 +656,11 @@ Anything else passed as `separator:` — `heading` with no level, `pagebreak`,
 
 ### Titling and naming notes from their own heading
 
-In heading mode, `title:` and `name:` each accept the element function
-`heading` as a sentinel — the same value `separator:` itself already takes as
-`heading.where(level: 2)`, so naming both reads as one idea stated twice
-rather than two unrelated conventions:
+In heading mode, `title:` and `name:` each accept a function that reads each
+section's separating heading and computes that note's own title or id:
 
 ```typst
-#show: ideate.with(separator: heading.where(level: 2), title: heading, name: heading)
+#show: ideate.with(separator: heading.where(level: 2), title: (content, labels) => content, name: (content, labels) => slug(content))
 ```
 
 `== Literate programming` then mints a note whose `title:` is
@@ -678,10 +676,10 @@ installs. A heading worth naming a note after is worth writing in plain
 words; a heading built entirely from a reference has nothing else to slug on
 and fails `_slug`'s own empty-name check.
 
-| | `none`/`auto` (default) | fixed value | `heading` | function |
-| --- | --- | --- | --- | --- |
-| `title:` | no title (today's behaviour) | the same content on every note | each note's own heading, as content | — not available; use `heading` or `none` |
-| `name:` | the package counter (today's behaviour) | — not accepted; see below | a slug of each note's own heading | `(content, labels) => string` — a custom id computed per section |
+| | `none`/`auto` (default) | fixed value | function |
+| --- | --- | --- | --- |
+| `title:` | no title (today's behaviour) | the same content on every note | a function `(content, labels) => content` — each note's own computed title |
+| `name:` | the package counter (today's behaviour) | — not accepted; see below | `(content, labels) => string` — a custom id computed per section |
 
 An id minted from a heading survives inserting or reordering sections —
 unlike the package counter, which renumbers everything after the insertion
@@ -793,7 +791,7 @@ lambda that wants to slug the heading text:
 name: (content, labels) => slug(content)
 ```
 
-is identical to `name: heading`.
+is the one-line function that replaces what a `heading` sentinel would have meant.
 
 Two sections that call the lambda and produce the same id fail with a panic
 naming both, just as `name: heading` does. A second `#ideate` call, or another

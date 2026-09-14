@@ -11,7 +11,7 @@
 // observable from a minted PATH, proving the function receives it correctly.
 #show: ideate.with(
   separator: heading.where(level: 2),
-  title: heading,
+  title: (content, labels) => content,
   name: (content, labels) => "wk-" + str(labels.len()) + "-" + slug(content),
 )
 
