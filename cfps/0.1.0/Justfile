@@ -1,7 +1,19 @@
 default:
     @echo "@rookery/cfps: pure Typst package, entrypoint is src/lib.typ directly — nothing to build"
 
+# Two fixtures. `test/units.typ` asserts every VALUE the package's constructors
+# derive, and `test/view.typ` plus `test/check.sh` assert the MARKUP and the
+# order of a cfp's own blocks — the same split @rookery/meetings' Justfile uses.
+#
+# `--root .` so a fixture's `#import "/src/lib.typ"` resolves against THIS
+# package. `--features html` for parity with this repo's other Justfiles.
+#
+# `mkdir` first: `typst compile` does not create its output directory and
+# fails with "No such file or directory" on a fresh checkout, since
+# `test/build/` is gitignored and never committed.
 test:
     mkdir -p test/build
-    typst compile --features html --root . --format html test/smoke.typ test/build/smoke.html
-    @echo "smoke OK"
+    typst compile --features html --root . --format html test/units.typ test/build/units.html
+    @echo "units OK"
+    typst compile --features html --root . --format html test/view.typ test/build/view.html
+    ./test/check.sh

@@ -8,7 +8,7 @@ labels:
 deps:
 - blocked-by:rk-scaffold-rookery-cfps-package-260c3227
 - blocked-by:rk-port-cfps-rounds-table-panel-css-e7a8ee7a
-closed: false
+closed: true
 ---
 ## What this is
 

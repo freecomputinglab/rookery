@@ -166,6 +166,17 @@
   all.dedup()
 }
 
+// Does a `timeline:` stage match one of the declared rungs, a FAMILY pattern
+// (`review-*`, matching `review-1`, `review-2`, ..) included — the same match
+// rule @rookery/timeline's own `ladder.typ` uses for `is-settled`/`rung`. A
+// local copy rather than an import: that rule is private there too (this
+// package's own `_norm-tags-local` above is the same call for the same
+// reason), and a `-*` rung is only ever WRITTEN into a ladder as a pattern —
+// what actually lands in a note's `timeline:` is always a concrete instance.
+#let _stage-in(stage, patterns) = patterns.any(p => {
+  if p.ends-with("-*") { stage.starts-with(p.slice(0, p.len() - 1)) } else { stage == p }
+})
+
 // ---- `venue` ------------------------------------------------------------------
 //
 // A venue is what durably exists: a programme, a conference series, a journal.
@@ -293,7 +304,7 @@
     let log-stages = if timeline == none { (:) } else { timeline }
     for (stage, _) in log-stages.pairs() {
       assert(
-        stage in stages,
+        _stage-in(stage, stages),
         message: "@rookery/cfps: #cfp(" + repr(name) + ")'s `timeline:` names the stage "
           + repr(stage) + ", which no configured kind's ladder carries. Add the rung to "
           + "the right kind's ladder rather than inventing one here: a stage no ladder "
