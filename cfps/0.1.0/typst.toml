@@ -10,3 +10,6 @@ repository = "https://github.com/freecomputinglab/rookery"
 
 [tool.rheo]
 min_version = "0.6.2"
+
+[tool.rheo.html]
+css_stylesheet = "src/cfps.css"

@@ -301,7 +301,11 @@
       )
     }
 
-    let own = ((VENUE-KEY + "-" + kind): none)
+    // `CFP-KEY` is stamped here rather than arriving from a
+    // `tagged-idea(CFP-KEY)` call: this `cfp` mints through @rookery/todos'
+    // `todo(..)`, which tags the note `todo`, so the bare "this is a cfp"
+    // marker every consumer filters on has to be part of `own` itself.
+    let own = ((VENUE-KEY + "-" + kind): none, (CFP-KEY): none)
     let venue = if venue == none { none } else { _norm(venue) }
 
     // THE TITLE IS COMPOSED from the venue's id, the way the reference's own

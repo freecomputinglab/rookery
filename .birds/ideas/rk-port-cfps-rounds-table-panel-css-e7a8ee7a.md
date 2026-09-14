@@ -7,7 +7,7 @@ labels:
 - feat-cfps-package
 deps:
 - blocked-by:rk-scaffold-rookery-cfps-package-260c3227
-closed: false
+closed: true
 ---
 ## What this is
 
