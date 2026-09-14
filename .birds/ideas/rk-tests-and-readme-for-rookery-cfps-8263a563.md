@@ -45,11 +45,15 @@ should copy:
   logic gets exercised directly against hand-built tag dictionaries, and
   where `venue`/`cfp`'s tag-construction (the `own` dictionary each builds)
   gets checked field by field.
-- `test/view.typ` plus `test/check.sh` assert the MARKUP — that `#cfp`'s
-  own in-body rail renders only when `timeline:` was given, that a venue
-  backlink (`ref(label("idea:" + venue))`) is present when `venue:` was
-  given and absent when it was not, and that `panel(..)`'s rows carry the
-  right CSS classes for a settled vs. an open vs. an unanswered call.
+- `test/view.typ` plus `test/check.sh` assert the MARKUP — that `#cfp`'s own
+  in-body rail renders `deadline`/`scheduled`/every `timeline:` stage
+  together as one chronological sequence (it renders whenever ANY of the
+  three is given, not only `timeline:`), that the `_opportunity-table` header
+  (`Work` for a cfp, `Call` for a venue) lands below the title and above that
+  rail, that a venue backlink (`ref(label("idea:" + venue))`) is present when
+  `venue:` was given and absent when it was not, and that `panel(..)`'s rows
+  carry the right CSS classes for a settled vs. an open vs. an unanswered
+  call.
   `test/check.sh` is a shell script that greps the compiled
   `test/build/view.html` for expected substrings and exits non-zero on a
   miss — write it in that shape (copy `meetings/0.1.0/test/check.sh`'s
@@ -83,12 +87,42 @@ folded into a bigger one:
    chronologically LATEST among those already past — here, the deadline
    itself, at day 10 — which would silently mask the real answer.)
 3. **`venue:` is optional on `cfp(..)`** — a cfp naming no venue still
-   builds successfully and its title falls back to the cycle/id form with
-   no crash reading a `none`.
+   builds successfully and its title falls back to the id/`title:` form
+   with no crash reading a `none`.
 4. **`kind:` outside the caller's `kinds:` dictionary fails loudly.** Assert
    that calling `cfp(.., kind: "not-a-real-kind")` raises (Typst's
    `assert`) with a message naming the valid kinds, not a silent `none`
    ladder that later renders every row as permanently in-flight.
+5. **Every stage in every configured kind's ladder is standardized, not
+   just the two or three used elsewhere in this suite.** Build a `kinds:`
+   dictionary covering at least two kinds with DIFFERENT ladders (mirror
+   the reference's own job/journal/conference split — a family rung like
+   `review-*` in one of them), and for EVERY name in EVERY kind's
+   `transit`/`terminal` arrays (expanding a `-*` family rung to a concrete
+   instance, e.g. `review-1`), mint a `#cfp` whose `timeline:` uses that one
+   stage, and assert (a) it does not raise (confirms the `stage in STAGES`
+   check accepts every ladder-declared name, not only the ones this test
+   file happens to reach for elsewhere) and (b) `cfp-state(..)` returns
+   `"in-flight"` for a transit stage or `"settled"` for a terminal one, per
+   which array it came from. This is the test that catches a stage falling
+   through to some OTHER rendering path instead of `@rookery/timeline`'s —
+   see `cfps-scaffold`'s "Every stage goes through @rookery/timeline, and
+   only through it" for why this invariant matters and what it would look
+   like to violate it by accident (a per-kind flat tag, a bespoke `outcome:`
+   argument, anything that records a stage somewhere other than the shared
+   log).
+6. **Closing is real, not a flag.** Mint a `#cfp` with a `timeline:` that
+   reaches a terminal stage (e.g. `offered`), and separately one that is
+   merely lapsed (a past `deadline:`, no `timeline:` at all). For both,
+   assert `has-stage(tags, CLOSED-STAGE)` — imported from
+   `@rookery/timeline` — is `true` on the minted note's own tags. This is
+   the exact bug `wl-close-cfp-through-rookery-todos-not-a-71011bf4` (filed
+   in `waterline/rookery`'s own tracker) found in the reference
+   implementation: a `#cfp` that marks itself closed with a flat boolean
+   tag rather than a real dated log entry never satisfies
+   `@rookery/todos`' own `is-closed`, so it shows up forever in a
+   consumer's `today-panel`/`todo-table`. This package's `cfp` must not
+   repeat that mistake — see `cfps-scaffold`'s "Design change 2".
 
 ## `readme.md`
 
@@ -112,6 +146,12 @@ Cover, specifically:
   one short paragraph, pointing at `@rookery/timeline`'s own `ladder.typ`
   header comment as the precedent, not restating that comment's argument at
   length.
+- `#cfp` IS an `#todo` — built on `@rookery/todos`' own `todo(..)`, not a
+  bare `tagged-idea`. State plainly what this buys a reader for free: a cfp
+  shows up in `today-panel`/`todo-table` and closes correctly the moment it
+  is answered or its deadline lapses, with no separate wiring, and its
+  `priority:` is `@rookery/todos`' own — a consumer already running that
+  package's worklists gets cfps in them automatically.
 - A short "integrating `#window`" note: if a consuming site wraps
   `@rookery/todos`' `#window` with its own hiding logic (e.g. hiding a
   transcluded cfp whose real answer was negative), that wrapper must pass

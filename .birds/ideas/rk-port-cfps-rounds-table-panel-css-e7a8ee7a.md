@@ -11,7 +11,7 @@ closed: false
 ---
 ## What this is
 
-Depends on `cfps-scaffold` (the bird that creates `/home/lox/code/_fcl/rookery/cfps/0.1.0/` with `src/cfp.typ` exporting a `cfps(kinds:)` factory returning `(venue:, cfp:, cfp-state:)`, and `src/lib.typ` re-exporting it). This bird adds the second half: a rounds-table view — one row per call, `when | title | school | verdict` — and its CSS, ported from the reference site.
+Depends on `cfps-scaffold` (the bird that creates `/home/lox/code/_fcl/rookery/cfps/0.1.0/` with `src/cfp.typ` exporting a `cfps(kinds:)` factory returning `(venue:, cfp:, cfp-state:)`, `cfp-state` already carrying the fix for the "deadline/scheduled/closed mask the real answer" bug — see that bird's own description for the mechanism, `_real-tags`/`real-stage-of`. This bird adds the second half: a rounds-table view — one row per call, `when | title | school | verdict` — and its CSS, ported from the reference site. It CONSUMES `cfp-state`/`real-stage-of` by importing them from `cfp.typ`; it does not re-derive or re-port either.
 
 ## Reference implementation to port (read, do not edit, this file)
 
@@ -23,12 +23,16 @@ All in `/home/lox/code/waterline/rookery/_lib/template.typ` unless noted:
   its HTML-rendering half (the `html.elem("ul", .. )` block with per-row
   `<li>` markup, the countdown-band logic, the priority-ramp fallback, the
   paged/non-HTML branch near its top) — do not stop at the row-mapping half.
-- `/home/lox/code/waterline/rookery/_lib/lib.typ` — `real-stage-of(tags,
-  today:)` (added after `cfp-state`, strips `deadline`/`scheduled` before
-  reading what actually happened) and `next-open-date(tags, today:)` (the
-  file's tail function): port both. `real-stage-of` is what tells a row
-  whether it has been answered at all (`real-stage-of(..) != none`) and what
-  rung to badge; `next-open-date` is what a row still waits on once it has.
+- `real-stage-of(tags, today:)` — DO NOT port this; `cfps-scaffold` already
+  put it in `src/cfp.typ` (it needs to exist before `#cfp` does, to exclude
+  the same reserved stage names from state derivation). Import it from
+  `cfp.typ` instead. It is what tells a row whether it has been answered at
+  all (`real-stage-of(..) != none`) and what rung to badge.
+- `/home/lox/code/waterline/rookery/_lib/lib.typ`'s `next-open-date(tags,
+  today:)` (its tail function, no reserved-stage concerns of its own): DO
+  port this one — into `src/panel.typ` itself, as a private helper, since
+  nothing else in `cfp.typ` needs it. It is what a row still waits on once
+  it has been answered.
 - Waterline's `_cfp-index()` (template.typ lines ~298–376, private) does a
   venue/school JOIN this package's `cfp`/`venue` already make unnecessary to
   reimplement in full — venue title, href and schools are already reachable
@@ -42,10 +46,26 @@ All in `/home/lox/code/waterline/rookery/_lib/template.typ` unless noted:
   (`.round-list`, `.round-row`, `.round-when*`, `.round-title`,
   `.round-school`, `.round-badge*`, `.round-verdict`, `.round-match`,
   `.round-empty`) and lines 1425–1450 (the same classes' responsive/narrow
-  rules). Do NOT port lines 1126–1220 (`.timeline`, `.opportunity-meta`) —
-  those belong to `@rookery/timeline`'s own rail and this site's generic
-  note-page chrome, not to this panel, and are already available to a
-  consumer through `@rookery/timeline`'s own stylesheet.
+  rules). Re-check these ranges with `grep -n` first — the file has moved
+  since these were recorded.
+- DO port `.opportunity-meta`'s own grid (currently lines 1145–1170:
+  `.opportunity-meta { display: grid; .. }`,
+  `.opportunity-meta dt, .opportunity-meta dd { .. }`,
+  `.opportunity-meta dt { .. }`, `.opportunity-meta dd { .. }`) — `#cfp`'s
+  `_opportunity-table` (ported by `cfps-scaffold`) emits exactly this class,
+  so this package's own CSS has to style it; it is not available from
+  `@rookery/timeline` or any other existing package, being site-local in the
+  reference for the same reason `_opportunity-table` itself is (see
+  `cfps-scaffold`'s own note on why `idea-page` cannot draw this block).
+  Generalize per the color rule below — the reference already uses only
+  `var(--edge)`/`var(--muted-color)`/`var(--timeline-gutter, 7.5em)`, all of
+  which need a `--cfps-*`-prefixed custom property with the same literal as
+  fallback instead of reaching for a site variable that will not exist in a
+  consumer's stylesheet.
+- Do NOT port the `.timeline { --timeline-gutter: 7.5em; .. }` rule right
+  after it, or `.idea-timeline-head` — those belong to `@rookery/timeline`'s
+  own rail and this site's generic note-page chrome, not to this panel, and
+  are already available to a consumer through that package's own stylesheet.
 - Color: do NOT port any color values. Waterline's `THEME.tags-color` dict
   (template.typ line 64 area) is that SITE's own palette choice, fed into
   `@rookery/core`'s existing generic mechanism that colors every
