@@ -7,7 +7,7 @@ labels:
 - test-browser
 deps:
 - blocked-by:rk-stand-up-the-shared-browser-harness-cbc3ae56
-closed: false
+closed: true
 ---
 `@rookery/todos` renders a dependency DAG as SVG, built in the browser from a
 JSON payload the Typst side emits. `render` — the function that does all of it —
