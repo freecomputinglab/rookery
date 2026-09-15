@@ -11,7 +11,7 @@ deps:
 - blocked-by:rk-browser-tests-for-the-slipshow-deck-9514479d
 - blocked-by:rk-browser-tests-for-the-todos-graph-2b7d4c0f
 - blocked-by:rk-browser-tests-for-the-search-dropdown-b7dba794
-closed: false
+closed: true
 ---
 Once the browser suites exist they run on one person's machine and nowhere else.
 This bird makes CI read them, which is the difference between a test suite and a

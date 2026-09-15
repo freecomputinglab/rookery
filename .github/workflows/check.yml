@@ -245,3 +245,24 @@ jobs:
       # rheo cannot resolve the package until vite has written it.
       - name: slipshow examples compile
         run: cd slipshow/0.1.0 && just examples
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.63.0-${{ runner.os }}
+
+      # Real-engine tests across WebKit (the Safari engine), Chromium and Gecko.
+      # LAST in the job, because every suite asserts against a package's BUILT
+      # demo and the three demos are built by the steps above.
+      #
+      # No nix here, unlike the local path: the root devShell hands the harness
+      # `PLAYWRIGHT_CORE` and `PLAYWRIGHT_BROWSERS_PATH` from nixpkgs, and
+      # `loadPlaywright` falls back to a plain node_modules resolution when
+      # neither is set. Installing nix on the runner to reproduce that would cost
+      # minutes a run to buy nothing.
+      - name: Browser suites across WebKit, Chromium and Gecko
+        run: |
+          npm install --no-save playwright-core@1.63.0
+          npx --yes playwright@1.63.0 install --with-deps webkit chromium firefox
+          just browser
