@@ -7,7 +7,7 @@ labels:
 - test-browser
 deps:
 - blocked-by:rk-stand-up-the-shared-browser-harness-cbc3ae56
-closed: false
+closed: true
 ---
 Two of `@rookery/search`'s five browser modules are untested, and they are the
 two that need an engine most.
