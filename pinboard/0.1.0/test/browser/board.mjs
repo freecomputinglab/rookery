@@ -69,6 +69,23 @@ const titleCenter = async (card) => {
 // Falls through on timeout rather than raising, so the assertion that follows
 // reports the position it actually found instead of a timeout that says
 // nothing about how far the card moved.
+// `drag.js` sets `data-dragging` on the card the moment a press crosses
+// DRAG_THRESHOLD, so this is the gesture's own report that it became a drag
+// rather than a click. Waiting on it before the remaining moves is what keeps
+// a slow engine from reaching `mouse.up` with the press still undecided — a
+// card that never moved at all, rather than one that moved too little.
+//
+// Falls through on timeout for the same reason as `settleAt`.
+const dragStarted = async (page, id) => {
+  try {
+    await page
+      .locator(`.pinboard-card[data-pinboard-id="${id}"][data-dragging]`)
+      .waitFor({ state: "attached", timeout: 2000 });
+  } catch {
+    /* the assertion below is the diagnostic */
+  }
+};
+
 const settleAt = async (page, id, wantX, tolerance) => {
   try {
     await page.waitForFunction(
@@ -128,11 +145,15 @@ try {
     const start = await titleCenter(outline);
     await page.mouse.move(start.x, start.y);
     await page.mouse.down();
+    // EVERY STAGE OF THE GESTURE WAITS ON WHAT IT CAUSED, and the waits happen
+    // while the pointer is still down — `mouse.up` ends the drag, so a move
+    // still in flight when it fires is a move that never happens at all.
     await page.mouse.move(start.x + 20, start.y + 15, { steps: 3 });
+    await dragStarted(page, "idea:outline");
     await page.mouse.move(start.x + 45, start.y + 30, { steps: 3 });
     await page.mouse.move(start.x + 60, start.y + 40, { steps: 3 });
-    await page.mouse.up();
     await settleAt(page, "idea:outline", before.x + 60, 2);
+    await page.mouse.up();
     const after = (await positions(page)).find((p) => p.id === "idea:outline");
     assert.ok(Math.abs(after.x - before.x - 60) <= 2, `x moved ${after.x - before.x}, wanted ~60`);
     assert.ok(Math.abs(after.y - before.y - 40) <= 2, `y moved ${after.y - before.y}, wanted ~40`);
