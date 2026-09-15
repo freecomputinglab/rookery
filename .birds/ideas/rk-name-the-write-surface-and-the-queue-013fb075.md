@@ -36,7 +36,14 @@ upcoming-rows(..) -> timeline-upcoming-rows(..)
 ```
 
 The blast radius is real and is listed below — roughly 30 call sites across five
-packages, their tests, their demos and their readmes. All of it is mechanical.
+packages, their tests, their demos and their readmes, plus two in the
+`/home/lox/code/waterline` site. All of it is mechanical.
+
+WATERLINE IS A SEPARATE REPOSITORY and needs its own commit. It resolves
+`@rookery/timeline` through the cache symlink at
+`~/.cache/typst/packages/rookery/timeline/0.1.0`, which points at this checkout,
+so the site breaks the moment this lands. Land both together; the user pushes
+each repo themselves.
 
 Touches: /home/lox/code/_fcl/rookery/timeline/0.1.0/src/fragment.typ
 Touches: /home/lox/code/_fcl/rookery/timeline/0.1.0/src/upcoming.typ
@@ -51,6 +58,9 @@ Touches: /home/lox/code/_fcl/rookery/todos/0.1.0/src/todo.typ
 Touches: /home/lox/code/_fcl/rookery/todos/0.1.0/src/views.typ
 Touches: /home/lox/code/_fcl/rookery/todos/0.1.0/test/units.typ
 Touches: /home/lox/code/_fcl/rookery/todos/0.1.0/demo/rheo/content/index.typ
+Touches: /home/lox/code/waterline/rookery/_lib/template.typ (separate repo)
+Touches: /home/lox/code/waterline/rookery/_lib/lib.typ (separate repo)
+Touches: /home/lox/code/waterline/rookery/grad/cycle-26-27.typ (separate repo)
 
 ## Steps
 
@@ -76,9 +86,20 @@ Touches: /home/lox/code/_fcl/rookery/todos/0.1.0/demo/rheo/content/index.typ
    - `todos/0.1.0/demo/rheo/content/index.typ:11 (import), 80, 91, 100, 111, 122,
      133`
    - `timeline/0.1.0/test/units.typ` and `test/upcoming.typ` throughout
-4. Grep the readmes too — `timeline`, `todos`, `cfps`, `meetings` and
+4. In `/home/lox/code/waterline`, update:
+   - `rookery/_lib/template.typ:763` (a real call) and the `entries` name in the
+     `rookery.typ` import list at lines 15-18;
+   - `rookery/_lib/lib.typ:144` (a real call);
+   - the prose naming `entries()` at `rookery/_lib/template.typ:745`,
+     `rookery/_lib/lib.typ:136` and `rookery/grad/cycle-26-27.typ:801`;
+   - the prose naming `#upcoming` at `rookery/_lib/template.typ:2, 140, 270,
+     1014`. Waterline calls `#upcoming` nowhere — its worklists are its own
+     `#cfps` and `#todo-slipshow` — so these are comments only, but a comment
+     naming a function that no longer exists is the thing this repo's comment
+     rubric forbids.
+5. Grep the readmes too — `timeline`, `todos`, `cfps`, `meetings` and
    `core/0.1.0/readme.md` all name `entries` or `#upcoming` in prose or examples.
-5. Add the three renames to `timeline/0.1.0/readme.md`'s migration table and
+6. Add the three renames to `timeline/0.1.0/readme.md`'s migration table and
    remove `entries` from the "everything else keeps its name" list.
 
 ## Non-goals
@@ -104,3 +125,4 @@ Touches: /home/lox/code/_fcl/rookery/todos/0.1.0/demo/rheo/content/index.typ
 5. `cd /home/lox/code/_fcl/rookery/todos/0.1.0 && just check` passes, and
    `rheo compile demo/rheo` succeeds.
 6. `cd /home/lox/code/_fcl/rookery && just build && just check-versions` pass.
+7. `cd /home/lox/code/waterline && just build` succeeds.

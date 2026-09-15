@@ -19,6 +19,14 @@ ladder match rule as precedent for copying.
 It is the same fact about `@rookery/core`'s surface in both places, and if core
 ever accepts a fifth shape the copy is the one that goes stale silently.
 
+There is a THIRD copy, in a different repository:
+`/home/lox/code/waterline/rookery/_lib/lib.typ:52`, exported as `norm-tags` and
+called all over that site. It differs in its fallthrough — where this package
+panics on a shape rookery does not accept, waterline's returns the value
+untouched. Switching it over is worth doing and is a step below, but it is a
+BEHAVIOUR change for that site (a bad `tags:` starts failing loudly), so it lands
+as its own commit in that repo and the user decides whether to take it.
+
 Touches: /home/lox/code/_fcl/rookery/timeline/0.1.0/src/fragment.typ
 Touches: /home/lox/code/_fcl/rookery/timeline/0.1.0/readme.md
 Touches: /home/lox/code/_fcl/rookery/timeline/0.1.0/test/units.typ
@@ -41,6 +49,14 @@ Touches: /home/lox/code/_fcl/rookery/cfps/0.1.0/src/cfp.typ
    `normalize-tags(("a", "b"))` is `(a: none, b: none)`.
 5. One line in `timeline/0.1.0/readme.md`, in the section describing `dated`,
    saying the normalizer is public and why a consumer would want it.
+6. OPTIONAL, and a separate commit in a separate repository: in
+   `/home/lox/code/waterline`, replace `norm-tags` in `rookery/_lib/lib.typ:52`
+   with the import, keeping `tags-with` (line 66) built on top of it. Every
+   call site keeps its name if the import is aliased — `normalize-tags as
+   norm-tags` — which is the smallest possible diff for that site. Verify with
+   `cd /home/lox/code/waterline && just build`. If the build turns up a call
+   passing something the strict version rejects, that is a real bug in the site
+   and is worth a bird of its own rather than a widened normalizer here.
 
 ## Non-goals
 
