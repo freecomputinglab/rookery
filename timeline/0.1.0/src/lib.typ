@@ -64,7 +64,6 @@
 #import "read.typ": *
 #import "when.typ": *
 #import "ladder.typ": *
-#import "index.typ": *
 #import "view.typ": *
 #import "upcoming.typ": *
 

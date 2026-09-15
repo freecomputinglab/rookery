@@ -7,7 +7,7 @@ labels:
 - chore-timeline-api
 deps:
 - blocked-by:rk-name-the-write-surface-and-the-queue-013fb075
-closed: false
+closed: true
 ---
 `index.typ` (`/home/lox/code/_fcl/rookery/timeline/0.1.0/src/index.typ`) is 65
 lines exporting six names whose entire content is partial application. Every one

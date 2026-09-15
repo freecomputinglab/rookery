@@ -1364,9 +1364,9 @@ self-caching accessor would put back the very cost this exists to remove: a
 project with four views on one page was opening each with its own `#tag-data()`
 walk to read a handful of fields.
 
-`@rookery/timeline` ships extractors for its own keys — `as-stage`, `as-date`,
-`as-rung` — so a spec names a package's key once, in that package, rather than
-hardcoding the string here.
+`@rookery/timeline` ships readers over its own tag dictionary — `stage-of`,
+`stage-date`, `rung` — and a spec names one in a `from:`, so a package's key is
+named once, in that package, rather than hardcoded here.
 
 ### `#idea-body` — one note's body, rendered
 

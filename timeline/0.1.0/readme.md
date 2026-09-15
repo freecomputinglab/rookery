@@ -54,6 +54,7 @@ on this exact line.
 | `entries(..)` | `timeline-tags(..)` |
 | `upcoming(..)` | `timeline-upcoming(..)` |
 | `upcoming-rows(..)` | `timeline-upcoming-rows(..)` |
+| `as-stage(..)`, `as-date(..)`, `as-entered(..)`, `as-rung(..)`, `as-settled(..)`, `as-days-in-flight(..)` | gone — a spec calls `stage-of`/`stage-date`/`entered-of`/`rung`/`is-settled`/`days-in-flight` directly in a `tag-index` `from:` |
 
 Everything else keeps its name: `dated`, `timeline-of`, `stage-date`,
 `has-stage`, `entered-of`, `deadline-of`, `scheduled-of`, `created-of`,
@@ -457,32 +458,35 @@ refused, by name, because that is the one mistake that would make `is-settled` a
 `ladder:` has no default. A default ladder would be a vocabulary, which is the one
 thing this package must not own.
 
-### Projecting the log onto a row: the `as-*` extractors
+### Projecting the log onto a row
 
 Rookery keeps tag values off `#ideas()` rows, so a log is reachable only through
-`#tag-data()` — and `tag-index`'s `(from: ..)` form is the way back on. These are
-the functions to hand it:
+`#tag-data()` — and `tag-index`'s `(from: ..)` form is the way back on. It takes
+a function of a note's whole tag dictionary, which is exactly the readers'
+own signature, so a spec calls them directly:
 
 ```typst
 #import "@rookery/core:0.1.0": tag-index
 #import "@rookery/timeline:0.1.0": (
-  DEADLINE-STAGE, as-date, as-days-in-flight, as-rung, as-settled, as-stage,
+  DEADLINE-STAGE, days-in-flight, entered-of, is-settled, rung, stage-date, stage-of,
 )
 
 #let INDEX = tag-index((
-  stage:    (from: as-stage(today: NOW)),
-  deadline: (from: as-date(DEADLINE-STAGE)),
-  rung:     (from: as-rung(ladder: JOB, today: NOW)),
-  settled:  (from: as-settled(ladder: JOB, today: NOW)),
-  waiting:  (from: as-days-in-flight(today: NOW)),
+  stage:    (from: tags => stage-of(tags, today: NOW)),
+  deadline: (from: tags => stage-date(tags, DEADLINE-STAGE), stamp: true),
+  rung:     (from: tags => rung(tags, ladder: JOB, today: NOW)),
+  settled:  (from: tags => is-settled(tags, ladder: JOB, today: NOW)),
+  entered:  (from: entered-of, stamp: true),
+  waiting:  (from: tags => days-in-flight(tags, today: NOW)),
 ))
 ```
 
-Each is a partially-applied factory rather than a function called with the tag
-dictionary, which is what lets a spec read as data. A date comes back as a
-zero-padded `[year][month][day]` STRING, never a `datetime`: rookery's scalar
-assert would refuse the datetime, and the string sorts lexically in date order — so
-a projected date is a free sort key.
+`entered-of` needs no wrapper at all — it is already a one-argument function of
+the tag dictionary. `stamp: true` is what keeps a projected date a scalar: core
+applies it to whatever the extractor returned, stamping it to a zero-padded
+`[year][month][day]` STRING rather than a `datetime` — rookery's scalar assert
+would refuse the datetime, and the string sorts lexically in date order, so a
+projected date is a free sort key.
 
 Dates are compared as zero-padded `[year][month][day]` strings, which sidesteps
 the question of how `datetime` orders as a sort key — the same technique rookery

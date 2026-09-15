@@ -55,10 +55,10 @@
 // Dates compared as zero-padded STRINGS rather than as `datetime`s — the same
 // device rookery's own `_sort-ids` uses. Same width every time, so string order
 // is date order, and the question of how `datetime` orders as a sort key never
-// arises. This is the DAY alone, and has callers across the package: the
-// `as-date`/`as-entered` projections in `index.typ` feed a day column in a
-// consumer's table and a `tag-index` field that must stay a fixed 8 characters —
-// widening those to 14 would change what a projected date IS.
+// arises. This is the DAY alone, and has callers across the package: a spec's
+// own `from:` closures feed a day column in a consumer's table and a
+// `tag-index` field that must stay a fixed 8 characters — widening those to 14
+// would change what a projected date IS.
 #let _day-of(d) = d.display("[year][month][day]")
 
 // `_day-of` plus the clock, where an entry has one — for a log that must order
