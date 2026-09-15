@@ -7,7 +7,7 @@ labels:
 - test-browser
 deps:
 - blocked-by:rk-stand-up-the-shared-browser-harness-cbc3ae56
-closed: false
+closed: true
 ---
 `slipshow` is the most browser-dependent package in this repo and has the least
 browser coverage of any of them. It is an endlessly scrolling presentation: a
