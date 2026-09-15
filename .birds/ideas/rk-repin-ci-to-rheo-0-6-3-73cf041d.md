@@ -6,7 +6,7 @@ priority: 3
 labels:
 - fix-rheo-path-floor
 deps: []
-closed: false
+closed: true
 ---
 Every CI run on this repository's `0.1.0` branch has failed since the repo was
 split out, at the same step and for the same reason. This bird repins CI to the

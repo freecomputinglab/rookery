@@ -63,30 +63,38 @@ jobs:
       # tracks the `0.1.0` branch rather than a release, that is the ordinary case
       # here, not an edge one.
       #
+      # 0.6.3: where a namespace could first resolve from a directory on disk
+      # (`path`), which is what every `[packages.rookery] path = "../../../.."`
+      # in this repo's demos and examples asks for. No package here declares a
+      # `min_version` above 0.6.2, because no package surface moved — the gap
+      # is entirely in how the DEMO PROJECTS locate `@rookery`, so the version
+      # installed here is now set by the demos' floor rather than the
+      # packages' own.
+      #
       # Pinned URL AND pinned digest, for the same auditability reason the
       # Typst step gives: a re-uploaded asset fails this step rather than
       # silently changing what CI tested.
-      - name: Install rheo 0.6.2 (the declared min_version floor)
+      - name: Install rheo 0.6.3 (the floor the demo projects need)
         run: |
           set -euo pipefail
-          # Digest of the v0.6.2 rheo-x86_64-unknown-linux-gnu.zip asset, published
-          # 2026-08-30. Read it back with (note the exact asset name: matching on
+          # Digest of the v0.6.3 rheo-x86_64-unknown-linux-gnu.zip asset, published
+          # 2026-09-15. Read it back with (note the exact asset name: matching on
           # "linux-gnu.zip" also catches the aarch64 build, and `digest` comes back
           # "sha256:"-prefixed, which `sha256sum -c` will not accept):
-          #   gh release view v0.6.2 --repo freecomputinglab/rheo --json assets \
+          #   gh release view v0.6.3 --repo freecomputinglab/rheo --json assets \
           #     --jq '.assets[] | select(.name == "rheo-x86_64-unknown-linux-gnu.zip") | .digest' \
           #     | cut -d: -f2
           # BUMP THIS IN THE SAME EDIT AS THE URL BELOW: the `sha256sum -c` is what
           # makes a re-uploaded or wrong-version asset fail here rather than silently
           # changing what CI tested.
-          sha256="ab71c5e4fea2ff05381f19e9ff11003e311e03974dcfd663a52b05569eceaa71"
+          sha256="15c6f8d9b61f37020e252fe97e7ad4fbfb437289b1241f40b56e791bde81d3e0"
           curl -fsSL -o rheo.zip \
-            https://github.com/freecomputinglab/rheo/releases/download/v0.6.2/rheo-x86_64-unknown-linux-gnu.zip
+            https://github.com/freecomputinglab/rheo/releases/download/v0.6.3/rheo-x86_64-unknown-linux-gnu.zip
           echo "$sha256  rheo.zip" | sha256sum -c -
           unzip -q rheo.zip -d rheo-bin
           chmod +x rheo-bin/rheo
           echo "$PWD/rheo-bin" >> "$GITHUB_PATH"
-          rheo-bin/rheo --version   # must print: rheo 0.6.2
+          rheo-bin/rheo --version   # must print: rheo 0.6.3
 
       # First, because it is the cheapest failure in the repo and the one that
       # silently ships a broken release: a version directory cut by copying and
