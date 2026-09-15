@@ -164,7 +164,7 @@
   // A scroll box earns its place in a widget a reader opens to find one thing (the
   // panel's own ancestor is a search dropdown). It does not earn it in a page's main
   // list, where it cuts a row in half and hides the rest behind a gesture nothing
-  // advertises — which is the same argument `#upcoming` makes for having no cap at all.
+  // advertises — which is the same argument `#timeline-upcoming` makes for having no cap at all.
   // WHICH END OF THE DATE COLUMN LEADS. `"newest"` (the default) puts the most recent
   // date first, which is what a `created` column wants — an index of work is a list of
   // what was written lately. `"soonest"` puts the earliest first, which is what a

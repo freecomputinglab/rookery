@@ -6,9 +6,9 @@ them.
 
 ```typst
 #import "@rookery/core:0.1.0": idea
-#import "@rookery/timeline:0.1.0": entries
+#import "@rookery/timeline:0.1.0": timeline-tags
 
-#idea("ship", tags: entries(deadline: datetime(year: 2026, month: 9, day: 1)))[
+#idea("ship", tags: timeline-tags(deadline: datetime(year: 2026, month: 9, day: 1)))[
   Cut the release.
 ]
 ```
@@ -44,13 +44,16 @@ on this exact line.
 | --- | --- |
 | `@rookery/core-dates` 0.5.0 and 0.6.0 | `@rookery/timeline:0.1.0` |
 | the `date-log` tag key | `timeline-log` |
-| `dates(scheduled:, deadline:, timeline:)` | `entries(scheduled:, deadline:, timeline:)` |
+| `dates(scheduled:, deadline:, timeline:)` | `timeline-tags(scheduled:, deadline:, timeline:)` |
 | `log-view(..)` | `timeline-view(..)` |
 | `src/rookery-dates.css`, `@layer rookery-dates` | `src/timeline.css`, `@layer timeline` |
 | `.date-log`, `.date-log-event`, `--date-log-*` | `.timeline`, `.timeline-event`, `--timeline-*` |
 | an entry's `on` field | `timestamp`, matching the write key |
 | `updated-of(entry, tags)` | `updated-of(row)` |
 | `timeline(entry, tags)` | `history-of(row)` |
+| `entries(..)` | `timeline-tags(..)` |
+| `upcoming(..)` | `timeline-upcoming(..)` |
+| `upcoming-rows(..)` | `timeline-upcoming-rows(..)` |
 
 Everything else keeps its name: `dated`, `timeline-of`, `stage-date`,
 `has-stage`, `entered-of`, `deadline-of`, `scheduled-of`, `created-of`,
@@ -71,7 +74,7 @@ a todo's scheduled/activated/closed, a submission's
 deadline/submitted/review/accepted — without this package naming any of those
 states itself.
 
-**Nothing you call has a changed signature.** `entries(deadline: d)` writes a
+**Nothing you call has a changed signature.** `timeline-tags(deadline: d)` writes a
 `deadline` entry; `deadline-of(t)` reads it back. That was the point of doing it
 this way: `is-overdue`, `is-upcoming`, `@rookery/todos`' readiness check and
 every existing call site kept working. What you gain is everything below.
@@ -101,7 +104,7 @@ skin is opt-in: it is where a name comes FROM, not which package provides it.
 
 ## How it composes
 
-`entries(..)` returns a TAG FRAGMENT — a plain dictionary you merge into a
+`timeline-tags(..)` returns a TAG FRAGMENT — a plain dictionary you merge into a
 rookery `tags:` argument. That is the entire write surface.
 
 The CORE of this package does not import `@rookery/core`, and `@rookery/core`
@@ -109,18 +112,18 @@ knows nothing about this package. A tag fragment is just a dictionary, so
 composition needs no import relationship in either direction: any package, and any
 hand-written `#idea`, can use it. `dated(mint)` keeps that true for the decorator
 too, by taking the minting function as an argument. Two things here do import
-rookery: the one-line `idea` binding, and `#upcoming`, which reads the note
+rookery: the one-line `idea` binding, and `#timeline-upcoming`, which reads the note
 REGISTRY through `ideas()` because it draws one row per note across a corpus and no
 argument could hand it that corpus. Rookery accepts a dictionary
 for `tags:` directly, so composing with ordinary tags is dictionary merge:
 
 ```typst
-#idea("ship", tags: (phd: none, urgent: none) + entries(deadline: d))[...]
+#idea("ship", tags: (phd: none, urgent: none) + timeline-tags(deadline: d))[...]
 ```
 
 An omitted date emits **no key at all**, not a key valued `none`. A `none`-valued
 key is a *flat* tag — it renders as a pill and reads as a
-plain label — so `entries()` with nothing to say stays silent. `entries()` with no
+plain label — so `timeline-tags()` with nothing to say stays silent. `timeline-tags()` with no
 arguments is `(:)`, which merges into anything and changes nothing.
 
 ## The key, and the log inside it
@@ -136,7 +139,7 @@ pill, but it is still presence-filterable by key — `#window(tags: "timeline-lo
 finds every note carrying any dates at all.
 
 ```typst
-#idea("wolf", tags: entries(
+#idea("wolf", tags: timeline-tags(
   deadline: datetime(year: 2026, month: 11, day: 1),
   timeline: (
     submitted:         datetime(year: 2026, month: 10, day: 28),
@@ -210,8 +213,8 @@ is neither a datetime nor a dictionary.
 
 | stage | from | exported as |
 | --- | --- | --- |
-| `scheduled` | `entries(scheduled: ..)` | `SCHEDULED-STAGE` |
-| `deadline` | `entries(deadline: ..)` | `DEADLINE-STAGE` |
+| `scheduled` | `timeline-tags(scheduled: ..)` | `SCHEDULED-STAGE` |
+| `deadline` | `timeline-tags(deadline: ..)` | `DEADLINE-STAGE` |
 | `closed` | your own `timeline:` | `CLOSED-STAGE` |
 
 Everything else in a log is the CONSUMER's vocabulary. `@rookery/todos` owns
@@ -487,7 +490,7 @@ uses in its own id sorting.
 
 ## `#timeline-view` — the log as a vertical rail
 
-One of the two functions here that draw something (`#upcoming` below is the other),
+One of the two functions here that draw something (`#timeline-upcoming` below is the other),
 and the reason this package ships a stylesheet at all.
 
 ```typst
@@ -598,7 +601,7 @@ width of the date column, and what the line's position is measured from).
 A horizontal track (crowds past four events, and gives a long stage name nowhere
 to go), a definition list (says nothing about order, or about whether an event has
 happened), an inline sparkline (a different component, for a table of many notes — which
-`#upcoming` below now is),
+`#timeline-upcoming` below now is),
 and **no durations of any kind** — no "126 days in flight", no per-event gaps. The
 reader can subtract, and a computed interval resting on a stand-in date looks more
 precise than it is.
@@ -606,7 +609,7 @@ precise than it is.
 On a paged or EPUB target there is no rail to draw, so the same events render as
 an ordinary list.
 
-## `#upcoming` — the log as a dated list across many notes
+## `#timeline-upcoming` — the log as a dated list across many notes
 
 The rail's sibling: `#timeline-view` draws ONE note's log down a line, this draws
 ONE ROW PER NOTE across a whole corpus, ordered by what is coming next.
@@ -614,7 +617,7 @@ ONE ROW PER NOTE across a whole corpus, ordered by what is coming next.
 ```typst
 #import "@rookery/timeline:0.1.0": upcoming, DEADLINE-STAGE, SCHEDULED-STAGE
 
-#upcoming(
+#timeline-upcoming(
   tags: "submission",
   stage: (DEADLINE-STAGE, SCHEDULED-STAGE),
   today: NOW,
@@ -666,8 +669,8 @@ conference is queued by whichever of the two it has. So `stage:` takes one name,
 an array of names in **priority order**:
 
 ```typst
-#upcoming(today: NOW, stage: (DEADLINE-STAGE, SCHEDULED-STAGE))  // deadline, else the watch date
-#upcoming(today: NOW, stage: "campus-visit")                     // queued by one booked event
+#timeline-upcoming(today: NOW, stage: (DEADLINE-STAGE, SCHEDULED-STAGE))  // deadline, else the watch date
+#timeline-upcoming(today: NOW, stage: "campus-visit")                     // queued by one booked event
 ```
 
 The date resolves in three steps:
@@ -692,7 +695,7 @@ the right-hand end reading `today`, `tomorrow`, `yesterday`, `in 5 days` or
 `9 days ago`:
 
 ```typst
-#upcoming(tags: "submission", today: NOW, within: 90, show-countdown: true)
+#timeline-upcoming(tags: "submission", today: NOW, within: 90, show-countdown: true)
 ```
 
 ```
@@ -739,7 +742,7 @@ storing the title on both is how the two drift apart. So `name-from:` takes the 
 KEY holding that pointer, and the row is named and linked by whatever it points at:
 
 ```typst
-#upcoming(tags: "submission", today: NOW, name-from: "submission-of")
+#timeline-upcoming(tags: "submission", today: NOW, name-from: "submission-of")
 ```
 
 ```
@@ -759,9 +762,9 @@ over one typo would take a whole site down with it.
 `name-from:` is a KEY, not a callback. There is no render hook here (see below), and
 this stays on the declarative side of that line — the same register as `stage:`.
 
-### `#upcoming-rows` — the same queue, as data
+### `#timeline-upcoming-rows` — the same queue, as data
 
-`#upcoming` is `#upcoming-rows` plus the drawing, and the row half is public because a
+`#timeline-upcoming` is `#timeline-upcoming-rows` plus the drawing, and the row half is public because a
 project may want the queue inside somebody else's widget:
 
 ```typst
@@ -769,13 +772,13 @@ project may want the queue inside somebody else's widget:
 #import "@rookery/search:0.1.0": filter-panel
 
 #filter-panel(
-  rows: upcoming-rows(tags: "submission", within: 90, today: NOW),
+  rows: timeline-upcoming-rows(tags: "submission", within: 90, today: NOW),
   pills: ("sort-job", "sort-conference"),
   when: r => r.when,
 )
 ```
 
-It takes every argument `#upcoming` does except `title:`, `empty:` and
+It takes every argument `#timeline-upcoming` does except `title:`, `empty:` and
 `show-countdown:` (which are about drawing), and returns the row dictionaries:
 rookery's own `ideas()` fields plus `shown` (what to call the row), `link-to`,
 `when`, `firm`, `key` (the zero-padded sort stamp), `at` (the stage reached) and
@@ -785,7 +788,7 @@ rookery's own `ideas()` fields plus `shown` (what to call the row), `link-to`,
 you, `none` where the row has no date at all. It ships on **every** row regardless of
 `show-countdown:`, because this is the data half of the pair: a project rendering these
 rows inside somebody else's widget draws its own urgency column and never calls
-`#upcoming` at all.
+`#timeline-upcoming` at all.
 
 **A project doing this must import `@rookery/search` in its own files.** rheo
 scans only a project's own imports, never a package's — so if this package wrapped that
@@ -801,7 +804,7 @@ ends a process is vocabulary this package refuses to own, for the reason
 settled rows gone passes `filter:`:
 
 ```typst
-#upcoming(tags: "submission", today: NOW, filter: t => not is-settled(t, ladder: JOB, today: NOW))
+#timeline-upcoming(tags: "submission", today: NOW, filter: t => not is-settled(t, ladder: JOB, today: NOW))
 ```
 
 **Three fixed columns, and no render hook.** A fourth column — a submission's host
@@ -904,13 +907,13 @@ its own environment and write the resulting literal into the `.typ`.
 ## Requirements
 
 - `@rookery/core` 0.6.0, for `created` on an `#ideas()` row, for `tag-index`, and
-  for the `ideas()` registry read `#upcoming` does. The CORE of this package imports
+  for the `ideas()` registry read `#timeline-upcoming` does. The CORE of this package imports
   it not at all — a tag fragment is a plain dictionary, and `dated(mint)` takes its
-  constructor as an argument — but the `idea` binding and `#upcoming` both do.
+  constructor as an argument — but the `idea` binding and `#timeline-upcoming` both do.
 - No build step and no JavaScript. `typst.toml`'s `entrypoint` points straight at
   `src/`, so an edit takes effect immediately. It DOES ship one CSS file —
   `src/timeline.css`, for the two views that draw something
-  (`#timeline-view` and `#upcoming`) — inside `@layer timeline`, so an
+  (`#timeline-view` and `#timeline-upcoming`) — inside `@layer timeline`, so an
   unlayered rule in your own stylesheet beats it whatever the specificity.
 
 ## Development

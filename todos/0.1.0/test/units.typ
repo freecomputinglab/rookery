@@ -6,7 +6,7 @@
 // rookery-timeline is NOT re-exported by this package's lib, deliberately — a
 // consumer imports it itself. The fixture does the same, for the derivations
 // `TODO-LADDER` exists to feed.
-#import "@rookery/timeline:0.1.0": entries, is-settled, next-stage, rung
+#import "@rookery/timeline:0.1.0": timeline-tags, is-settled, next-stage, rung
 
 #let d(y, m, dd) = datetime(year: y, month: m, day: dd)
 
@@ -102,10 +102,10 @@
 // THE LOG ALONE decides. The flat marker is an index into it, not a second
 // source: with one write path the two cannot disagree, so `is-closed` reads the
 // log and a marker without an entry (which `#todo` cannot produce) is not closed.
-#assert.eq(is-closed(entries(timeline: (closed: d(2026, 8, 1)))), true)
+#assert.eq(is-closed(timeline-tags(timeline: (closed: d(2026, 8, 1)))), true)
 #assert.eq(is-closed(todo-tags()), false)
 #assert.eq(is-closed(todo-tags(closed: true)), false)
-#assert.eq(closed-on(entries(timeline: (closed: d(2026, 8, 1)))), d(2026, 8, 1))
+#assert.eq(closed-on(timeline-tags(timeline: (closed: d(2026, 8, 1)))), d(2026, 8, 1))
 
 // ---- `done:` — the shorthand, folded into the same log --------------------
 //
@@ -134,11 +134,11 @@
 )
 // The equivalence, end to end through the fragment: same tags, same readers.
 #assert.eq(
-  entries(timeline: _closing(d(2026, 8, 1), none)),
-  entries(timeline: (closed: d(2026, 8, 1))),
+  timeline-tags(timeline: _closing(d(2026, 8, 1), none)),
+  timeline-tags(timeline: (closed: d(2026, 8, 1))),
 )
-#assert.eq(is-closed(entries(timeline: _closing(d(2026, 8, 1), none))), true)
-#assert.eq(closed-on(entries(timeline: _closing(d(2026, 8, 1), none))), d(2026, 8, 1))
+#assert.eq(is-closed(timeline-tags(timeline: _closing(d(2026, 8, 1), none))), true)
+#assert.eq(closed-on(timeline-tags(timeline: _closing(d(2026, 8, 1), none))), d(2026, 8, 1))
 
 // `#done(date)` is a FACTORY, like `#epic` — it hands back a `#todo` variant, so
 // what can be asserted without a document is that a function comes back at all.
@@ -148,8 +148,8 @@
 // `blocked` never appears because it is derived from the graph, not declared.
 #assert.eq(status-of(todo-tags()), "open")
 #assert.eq(status-of(todo-tags(status: "draft")), "draft")
-#assert.eq(status-of(todo-tags(closed: true) + entries(timeline: (closed: d(2026, 8, 1)))), "closed")
-#assert.eq(status-of(todo-tags(status: "draft", closed: true) + entries(timeline: (closed: d(2026, 8, 1)))), "closed")
+#assert.eq(status-of(todo-tags(closed: true) + timeline-tags(timeline: (closed: d(2026, 8, 1)))), "closed")
+#assert.eq(status-of(todo-tags(status: "draft", closed: true) + timeline-tags(timeline: (closed: d(2026, 8, 1)))), "closed")
 
 // ---- the graph, cycles, and derived state ---------------------------------
 //
@@ -225,12 +225,12 @@
 #assert.eq(is-ready(settled.nodes.at("a"), settled, today: NOW), false)
 
 // Deferral is what makes this br's `ready` and not merely "not blocked".
-// Built through `entries(..)` rather than by hardcoding `the `scheduled` log stage`, which is
+// Built through `timeline-tags(..)` rather than by hardcoding `the `scheduled` log stage`, which is
 // what this fixture used to do — and exactly the drift the exported stage names
 // exist to prevent. As of 0.6.0 there is no such key: it is a stage in the log.
-#let deferred = g(row("x", tags: entries(scheduled: d(2026, 12, 1))))
+#let deferred = g(row("x", tags: timeline-tags(scheduled: d(2026, 12, 1))))
 #assert.eq(is-ready(deferred.nodes.at("x"), deferred, today: NOW), false)
-#let arrived = g(row("x", tags: entries(scheduled: d(2026, 8, 1))))
+#let arrived = g(row("x", tags: timeline-tags(scheduled: d(2026, 8, 1))))
 #assert.eq(is-ready(arrived.nodes.at("x"), arrived, today: NOW), true)
 // No schedule at all is not deferral — absence of a plan is not a plan to wait.
 #assert.eq(is-ready(g(row("x")).nodes.at("x"), g(row("x")), today: NOW), true)
@@ -279,7 +279,7 @@
 // It used to read core's `updated`, which fell back to the DOCUMENT's date, so
 // staleness measured document age on any project that did not hand-write one.
 #assert.eq(
-  updated-of((created: d(2026, 1, 1), tags-dict: entries(timeline: (activated: d(2026, 7, 1))))),
+  updated-of((created: d(2026, 1, 1), tags-dict: timeline-tags(timeline: (activated: d(2026, 7, 1))))),
   d(2026, 7, 1),
 )
 #assert.eq(updated-of((created: d(2026, 1, 1), tags-dict: (:))), d(2026, 1, 1))
@@ -291,19 +291,19 @@
 #assert.eq(TODO-LADDER.terminal, ("closed",))
 #assert.eq(TODO-LADDER.transit, ("scheduled", "activated"))
 #assert.eq(
-  is-settled(entries(timeline: (closed: d(2026, 8, 1))), ladder: TODO-LADDER, today: _T),
+  is-settled(timeline-tags(timeline: (closed: d(2026, 8, 1))), ladder: TODO-LADDER, today: _T),
   true,
 )
 #assert.eq(
-  is-settled(entries(timeline: (activated: d(2026, 8, 1))), ladder: TODO-LADDER, today: _T),
+  is-settled(timeline-tags(timeline: (activated: d(2026, 8, 1))), ladder: TODO-LADDER, today: _T),
   false,
 )
 #assert.eq(
-  next-stage(entries(timeline: (scheduled: d(2026, 8, 1))), ladder: TODO-LADDER, today: _T),
+  next-stage(timeline-tags(timeline: (scheduled: d(2026, 8, 1))), ladder: TODO-LADDER, today: _T),
   "activated",
 )
 // `deadline` is deliberately NOT a rung, so a todo carrying one has not advanced.
-#assert.eq(rung(entries(deadline: d(2026, 8, 1)), ladder: TODO-LADDER, today: _T), none)
+#assert.eq(rung(timeline-tags(deadline: d(2026, 8, 1)), ladder: TODO-LADDER, today: _T), none)
 
 // ---- layer-of / layers — the compile-time twin of `src/layout.js` ---------
 
@@ -423,7 +423,7 @@
   row("open-dep"),
   row("blocked", deps: ("open-dep",)),
   row("ready"),
-  row("deferred", tags: entries(scheduled: d(2026, 12, 1))),
+  row("deferred", tags: timeline-tags(scheduled: d(2026, 12, 1))),
 )
 #let dkc = todo-slip-keys(classes, today: TODAY)
 #assert.eq((dkc.class)(reg("done")), "todo-slip-closed")

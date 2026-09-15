@@ -23,7 +23,7 @@
 // without this package naming any of those states itself.
 //
 // THE LOG IS THE ONLY STORE. `date-scheduled` and `date-deadline` are gone as tag
-// KEYS and are reserved STAGE NAMES inside the log instead. `entries(deadline: d)`
+// KEYS and are reserved STAGE NAMES inside the log instead. `timeline-tags(deadline: d)`
 // writes an entry named "deadline"; `deadline-of(tags)` in `read.typ` reads that
 // entry back. Every existing consumer therefore keeps working unchanged —
 // @rookery/todos' readiness check, `is-overdue`, `is-upcoming`,
@@ -181,15 +181,15 @@
   })
 }
 
-// ---- entries(..) — the tag fragment ----------------------------------------
+// ---- timeline-tags(..) — the tag fragment ----------------------------------------
 //
-//   #idea("ship", tags: entries(deadline: datetime(year: 2026, month: 9, day: 1)))[..]
-//   #idea("wolf", tags: entries(deadline: d, timeline: (submitted: d2, rejected: d3)))[..]
+//   #idea("ship", tags: timeline-tags(deadline: datetime(year: 2026, month: 9, day: 1)))[..]
+//   #idea("wolf", tags: timeline-tags(deadline: d, timeline: (submitted: d2, rejected: d3)))[..]
 //
 // MERGE IT THROUGH `tags:`. Rookery accepts a dictionary there directly, so
 // composing with ordinary tags is dictionary merge:
 //
-//   tags: (phd: none) + entries(deadline: d)
+//   tags: (phd: none) + timeline-tags(deadline: d)
 //
 // `scheduled:` and `deadline:` stay named arguments even though they are now log
 // stages, because they are the two a note most often has and because every
@@ -198,9 +198,9 @@
 //
 // AN OMITTED DATE EMITS NO KEY AT ALL rather than a key with value `none`. That
 // distinction is load-bearing: a key whose value is `none` is a FLAT tag — it
-// renders as a pill and reads as a plain label — so `entries()` with nothing to say
+// renders as a pill and reads as a plain label — so `timeline-tags()` with nothing to say
 // must stay silent rather than stamp a meaningless pill on every note that calls
-// it. `entries()` with no arguments is `(:)`, which merges into anything and
+// it. `timeline-tags()` with no arguments is `(:)`, which merges into anything and
 // changes nothing.
 //
 // NOTHING IS AUTO-STAMPED HERE, and no default reaches for the clock. See this
@@ -211,7 +211,7 @@
 // `created` IS NOT IN THE LOG. Rookery core resolves and stores it (from
 // `#idea(created:)`, else the document's own date), and `read.typ` reads it off an
 // `ideas()` row rather than keeping a second copy that could only disagree.
-#let entries(scheduled: none, deadline: none, timeline: none) = {
+#let timeline-tags(scheduled: none, deadline: none, timeline: none) = {
   assert(
     scheduled == none or type(scheduled) == datetime,
     message: "@rookery/timeline: `scheduled` must be none or a datetime — got " + repr(scheduled),
@@ -294,7 +294,7 @@
     // Caller's own tags on the LEFT, this package's fragment on the right. The
     // two cannot collide by accident, since `timeline-log` is namespaced, and a
     // caller who wrote that key by hand meant to.
-    tags: normalize-tags(tags) + entries(scheduled: scheduled, deadline: deadline, timeline: timeline),
+    tags: normalize-tags(tags) + timeline-tags(scheduled: scheduled, deadline: deadline, timeline: timeline),
     ..args,
   )
 }

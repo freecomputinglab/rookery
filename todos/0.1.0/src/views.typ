@@ -18,7 +18,7 @@
 //     document date and panics when neither is available.
 
 #import "@rookery/core:0.1.0": window
-#import "@rookery/timeline:0.1.0": entries, is-overdue, updated-of
+#import "@rookery/timeline:0.1.0": timeline-tags, is-overdue, updated-of
 #import "target.typ": *
 #import "tags.typ": *
 #import "todo.typ": *
@@ -287,11 +287,11 @@
   // now" in the whole stack — including its panic when there is none, and its
   // MEASURED handling of an unset document date, which is `auto` and not
   // `none`.
-  // Built through `entries(deadline: ..)` rather than by hand-writing a tag key:
+  // Built through `timeline-tags(deadline: ..)` rather than by hand-writing a tag key:
   // the deadline is a STAGE in the log now, not a key of its own, and naming the
   // storage shape here would be this view knowing something only rookery-timeline
   // should.
-  let stale(u) = is-overdue(entries(deadline: u + duration(days: older-than)), today: today)
+  let stale(u) = is-overdue(timeline-tags(deadline: u + duration(days: older-than)), today: today)
   let touched = r => updated-of(r)
   let rows = all.filter(r => {
     if r.closed { return false }

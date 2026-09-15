@@ -13,7 +13,7 @@
 // package EXPECTS to fail, with its stderr checked for the valid-kinds message.
 #import "/src/lib.typ": *
 #import "@rookery/core:0.1.0": rookery, tag-data
-#import "@rookery/timeline:0.1.0": CLOSED-STAGE, entries, has-stage
+#import "@rookery/timeline:0.1.0": CLOSED-STAGE, timeline-tags, has-stage
 
 #show: rookery
 
@@ -29,13 +29,13 @@
 
 // `cfp-state`/`real-stage-of` are pure functions of a tag dictionary and a
 // ladder — neither needs a `#cfp` mint, so the four cases below build the log
-// straight with `entries()`, the way `cfp.typ`'s own header worked out the bug
+// straight with `timeline-tags()`, the way `cfp.typ`'s own header worked out the bug
 // each one guards.
 
 // 1. A lapsed, unanswered call reads as "open", never "in-flight" — reading the
 //    RAW log would call this "in-flight" because the deadline is the latest
 //    reached entry and belongs to no ladder's terminal list.
-#let lapsed-tags = entries(deadline: day(1))
+#let lapsed-tags = timeline-tags(deadline: day(1))
 #assert.eq(
   cfp-state(lapsed-tags, ladder: JOB-LADDER, today: TODAY),
   "open",
@@ -45,7 +45,7 @@
 // 2. A stage dated BEFORE the deadline is still detected. Raw `stage-of` would
 //    pick the deadline itself, at day 10 — the latest entry that has passed —
 //    and silently mask the real answer dated day 5.
-#let early-answer-tags = entries(deadline: day(10), timeline: (dropped: day(5)))
+#let early-answer-tags = timeline-tags(deadline: day(10), timeline: (dropped: day(5)))
 #assert.eq(
   real-stage-of(early-answer-tags, today: day(15)),
   "dropped",

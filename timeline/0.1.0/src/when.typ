@@ -144,7 +144,7 @@
 // ---- How long you have, as a number and as words --------------------------
 //
 // THESE TWO ARE PUBLIC AND LIVE HERE rather than beside the view that draws them.
-// `#upcoming` (`upcoming.typ`) held them as privates until @rookery/todos'
+// `#timeline-upcoming` (`upcoming.typ`) held them as privates until @rookery/todos'
 // `#todo-table` needed the same chip on its own rows — and that file is the one
 // place in this package that reads rookery's note registry, so a consumer importing
 // from it pays for a registry walk to reach two functions over an integer.
@@ -167,7 +167,7 @@
 // THE EDGES ARE WORDS, not arithmetic. `in 1 days` is not something anyone writes,
 // and the three dates a reader acts on today are exactly the three worth naming.
 //
-// OVERDUE IS URGENT, AND HAS NO FLOOR. `#upcoming` sorts ASCENDING, so a date
+// OVERDUE IS URGENT, AND HAS NO FLOOR. `#timeline-upcoming` sorts ASCENDING, so a date
 // already behind you sits at the TOP of the list — it is the most urgent thing on
 // it, not the stalest, and a row that fell out of the band after a fortnight would
 // go quiet precisely as it got worse.

@@ -184,7 +184,7 @@
     // else can be writing them.
     let all-tags = core._norm-tags(tags) + core._norm-tags(tag) + own
     if who.len() > 0 { all-tags.insert(MEETING-WITH-KEY, who) }
-    all-tags += tl.entries(scheduled: scheduled, deadline: deadline, timeline: log)
+    all-tags += tl.timeline-tags(scheduled: scheduled, deadline: deadline, timeline: log)
     // The name an untitled meeting gets: `with:`/`on:` are the whole reason it can
     // have one. "Meeting with Finale Doshi-Velez on 10.9.26" is what the note is,
     // and it is the one thing this factory knows that `#idea`'s own fallback cannot

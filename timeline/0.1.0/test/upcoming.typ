@@ -1,5 +1,5 @@
-// The rendered fixture for `#upcoming`, and A FILE OF ITS OWN rather than a ninth
-// section of `view.typ`. The reason is mechanical: `#upcoming` reads the note
+// The rendered fixture for `#timeline-upcoming`, and A FILE OF ITS OWN rather than a ninth
+// section of `view.typ`. The reason is mechanical: `#timeline-upcoming` reads the note
 // REGISTRY, so its rows have to be real `#idea` notes and the file has to apply
 // rookery's own show rule — and `#show: rookery` rewrites the whole document, which
 // would perturb the eight rails `check.sh` counts by regex in `view.typ`'s output.
@@ -48,20 +48,20 @@
 
 = 1. Every row, soonest first
 
-#upcoming(tags: "queued", today: NOW, stage: (DEADLINE-STAGE, SCHEDULED-STAGE))
+#timeline-upcoming(tags: "queued", today: NOW, stage: (DEADLINE-STAGE, SCHEDULED-STAGE))
 
 = 2. With a cutoff
 
-#upcoming(tags: "queued", today: NOW, from: d(2026, 9, 15))
+#timeline-upcoming(tags: "queued", today: NOW, from: d(2026, 9, 15))
 
 = 3. Nothing selected
 
-#upcoming(tags: "no-note-carries-this", today: NOW)
+#timeline-upcoming(tags: "no-note-carries-this", today: NOW)
 
 = 4. Named from the note a tag points at
 
-#upcoming(tags: "attempt", today: NOW, name-from: "attempt")
+#timeline-upcoming(tags: "attempt", today: NOW, name-from: "attempt")
 
 = 5. The countdown column
 
-#upcoming(tags: "due", today: NOW, show-countdown: true)
+#timeline-upcoming(tags: "due", today: NOW, show-countdown: true)

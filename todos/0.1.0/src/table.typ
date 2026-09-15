@@ -278,11 +278,11 @@
   // first inside each — not an error, just a coarser order.
   order: "urgency",
   // HOW LONG YOU HAVE, as a WASH ON THE DATE CELL — the same three bands
-  // @rookery/timeline draws on `#upcoming`, off the same `countdown()`, on the
+  // @rookery/timeline draws on `#timeline-upcoming`, off the same `countdown()`, on the
   // same family `--rookery-heat-*` ramp. What differs is where the colour lands: that
   // view draws a chip, this one paints the date. The phrase rides as a tooltip.
   //
-  // ON BY DEFAULT here, where `#upcoming`'s flag is off: a panel of OUTSTANDING WORK
+  // ON BY DEFAULT here, where `#timeline-upcoming`'s flag is off: a panel of OUTSTANDING WORK
   // is read for what is due next, which is the question the band answers. A row
   // further off than a fortnight draws no band from the countdown — priority is the
   // fallback there, see `draw` below — and a row with no date draws nothing at all.
@@ -501,7 +501,7 @@
             [#upper(pri) — ]
           }
           r.at("label", default: r.at("name", default: ""))
-          // THE SAME WORDS, NO COLOUR, which is what `#upcoming`'s paged branch does
+          // THE SAME WORDS, NO COLOUR, which is what `#timeline-upcoming`'s paged branch does
           // too: a printed page has no chip to tint, and red ink is a decision about
           // the page rather than about the deadline.
           if c != none { [ #text(gray, "(" + c.text + ")")] }
@@ -512,7 +512,7 @@
       // what this todo IS (its facets) and how soon it is due — and spent a chip slot
       // on a reading the eye takes without words. So the colour paints the date's own
       // background and the phrase becomes a tooltip: the colour is the reading at a
-      // glance, the words are there for whoever asks. `#upcoming` keeps its chips —
+      // glance, the words are there for whoever asks. `#timeline-upcoming` keeps its chips —
       // that view has a different grid and a different question.
       //
       // OVERDUE IS THE FOURTH BAND, and it is this package's own: `countdown()` folds

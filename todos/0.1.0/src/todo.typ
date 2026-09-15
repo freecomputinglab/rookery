@@ -55,10 +55,10 @@
 // share — see its own comment for why the date cannot lead a positional list.
 //
 // The old form still works and is still supported — `dated` merges its fragment
-// into whatever `tags:` the caller passed — so `#todo("ship", tags: entries(deadline: d))`
+// into whatever `tags:` the caller passed — so `#todo("ship", tags: timeline-tags(deadline: d))`
 // is unchanged:
 //
-//   #todo("ship", tags: entries(deadline: d))[..]
+//   #todo("ship", tags: timeline-tags(deadline: d))[..]
 //
 // `created` is rookery's own row field, forwarded through `..args`. There is
 // no `updated` field — rookery-timeline derives last-touched from the log

@@ -15,7 +15,7 @@
 //
 // CELLS ARRIVE FORMATTED, which is the whole of the design. The row asks no questions
 // about dates, stages or tags — a caller knows its own data model and fills the cells.
-// That is what lets one row serve a log-derived queue (`#upcoming`), a
+// That is what lets one row serve a log-derived queue (`#timeline-upcoming`), a
 // `created`-ordered filter panel, and a hand-built table of submissions, none of which
 // agree about what a date means.
 
@@ -67,7 +67,7 @@
   badges: (),
   cells: (),
 ) = {
-  // A BARE STRING IS WRAPPED, the same courtesy `#upcoming`'s `stage:` extends: one
+  // A BARE STRING IS WRAPPED, the same courtesy `#timeline-upcoming`'s `stage:` extends: one
   // extra class is the common case, and `when-class: "todo-when-urgent"` is what a
   // caller writes first.
   let when-class = if type(when-class) == str { (when-class,) } else { when-class }

@@ -36,7 +36,7 @@
 #let _has-time(d) = d.hour() != none
 
 // `_fmt-day` USED TO LIVE HERE and now comes in from `read.typ` with the rest of
-// the readers, because `#upcoming` (`upcoming.typ`) draws a column of the same
+// the readers, because `#timeline-upcoming` (`upcoming.typ`) draws a column of the same
 // dates and a second copy of the format would be a second answer to "how does
 // this package write a date". Its reasoning moved with it.
 #let _fmt-time(d) = d.display("[hour]:[minute]")

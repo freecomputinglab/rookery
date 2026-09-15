@@ -33,7 +33,7 @@
 // consuming project already uses for its own dated lists.
 //
 // ONE COPY FOR TWO VIEWS. It began in `view.typ` when the rail was the only thing
-// this package drew; `#upcoming` draws the same column, so it sits with the readers
+// this package drew; `#timeline-upcoming` draws the same column, so it sits with the readers
 // and both views import it. The ISO form a `<time datetime=..>` attribute needs is
 // deliberately NOT this one — see either view for that.
 #let _fmt-day(d) = d.display("[day padding:none].[month padding:none].[year repr:last_two]")

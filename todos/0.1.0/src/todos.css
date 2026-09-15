@@ -305,7 +305,7 @@
    * TWO LAYERS OF `var()`, as everywhere else in this family: the per-band override
    * `--todo-band-<name>` first, then a mix of the family-wide `--rookery-heat-*`
    * ramp, then the literal hue. A site sets the ramp ONCE and all six washes follow,
-   * along with `#upcoming`'s countdown chips in @rookery/timeline. */
+   * along with `#timeline-upcoming`'s countdown chips in @rookery/timeline. */
   [data-rookery="row-when"][data-countdown] {
     position: relative;
     border-radius: 3px;
@@ -373,7 +373,7 @@
    * chip's own padding is repeated here.
    *
    * `--todo-pri-fg-rung-<n>` is the per-rung override, and the ramp underneath it is
-   * the same red/orange/yellow the washes and `#upcoming`'s chips take. */
+   * the same red/orange/yellow the washes and `#timeline-upcoming`'s chips take. */
   [data-rookery="row-when"].todo-when-priority {
     border-radius: 3px;
     padding: 0 0.3em;

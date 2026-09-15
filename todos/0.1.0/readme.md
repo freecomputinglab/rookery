@@ -114,7 +114,7 @@ date a todo carries now lives in one timeline, and a close REQUIRES a
 ```
 
 - **`#todo` takes `scheduled:`, `deadline:` and `timeline:` as named arguments**, being
-  built on rookery-timeline's `dated(..)` decorator. The old `tags: entries(deadline: d)`
+  built on rookery-timeline's `dated(..)` decorator. The old `tags: timeline-tags(deadline: d)`
   form still works and is still supported.
 - **The `closed:` ARGUMENT is gone**, and a close is a log entry: write it as
   `timeline: (closed: d)` or as the `done: d` shorthand above. `closed: true`
@@ -214,7 +214,7 @@ payoff named at the top of surface 1 — would have been lost to buy tidiness.
 
 So `todo-closed` is now a FLAT presence marker valued `none`, carrying no date and
 duplicating nothing. `is-closed` reads either it or a `closed` entry in the log, so
-a note written straight through `entries(timeline: (closed: d))` without `#todo` still
+a note written straight through `timeline-tags(timeline: (closed: d))` without `#todo` still
 reads as closed; `closed-on` reads only the log, the one place the date is stored.
 `closed: false` still emits no key at all.
 
@@ -225,7 +225,7 @@ reads as closed; `closed-on` reads only the log, the one place the date is store
   the filtering and theming that is the point.
 - **Dates come from [`@rookery/timeline`](../../timeline/0.1.0)** —
   `#todo("x", deadline: d, timeline: (activated: d2))`, or the older
-  `#todo("x", tags: entries(deadline: d))`. One concept, one package, and as of
+  `#todo("x", tags: timeline-tags(deadline: d))`. One concept, one package, and as of
   0.6.0 one log.
 - **`created` is rookery core's own**, forwarded straight through `#todo`. There
   is no `updated` beside it any more; `updated-of(row)` in rookery-timeline
@@ -834,11 +834,11 @@ days; later is eight to fourteen. The colour is the reading at a glance; the wor
 cell on hover and on focus, and as its `aria-label` for a reader who cannot see a
 colour. The badge strip stays about facets.
 
-It is **on by default** here, where `#upcoming`'s own `show-countdown:` is off,
+It is **on by default** here, where `#timeline-upcoming`'s own `show-countdown:` is off,
 because a panel of outstanding work is read for what is due next. Pass
 `show-countdown: false` to drop it, and note that it needs a `today:` — with none
 passed no row can be measured
-and no countdown band is drawn. (`#upcoming` is untouched: that view keeps its chips.)
+and no countdown band is drawn. (`#timeline-upcoming` is untouched: that view keeps its chips.)
 
 **Priority is the fallback, and only where the countdown is silent.** A todo three
 weeks out earns no countdown band, so a high-priority todo sitting far out would
@@ -864,7 +864,7 @@ behind an em dash says nothing.
 
 **One ramp, two readings, and by default they are the same palette.** A site sets the
 three `--rookery-heat-*` properties once on `:root` and every heat surface in the
-family follows — this package's six date bands, and `#upcoming`'s countdown chips over
+family follows — this package's six date bands, and `#timeline-upcoming`'s countdown chips over
 in `@rookery/timeline`. The `--todo-band-rung-*` and `--todo-pri-fg-rung-*`
 properties exist for the site that wants urgency-in-time and urgency-in-priority to
 read differently, and each replaces its band's colour (or its label's ink) whole

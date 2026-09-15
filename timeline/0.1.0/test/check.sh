@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Asserts on the rendered fixtures' OUTPUT, not merely that they compiled.
 # `units.typ` covers every value; this covers the markup, which is the only thing
-# the two views actually produce — `#timeline-view` in `view.typ`, `#upcoming` in
+# the two views actually produce — `#timeline-view` in `view.typ`, `#timeline-upcoming` in
 # `upcoming.typ` (a separate file because it needs `#show: rookery`; see its header).
 set -euo pipefail
 cd "$(dirname "$0")/.."

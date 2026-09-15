@@ -7,7 +7,7 @@ labels:
 - chore-timeline-api
 deps:
 - blocked-by:rk-rename-timeline-to-history-of-take-a-row-939e1b42
-closed: false
+closed: true
 ---
 Two of this package's three most-used exports are named as though nothing else
 shared the namespace they land in.

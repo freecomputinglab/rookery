@@ -1,4 +1,4 @@
-/* rookery-timeline — the rail `#timeline-view` draws, and the list `#upcoming` does.
+/* rookery-timeline — the rail `#timeline-view` draws, and the list `#timeline-upcoming` does.
 
    Thin on purpose, like rookery's own stylesheet: enough that a log reads
    correctly out of the box, and nothing that presumes a page design. No fonts, no
@@ -26,7 +26,7 @@
      --timeline-gutter   width of the date column, left of the line
      --timeline-note     an entry's own prose (defaults to --timeline-muted)
 
-   `#upcoming` draws its rows with `#idea-row` from @rookery/core, so the row's grid,
+   `#timeline-upcoming` draws its rows with `#idea-row` from @rookery/core, so the row's grid,
    its date column and its chips are styled in THAT package's stylesheet — including
    the `--idea-tag-*` properties a themed stage colours itself through. What is left
    here is the list's own frame, plus four knobs:
@@ -206,7 +206,7 @@
   }
 
   /* ============================================================
-     `#upcoming` — one row per note, ordered by what is coming.
+     `#timeline-upcoming` — one row per note, ordered by what is coming.
 
      ALMOST NOTHING IS LEFT HERE, and that is the point. The row is `#idea-row` from
      @rookery/core now — its grid, its date column, its badge strip and the chip's

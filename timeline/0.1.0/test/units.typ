@@ -8,21 +8,21 @@
 #let d(y, m, dd) = datetime(year: y, month: m, day: dd)
 #let NOW = d(2026, 8, 25)
 
-// ---- entries() — ONE key, and an omitted date emits none of it --------------
+// ---- timeline-tags() — ONE key, and an omitted date emits none of it --------------
 // Not a key with value `none`: a `none`-valued key is a FLAT tag and renders as a
-// pill, so a silent `entries()` must stay silent.
-#assert.eq(entries(), (:))
+// pill, so a silent `timeline-tags()` must stay silent.
+#assert.eq(timeline-tags(), (:))
 // As of 0.6.0 `scheduled:`/`deadline:` are STAGES in the single `timeline-log` key
 // rather than two keys of their own. One destination for all three arguments.
 #assert.eq(
-  entries(deadline: d(2026, 9, 1)),
+  timeline-tags(deadline: d(2026, 9, 1)),
   ("timeline-log": ((stage: "deadline", timestamp: d(2026, 9, 1)),)),
 )
 #assert.eq(
-  entries(scheduled: d(2026, 9, 1)),
+  timeline-tags(scheduled: d(2026, 9, 1)),
   ("timeline-log": ((stage: "scheduled", timestamp: d(2026, 9, 1)),)),
 )
-#assert.eq(entries(scheduled: d(2026, 1, 2), deadline: d(2026, 3, 4)).keys().len(), 1)
+#assert.eq(timeline-tags(scheduled: d(2026, 1, 2), deadline: d(2026, 3, 4)).keys().len(), 1)
 
 // The key is namespaced, because a key becomes a `.idea-tag-<key>` CSS class and
 // a bare `log` is a name two packages would both reach for. The three reserved
@@ -35,7 +35,7 @@
 
 // Merges into an ordinary tag dictionary without disturbing it.
 #assert.eq(
-  (phd: none) + entries(deadline: d(2026, 9, 1)),
+  (phd: none) + timeline-tags(deadline: d(2026, 9, 1)),
   (phd: none, "timeline-log": ((stage: "deadline", timestamp: d(2026, 9, 1)),)),
 )
 
@@ -43,7 +43,7 @@
 // Sorted at write time so the stored value is unambiguous and no reader has to
 // sort. The order it was WRITTEN in cannot lie about the timeline.
 #assert.eq(
-  entries(timeline: (
+  timeline-tags(timeline: (
     rejected: d(2027, 2, 3),
     submitted: d(2026, 10, 28),
     longlisted: d(2026, 12, 15),
@@ -54,17 +54,17 @@
 // insertion order, so this is sound — and the sort decorates with the written
 // index rather than trusting `array.sorted`, which is not documented as stable.
 #assert.eq(
-  entries(timeline: (b: d(2026, 5, 1), a: d(2026, 5, 1))).at("timeline-log").map(e => e.stage),
+  timeline-tags(timeline: (b: d(2026, 5, 1), a: d(2026, 5, 1))).at("timeline-log").map(e => e.stage),
   ("b", "a"),
 )
 // `scheduled:`/`deadline:` fold into the same log as `timeline:`'s own entries.
 #assert.eq(
-  entries(deadline: d(2026, 11, 1), timeline: (submitted: d(2026, 10, 28))).at("timeline-log"),
+  timeline-tags(deadline: d(2026, 11, 1), timeline: (submitted: d(2026, 10, 28))).at("timeline-log"),
   ((stage: "submitted", timestamp: d(2026, 10, 28)), (stage: "deadline", timestamp: d(2026, 11, 1))),
 )
 // A hyphenated stage name is fine — it has to survive being a CSS class fragment.
 #assert.eq(
-  entries(timeline: ("first-interview": d(2027, 1, 20))).at("timeline-log").first().stage,
+  timeline-tags(timeline: ("first-interview": d(2027, 1, 20))).at("timeline-log").first().stage,
   "first-interview",
 )
 
@@ -95,9 +95,9 @@
 #assert.eq(normalize-tags(("a", "b")), (a: none, b: none))
 
 // ---- readers ---------------------------------------------------------------
-#assert.eq(deadline-of(entries(deadline: d(2026, 9, 1))), d(2026, 9, 1))
+#assert.eq(deadline-of(timeline-tags(deadline: d(2026, 9, 1))), d(2026, 9, 1))
 #assert.eq(deadline-of((:)), none)
-#assert.eq(scheduled-of(entries(scheduled: d(2026, 9, 1))), d(2026, 9, 1))
+#assert.eq(scheduled-of(timeline-tags(scheduled: d(2026, 9, 1))), d(2026, 9, 1))
 #assert.eq(scheduled-of((phd: none)), none)
 
 // A stage appearing twice reads as the LATEST: a todo deferred and then
@@ -111,29 +111,29 @@
 )
 
 // ---- is-overdue — strictly before, so "due today" is not overdue ----------
-#assert.eq(is-overdue(entries(deadline: d(2026, 8, 24)), today: NOW), true)
-#assert.eq(is-overdue(entries(deadline: NOW), today: NOW), false)
-#assert.eq(is-overdue(entries(deadline: d(2026, 8, 26)), today: NOW), false)
+#assert.eq(is-overdue(timeline-tags(deadline: d(2026, 8, 24)), today: NOW), true)
+#assert.eq(is-overdue(timeline-tags(deadline: NOW), today: NOW), false)
+#assert.eq(is-overdue(timeline-tags(deadline: d(2026, 8, 26)), today: NOW), false)
 // No deadline is not overdue.
 #assert.eq(is-overdue((:), today: NOW), false)
 // Year boundaries compare correctly, which is the whole reason dates are
 // compared as zero-padded [year][month][day] strings rather than as datetimes.
-#assert.eq(is-overdue(entries(deadline: d(2025, 12, 31)), today: NOW), true)
-#assert.eq(is-overdue(entries(deadline: d(2027, 1, 1)), today: NOW), false)
+#assert.eq(is-overdue(timeline-tags(deadline: d(2025, 12, 31)), today: NOW), true)
+#assert.eq(is-overdue(timeline-tags(deadline: d(2027, 1, 1)), today: NOW), false)
 
 // ---- is-upcoming — inclusive both ends, and never also overdue ------------
-#assert.eq(is-upcoming(entries(deadline: NOW), today: NOW), true)
-#assert.eq(is-upcoming(entries(deadline: d(2026, 9, 1)), today: NOW, within: 7), true)
-#assert.eq(is-upcoming(entries(deadline: d(2026, 9, 2)), today: NOW, within: 7), false)
-#assert.eq(is-upcoming(entries(deadline: NOW), today: NOW, within: 0), true)
+#assert.eq(is-upcoming(timeline-tags(deadline: NOW), today: NOW), true)
+#assert.eq(is-upcoming(timeline-tags(deadline: d(2026, 9, 1)), today: NOW, within: 7), true)
+#assert.eq(is-upcoming(timeline-tags(deadline: d(2026, 9, 2)), today: NOW, within: 7), false)
+#assert.eq(is-upcoming(timeline-tags(deadline: NOW), today: NOW, within: 0), true)
 // An overdue deadline is NOT upcoming — a row belongs to exactly one of them.
-#assert.eq(is-upcoming(entries(deadline: d(2026, 8, 24)), today: NOW), false)
+#assert.eq(is-upcoming(timeline-tags(deadline: d(2026, 8, 24)), today: NOW), false)
 #assert.eq(is-upcoming((:), today: NOW), false)
 
 // ---- is-scheduled-now — on or before, and absent means NOT scheduled ------
-#assert.eq(is-scheduled-now(entries(scheduled: d(2026, 8, 24)), today: NOW), true)
-#assert.eq(is-scheduled-now(entries(scheduled: NOW), today: NOW), true)
-#assert.eq(is-scheduled-now(entries(scheduled: d(2026, 8, 26)), today: NOW), false)
+#assert.eq(is-scheduled-now(timeline-tags(scheduled: d(2026, 8, 24)), today: NOW), true)
+#assert.eq(is-scheduled-now(timeline-tags(scheduled: NOW), today: NOW), true)
+#assert.eq(is-scheduled-now(timeline-tags(scheduled: d(2026, 8, 26)), today: NOW), false)
 // Absent reads as "not scheduled", NOT as "scheduled for now". A consumer
 // wanting "nothing defers this" asks `scheduled-of(t) == none or is-scheduled-now(t)`.
 #assert.eq(is-scheduled-now((:), today: NOW), false)
@@ -142,7 +142,7 @@
 // The worked case from the design: submitted, longlisted, and a first interview
 // BOOKED but not yet held, read against a `today:` that falls between the last
 // two. Future-dated entries are the ordinary shape of a plan, not an edge case.
-#let _flight = entries(timeline: (
+#let _flight = timeline-tags(timeline: (
   submitted: d(2026, 10, 28),
   longlisted: d(2026, 12, 15),
   "first-interview": d(2027, 1, 20),
@@ -173,12 +173,12 @@
 #assert.eq(days-in-flight((:), today: _JAN5), none)
 // Measured from the first entry even when that entry is future, so a not-yet-sent
 // submission reports a negative number rather than none.
-#assert.eq(days-in-flight(entries(deadline: d(2027, 1, 20)), today: _JAN5), -15)
+#assert.eq(days-in-flight(timeline-tags(deadline: d(2027, 1, 20)), today: _JAN5), -15)
 
 // ---- deadline-of over the log — is-overdue and friends unchanged -----------
 // The four-line payoff: these readers kept their signatures, so the predicates
 // built on them needed no edit at all when the storage changed underneath.
-#assert.eq(deadline-of(entries(deadline: d(2026, 9, 1))), d(2026, 9, 1))
+#assert.eq(deadline-of(timeline-tags(deadline: d(2026, 9, 1))), d(2026, 9, 1))
 #assert.eq(deadline-of(_flight), none)
 
 // ---- updated-of — derived, no longer a core field --------------------------
@@ -213,7 +213,7 @@
   terminal: ("published", "rejected", "desk-rejected", "withdrawn"),
 )
 
-#let _at(stage) = entries(timeline: ((stage): d(2026, 6, 1)))
+#let _at(stage) = timeline-tags(timeline: ((stage): d(2026, 6, 1)))
 #let _T = d(2026, 12, 1)
 
 #assert.eq(is-settled(_at("first-interview"), ladder: JOB, today: _T), false)
@@ -243,8 +243,8 @@
 // Nothing has happened yet — an empty log, and a log entirely in the future.
 #assert.eq(is-settled((:), ladder: JOB, today: _T), false)
 #assert.eq(rung((:), ladder: JOB, today: _T), none)
-#assert.eq(is-settled(entries(deadline: d(2027, 1, 1)), ladder: JOB, today: _T), false)
-#assert.eq(rung(entries(deadline: d(2027, 1, 1)), ladder: JOB, today: _T), none)
+#assert.eq(is-settled(timeline-tags(deadline: d(2027, 1, 1)), ladder: JOB, today: _T), false)
+#assert.eq(rung(timeline-tags(deadline: d(2027, 1, 1)), ladder: JOB, today: _T), none)
 
 // ---- tag-index extractors — the log made projectable ----------------------
 // A log can never ride on an `ideas()` row (rookery keeps tag values off rows),
@@ -255,14 +255,14 @@
 
 // A date comes back as a zero-padded STRING, never a datetime: core's scalar
 // assert would refuse the datetime, and the string sorts lexically in date order.
-#assert.eq((as-date(DEADLINE-STAGE))(entries(deadline: d(2026, 11, 1))), "20261101")
+#assert.eq((as-date(DEADLINE-STAGE))(timeline-tags(deadline: d(2026, 11, 1))), "20261101")
 #assert.eq((as-date(DEADLINE-STAGE))(_flight), none)
 #assert.eq((as-entered(today: _JAN5))(_flight), "20261028")
 
 #assert.eq((as-rung(ladder: JOB, today: _JAN5))(_flight), 1)
 #assert.eq((as-settled(ladder: JOB, today: _JAN5))(_flight), false)
 #assert.eq(
-  (as-settled(ladder: JOB, today: _JAN5))(entries(timeline: (offered: d(2026, 12, 1)))),
+  (as-settled(ladder: JOB, today: _JAN5))(timeline-tags(timeline: (offered: d(2026, 12, 1)))),
   true,
 )
 #assert.eq((as-days-in-flight(today: _JAN5))(_flight), 69)
@@ -283,29 +283,29 @@
 #let _t15 = datetime(year: 2026, month: 8, day: 27, hour: 15, minute: 0, second: 0)
 #let _t16 = datetime(year: 2026, month: 8, day: 27, hour: 16, minute: 0, second: 0)
 #assert.eq(
-  entries(timeline: (closed: _t16, activated: _t15)).at("timeline-log").map(e => e.stage),
+  timeline-tags(timeline: (closed: _t16, activated: _t15)).at("timeline-log").map(e => e.stage),
   ("activated", "closed"),
 )
 // A DATE-ONLY entry sorts as the start of its day, so a bare `deadline` precedes a
 // timed event on the same date rather than landing after it.
 #assert.eq(
-  entries(deadline: d(2026, 8, 27), timeline: (activated: _t15)).at("timeline-log").map(e => e.stage),
+  timeline-tags(deadline: d(2026, 8, 27), timeline: (activated: _t15)).at("timeline-log").map(e => e.stage),
   ("deadline", "activated"),
 )
 // Two DATE-ONLY entries on one day still tie, and still resolve by written order —
 // the existing behaviour, unchanged, because neither carries a time to compare.
 #assert.eq(
-  entries(timeline: (b: d(2026, 5, 1), a: d(2026, 5, 1))).at("timeline-log").map(e => e.stage),
+  timeline-tags(timeline: (b: d(2026, 5, 1), a: d(2026, 5, 1))).at("timeline-log").map(e => e.stage),
   ("b", "a"),
 )
 // The stored value keeps its time; only the sort key reads it.
-#assert.eq(entries(timeline: (activated: _t15)).at("timeline-log").first().timestamp.hour(), 15)
+#assert.eq(timeline-tags(timeline: (activated: _t15)).at("timeline-log").first().timestamp.hour(), 15)
 
 // ---- timeline-view — the past/booked/expected split -----------------------------
 // The rendering is HTML and this fixture is a paged compile, so what is asserted
 // here is the SPLIT the view computes, through the same readers it uses. The
 // markup itself is covered by the demo.
-#let _straddle = entries(timeline: (
+#let _straddle = timeline-tags(timeline: (
   submitted: d(2026, 10, 28),
   longlisted: d(2026, 12, 15),
   "first-interview": d(2027, 1, 20),
@@ -331,7 +331,7 @@
   ("finalist",),
 )
 // Settled -> `rung` is past the transit list, so nothing is expected ahead.
-#assert.eq(rung(entries(timeline: (offered: d(2026, 12, 1))), ladder: _LAD, today: _JAN5b), 4)
+#assert.eq(rung(timeline-tags(timeline: (offered: d(2026, 12, 1))), ladder: _LAD, today: _JAN5b), 4)
 
 // `#timeline-view` ITSELF IS NOT ASSERTED HERE. It is a context function — it branches
 // on `target()` — so it returns content rather than a value, and a context block's
@@ -341,7 +341,7 @@
 // ---- an entry carrying its own content -------------------------------------
 // The motivating case: prose ABOUT one event, which used to end up on the note and
 // read as a claim about the whole thing.
-#let _rich = entries(timeline: (
+#let _rich = timeline-tags(timeline: (
   closed: (
     timestamp: d(2026, 8, 27),
     note: [Landed as rookery's derived `label`.],
@@ -361,13 +361,13 @@
 
 // The shorthand and the dict form agree but for the extras.
 #assert.eq(
-  timeline-of(entries(timeline: (closed: d(2026, 8, 27)))).first(),
+  timeline-of(timeline-tags(timeline: (closed: d(2026, 8, 27)))).first(),
   (timestamp: d(2026, 8, 27), stage: "closed"),
 )
 
 // Ordering is unaffected — it reads `timestamp` whichever form wrote it.
 #assert.eq(
-  timeline-of(entries(timeline: (
+  timeline-of(timeline-tags(timeline: (
     closed: (timestamp: d(2026, 9, 1), note: [later]),
     activated: d(2026, 8, 1),
   ))).map(e => e.stage),
@@ -376,7 +376,7 @@
 
 // A note may be a plain string as well as content, since both are `html.elem`
 // bodies.
-#assert.eq(timeline-of(entries(timeline: (closed: (timestamp: d(2026, 8, 27), note: "plain")))).first().note, "plain")
+#assert.eq(timeline-of(timeline-tags(timeline: (closed: (timestamp: d(2026, 8, 27), note: "plain")))).first().note, "plain")
 
 // ---- the skin over rookery -------------------------------------------------
 // This package re-exports rookery's whole surface and overrides two names. The
@@ -398,7 +398,7 @@
   terminal: ("published", "rejected", "withdrawn"),
 )
 #let _T2 = d(2027, 6, 1)
-#let _at2(stage) = entries(timeline: ((stage): d(2026, 6, 1)))
+#let _at2(stage) = timeline-tags(timeline: ((stage): d(2026, 6, 1)))
 
 #assert.eq(rung-name("review-*"), "review")
 #assert.eq(rung-name("submitted"), "submitted")
@@ -446,7 +446,7 @@
   true,
 )
 
-// ---- when-of — WHICH ENTRY DATES A ROW, for `#upcoming` --------------------
+// ---- when-of — WHICH ENTRY DATES A ROW, for `#timeline-upcoming` --------------------
 //
 // The whole of that view's date policy, kept as a pure function precisely so it can
 // be pinned here: the view returns content and branches on `target()`, so nothing
@@ -454,13 +454,13 @@
 //
 // `stage:` takes one name or an array of names IN PRIORITY ORDER, because the log is
 // a dictionary of named dates and only the caller knows which one it is queued by.
-#let _wdead = entries(deadline: d(2026, 9, 1))
+#let _wdead = timeline-tags(deadline: d(2026, 9, 1))
 #assert.eq(when-of(_wdead, today: NOW), (date: d(2026, 9, 1), stage: "deadline", firm: true))
 
 // PRIORITY ORDER IS HONOURED, and the array form is the reason this argument is not
 // simply a single name: a submissions tracker queues by the deadline where a call
 // has published one, and by the date the call is expected to POST where it has not.
-#let _wboth = entries(deadline: d(2026, 9, 1), scheduled: d(2026, 8, 1))
+#let _wboth = timeline-tags(deadline: d(2026, 9, 1), scheduled: d(2026, 8, 1))
 #assert.eq(
   when-of(_wboth, stage: (DEADLINE-STAGE, SCHEDULED-STAGE), today: NOW).date,
   d(2026, 9, 1),
@@ -470,7 +470,7 @@
 // NEITHER NAMED STAGE, BUT SOMETHING BOOKED. The row keeps its place in the queue —
 // an interview dated next month is exactly what is imminent about it — and `firm` is
 // false to say the date answers from a different entry than the one asked for.
-#let _wbooked = entries(timeline: (submitted: d(2026, 8, 1), "first-interview": d(2026, 9, 20)))
+#let _wbooked = timeline-tags(timeline: (submitted: d(2026, 8, 1), "first-interview": d(2026, 9, 20)))
 #assert.eq(
   when-of(_wbooked, today: NOW),
   (date: d(2026, 9, 20), stage: "first-interview", firm: false),
@@ -479,7 +479,7 @@
 // EVERY ENTRY IN THE PAST: nothing is coming, so there is no date at all and the
 // view sorts the row last rather than pretending its history is a queue position.
 #assert.eq(
-  when-of(entries(timeline: (submitted: d(2026, 1, 1), rejected: d(2026, 2, 1))), today: NOW),
+  when-of(timeline-tags(timeline: (submitted: d(2026, 1, 1), rejected: d(2026, 2, 1))), today: NOW),
   (date: none, stage: none, firm: false),
 )
 
@@ -487,7 +487,7 @@
 //
 // Public, and living in `when.typ` rather than in the view that draws it, because
 // @rookery/todos' `#todo-table` draws the same chip. Asserted directly rather
-// than through `#upcoming` because the view reads the note registry and returns
+// than through `#timeline-upcoming` because the view reads the note registry and returns
 // content — this is the whole of the policy, and it is a pure function of one integer.
 #assert.eq(countdown(none), none)
 // PAST THE BAND, and silent. A deadline a month out is not news.

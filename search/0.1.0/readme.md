@@ -1519,7 +1519,7 @@ derived hands in both the rows and the reader:
 #import "@rookery/search:0.1.0": filter-panel
 
 #filter-panel(
-  rows: upcoming-rows(tags: "submission", within: 90),
+  rows: timeline-upcoming-rows(tags: "submission", within: 90),
   when: r => r.when,
   pills: ("sort-job", "sort-conference", "sort-journal"),
 )
@@ -1565,7 +1565,7 @@ rest.
 ### The row is not this package's
 
 Each row is `#idea-row` from [`@rookery/core`](../../core/0.1.0) — the same row
-`#upcoming` draws — so its markup, its date column and its chips are documented there,
+`#timeline-upcoming` draws — so its markup, its date column and its chips are documented there,
 and a project that has themed `.idea-tag-<tag>` for a note's hat has already themed
 the chips here. What this package styles is the panel's own chrome around them: the
 input, the pills, the count and the scroll box.

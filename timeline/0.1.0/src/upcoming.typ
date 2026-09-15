@@ -1,4 +1,4 @@
-// `#upcoming` — the log as a dated list ACROSS MANY NOTES.
+// `#timeline-upcoming` — the log as a dated list ACROSS MANY NOTES.
 //
 // THE SECOND VIEW IN THIS PACKAGE, and the sibling of `#timeline-view` rather than
 // a variant of it. That one draws ONE note's log as a rail; this draws ONE ROW PER
@@ -112,11 +112,11 @@
 
 // THE ONE PLACE THE REFERENCE DATE IS DEMANDED, called by both views below so the
 // message cannot drift into two versions of itself. See the note above
-// `#upcoming-rows` for why these two functions refuse the document-date fallback
+// `#timeline-upcoming-rows` for why these two functions refuse the document-date fallback
 // every predicate in `when.typ` accepts.
 #let _require-today(today) = assert(
   type(today) == datetime,
-  message: "@rookery/timeline: #upcoming and #upcoming-rows need an explicit "
+  message: "@rookery/timeline: #timeline-upcoming and #timeline-upcoming-rows need an explicit "
     + "`today:` datetime — e.g. `today: datetime(year: 2026, month: 8, day: 27)`. "
     + "Typst has no wall clock (`datetime.today()` returns 1980-01-01 under a "
     + "reproducible build), and unlike the predicates in `when.typ` these two views "
@@ -124,7 +124,7 @@
     + repr(today),
 )
 
-// ---- #upcoming --------------------------------------------------------------
+// ---- #timeline-upcoming --------------------------------------------------------------
 //
 // `tags:`/`match:`/`filter:` are rookery's OWN selection vocabulary, passed
 // straight through — `ideas()` asserts on the first two, and `filter:` is a
@@ -168,18 +168,18 @@
 // row's rightmost element. That is also why this needs no new column in
 // `#idea-row` and no change to @rookery/core at all.
 //
-// ---- #upcoming-rows — the queue as DATA -------------------------------------
+// ---- #timeline-upcoming-rows — the queue as DATA -------------------------------------
 //
 // SPLIT OUT AND PUBLIC, and not merely as tidiness: it is what lets a project put an
 // upcoming queue INSIDE a filter widget —
-// `#todo-table(rows: upcoming-rows(..), when: r => r.when)` — without this package
+// `#todo-table(rows: timeline-upcoming-rows(..), when: r => r.when)` — without this package
 // importing @rookery/search. It must not: rheo scans only a PROJECT's own
 // imports, never a package's, so a timeline that wrapped search's panel would hand a
 // project markup with neither that package's stylesheet nor its script, silently.
 // Computing rows here and rendering them there costs no package edge, because the
 // project names both packages itself.
 //
-// Every argument means exactly what it means on `#upcoming`, which is now this plus
+// Every argument means exactly what it means on `#timeline-upcoming`, which is now this plus
 // the rendering. Returns the row dictionaries: rookery's own `ideas()` fields, plus
 // `shown` (what to call it), `link-to`, `when`, `firm`, `key` (the sort stamp),
 // `at` (the stage reached) and `in-days` (whole days until the row's date,
@@ -198,7 +198,7 @@
 // once and stopped thinking about would make every one of them silently wrong
 // rather than visibly absent. So the reference date is named at the call site,
 // where it can be seen.
-#let upcoming-rows(
+#let timeline-upcoming-rows(
   tags: none,
   match: "any",
   filter: none,
@@ -212,17 +212,17 @@
   _require-today(today)
   assert(
     within == none or (type(within) == int and within >= 0),
-    message: "@rookery/timeline: #upcoming's `within` must be none or a "
+    message: "@rookery/timeline: #timeline-upcoming's `within` must be none or a "
       + "non-negative integer number of days — got "
       + repr(within),
   )
   assert(
     from == none or type(from) == datetime,
-    message: "@rookery/timeline: #upcoming's `from` must be none or a datetime — got " + repr(from),
+    message: "@rookery/timeline: #timeline-upcoming's `from` must be none or a datetime — got " + repr(from),
   )
   assert(
     filter == none or type(filter) == function,
-    message: "@rookery/timeline: #upcoming's `filter` must be none or a function "
+    message: "@rookery/timeline: #timeline-upcoming's `filter` must be none or a function "
       + "taking the note's tag dictionary — got "
       + repr(filter),
   )
@@ -267,7 +267,7 @@
       // SHIPPED ON EVERY ROW rather than behind the view's `show-countdown:` flag. It
       // is one subtraction, and this is the DATA half of the pair — a project
       // feeding these rows into @rookery/search's `#filter-panel` draws its
-      // own urgency column and never calls `#upcoming` at all.
+      // own urgency column and never calls `#timeline-upcoming` at all.
       in-days: if w.date == none { none } else { days-until(w.date, _today(today)) },
     )
   })
@@ -288,12 +288,12 @@
   rows
 }
 
-// ---- #upcoming — the queue as a LIST ----------------------------------------
+// ---- #timeline-upcoming — the queue as a LIST ----------------------------------------
 //
-// `#upcoming-rows` above plus the drawing, and nothing else — plus `show-countdown:`,
-// which is a drawing argument and so lives only here. `#upcoming-rows` computes
+// `#timeline-upcoming-rows` above plus the drawing, and nothing else — plus `show-countdown:`,
+// which is a drawing argument and so lives only here. `#timeline-upcoming-rows` computes
 // `in-days` unconditionally and leaves what to do with it to whoever renders.
-#let upcoming(
+#let timeline-upcoming(
   tags: none,
   match: "any",
   filter: none,
@@ -307,12 +307,12 @@
   title: none,
   empty: [Nothing upcoming.],
 ) = context {
-  // ASSERTED HERE TOO, not only inside `#upcoming-rows`: this is the function a
+  // ASSERTED HERE TOO, not only inside `#timeline-upcoming-rows`: this is the function a
   // caller named, and a failure surfacing from the row builder would point at a
   // function the caller has never heard of.
   _require-today(today)
 
-  let rows = upcoming-rows(
+  let rows = timeline-upcoming-rows(
     tags: tags,
     match: match,
     filter: filter,

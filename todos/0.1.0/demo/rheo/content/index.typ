@@ -8,7 +8,7 @@
   todos-list, todos-ready, todos-search, todos-stale, todos-stats,
   todos-validate, window,
 )
-#import "@rookery/timeline:0.1.0": entries
+#import "@rookery/timeline:0.1.0": timeline-tags
 
 #show: demo
 
@@ -77,7 +77,7 @@ dates are one concept owned by one package.
   "retro",
   title: [Run the retro],
   priority: 2,
-  tags: entries(scheduled: datetime(year: 2026, month: 12, day: 1)),
+  tags: timeline-tags(scheduled: datetime(year: 2026, month: 12, day: 1)),
 )[Not ready until December, even though nothing blocks it.]
 
 A todo SCHEDULED weeks ago and still open. `is-scheduled-now` asks whether
@@ -88,7 +88,7 @@ still the top band's problem for as long as this stays open.
   "mirror",
   title: [Sync the package mirror],
   priority: 2,
-  tags: entries(scheduled: datetime(year: 2026, month: 7, day: 1)),
+  tags: timeline-tags(scheduled: datetime(year: 2026, month: 7, day: 1)),
 )[Nobody has started, and the date came and went weeks ago.]
 
 A todo with a DEADLINE, from the same package.
@@ -97,7 +97,7 @@ A todo with a DEADLINE, from the same package.
   "audit",
   title: [Security audit],
   priority: 4,
-  tags: entries(deadline: datetime(year: 2026, month: 9, day: 15)),
+  tags: timeline-tags(deadline: datetime(year: 2026, month: 9, day: 15)),
 )[Ready now, and due next month.]
 
 A todo whose DEADLINE FALLS TODAY — well inside the top band's countdown
@@ -108,7 +108,7 @@ exactly.
   "renew",
   title: [Renew the certificate],
   priority: 3,
-  tags: entries(deadline: datetime(year: 2026, month: 8, day: 25)),
+  tags: timeline-tags(deadline: datetime(year: 2026, month: 8, day: 25)),
 )[Expires today.]
 
 A todo BEING WORKED ON RIGHT NOW. It carries no priority and a deadline
@@ -119,7 +119,7 @@ being worked on is on for today whatever its dates say.
   "migrate",
   title: [Migrate the datastore],
   active: true,
-  tags: entries(deadline: datetime(year: 2026, month: 10, day: 30)),
+  tags: timeline-tags(deadline: datetime(year: 2026, month: 10, day: 30)),
 )[Being worked on now, due at the end of next month.]
 
 An OVERDUE todo — a deadline already behind `TODAY`. `#todo-table` bands it to the
@@ -130,7 +130,7 @@ its date cell solid red; `overdue: false` drops it from the panel instead.
   "invoice",
   title: [Send the invoice],
   priority: 3,
-  tags: entries(deadline: datetime(year: 2026, month: 8, day: 4)),
+  tags: timeline-tags(deadline: datetime(year: 2026, month: 8, day: 4)),
 )[Three weeks late.]
 
 A STALE todo: open, and untouched since January.

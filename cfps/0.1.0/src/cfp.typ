@@ -31,7 +31,7 @@
 #import "@rookery/core:0.1.0": tagged-idea, _norm
 #import "@rookery/todos:0.1.0": todo
 #import "@rookery/timeline:0.1.0": (
-  CLOSED-STAGE, DEADLINE-STAGE, SCHEDULED-STAGE, assert-ladder, entries, is-settled, normalize-tags, stage-matches,
+  CLOSED-STAGE, DEADLINE-STAGE, SCHEDULED-STAGE, assert-ladder, timeline-tags, is-settled, normalize-tags, stage-matches,
   stage-of, timeline-of, timeline-view,
 )
 
@@ -190,7 +190,7 @@
   for e in timeline-of(tags) {
     if e.stage not in (DEADLINE-STAGE, SCHEDULED-STAGE, CLOSED-STAGE) { real.insert(e.stage, e.timestamp) }
   }
-  entries(timeline: real)
+  timeline-tags(timeline: real)
 }
 
 // The stage ACTUALLY reached, net of `deadline`/`scheduled`/`closed`. `none`
@@ -306,7 +306,7 @@
     // fallback.
     context {
       let resolved-today = _resolve-today(today)
-      let t = entries(deadline: deadline, scheduled: scheduled, timeline: timeline)
+      let t = timeline-tags(deadline: deadline, scheduled: scheduled, timeline: timeline)
 
       // THE CLOSE DATE, not a bool. The earliest REAL (non-reserved) answer if
       // one exists — the day applying stopped being outstanding work — else the

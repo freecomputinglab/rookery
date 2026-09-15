@@ -5,7 +5,7 @@
 // is a fragment builder you merge into a `tags:` argument:
 //
 //   #import "@rookery/timeline:0.1.0": dates
-//   #idea("ship", tags: entries(deadline: datetime(year: 2026, month: 9, day: 1)))[..]
+//   #idea("ship", tags: timeline-tags(deadline: datetime(year: 2026, month: 9, day: 1)))[..]
 //
 // THAT SHAPE IS THE POINT. The CORE of this package imports @rookery/core not
 // at all, and @rookery/core knows nothing of it — a tag fragment is a plain
@@ -53,7 +53,7 @@
 //   `#timeline-view` (`view.typ`) emits HTML — one note's log as a vertical rail —
 //   which is why this package ships a stylesheet at all.
 //
-//   `#upcoming` (`upcoming.typ`) emits HTML AND READS THE NOTE REGISTRY, through
+//   `#timeline-upcoming` (`upcoming.typ`) emits HTML AND READS THE NOTE REGISTRY, through
 //   rookery's `ideas()`, because it draws one row per note across a whole corpus
 //   and a caller cannot hand it that corpus as an argument. That is a real
 //   widening of what this package touches, stated here rather than buried: it is
