@@ -7,7 +7,7 @@ labels:
 - chore-timeline-api
 deps:
 - blocked-by:rk-drop-the-dated-idea-alias-fix-the-84e526ff
-closed: false
+closed: true
 ---
 `timeline-of(tags)` (`/home/lox/code/_fcl/rookery/timeline/0.1.0/src/read.typ:26`)
 is the stored log. `timeline(entry, tags)` (same file, line 116) is a DIFFERENT

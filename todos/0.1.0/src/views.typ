@@ -265,7 +265,7 @@
 // Open todos untouched for more than `older-than` days.
 //
 // MEASURES WHAT IT CLAIMS TO: it reads @rookery/timeline's
-// `updated-of(row, tags)`, the last entry in the todo's own dated log,
+// `updated-of(row)`, the last entry in the todo's own dated log,
 // falling back to `created`. A todo that was deferred, activated or
 // otherwise touched says so, because touching it puts an entry in the log.
 //
@@ -292,7 +292,7 @@
   // storage shape here would be this view knowing something only rookery-timeline
   // should.
   let stale(u) = is-overdue(entries(deadline: u + duration(days: older-than)), today: today)
-  let touched = r => updated-of(r, r.tags-dict)
+  let touched = r => updated-of(r)
   let rows = all.filter(r => {
     if r.closed { return false }
     let u = touched(r)

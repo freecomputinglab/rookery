@@ -69,7 +69,8 @@ which stores a dated log and derives last-touched from it:
 
 ```typ
 #import "@rookery/timeline:0.1.0": updated-of
-#context updated-of(row, tag-data().at(row.id))   // last log entry, else `created`
+// last log entry, else `created` — updated-of reads the row's own `tags-dict`
+#context updated-of((..row, tags-dict: tag-data().at(row.id)))
 ```
 
 **`minted` is now `created`** — the `#idea(minted:)` parameter, the registry
@@ -2105,7 +2106,7 @@ date it can resolve without being told anything, and a note's LIFECYCLE belongs 
 ```typst
 #import "@rookery/timeline:0.1.0": updated-of
 // the log's last entry where there is one, else this note's `created`
-#context updated-of(row, tag-data().at(row.id))
+#context updated-of((..row, tags-dict: tag-data().at(row.id)))
 ```
 
 A note's own minted page is the exception: there the date shows **always**, with

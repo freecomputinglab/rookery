@@ -45,10 +45,12 @@
 // view in the rookery family takes, and the reason it returns content rather than
 // data a caller could assert on directly.
 #let timeline-view(entry, tags, today: none, ladder: none) = context {
-  // `timeline` rather than `timeline-of`, so rookery's own `created` leads the rail:
-  // the record starts when the note was written and the log is what happened to
-  // it since. One store per fact, one view over both.
-  let events = timeline(entry, tags)
+  // `history-of` rather than `timeline-of`, so rookery's own `created` leads the
+  // rail: the record starts when the note was written and the log is what
+  // happened to it since. One store per fact, one view over both. `history-of`
+  // takes a row, so the caller's separate `entry`/`tags` arguments are joined
+  // into one here.
+  let events = history-of((..entry, tags-dict: tags))
   if events.len() == 0 { return }
 
   let now = _today(today)

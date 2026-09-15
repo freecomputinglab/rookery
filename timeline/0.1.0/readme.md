@@ -28,7 +28,7 @@ be misnamed for exactly them — and following that name honestly argues for mov
 plans back out into their own keys, which is org-mode's split and this package's own
 original design, undoing the unification 0.6.0 made deliberately. `timeline` covers
 plans and events alike without claiming either is a state, and it is the word the
-code had already reached for: `timeline(entry, tags)` is the reader that merges
+code had already reached for: `history-of(row)` is the reader that merges
 rookery's `created` with the log.
 
 ### What moved, if you are coming from `rookery-dates`
@@ -49,10 +49,12 @@ on this exact line.
 | `src/rookery-dates.css`, `@layer rookery-dates` | `src/timeline.css`, `@layer timeline` |
 | `.date-log`, `.date-log-event`, `--date-log-*` | `.timeline`, `.timeline-event`, `--timeline-*` |
 | an entry's `on` field | `timestamp`, matching the write key |
+| `updated-of(entry, tags)` | `updated-of(row)` |
+| `timeline(entry, tags)` | `history-of(row)` |
 
 Everything else keeps its name: `dated`, `timeline-of`, `stage-date`,
 `has-stage`, `entered-of`, `deadline-of`, `scheduled-of`, `created-of`,
-`updated-of`, `timeline`, `stage-of`, `stage-on`, `next-of`, `days-at-stage`,
+`stage-of`, `stage-on`, `next-of`, `days-at-stage`,
 `days-in-flight`, `is-settled`, `rung`, `next-stage`, the `as-*` extractors and the
 three reserved stage constants. None of those was ever named after "dates".
 
@@ -294,17 +296,18 @@ reason: rookery keeps tag values off rows, so anything in the tag dictionary —
 log included — costs a `#tag-data()` walk to reach, and a date every consumer
 filters and sorts by should be free.
 
-`updated-of(entry, tags)` is DERIVED: the log's last entry where there is one,
-else `created`. Note the extra parameter — the answer now comes from two sources.
-Rookery 0.6.0 removed its own `updated` field, on the grounds that a
-hand-maintained "last touched" is a second date the author has to remember and one
-that can contradict what actually happened to the note. For the first time this
-function means something the note itself knows.
+`updated-of(row)` is DERIVED: the log's last entry where there is one, else
+`created`. It reads the row's own `tags-dict`, which only `#ideas(values:
+true)` supplies — a row fetched without it reads as an empty log rather than
+failing on a missing field. Rookery 0.6.0 removed its own `updated` field, on
+the grounds that a hand-maintained "last touched" is a second date the author
+has to remember and one that can contradict what actually happened to the
+note. For the first time this function means something the note itself knows.
 
-`timeline(entry, tags)` puts the two together for display:
+`history-of(row)` puts the two together for display:
 
 ```typst
-timeline(row, t)
+history-of(row)
 // -> ((stage: "created", on: ..), (stage: "deadline", on: ..), ..)
 ```
 

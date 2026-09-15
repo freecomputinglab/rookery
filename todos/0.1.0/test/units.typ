@@ -279,10 +279,10 @@
 // It used to read core's `updated`, which fell back to the DOCUMENT's date, so
 // staleness measured document age on any project that did not hand-write one.
 #assert.eq(
-  updated-of((created: d(2026, 1, 1)), entries(timeline: (activated: d(2026, 7, 1)))),
+  updated-of((created: d(2026, 1, 1), tags-dict: entries(timeline: (activated: d(2026, 7, 1))))),
   d(2026, 7, 1),
 )
-#assert.eq(updated-of((created: d(2026, 1, 1)), (:)), d(2026, 1, 1))
+#assert.eq(updated-of((created: d(2026, 1, 1), tags-dict: (:))), d(2026, 1, 1))
 
 // ---- TODO-LADDER — rookery-timeline's derivations, over this vocabulary --------
 // The point of "a structure over the log": nothing here reimplements settledness.

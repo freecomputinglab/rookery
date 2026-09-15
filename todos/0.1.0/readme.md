@@ -228,7 +228,7 @@ reads as closed; `closed-on` reads only the log, the one place the date is store
   `#todo("x", tags: entries(deadline: d))`. One concept, one package, and as of
   0.6.0 one log.
 - **`created` is rookery core's own**, forwarded straight through `#todo`. There
-  is no `updated` beside it any more; `updated-of(row, tags)` in rookery-timeline
+  is no `updated` beside it any more; `updated-of(row)` in rookery-timeline
   derives last-touched from the log instead.
 
 ## Rows as windows: `windows:`

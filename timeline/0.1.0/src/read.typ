@@ -5,7 +5,7 @@
 // pair built on them — read THIS package's own `timeline-log` out of a tag
 // dictionary. `created-of` reads ROOKERY CORE's own row field, because rookery
 // already resolves and stores it and a second copy could only disagree with the
-// first. `updated-of` and `timeline` straddle the two, and say so.
+// first. `updated-of` and `history-of` straddle the two, and say so.
 
 #import "fragment.typ": *
 
@@ -92,17 +92,18 @@
 // one that can contradict what actually happened to the note.
 //
 // So it is DERIVED: the last log entry where there is one, else `created`. For the
-// first time this function means something the note itself knows. It takes BOTH
-// the row and the tag dictionary, because the answer now comes from two sources.
-#let updated-of(entry, tags) = {
-  let l = timeline-of(tags)
-  if l.len() > 0 { l.last().timestamp } else { created-of(entry) }
+// first time this function means something the note itself knows. Reads its own
+// `tags-dict` off the row, which only `ideas(values: true)` supplies — a row
+// fetched without it reads as an empty log rather than failing on a missing field.
+#let updated-of(row) = {
+  let l = timeline-of(row.at("tags-dict", default: (:)))
+  if l.len() > 0 { l.last().timestamp } else { created-of(row) }
 }
 
 // The display seam: core's `created` and the log's own entries as ONE sequence,
 // for a view rendering a note's history.
 //
-//   timeline(row, tags)
+//   history-of(row)
 //     -> ((stage: "created", timestamp: ..), (stage: "deadline", timestamp: ..), ..)
 //
 // `created` is PREPENDED here rather than written into the log, which is the whole
@@ -113,7 +114,12 @@
 // note cannot have been acted on before it existed — and where a log entry
 // predates it (an author back-dating a deadline they were given before writing the
 // note down) the honest reading is still that the record starts at `created`.
-#let timeline(entry, tags) = {
-  let c = created-of(entry)
-  (if c == none { () } else { ((stage: "created", timestamp: c),) }) + timeline-of(tags)
+//
+// Reads its own `tags-dict` off the row, which only `ideas(values: true)`
+// supplies — a row fetched without it reads as an empty log rather than failing
+// on a missing field.
+#let history-of(row) = {
+  let c = created-of(row)
+  let head = if c == none { () } else { ((stage: "created", timestamp: c),) }
+  head + timeline-of(row.at("tags-dict", default: (:)))
 }

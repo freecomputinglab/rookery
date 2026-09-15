@@ -183,22 +183,23 @@
 
 // ---- updated-of — derived, no longer a core field --------------------------
 // The last log entry where there is one, else `created` off the row. Core removed
-// its `updated` field in 0.6.0.
-#assert.eq(updated-of((created: d(2026, 1, 1)), _flight), d(2027, 1, 20))
-#assert.eq(updated-of((created: d(2026, 1, 1)), (:)), d(2026, 1, 1))
-#assert.eq(updated-of((:), (:)), none)
+// its `updated` field in 0.6.0. Both readers take a single row carrying
+// `tags-dict`, which is what `ideas(values: true)` supplies.
+#assert.eq(updated-of((created: d(2026, 1, 1), tags-dict: _flight)), d(2027, 1, 20))
+#assert.eq(updated-of((created: d(2026, 1, 1), tags-dict: (:))), d(2026, 1, 1))
+#assert.eq(updated-of((:)), none)
 #assert.eq(created-of((created: d(2026, 1, 1))), d(2026, 1, 1))
 #assert.eq(created-of((:)), none)
 
-// ---- timeline — one view over two stores -----------------------------------
-// `created` LEADS and is not written into the timeline: one store per fact.
+// ---- history-of — one view over two stores ---------------------------------
+// `created` LEADS and is not written into the log: one store per fact.
 #assert.eq(
-  timeline((created: d(2026, 10, 1)), _flight).map(e => e.stage),
+  history-of((created: d(2026, 10, 1), tags-dict: _flight)).map(e => e.stage),
   ("created", "submitted", "longlisted", "first-interview"),
 )
 // A row with no `created` contributes no leading entry rather than a none-dated one.
-#assert.eq(timeline((:), _flight).map(e => e.stage), ("submitted", "longlisted", "first-interview"))
-#assert.eq(timeline((created: d(2026, 10, 1)), (:)).map(e => e.stage), ("created",))
+#assert.eq(history-of((tags-dict: _flight)).map(e => e.stage), ("submitted", "longlisted", "first-interview"))
+#assert.eq(history-of((created: d(2026, 10, 1))).map(e => e.stage), ("created",))
 
 // ---- ladders — the derivations, with the vocabulary passed in --------------
 // `accepted` is TRANSIT for a journal and TERMINAL for a conference. That single

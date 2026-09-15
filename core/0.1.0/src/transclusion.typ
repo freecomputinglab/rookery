@@ -99,7 +99,7 @@
   // would be a second date that can contradict the note's actual history, so
   // core carries none: `@rookery/timeline` stores a dated log and derives
   // last-touched from it. A project wanting that in a window hat passes it,
-  // or reads `updated-of(entry, tags)` there.
+  // or reads `updated-of(row)` there.
   let date = if show-date and rec.created != none {
     rec.created.display("[year]-[month]-[day]")
   } else { none }
