@@ -333,7 +333,15 @@
       // `.at(.., default: true)`, not a bare field access: an IK payload minted
       // before `show-id` existed carries no such key, and core's default is on.
       let header = _head(
-        if id == none { [] } else { _permalink-tab(id, show-id: v.at("show-id", default: true)) },
+        if id == none { [] } else {
+          _permalink-tab(
+            id,
+            tags: if v.at("show-tags", default: false) {
+              v.tags.pairs().filter(((_, val)) => val == none).map(((k, _)) => k)
+            } else { () },
+            show-id: v.at("show-id", default: true),
+          )
+        },
         html.elem(
           "h" + str(v.level + 1),
           attrs: attrs,

@@ -161,7 +161,7 @@
     // it is silently lost the moment the note is shown nested inside a
     // transcluded or minted parent — the card would come back framed and
     // permalinked when its author asked for neither.
-    #metadata((body: body, title: title, label: note-label, named: named, base: base, level: level, tags: tags, show-frame: show-frame, show-id: show-id))
+    #metadata((body: body, title: title, label: note-label, named: named, base: base, level: level, tags: tags, show-frame: show-frame, show-id: show-id, show-tags: show-tags))
     // counter.step() RETURNS CONTENT: emit it here, never inside a code block
     // whose value is used, or it silently turns the id into content.
     #if not named { _seq.step() }

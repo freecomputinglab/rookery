@@ -66,6 +66,18 @@
   its ticket: #repr(tag-value("tag-valued", "ticket"))
 ]
 
+// A tagged note with `show-tags: true` NESTED inside another idea. The outer
+// note's minted page rebuilds this card from its beacon, which is the only
+// path on which the pill can go missing.
+#idea("tag-nest-outer", title: [A note containing a tagged note])[
+  #idea(
+    "tag-nest-inner",
+    title: [The nested tagged note],
+    tags: ("draft",),
+    show-tags: true,
+  )[Its pill must survive being replayed on the outer note's minted page.]
+]
+
 == A declared projection: `#tag-index` and `ideas(index: ..)`
 
 // A datetime is not a scalar, so a zero-padded string is what makes the

@@ -147,8 +147,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">41 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 41 ideas"
+  grep -q 'idea-index-count">43 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 43 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -620,6 +620,14 @@ p="$H/ideas/wk-0-rheo.html"
 [ -f "$p" ] || note "no minted page at ideas/wk-0-rheo.html — `name:` function did not build this id"
 grep -q '<title>Rheo</title>' "$p" ||
   note "ideas/wk-0-rheo.html's <title> is not 'Rheo'"
+
+# 26. `show-tags: true` SURVIVES A REPLAY. `tag-nest-inner` is hatched with a
+#     pill on its own card in tags.html; the outer note's minted page rebuilds
+#     that card from its beacon, and the pill has to come back with it.
+grep -q 'class="idea-tag' "$H/tags.html" ||
+  note "tags.html does not show the nested card's pill where it is hatched in place"
+grep -q 'class="idea-tag' "$H/ideas/tag-nest-outer.html" ||
+  note "ideas/tag-nest-outer.html replays the nested card without its tag pill"
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"
