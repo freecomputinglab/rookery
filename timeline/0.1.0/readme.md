@@ -349,7 +349,7 @@ interview or a promised decision is an ordinary entry, and this finds it.
 so a note whose log opens with a future deadline reports a NEGATIVE number rather
 than none. That reads correctly: it is not in flight yet, and by how much.
 
-### Ladders: `is-settled`, `rung`, `next-stage`
+### Ladders: `stage-ladder`, `assert-ladder`, `stage-matches`, `is-settled`, `rung`, `next-stage`
 
 `accepted` ENDS a conference submission and is the MIDDLE of a journal's ladder.
 `offered` ends a job application. No package can know that, so the vocabulary is
@@ -357,7 +357,7 @@ a PARAMETER and only the reasoning lives here — the same split this package
 already makes for `today:`.
 
 ```typst
-#let JOB = (
+#let JOB = stage-ladder(
   transit:  ("submitted", "longlisted", "first-interview", "finalist"),
   terminal: ("offered", "rejected", "declined", "dropped", "missed"),
 )
@@ -369,6 +369,21 @@ next-stage(t, ladder: JOB, today: NOW)   // the next transit rung, or none
 
 `transit` is ordered by progress; `terminal` is unordered and its MEMBERSHIP is
 what settles a note.
+
+A ladder is still a plain dictionary — `stage-ladder(transit:, terminal:)` is a
+CONSTRUCTOR, not the only way to get one. It validates once and hands back
+exactly that dictionary, so a caller assembling a `JOB`/`JOURNAL` constant up
+front can lean on it instead of writing `(transit: .., terminal: ..)` by hand;
+an inline dictionary keeps working everywhere a `ladder:` argument is taken,
+because `is-settled`/`rung`/`next-stage` all run the same check themselves
+through `assert-ladder(ladder)`, exported so another package validating a
+ladder of its own (nested inside a larger config, say) does not have to
+reimplement the checks. `stage-matches(pattern, stage)` is the family-pattern
+match rule those three run internally — `stage-matches("review-*",
+"review-12")` is `true`, `stage-matches("review-*", "reviewer")` is `false` —
+exported for the same reason: a consumer matching a stage against a ladder's
+rungs outside of `is-settled`/`rung`/`next-stage` should call this rather than
+reimplement it.
 
 ### A rung may name a FAMILY, so a stage can repeat
 

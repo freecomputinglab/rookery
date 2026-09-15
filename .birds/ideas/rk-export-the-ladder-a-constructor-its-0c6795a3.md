@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-timeline-api
 deps: []
-closed: false
+closed: true
 ---
 A ladder is a public data type of `@rookery/timeline` — `is-settled`, `rung`,
 `next-stage` and `#timeline-view` all take one as a `ladder:` parameter — but

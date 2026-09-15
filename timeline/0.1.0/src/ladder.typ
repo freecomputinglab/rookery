@@ -21,10 +21,10 @@
 
 #import "when.typ": *
 
-// Validated on every call rather than once at construction, because a ladder is a
-// plain dictionary a caller writes inline and there is no constructor to hang the
-// check on. The checks are cheap and each catches something that fails SILENTLY
-// otherwise.
+// Validated on every call rather than only through `stage-ladder`, because a
+// ladder is still a plain dictionary a caller may write inline — the
+// constructor below is an option, not a gate. The checks are cheap and each
+// catches something that fails SILENTLY otherwise.
 // ---- A rung may name a FAMILY of stages ----------------------------------
 //
 // A rung ending in `-*` matches any stage sharing that prefix:
@@ -57,11 +57,13 @@
   if _is-family(pattern) { pattern.slice(0, pattern.len() - 2) } else { pattern }
 }
 
-#let _matches(pattern, stage) = {
+// The family-pattern match rule: `stage-matches("review-*", "review-1")` is
+// true, `stage-matches("review-*", "reviewer")` is false.
+#let stage-matches(pattern, stage) = {
   if _is-family(pattern) { stage.starts-with(_family-prefix(pattern)) } else { stage == pattern }
 }
 
-#let _assert-ladder(ladder) = {
+#let assert-ladder(ladder) = {
   assert(
     ladder != none and type(ladder) == dictionary and "transit" in ladder and "terminal" in ladder,
     message: "@rookery/timeline: `ladder:` must be a dictionary with `transit:` "
@@ -84,7 +86,7 @@
   // array's families.
   let both = ladder
     .transit
-    .filter(a => ladder.terminal.any(b => a == b or _matches(a, rung-name(b)) or _matches(b, rung-name(a))))
+    .filter(a => ladder.terminal.any(b => a == b or stage-matches(a, rung-name(b)) or stage-matches(b, rung-name(a))))
   assert(
     both.len() == 0,
     message: "@rookery/timeline: the rung(s) "
@@ -95,15 +97,24 @@
   )
 }
 
+// A validated ladder, for a caller who would rather construct one once than
+// write the dictionary inline and lean on `assert-ladder`'s per-call check —
+// the same idiom `@rookery/core`'s `tag-index` uses for its own spec.
+#let stage-ladder(transit: (), terminal: ()) = {
+  let ladder = (transit: transit, terminal: terminal)
+  assert-ladder(ladder)
+  ladder
+}
+
 // Has the process finished? True when the current stage — the last one that has
 // actually happened, per `stage-of` — is a member of `terminal`.
 //
 // An empty log, or a log entirely in the future, is NOT settled: nothing has
 // happened yet, which is the opposite of finished.
 #let is-settled(tags, ladder: none, today: none) = {
-  _assert-ladder(ladder)
+  assert-ladder(ladder)
   let s = stage-of(tags, today: today)
-  s != none and ladder.terminal.any(p => _matches(p, s))
+  s != none and ladder.terminal.any(p => stage-matches(p, s))
 }
 
 // HOW FAR IT GOT, as an integer, so it drops straight into a sort key or a
@@ -119,11 +130,11 @@
 // vocabulary grows, and a note written against tomorrow's ladder must degrade to
 // "unknown stage" rather than fail the build of an unrelated page.
 #let rung(tags, ladder: none, today: none) = {
-  _assert-ladder(ladder)
+  assert-ladder(ladder)
   let s = stage-of(tags, today: today)
   if s == none { return none }
-  if ladder.terminal.any(p => _matches(p, s)) { return ladder.transit.len() }
-  ladder.transit.position(p => _matches(p, s))
+  if ladder.terminal.any(p => stage-matches(p, s)) { return ladder.transit.len() }
+  ladder.transit.position(p => stage-matches(p, s))
 }
 
 // The next rung of `transit` after the current stage, or none.
@@ -134,10 +145,10 @@
 // stage, for the last transit rung, for an unknown stage, and for a log where
 // nothing has happened yet.
 #let next-stage(tags, ladder: none, today: none) = {
-  _assert-ladder(ladder)
+  assert-ladder(ladder)
   let s = stage-of(tags, today: today)
-  if s == none or ladder.terminal.any(p => _matches(p, s)) { return none }
-  let i = ladder.transit.position(p => _matches(p, s))
+  if s == none or ladder.terminal.any(p => stage-matches(p, s)) { return none }
+  let i = ladder.transit.position(p => stage-matches(p, s))
   // THROUGH `rung-name`, so this returns something renderable: the rung after
   // `submitted` reads `review`, not `review-*`.
   if i == none or i + 1 >= ladder.transit.len() { none } else { rung-name(ladder.transit.at(i + 1)) }

@@ -425,6 +425,18 @@
 #assert.eq(next-stage(_at2("accepted"), ladder: JRN, today: _T2), "revision")
 #assert.eq(next-stage(_at2("revision-1"), ladder: JRN, today: _T2), none)
 
+// ---- stage-ladder() / assert-ladder() / stage-matches() --------------------
+// `stage-ladder` is a validated constructor, not a second way to write the
+// dictionary: it hands back exactly what it was given.
+#assert.eq(stage-ladder(transit: ("a",), terminal: ("b",)), (transit: ("a",), terminal: ("b",)))
+// NO NEGATIVE CASE HERE, and that is the harness rather than an oversight: a
+// failed `assert` aborts the whole compile, and this fixture has no way to
+// catch one. `stage-ladder(transit: ("a",), terminal: ("a",))` panics through
+// `assert-ladder`'s overlap check — exercised by hand rather than in this file.
+
+#assert.eq(stage-matches("review-*", "review-12"), true)
+#assert.eq(stage-matches("review-*", "reviewer"), false)
+
 // Terminal from any rung, which is what makes "reviews then rejected OR accepted
 // then revisions then published" expressible without branching machinery.
 #assert.eq(is-settled(_at2("rejected"), ladder: JRN, today: _T2), true)

@@ -97,7 +97,7 @@
       ladder
         .transit
         .slice(r + 1)
-        .filter(p => not reached.any(st => _matches(p, st)))
+        .filter(p => not reached.any(st => stage-matches(p, st)))
         .map(rung-name)
     }
   }

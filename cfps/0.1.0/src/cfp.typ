@@ -31,7 +31,8 @@
 #import "@rookery/core:0.1.0": tagged-idea, _norm
 #import "@rookery/todos:0.1.0": todo
 #import "@rookery/timeline:0.1.0": (
-  CLOSED-STAGE, DEADLINE-STAGE, SCHEDULED-STAGE, entries, is-settled, stage-of, timeline-of, timeline-view,
+  CLOSED-STAGE, DEADLINE-STAGE, SCHEDULED-STAGE, assert-ladder, entries, is-settled, stage-matches, stage-of,
+  timeline-of, timeline-view,
 )
 
 // ---- Tag keys ---------------------------------------------------------------
@@ -119,9 +120,11 @@
 
 // ---- `kinds:` validation ------------------------------------------------------
 //
-// Eager, at factory-construction time, mirroring the shape @rookery/timeline's
-// own `_assert-ladder` checks — a bad `kinds:` fails as soon as it is given, not
-// on whichever `#cfp` call happens to hit the bad kind first.
+// Eager, at factory-construction time — a bad `kinds:` fails as soon as it is
+// given, not on whichever `#cfp` call happens to hit the bad kind first. What
+// makes a `kind` valid is this package's own contract (`sort:` and `ladder:`
+// present, `sort:` a string); what makes a `ladder:` valid is
+// `@rookery/timeline`'s, so that half is delegated to `assert-ladder`.
 #let _assert-kinds(kinds) = {
   assert(
     type(kinds) == dictionary,
@@ -140,19 +143,7 @@
       type(spec.sort) == str,
       message: "@rookery/cfps: kind " + repr(name) + "'s `sort:` must be a string — got " + repr(spec.sort),
     )
-    let ladder = spec.ladder
-    assert(
-      ladder != none and type(ladder) == dictionary and "transit" in ladder and "terminal" in ladder,
-      message: "@rookery/cfps: kind " + repr(name) + "'s `ladder:` must be a dictionary with `transit:` "
-        + "and `terminal:` arrays of stage names — got " + repr(ladder),
-    )
-    for k in ("transit", "terminal") {
-      assert(
-        type(ladder.at(k)) == array and ladder.at(k).all(n => type(n) == str),
-        message: "@rookery/cfps: kind " + repr(name) + "'s ladder `" + k
-          + ":` must be an array of strings — got " + repr(ladder.at(k)),
-      )
-    }
+    assert-ladder(spec.ladder)
   }
 }
 
@@ -165,17 +156,6 @@
   for (_, spec) in kinds.pairs() { all += spec.ladder.transit + spec.ladder.terminal }
   all.dedup()
 }
-
-// Does a `timeline:` stage match one of the declared rungs, a FAMILY pattern
-// (`review-*`, matching `review-1`, `review-2`, ..) included — the same match
-// rule @rookery/timeline's own `ladder.typ` uses for `is-settled`/`rung`. A
-// local copy rather than an import: that rule is private there too (this
-// package's own `_norm-tags-local` above is the same call for the same
-// reason), and a `-*` rung is only ever WRITTEN into a ladder as a pattern —
-// what actually lands in a note's `timeline:` is always a concrete instance.
-#let _stage-in(stage, patterns) = patterns.any(p => {
-  if p.ends-with("-*") { stage.starts-with(p.slice(0, p.len() - 1)) } else { stage == p }
-})
 
 // ---- `venue` ------------------------------------------------------------------
 //
@@ -304,7 +284,7 @@
     let log-stages = if timeline == none { (:) } else { timeline }
     for (stage, _) in log-stages.pairs() {
       assert(
-        _stage-in(stage, stages),
+        stages.any(p => stage-matches(p, stage)),
         message: "@rookery/cfps: #cfp(" + repr(name) + ")'s `timeline:` names the stage "
           + repr(stage) + ", which no configured kind's ladder carries. Add the rung to "
           + "the right kind's ladder rather than inventing one here: a stage no ladder "
