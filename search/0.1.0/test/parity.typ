@@ -277,13 +277,32 @@
   // grapheme cluster continues with ASCII. Widen the escape set and this is where
   // it shows up.
   "tags:résumé", "tags:❤️|c̃", "tags:👩‍💻&note", "tags:a\\❤️b",
+  // FIELD:VALUE CLAUSES — an atom now splits on its first unescaped `:`.
+  // Each case here is wrapped in an outer `tags:` so `split-query` strips
+  // it and hands `parse-tag-query` exactly the string named in the comment:
+  // `tags:draft` and `status:done` are field clauses; `window` stays a bare
+  // text atom. `a\:b` pins that an escaped `:` never splits. `a:b:c` pins
+  // that only the FIRST `:` splits (field `a`, value `b:c`). `:draft` pins
+  // that a leading `:` with nothing before it is text, not an empty field
+  // name. The last case hands `parse-tag-query` the bare string `tags:` —
+  // field `tags`, empty value, a valid prefix rather than a repair.
+  "tags:tags:draft", "tags:status:done", "tags:window", "tags:a\\:b",
+  "tags:a:b:c", "tags::draft", "tags:tags:",
 )
 // One fixed ladder of tag sets, evaluated for EVERY case, so the runner compares
 // a whole boolean row rather than a single verdict — the last set is the untagged
 // note, which is where a negation has to keep working.
 #let tag-sets = (("note",), ("note", "draft"), ("draft",), ("a", "c"), ("b", "c"), ())
+// An atom renders as a quoted value, with its field prefixed bare and a colon
+// where non-empty — `"draft"` for a bare word, `tags:"draft"` for a field
+// clause — so a case with no field renders exactly as it did before atoms
+// carried one.
 #let _rpn-str(rpn) = {
-  let s = rpn.map(t => if t.at(0) == "atom" { "\"" + t.at(1) + "\"" } else { t.at(1) }).join(" ")
+  let s = rpn.map(t => if t.at(0) == "atom" {
+    let field = t.at(1)
+    let prefix = if field == "" { "" } else { field + ":" }
+    prefix + "\"" + t.at(2) + "\""
+  } else { t.at(1) }).join(" ")
   // `array.join()` on an EMPTY array returns `none`, not `""` (MEASURED, and
   // documented at `#search-index` in `src/lib.typ`), and an empty RPN is a case
   // here twice over — `tags:` and `window depth` both produce one.

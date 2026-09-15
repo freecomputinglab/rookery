@@ -7,7 +7,7 @@ labels:
 - type:feature
 - search-clause-roles
 deps: []
-closed: false
+closed: true
 ---
 Teach the query parser to split an atom into a FIELD and a VALUE on its first
 unescaped `:`, so `tags:draft` and `status:done` parse as field clauses while a

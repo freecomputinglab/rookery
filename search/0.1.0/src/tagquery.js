@@ -20,10 +20,11 @@ export const RIGHT = { "!": true };
 // THE ONE PREFIX THAT OPENS A TAG EXPRESSION, named rather than spelled inline so
 // that the test for it and the slice past it cannot disagree by a character.
 export const TAG_PREFIX = "tags:";
-// Port of `parse-tag-query` in src/lib.typ. Shunting-yard to RPN, iterative
-// (no recursion), tokens as 2-slot objects. NEVER throws: every malformed
-// form repairs, because a live search box types every prefix of a valid
-// query on the way to it.
+// Port of `parse-tag-query` in src/tagquery.typ. Shunting-yard to RPN,
+// iterative (no recursion), tokens as small objects: an atom carries `f`
+// (field, `""` for a bare word) and `v` (value); an op carries only `v`.
+// NEVER throws: every malformed form repairs, because a live search box
+// types every prefix of a valid query on the way to it.
 //
 // `clusters(src)`, matching Typst's `.clusters()` — never index the string, and
 // never spread it either: a spread is code points, which is a different count and
@@ -41,12 +42,24 @@ export const parseTagQuery = (src) => {
   const out = [];
   const stack = [];
   const repaired = [];
-  let atom = "";
+  // `field`/`value` split one atom's text either side of its first unescaped
+  // `:` — `split` tracks whether that colon has been seen yet, so an escaped
+  // or a second `:` lands in `value` rather than triggering a second split
+  // (`a:b:c` is field `a`, value `b:c`). An atom with no colon at all lands
+  // entirely in `field`, flushed as a field-less atom whose value is `field`.
+  let field = "";
+  let value = "";
+  let split = false;
   let residual = "";
   const flushAtom = () => {
-    if (atom === "") return;
-    out.push({ t: "atom", v: fold(atom) });
-    atom = "";
+    if (split) {
+      out.push({ t: "atom", f: fold(field), v: fold(value) });
+    } else if (field !== "") {
+      out.push({ t: "atom", f: "", v: fold(field) });
+    }
+    field = "";
+    value = "";
+    split = false;
   };
   const pushOp = (op) => {
     while (stack.length) {
@@ -61,10 +74,19 @@ export const parseTagQuery = (src) => {
   for (let i = 0; i < cs.length; i++) {
     const c = cs[i];
     if (c === "\\") {
-      if (i + 1 < cs.length) { atom += cs[i + 1]; i++; }
-      else repaired.push("trailing-backslash");
+      if (i + 1 < cs.length) {
+        if (split) value += cs[i + 1]; else field += cs[i + 1];
+        i++;
+      } else repaired.push("trailing-backslash");
       continue;
     }
+    // The FIRST unescaped `:`, decided as the text accumulates rather than by
+    // re-scanning a finished atom, which cannot tell an escaped `:` from a
+    // real one. Only splits when a field name already sits in `field` — a
+    // leading `:` (`:draft`) has nothing before it, so it stays a literal
+    // character of a bare text atom instead of becoming a field clause with
+    // an empty name.
+    if (c === ":" && !split && field !== "") { split = true; continue; }
     if (c.trim() === "") { residual = cs.slice(i + 1).join(""); break; }
     if (c === "(") { flushAtom(); stack.push("("); continue; }
     if (c === ")") {
@@ -79,7 +101,7 @@ export const parseTagQuery = (src) => {
       continue;
     }
     if (c in OPS) { flushAtom(); pushOp(c); continue; }
-    atom += c;
+    if (split) value += c; else field += c;
   }
   flushAtom();
   while (stack.length) {

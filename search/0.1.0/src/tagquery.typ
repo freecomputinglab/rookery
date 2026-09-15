@@ -40,11 +40,14 @@
 #let _prec = ("!": 3, "&": 2, "|": 1)
 
 // Parse everything after `tags:` into RPN, plus the text that followed the
-// expression. `(rpn: (("atom"|"op", str), ..), residual: str, repaired: (str, ..))`.
+// expression. `(rpn: (("atom", field, str)|("op", str), ..), residual: str,
+// repaired: (str, ..))`.
 //
-// A token is a 2-TUPLE, `("atom", "draft")` / `("op", "&")`, and not a
-// dictionary: JSON-comparable and cheap, and the JavaScript port uses the same
-// two slots so the fixture can diff them as data.
+// An atom token is a 3-TUPLE, `("atom", "tags", "draft")` for `tags:draft`,
+// `("atom", "", "window")` for a bare word — and an op token stays the
+// 2-TUPLE it always was, `("op", "&")`. Both are tuples rather than
+// dictionaries: JSON-comparable and cheap, and the JavaScript port uses the
+// same slots so the fixture can diff them as data.
 //
 // PARSING NEVER FAILS. Every malformed form repairs itself and records a reason:
 // `tags:(a|` -> `["a" |]` + `unclosed-open`, `tags:)a` -> `["a"]` +
@@ -60,7 +63,15 @@
   let out = ()
   let stack = ()
   let repaired = ()
-  let atom = ""
+  // `atom-field`/`atom-value` split one atom's text either side of its first
+  // unescaped `:` — `split` tracks whether that colon has been seen yet, so
+  // an escaped or a second `:` lands in `atom-value` rather than triggering a
+  // second split (`a:b:c` is field `a`, value `b:c`). An atom with no colon at
+  // all lands entirely in `atom-field`, pushed at each boundary below as a
+  // field-less atom whose value is `atom-field`.
+  let atom-field = ""
+  let atom-value = ""
+  let split = false
   let residual = ""
   let i = 0
   let n = cs.len()
@@ -68,16 +79,25 @@
   while i < n and not stop {
     let c = cs.at(i)
     if c == "\\" {
-      // The escape takes the NEXT cluster literally into the current atom,
-      // whatever it is — that is what makes a tag containing an operator
-      // reachable at all. A trailing `\` has nothing to escape, so it repairs
-      // rather than reading past the end.
+      // The escape takes the NEXT cluster literally into whichever
+      // accumulator is current, whatever it is — that is what makes a tag
+      // containing an operator, or a literal `:`, reachable at all. A
+      // trailing `\` has nothing to escape, so it repairs rather than
+      // reading past the end.
       if i + 1 < n {
-        atom += cs.at(i + 1)
+        if split { atom-value += cs.at(i + 1) } else { atom-field += cs.at(i + 1) }
         i += 1
       } else {
         repaired.push("trailing-backslash")
       }
+    } else if c == ":" and not split and atom-field != "" {
+      // The FIRST unescaped `:`, decided as the text accumulates rather than
+      // by re-scanning a finished atom, which cannot tell an escaped `:`
+      // from a real one. Only splits when a field name already sits in
+      // `atom-field` — a leading `:` (`:draft`) has nothing before it, so it
+      // stays a literal character of a bare text atom instead of becoming a
+      // field clause with an empty name.
+      split = true
     } else if c.trim() == "" {
       // `c.trim() == ""` is the whitespace test rather than a regex, so each side
       // keeps its own runtime's definition: Rust's `char::is_whitespace`, which
@@ -94,10 +114,22 @@
       residual = if rest.len() == 0 { "" } else { rest.join("") }
       stop = true
     } else if c == "(" {
-      if atom != "" { out.push(("atom", _fold(atom))); atom = "" }
+      if split {
+        out.push(("atom", _fold(atom-field), _fold(atom-value)))
+        atom-field = ""; atom-value = ""; split = false
+      } else if atom-field != "" {
+        out.push(("atom", "", _fold(atom-field)))
+        atom-field = ""
+      }
       stack.push("(")
     } else if c == ")" {
-      if atom != "" { out.push(("atom", _fold(atom))); atom = "" }
+      if split {
+        out.push(("atom", _fold(atom-field), _fold(atom-value)))
+        atom-field = ""; atom-value = ""; split = false
+      } else if atom-field != "" {
+        out.push(("atom", "", _fold(atom-field)))
+        atom-field = ""
+      }
       let found = false
       while stack.len() > 0 and not found {
         let top = stack.pop()
@@ -105,7 +137,13 @@
       }
       if not found { repaired.push("unmatched-close") }
     } else if c in _prec {
-      if atom != "" { out.push(("atom", _fold(atom))); atom = "" }
+      if split {
+        out.push(("atom", _fold(atom-field), _fold(atom-value)))
+        atom-field = ""; atom-value = ""; split = false
+      } else if atom-field != "" {
+        out.push(("atom", "", _fold(atom-field)))
+        atom-field = ""
+      }
       let go = true
       while go and stack.len() > 0 {
         let top = stack.last()
@@ -123,7 +161,7 @@
       }
       stack.push(c)
     } else {
-      atom += c
+      if split { atom-value += c } else { atom-field += c }
     }
     i += 1
   }
@@ -131,7 +169,11 @@
   // the RPN carries folded atoms and `eval-tag-query` compares folded against
   // folded. Folding at push time rather than at compare time is what the
   // JavaScript port mirrors, and it means an atom is folded exactly once.
-  if atom != "" { out.push(("atom", _fold(atom))) }
+  if split {
+    out.push(("atom", _fold(atom-field), _fold(atom-value)))
+  } else if atom-field != "" {
+    out.push(("atom", "", _fold(atom-field)))
+  }
   while stack.len() > 0 {
     let top = stack.pop()
     if top == "(" { repaired.push("unclosed-open") } else { out.push(("op", top)) }
@@ -163,7 +205,10 @@
   if rpn.len() == 0 { return true }
   let st = ()
   for tok in rpn {
-    let (kind, v) = tok
+    // `..` swallows an atom's middle FIELD slot, which this evaluator
+    // ignores for now — a 3-tuple atom and a 2-tuple op both destructure to
+    // their first (kind) and last (value/operator) slot.
+    let (kind, .., v) = tok
     if kind == "atom" {
       st.push(tags.any(tg => tg == v or tg.starts-with(v)))
     } else if v == "!" {

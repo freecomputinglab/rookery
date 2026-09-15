@@ -98,9 +98,10 @@ const tagRows = evalMetadata("tag-parity");
 // ORDER — `evals` is compared positionally, so a reordering here reads as a
 // parser drift. Change one list, change the other.
 const TAG_SETS = [["note"], ["note", "draft"], ["draft"], ["a", "c"], ["b", "c"], []];
-// `_rpn-str`'s twin: an atom in quotes, an operator bare, joined by spaces.
+// `_rpn-str`'s twin: an atom's value in quotes, its field bare and prefixed
+// with a colon when non-empty, an operator bare — joined by spaces.
 const rpnStr = (rpn) =>
-  rpn.map((t) => (t.t === "atom" ? `"${t.v}"` : t.v)).join(" ");
+  rpn.map((t) => (t.t === "atom" ? `${t.f ? t.f + ":" : ""}"${t.v}"` : t.v)).join(" ");
 for (const row of tagRows) {
   const js = splitQuery(row.query);
   const jsRpn = rpnStr(js.rpn);
