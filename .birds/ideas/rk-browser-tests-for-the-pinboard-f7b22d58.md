@@ -9,7 +9,7 @@ labels:
 deps:
 - blocked-by:rk-stand-up-the-shared-browser-harness-cbc3ae56
 - blocked-by:rk-pin-a-card-s-place-to-its-idea-id-836da185
-closed: false
+closed: true
 ---
 Everything `@rookery/pinboard` does is browser behaviour that `linkedom` cannot see.
 Pointer capture, a drag that tracks a cursor, a card clamped to a board whose size
