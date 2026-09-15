@@ -74,7 +74,44 @@ export const requireBuild = (filePath, hint) => {
 
 // WebKit first: it is the engine this repo cannot otherwise run, so a
 // failure there should be the first thing printed.
-const ENGINES = ["webkit", "chromium", "firefox"];
+const ALL_ENGINES = ["webkit", "chromium", "firefox"];
+
+// `ROOKERY_BROWSER_ENGINES` narrows that list, as a comma-separated subset.
+// Unset — every local run — means all three.
+//
+// CI sets it to `webkit,chromium`. Gecko is excluded there and NOT because its
+// results are unwanted: it is the one engine whose synthetic pointer input is
+// unreliable on a GitHub runner. `pinboard-board`'s drag case reported a card
+// moving 55px of a 60px drag on one run and not moving at all on the next,
+// while both other engines passed every time and Gecko itself passes locally.
+// Waiting on the gesture's own `data-dragging` marker for two seconds did not
+// change it, which is what rules out a slow runner as the cause.
+//
+// Every assertion still runs, on two engines. Run the full three before
+// touching `src/drag.js`, `src/camera.js` or anything else pointer-driven:
+//
+//     just browser
+const ENGINES = process.env.ROOKERY_BROWSER_ENGINES
+  ? process.env.ROOKERY_BROWSER_ENGINES.split(",")
+      .map((e) => e.trim())
+      .filter(Boolean)
+  : ALL_ENGINES;
+
+// A list that narrows to nothing would report every suite as passing without
+// launching a browser, which is worse than any failure it could hide.
+if (ENGINES.length === 0) {
+  console.error("browser: ROOKERY_BROWSER_ENGINES is set but names no engine");
+  process.exit(1);
+}
+
+const unknown = ENGINES.filter((e) => !ALL_ENGINES.includes(e));
+if (unknown.length > 0) {
+  console.error(
+    `browser: ROOKERY_BROWSER_ENGINES names no such engine: ${unknown.join(", ")} ` +
+      `(known: ${ALL_ENGINES.join(", ")})`,
+  );
+  process.exit(1);
+}
 
 export const run = async (suiteName, fn) => {
   const { webkit, chromium, firefox } = await loadPlaywright();

@@ -275,17 +275,29 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-1.63.0-${{ runner.os }}
 
-      # Real-engine tests across WebKit (the Safari engine), Chromium and Gecko.
-      # LAST in the job, because every suite asserts against a package's BUILT
-      # demo and the three demos are built by the steps above.
+      # Real-engine tests across WebKit (the Safari engine) and Chromium. LAST
+      # in the job, because every suite asserts against a package's BUILT demo
+      # and the demos are built by the steps above.
+      #
+      # GECKO RUNS LOCALLY, NOT HERE, which `ROOKERY_BROWSER_ENGINES` is for —
+      # see the harness's own comment on it for the evidence. Its synthetic
+      # pointer input is unreliable on a runner: `pinboard-board`'s drag moved
+      # 55px of 60 on one run and 0 on the next, with both other engines green
+      # each time. Only the engine list narrows; every suite and every
+      # assertion still runs.
+      #
+      # So only two browsers are installed. `--with-deps` is what pulls the
+      # system libraries each one needs.
       #
       # No nix here, unlike the local path: the root devShell hands the harness
       # `PLAYWRIGHT_CORE` and `PLAYWRIGHT_BROWSERS_PATH` from nixpkgs, and
       # `loadPlaywright` falls back to a plain node_modules resolution when
       # neither is set. Installing nix on the runner to reproduce that would cost
       # minutes a run to buy nothing.
-      - name: Browser suites across WebKit, Chromium and Gecko
+      - name: Browser suites across WebKit and Chromium
+        env:
+          ROOKERY_BROWSER_ENGINES: webkit,chromium
         run: |
           npm install --no-save playwright-core@1.63.0
-          npx --yes playwright@1.63.0 install --with-deps webkit chromium firefox
+          npx --yes playwright@1.63.0 install --with-deps webkit chromium
           just browser
