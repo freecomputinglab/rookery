@@ -60,6 +60,39 @@ const titleCenter = async (card) => {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 };
 
+// `page.mouse.move` resolves when the event is DISPATCHED, not when the page
+// has handled it, so the last move of a drag can still be in flight when the
+// card's position is read back. Gecko's protocol is asynchronous enough for
+// that to land a card one interpolated step short of where the drag ended —
+// a real failure to wait, not a bug in `drag.js`.
+//
+// Falls through on timeout rather than raising, so the assertion that follows
+// reports the position it actually found instead of a timeout that says
+// nothing about how far the card moved.
+const settleAt = async (page, id, wantX, tolerance) => {
+  try {
+    await page.waitForFunction(
+      ([id, wantX, tolerance]) => {
+        const card = document.querySelector(`.pinboard-card[data-pinboard-id="${id}"]`);
+        if (!card) return false;
+        return Math.abs(parseFloat(card.style.getPropertyValue("--pin-x")) - wantX) <= tolerance;
+      },
+      [id, wantX, tolerance],
+      { timeout: 2000 },
+    );
+  } catch {
+    /* the assertion below is the diagnostic */
+  }
+};
+
+// Two frames with nothing arriving, which is what lets a "the card did NOT
+// move" assertion mean it: an in-flight pointermove would otherwise land
+// after the read and the check would pass without having tested anything.
+const flushFrames = (page) =>
+  page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
+
 const { origin, close } = await serve(ROOT);
 try {
   await run("pinboard-board", async ({ newPage }) => {
@@ -99,6 +132,7 @@ try {
     await page.mouse.move(start.x + 45, start.y + 30, { steps: 3 });
     await page.mouse.move(start.x + 60, start.y + 40, { steps: 3 });
     await page.mouse.up();
+    await settleAt(page, "idea:outline", before.x + 60, 2);
     const after = (await positions(page)).find((p) => p.id === "idea:outline");
     assert.ok(Math.abs(after.x - before.x - 60) <= 2, `x moved ${after.x - before.x}, wanted ~60`);
     assert.ok(Math.abs(after.y - before.y - 40) <= 2, `y moved ${after.y - before.y}, wanted ~40`);
@@ -134,6 +168,7 @@ try {
     await page.mouse.down();
     await page.mouse.move(bodyPoint.x + 100, bodyPoint.y, { steps: 5 });
     await page.mouse.up();
+    await flushFrames(page);
     const afterBody = (await positions(page)).find((p) => p.id === "idea:interview");
     assert.deepEqual(afterBody, beforeBody, "a press on the card body moved the card");
 
