@@ -261,7 +261,7 @@
 //
 // It also keeps this package's core free of any import of @rookery/core — the
 // decorator receives its constructor as an argument, so there is nothing to
-// import. Only the one-line `dated-idea` convenience in `lib.typ` needs it.
+// import. Only the one-line `idea` binding in `lib.typ` needs it.
 //
 // The caller's own `tags:` is kept whole and the date fragment folded in on top.
 // All four shapes rookery accepts for `tags:` are normalized here (none, a bare

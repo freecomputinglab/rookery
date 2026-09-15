@@ -138,13 +138,6 @@
 // wanting "nothing defers this" asks `scheduled-of(t) == none or is-scheduled-now(t)`.
 #assert.eq(is-scheduled-now((:), today: NOW), false)
 
-// ---- dated-idea — the one binding that imports @rookery/core --------------
-// A plain rookery note that also takes this package's date arguments. Its
-// existence is why `src/lib.typ`'s "imports rookery not at all" claim was
-// rewritten rather than left standing: the CORE is still import-free, because
-// `dated(mint)` takes the constructor as an argument.
-#assert.eq(type(dated-idea), function)
-
 // ---- the log readers -------------------------------------------------------
 // The worked case from the design: submitted, longlisted, and a first interview
 // BOOKED but not yet held, read against a `today:` that falls between the last
@@ -395,8 +388,6 @@
 // The two that ARE decorated.
 #assert.eq(type(idea), function)
 #assert.eq(type(tagged-idea("venue")), function)
-// `dated-idea` is now an alias of `idea` rather than the only way to get one.
-#assert.eq(dated-idea, idea)
 
 // ---- family rungs — a stage that repeats -----------------------------------
 // A dict cannot carry `review` twice (MEASURED: "duplicate key: review"), so a

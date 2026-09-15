@@ -12,9 +12,7 @@
 // dictionary, so composition needs no import relationship in either direction.
 // Any package, and any hand-written `#idea`, can use it. `dated(mint)` keeps
 // that true for the decorator too, by taking the minting function as an
-// ARGUMENT; the single `dated-idea` binding at the foot of this file is the
-// one line that imports rookery, and it exists only so the common case reads
-// as one name rather than two.
+// ARGUMENT.
 //
 // WHAT IT OWNS: a note's DATED EVENTS, as one ordered log — org-mode's LOGBOOK.
 // `scheduled` (when you mean to work on it) and `deadline` (a hard date) are
@@ -107,6 +105,3 @@
 // untouched, and a family built over the skin gets the same surface as one built
 // over core.
 #let tagged-idea(..family) = dated(_rk.tagged-idea(..family))
-
-// An alias for `idea` above.
-#let dated-idea = idea

@@ -26,7 +26,7 @@
 //
 // NO IMPORT OF @rookery/core HERE. These are plain functions of a tag dictionary;
 // core consumes them, not the other way round. The only rookery import this
-// package has is the one-line `dated-idea` binding in `lib.typ`.
+// package has is the one-line `idea` binding in `lib.typ`.
 
 #import "fragment.typ": *
 #import "read.typ": *

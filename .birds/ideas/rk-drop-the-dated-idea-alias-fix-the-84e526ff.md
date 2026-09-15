@@ -6,7 +6,7 @@ priority: 2
 labels:
 - chore-timeline-api
 deps: []
-closed: false
+closed: true
 ---
 Two small things in the package's front door, both of which mislead a reader
 arriving cold.

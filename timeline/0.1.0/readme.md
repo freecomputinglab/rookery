@@ -6,7 +6,7 @@ them.
 
 ```typst
 #import "@rookery/core:0.1.0": idea
-#import "@rookery/timeline:0.1.0": dates
+#import "@rookery/timeline:0.1.0": entries
 
 #idea("ship", tags: entries(deadline: datetime(year: 2026, month: 9, day: 1)))[
   Cut the release.
@@ -50,11 +50,15 @@ on this exact line.
 | `.date-log`, `.date-log-event`, `--date-log-*` | `.timeline`, `.timeline-event`, `--timeline-*` |
 | an entry's `on` field | `timestamp`, matching the write key |
 
-Everything else keeps its name: `dated`, `dated-idea`, `timeline-of`, `stage-date`,
+Everything else keeps its name: `dated`, `timeline-of`, `stage-date`,
 `has-stage`, `entered-of`, `deadline-of`, `scheduled-of`, `created-of`,
 `updated-of`, `timeline`, `stage-of`, `stage-on`, `next-of`, `days-at-stage`,
 `days-in-flight`, `is-settled`, `rung`, `next-stage`, the `as-*` extractors and the
 three reserved stage constants. None of those was ever named after "dates".
+
+The one-line alias that used to duplicate `idea` under a second name is gone;
+`idea` is decorated by `dated(mint)` like any other family, and is itself the
+only name to call.
 
 ### What the log is, and why there is one
 
@@ -90,9 +94,6 @@ so a family you build over this skin — a `#submission`, a `#todo` — takes th
 arguments without wrapping anything itself. `window`, `ideas`, `tag-data`,
 `note-href`, `rookery` and the rest are rookery's, untouched.
 
-`dated-idea` is kept as an alias of `idea`, so call sites written before the skin
-keep working.
-
 **You can still import from rookery directly**, and nothing changes if you do. The
 skin is opt-in: it is where a name comes FROM, not which package provides it.
 
@@ -106,7 +107,7 @@ knows nothing about this package. A tag fragment is just a dictionary, so
 composition needs no import relationship in either direction: any package, and any
 hand-written `#idea`, can use it. `dated(mint)` keeps that true for the decorator
 too, by taking the minting function as an argument. Two things here do import
-rookery: the one-line `dated-idea` binding, and `#upcoming`, which reads the note
+rookery: the one-line `idea` binding, and `#upcoming`, which reads the note
 REGISTRY through `ideas()` because it draws one row per note across a corpus and no
 argument could hand it that corpus. Rookery accepts a dictionary
 for `tags:` directly, so composing with ordinary tags is dictionary merge:
@@ -224,9 +225,10 @@ consumer's view will put it.
 
 ```typst
 #import "@rookery/core:0.1.0": idea, tagged-idea
-#import "@rookery/timeline:0.1.0": dated, dated-idea
+#import "@rookery/timeline:0.1.0": dated
 
-#dated-idea("ship", deadline: d)[Cut the release.]
+#let dated-note = dated(idea)
+#dated-note("ship", deadline: d)[Cut the release.]
 
 // or put your own tag family on top:
 #let submission = dated(tagged-idea("submission"))
@@ -237,9 +239,9 @@ A DECORATOR rather than a finished constructor, and that is what makes the
 layering work: a constructor has no seam for a consumer to add its own tag family,
 and both `@rookery/todos`' `#todo` and a project's own `#submission` need
 one. It also keeps this package's core import-free — the decorator receives its
-constructor as an ARGUMENT, so there is nothing to import. `dated-idea` is the one
-line here that imports rookery, and it exists only so the common case reads as one
-name rather than two.
+constructor as an ARGUMENT, so there is nothing to import. The one line that
+does import rookery is this package's own `idea`, in `lib.typ`, applying `dated`
+to core's `idea` so the common case reads as one name rather than two.
 
 Your own `tags:` is kept whole and the date fragment folded in on top. All four
 shapes rookery accepts for `tags:` are normalized, so `tags: "phd"` works
@@ -901,7 +903,7 @@ its own environment and write the resulting literal into the `.typ`.
 - `@rookery/core` 0.6.0, for `created` on an `#ideas()` row, for `tag-index`, and
   for the `ideas()` registry read `#upcoming` does. The CORE of this package imports
   it not at all — a tag fragment is a plain dictionary, and `dated(mint)` takes its
-  constructor as an argument — but the `dated-idea` binding and `#upcoming` both do.
+  constructor as an argument — but the `idea` binding and `#upcoming` both do.
 - No build step and no JavaScript. `typst.toml`'s `entrypoint` points straight at
   `src/`, so an edit takes effect immediately. It DOES ship one CSS file —
   `src/timeline.css`, for the two views that draw something
