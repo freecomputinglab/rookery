@@ -490,6 +490,20 @@
         _norm-tags((tags)(lead-heading.body, labels))
       } else { (:) }
 
+      // A beacon inside the heading never reaches the fold below, so the section
+      // would mint untagged with nothing to say a tag was asked for.
+      if lead-heading != none {
+        let hb = lead-heading.body
+        let kids = if hb.has("children") { hb.children } else { (hb,) }
+        if kids.any(c => _ideate-tag-value(c) != none) {
+          panic(
+            "@rookery/core: #ideate-tag inside a heading is never read — move it to "
+              + "its own line BENEATH the heading, as a sibling. Heading: "
+              + repr(hb),
+          )
+        }
+      }
+
       // Scan the group for `#ideate-tag` metadata beacons and union their values
       // into the base tags, right-biased on key conflict (later beacons win).
       // Works under any separator mode, not just heading mode.
