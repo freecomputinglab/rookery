@@ -7,7 +7,7 @@
 
 #import "base.typ": *
 // Both halves of a query, from the modules that own them: `tagquery.typ` for
-// `split-query`/`eval-tag-query`, `score.typ` for `fuzzy-score`/`body-score`.
+// `split-query`/`eval-clauses`, `score.typ` for `fuzzy-score`/`body-score`.
 // This is the one file that needs both, and a module resolves its own imports
 // rather than inheriting the manifest's.
 #import "tagquery.typ": *
@@ -19,76 +19,97 @@
 // input and may disagree for anything else, so an arbitrarily ordered corpus is
 // outside the parity guarantee and the fixture keeps its rows id-ordered.
 //
-// THE `tags:` SPLIT LIVES HERE rather than in `#search-ideas`, in the same place
-// its JavaScript counterpart splits. That keeps `_rank`'s signature
-// `(rows, query, ..)`, so the fixture can diff a TAG QUERY across the two
-// languages as data exactly as it diffs a text one, with the parse under test.
+// THE QUERY IS PARSED HERE rather than in `#search-ideas`, in the same place
+// its JavaScript counterpart parses it. That keeps `_rank`'s signature
+// `(rows, query, ..)`, so the fixture can diff a whole clause tree across the
+// two languages as data exactly as it diffs a text one, with the parse under
+// test.
 //
+// Resolves one CLAUSE against one row, for `eval-clauses`: a `tags:` field is
+// the folded-prefix gate `eval-tag-query` also runs, scoring `0`; every other
+// field NAMES A TEXT CLAUSE — `text-score(v)` scored over `field + ":" + v` —
+// which is what an unknown field name falls back to rather than silently
+// matching everything, and what lets a note id like `idea:flat-ids` stay
+// findable as `idea:flat` even though `idea` names no field this module knows.
+// A bare word (`field == ""`) is the SAME fallback with an empty prefix, so it
+// needs no separate branch.
+//
+// `text-score` is `fuzzy-score` against `e.name`/`e.label` for the name tier,
+// `body-score` against `e.body` for the body tier below — the same two rules
+// `_rank` always scored, now called once per TEXT CLAUSE instead of once over
+// the whole residual query.
+// The best of several `fuzzy-score`/`body-score` answers, `none` unless at
+// least one of them is — the same none-coalescing `_rank` always did for its
+// name/label pair, generalised to as many haystacks as a caller has.
+#let _best(scores) = {
+  let hits = scores.filter(s => s != none)
+  if hits.len() == 0 { none } else { calc.max(..hits) }
+}
+
+#let _resolve(text-score, tags) = (field, value) => {
+  if field == "tags" {
+    // AN EMPTY VALUE IS NO CONSTRAINT: see `eval-tag-query`'s own comment for
+    // why a bare `tags:` must not read as "tagged with the empty string".
+    (matched: value == "" or tags.any(tg => tg == value or tg.starts-with(value)), score: 0)
+  } else {
+    let s = text-score(if field == "" { value } else { field + ":" + value })
+    if s == none { (matched: false, score: 0) } else { (matched: true, score: s) }
+  }
+}
+
 // Private: the public surface is `#search-ideas`. `test/parity.typ` imports this
 // by relative path, as it imports `fuzzy-score`.
 #let _rank(rows, query, limit: none, body-search: true) = {
   // SPLIT ONCE, before the loop: a parse costs about 60 microseconds and its
   // answer cannot change between rows.
-  //
-  // `q` IS THE RESIDUAL TEXT, and every scorer below sees it rather than `query`,
-  // or a `tags:draft window` query would hand the literal "tags:draft" to
-  // `fuzzy-score` and match nothing.
-  //
-  // AN EMPTY RESIDUAL IS THE BROWSE LISTING. `fuzzy-score` returns 0 for an empty
-  // query, so every surviving note ties at 0 in the name tier, and for `q == ""`
-  // — a bare query, or a `tags:`-only one — the tie breaks by date instead:
-  // dated notes newest first, undated notes last in id order. That mirrors
-  // `_sort-ids` in rookery's `src/pure.typ` over the same `created` field. The
-  // body tier is empty for `q == ""` either way, `body-score` returning `none`
-  // for an empty query.
-  let tq = split-query(query)
-  let q = tq.text
+  let rpn = split-query(query).rpn
+  // WHETHER THE TREE CARRIES A TEXT CLAUSE — the browse-listing question a bare
+  // `q != ""` used to answer, generalised to a tree where a `tags:`-only query
+  // (every atom's field is `tags`) is exactly as score-free as an empty one.
+  let has-text = rpn.any(tok => tok.at(0) == "atom" and tok.at(1) != "tags")
   let name-hits = ()
   let body-hits = ()
   for e in rows {
-    // FILTER BEFORE SCORING, as the first statement in the loop. `limit:` applies
-    // to the FILTERED set, so a limited `tags:` query must not spend its slots on
-    // notes the filter rejects. It is also the cheaper order by a wide margin: the
-    // pool the body tier walks shrinks before it is walked, which over a synthetic
-    // 5000-note corpus is 0.85 ms for `tags:note&draft` against 15.1 ms for a bare
-    // "window depth". A negation keeps most of the corpus and so costs the
-    // baseline.
-    //
-    // A TAG MATCH IS A PREDICATE, NOT A SCORER, so `continue` is the only thing it
-    // does here: no third tier, no bonus to a score, no effect on the tiering
-    // below. Tags decide WHICH notes are candidates, never how they rank.
-    //
     // `e.at("tags", default: ())` rather than `e.tags`, mirroring `row.tags ?? []`
     // in the port: this function ranks rows a CALLER supplies, including
     // `test/parity.typ`'s literal corpus, so a row with no `tags` field reads as
     // untagged rather than erroring.
-    if tq.rpn.len() > 0 and not eval-tag-query(tq.rpn, e.at("tags", default: ()).map(_fold)) {
-      continue
-    }
-    let s-name = fuzzy-score(e.name, q)
-    // SCORED AGAINST `label`, not `text`: `label` is the authored title flattened,
-    // else the body's first 60 characters, else the name, so a titleless note is
-    // findable by what it says rather than by its id alone. It is never empty,
-    // which is why nothing guards for that here.
-    let s-text = fuzzy-score(e.label, q)
-    let name-score = if s-name == none {
-      s-text
-    } else if s-text == none { s-name } else { calc.max(s-name, s-text) }
-    if name-score != none {
-      name-hits.push((..e, score: name-score, kind: "name"))
+    let tags = e.at("tags", default: ()).map(_fold)
+    // ONE `eval-clauses` CALL PER TIER, not a predicate-then-score sequence: a
+    // gating clause (`tags:`) and a scoring clause (a bare word, or an unknown
+    // field falling back to text) are resolved by the SAME walk, so
+    // `tags:draft window` gates on `draft` and scores `window` in one pass.
+    //
+    // SCORED AGAINST `label`, not `text`: `label` is the authored title
+    // flattened, else the body's first 60 characters, else the name, so a
+    // titleless note is findable by what it says rather than by its id alone.
+    //
+    // `e.id` JOINS `e.name`/`e.label` here — always `"idea:" + e.name`, so a
+    // reader typing that literal colon (`idea:flat` for `idea:flat-ids`) still
+    // subsequence-matches it, which is what makes the fallback below findable
+    // rather than merely non-erroring. It rarely wins the max on its own: the
+    // unmatched `"idea:"` prefix costs the near-start and length-closeness
+    // bonuses `e.name` alone would earn.
+    let name-eval = eval-clauses(rpn, _resolve(
+      v => _best((fuzzy-score(e.name, v), fuzzy-score(e.label, v), fuzzy-score(e.at("id", default: ""), v))),
+      tags,
+    ))
+    if name-eval.matched {
+      name-hits.push((..e, score: name-eval.score, kind: "name"))
       continue
     }
     if not body-search { continue }
-    let body-score-val = body-score(e.at("body", default: ""), q)
-    if body-score-val != none {
-      body-hits.push((..e, score: body-score-val, kind: "body"))
+    let body-eval = eval-clauses(rpn, _resolve(v => body-score(e.at("body", default: ""), v), tags))
+    if body-eval.matched {
+      body-hits.push((..e, score: body-eval.score, kind: "body"))
     }
   }
-  // A REAL SEARCH (`q != ""`) sorts by score descending. Otherwise: bucket into
-  // dated and undated — appending into each bucket preserves the incoming
-  // id-ascending order within it — walk the dated buckets' distinct stamps
-  // newest to oldest, and append the undated group unchanged at the end.
-  name-hits = if q != "" {
+  // A REAL SEARCH (a tree with a text clause) sorts by score descending.
+  // Otherwise: bucket into dated and undated — appending into each bucket
+  // preserves the incoming id-ascending order within it — walk the dated
+  // buckets' distinct stamps newest to oldest, and append the undated group
+  // unchanged at the end.
+  name-hits = if has-text {
     name-hits.sorted(key: e => -1 * e.score)
   } else {
     let buckets = (:)

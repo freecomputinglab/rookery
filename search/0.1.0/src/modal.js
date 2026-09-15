@@ -6,8 +6,7 @@ import { searchSplit } from "./score.js";
 import { selection } from "./selection.js";
 import { fetchNote } from "./preview.js";
 import { markTermsInNode } from "./marks.js";
-import { positiveAtoms, splitQuery } from "./tagquery.js";
-import { queryTerms } from "./text.js";
+import { positiveAtoms, positiveTagAtoms, splitQuery } from "./tagquery.js";
 import { readLimit } from "./limit.js";
 import { renderKeywords } from "./keywords.js";
 
@@ -90,10 +89,10 @@ export const wireModal = (dialog, rows) => {
         renderKeywords(preview, hit, input.value);
         return;
       }
-      // The residual, not the raw input: marking the fetched page for the literal
-      // "tags:" would highlight an instruction rather than a match. Same rule as
-      // both `render`s.
-      const terms = queryTerms(splitQuery(input.value.trim()).text);
+      // The tree's TEXT clauses, not the raw input: marking the fetched page
+      // for the literal "tags:" would highlight an instruction rather than a
+      // match. Same rule as both `render`s.
+      const terms = positiveAtoms(splitQuery(input.value.trim()).rpn);
       // Cloned, not moved: the cache holds this `<div>` for the rest of the
       // session and `markTermsInNode` edits what it walks.
       const clone = box.cloneNode(true);
@@ -129,16 +128,16 @@ export const wireModal = (dialog, rows) => {
     // empty-prompt behaviour, deliberately unlike `#search-bar`'s dropdown,
     // which stays shut on an empty query.
     //
-    // With a `tags:` expression and no residual text, that becomes the whole
+    // With a `tags:` clause and no text clause, that becomes the whole
     // FILTERED corpus ranked the same way — the same sentence one level in.
     const split = splitQuery(q);
     hits = searchSplit(corpus, split, limit);
-    // The residual, not the raw input: see `wire`'s `render` above. Marking the
-    // literal "tags:" in every note is the failure this avoids. And the tag
-    // expression's positive atoms alongside, for the chips — this is the surface
-    // where they are visible at all.
-    const terms = queryTerms(split.text);
-    const atoms = positiveAtoms(split.rpn);
+    // The tree's TEXT clauses, not the raw input: see `wire`'s `render` above.
+    // Marking the literal "tags:" in every note is the failure this avoids.
+    // And the tag expression's positive atoms alongside, for the chips —
+    // this is the surface where they are visible at all.
+    const terms = positiveAtoms(split.rpn);
+    const atoms = positiveTagAtoms(split.rpn);
     for (const [i, hit] of hits.entries()) {
       const row = renderRow(hit, terms, atoms);
       row.addEventListener("pointerenter", () => select(i));

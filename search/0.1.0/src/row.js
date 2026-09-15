@@ -26,12 +26,13 @@ import { KEYWORD_LIMIT, appendMarked, matchRanges } from "./marks.js";
 // `tags:note` also matches `notebook`, and a row showing its own tags explains its
 // own presence in the list rather than reading as a mystery hit.
 //
-// `atoms` is `positiveAtoms(rpn)` — passed in rather than re-parsed here,
-// because both callers already hold the split query. It is the THIRD argument
-// the tag pills left room for, and it is only ever the positive atoms: a
-// negation marks nothing (see `positiveAtoms`), and the residual TEXT `terms`
-// never mark a chip, because the text query does not search tags and marking
-// one would claim it does.
+// `atoms` is `positiveTagAtoms(rpn)` — passed in rather than re-parsed here,
+// because both callers already hold the split query. It is the THIRD
+// argument the tag pills left room for, and it is only ever the positive
+// TAG atoms: a negation marks nothing (see `positiveTagAtoms`), and `terms`
+// (this row's title/id highlight, `positiveAtoms(rpn)`'s TEXT atoms) never
+// marks a chip, because a text clause does not search tags and marking one
+// would claim it does.
 export const renderRow = (hit, terms, atoms = []) => {
   const a = document.createElement("a");
   a.className = "rookery-search-row";

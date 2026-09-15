@@ -1,18 +1,25 @@
-// The `tags:` query language: a boolean expression over a note's tags.
+// The query language: one boolean CLAUSE TREE over a note's fields and its
+// text, `&`/`|`/`!` composing a `field:value` clause with a bare word exactly
+// as it composes two `field:value` clauses.
 //
-// The whole language and nothing else — the prefix that opens an expression
-// (`split-query`), a shunting-yard parse to RPN, and an evaluator over that RPN.
-// Refining the language means editing this file and its JavaScript twin,
-// `src/tagquery.js`, and no other; `test/parity.mjs` pins the two case for case,
-// `parse-tag-query` against `parseTagQuery` and `split-query` against
-// `splitQuery`.
+// The whole language and nothing else — a shunting-yard parse to RPN
+// (`parse-tag-query`, `split-query` its entry point) and an evaluator over
+// that RPN (`eval-clauses`). Refining the language means editing this file
+// and its JavaScript twin, `src/tagquery.js`, and no other; `test/parity.mjs`
+// pins the two case for case.
+//
+// `field` NAMES A GATING CLAUSE (`tags:draft`, prefix-matched against a note's
+// tags, scoring `0`); a BARE WORD (empty field) is a SCORING clause, fuzzy- or
+// body-matched against a row's text. `eval-clauses` in `rank.typ`/`score.js`
+// is what resolves either kind and combines their scores — this module only
+// parses and walks the tree.
 
 #import "base.typ": *
 
 //   tags:(a|b)&c        `&` binds tighter than `|`; `()` groups
 //   tags:!draft         `!` negates, binds tightest, right-associative
-//   tags:draft window   an unescaped SPACE ends the tag expression; the rest
-//                       ("window") is the residual text query
+//   tags:draft window   an unescaped SPACE is an implicit `&` — the note must
+//                       be tagged draft AND its text must match "window"
 //   tags:a\&b           `\` escapes the next cluster into the current atom
 //   tags:in-progress    atoms and tags are BOTH folded, so `-`/`_`/space agree
 //
@@ -39,9 +46,8 @@
 // each cluster — and the precedence it needs next is in the same structure.
 #let _prec = ("!": 3, "&": 2, "|": 1)
 
-// Parse everything after `tags:` into RPN, plus the text that followed the
-// expression. `(rpn: (("atom", field, str)|("op", str), ..), residual: str,
-// repaired: (str, ..))`.
+// Parse a WHOLE query into RPN. `(rpn: (("atom", field, str)|("op", str),
+// ..), repaired: (str, ..))`.
 //
 // An atom token is a 3-TUPLE, `("atom", "tags", "draft")` for `tags:draft`,
 // `("atom", "", "window")` for a bare word — and an op token stays the
@@ -72,13 +78,18 @@
   let atom-field = ""
   let atom-value = ""
   let split = false
-  let residual = ""
+  // Whether the character just processed closed a group (`)`) — the other
+  // shape, besides an atom still being built, that an implicit `&` below can
+  // follow. Every other branch clears it, so it can never survive past an
+  // unrelated character to make a later space look like it follows a group
+  // that closed several characters ago.
+  let after-close = false
   let i = 0
   let n = cs.len()
-  let stop = false
-  while i < n and not stop {
+  while i < n {
     let c = cs.at(i)
     if c == "\\" {
+      after-close = false
       // The escape takes the NEXT cluster literally into whichever
       // accumulator is current, whatever it is — that is what makes a tag
       // containing an operator, or a literal `:`, reachable at all. A
@@ -91,6 +102,7 @@
         repaired.push("trailing-backslash")
       }
     } else if c == ":" and not split and atom-field != "" {
+      after-close = false
       // The FIRST unescaped `:`, decided as the text accumulates rather than
       // by re-scanning a finished atom, which cannot tell an escaped `:`
       // from a real one. Only splits when a field name already sits in
@@ -105,15 +117,45 @@
       // search box realistically holds. They differ on U+FEFF, which JavaScript
       // trims and Rust does not, and the readme records that as a limitation.
       //
-      // `array.join()` on an EMPTY array returns `none` in Typst, not `""`, and
-      // the empty slice is reached by a query whose last cluster is the separating
-      // space (`tags:draft `, typed on the way to `tags:draft window`) — hence the
-      // length test rather than handing `none` to `.trim()`. JavaScript's
-      // `slice(i + 1).join("")` yields `""` unaided, so the ports agree.
-      let rest = cs.slice(i + 1)
-      residual = if rest.len() == 0 { "" } else { rest.join("") }
-      stop = true
+      // An unescaped run of whitespace is an implicit `&` — SQLite FTS5's own
+      // grammar states this precedence: <https://www.sqlite.org/fts5.html> —
+      // but ONLY between two real operands: an atom still being built, or a
+      // group that just closed, before it, and an atom, `!` or `(` after it.
+      // Leading, trailing and doubled whitespace are silently absorbed
+      // instead of emitting anything, which is what lets a half-typed query
+      // (a trailing space on the way to the next word) keep parsing.
+      let precedes = split or atom-field != "" or after-close
+      after-close = false
+      if precedes {
+        if split {
+          out.push(("atom", _fold(atom-field), _fold(atom-value)))
+          atom-field = ""; atom-value = ""; split = false
+        } else if atom-field != "" {
+          out.push(("atom", "", _fold(atom-field)))
+          atom-field = ""
+        }
+        let j = i + 1
+        while j < n and cs.at(j).trim() == "" { j += 1 }
+        let follows = j < n and cs.at(j) != ")" and not (cs.at(j) in _prec and cs.at(j) != "!")
+        if follows {
+          // The same precedence-climbing pop every explicit operator below
+          // does, at `&`'s own precedence — the only place that is
+          // observable is `a|b c`, which must parse as `a | (b & c)` rather
+          // than `(a|b) & c`.
+          let go = true
+          while go and stack.len() > 0 {
+            let top = stack.last()
+            if top == "(" {
+              go = false
+            } else if _prec.at(top) >= _prec.at("&") {
+              out.push(("op", stack.pop()))
+            } else { go = false }
+          }
+          stack.push("&")
+        }
+      }
     } else if c == "(" {
+      after-close = false
       if split {
         out.push(("atom", _fold(atom-field), _fold(atom-value)))
         atom-field = ""; atom-value = ""; split = false
@@ -136,7 +178,11 @@
         if top == "(" { found = true } else { out.push(("op", top)) }
       }
       if not found { repaired.push("unmatched-close") }
+      // Only a GROUP THAT ACTUALLY CLOSED counts as an operand for the
+      // whitespace rule above — a stray `)` with nothing to close is not one.
+      after-close = found
     } else if c in _prec {
+      after-close = false
       if split {
         out.push(("atom", _fold(atom-field), _fold(atom-value)))
         atom-field = ""; atom-value = ""; split = false
@@ -161,6 +207,7 @@
       }
       stack.push(c)
     } else {
+      after-close = false
       if split { atom-value += c } else { atom-field += c }
     }
     i += 1
@@ -178,7 +225,7 @@
     let top = stack.pop()
     if top == "(" { repaired.push("unclosed-open") } else { out.push(("op", top)) }
   }
-  (rpn: out, residual: residual.trim(), repaired: repaired)
+  (rpn: out, repaired: repaired)
 }
 
 // Evaluate a parsed `rpn` over CLAUSES rather than a bare boolean: each atom's
@@ -204,9 +251,8 @@
 // `tagquery.js`, which is what lets `just parity` diff the two number for
 // number.
 //
-// AN EMPTY RPN MEANS NO FILTER: `(matched: true, score: 0)`, so a bare
-// `tags:` lists the whole corpus rather than nothing — the state the bar is
-// in for one keystroke every time a reader starts a tag query.
+// AN EMPTY RPN MEANS NO FILTER: `(matched: true, score: 0)` — an empty
+// query, before a reader has typed anything at all.
 //
 // The two arity guards (`st.len() > 0`, `st.len() >= 2`) are the other half of
 // "parsing never fails": a dangling operator from a repaired query is SKIPPED
@@ -259,32 +305,24 @@
 //
 // A thin call to `eval-clauses` above: tags gate and never score, so `resolve`
 // always returns `score: 0` and only `matched` is read.
+//
+// AN EMPTY VALUE IS NO CONSTRAINT rather than a set membership test against an
+// empty string: `tags.any(tg => tg.starts-with(""))` is true for any TAGGED
+// note but false for an untagged one, since there is no element for `.any` to
+// find — and a half-typed `tags:` (an atom with a field but nothing after its
+// colon) is meant to filter nothing at all, tagged or not.
 #let eval-tag-query(rpn, tags) = {
   eval-clauses(rpn, (field, value) => (
-    matched: tags.any(tg => tg == value or tg.starts-with(value)),
+    matched: value == "" or tags.any(tg => tg == value or tg.starts-with(value)),
     score: 0,
   )).matched
 }
 
-// Split a reader's raw query into its tag filter and its text part:
-// `(rpn: (..), text: str, repaired: (..))`. This is the one entry point a UI
-// needs — `parse-tag-query` and `eval-tag-query` are exported for a caller doing
-// something else with the pieces.
-//
-// The prefix test is case-insensitive (`TAGS:note` works) but only leading
-// whitespace is trimmed before it, so `tags:` must open the query: a mid-query
-// `tags:` is text, matching how a person reads it. `slice(5)` is safe on byte
-// offsets because `tags:` is five ASCII bytes.
-//
-// The non-tags branch returns `q` UNTOUCHED rather than trimmed — `fuzzy-score`
-// and `body-score` fold and split their own query, so trimming here would only
-// be a second place for the two languages to disagree about whitespace.
-#let split-query(q) = {
-  let s = q.trim(at: start)
-  if lower(s).starts-with("tags:") {
-    let r = parse-tag-query(s.slice(5))
-    (rpn: r.rpn, text: r.residual, repaired: r.repaired)
-  } else {
-    (rpn: (), text: q, repaired: ())
-  }
-}
+// Split a reader's raw query into its clause tree: `(rpn: (..), repaired:
+// (..))`. THE ONE ENTRY POINT A UI NEEDS — every clause, gating or scoring,
+// lives in `rpn`; there is no separate residual text any more, because a bare
+// word is itself a clause (`("atom", "", value)`) that `eval-clauses` can
+// compose with a field clause via `&`, `|` and `!` exactly as it composes two
+// field clauses. `parse-tag-query` and `eval-tag-query`/`eval-clauses` are
+// exported for a caller doing something else with the pieces.
+#let split-query(q) = parse-tag-query(q)

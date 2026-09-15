@@ -210,15 +210,42 @@
   // order — the new default/browse-listing rule, not the old flat id order.
   ("", none),
   ("zzz", none), // no match anywhere
-  ("window depth", none), // multi-term: AND over the body, subsequence over names
-  // THE `tags:` PREDICATE, which nothing above reaches. It is one line in each
+  // TWO SCORING CLAUSES, ANDed by the implicit space: "window" and "depth"
+  // each score independently against name/label (or body), and the row must
+  // match BOTH — not one `fuzzy-score`/`bodyScore` call over the two-word
+  // string, which is what this query was before a bare word became a clause
+  // of its own.
+  ("window depth", none),
+  // THE `tags:` GATE, which nothing above reaches. It is one line in each
   // language and it runs ahead of every scorer, so an untested copy would drift
-  // silently: MEASURED, deleting it from the JavaScript side leaves all nine
+  // silently: MEASURED, deleting it from the JavaScript side leaves all ten
   // cases above passing.
-  ("tags:phd", none), // filter only, no residual: survivors at score 0, id order
-  ("tags:phd&!draft", none), // negation, so tg1 drops and tg2 stays
-  ("tags:phd alpha", none), // filter THEN rank the residual over the survivors
+  ("tags:phd", none), // gate only, no text clause: survivors at score 0, id order
+  // NEGATION OF A FIELD CLAUSE, spelled `!tags:draft` now that `tags:` no
+  // longer opens a whole sub-expression on its own — `!` negates exactly the
+  // clause after it, so tg1 (tagged draft) drops and tg2 (not) stays.
+  ("tags:phd&!tags:draft", none),
+  ("tags:phd alpha", none), // gate THEN rank the text clause over the survivors
   ("tags:nope", none), // matches no note: empty, not unfiltered
+  // A GATE OR'D WITH A TEXT CLAUSE: every draft-tagged row, plus every row
+  // whose name/label matches "window" — tg1 (draft) and window-depth/windows
+  // (window) all survive, and a row satisfying only the text side scores by
+  // that side alone (`|`'s score is the max over the matched sides, and a
+  // gate always scores `0`).
+  ("tags:draft | window", none),
+  // A GATE AND A TEXT CLAUSE, one word apart: tg1 is tagged draft, but its
+  // name/label ("tg1"/"Alpha") does not match "window", so it still drops —
+  // the implicit `&` requires both sides, exactly as `tags:phd alpha` above
+  // does for a different pair.
+  ("tags:draft window", none),
+  // NEGATION AHEAD OF A GATE, then ANDed with a text clause: every row NOT
+  // tagged draft whose name/label matches "window" — tg1 drops for the tag,
+  // tg2 drops for the text, window-depth and windows survive.
+  ("!tags:draft window", none),
+  // A BARE `tags:` — a field with nothing after its colon — is still NO
+  // FILTER AT ALL, tagged or not: see `eval-tag-query`'s comment for why an
+  // empty value must not read as membership in the empty string.
+  ("tags:", none),
 )
 #metadata(tier-cases.map(c => {
   let hits = _rank(tier-rows, c.at(0), limit: c.at(1))
@@ -231,19 +258,20 @@
   )
 })) <tier-parity>
 
-// A fourth fixture, for the `tags:` query parser and its evaluator — the one
+// A fourth fixture, for the query parser and its tag-only evaluator — the one
 // rule here whose output is not a number. It is diffed AS DATA: a flattened RPN
-// string, the residual text, and a boolean per fixed tag set, all three of which
-// a JavaScript twin can produce character for character. That is the whole
-// reason the parser is shunting-yard and emits a token array (see
-// `parse-tag-query`), rather than a recursive descent whose only comparable
-// output would be its final verdict.
+// string and a boolean per fixed tag set, both of which a JavaScript twin can
+// produce character for character. That is the whole reason the parser is
+// shunting-yard and emits a token array (see `parse-tag-query`), rather than a
+// recursive descent whose only comparable output would be its final verdict.
 //
 // THE FIRST 19 CASES ARE THE EXACT SET THE SPIKE VERIFIED — do not thin them
-// out. They are the only place precedence, the frozen escape set, folding, the
-// space that ends an expression, and every repair path (`unclosed-open`,
-// `unmatched-close`, a dangling operator, a trailing `\`) are pinned. A case that
-// looks redundant is holding one of those down.
+// out. They are the only place precedence, the frozen escape set, folding, and
+// every repair path (`unclosed-open`, `unmatched-close`, a dangling operator, a
+// trailing `\`) are pinned. A case that looks redundant is holding one of those
+// down. A SPACE no longer ends the expression — it is an implicit `&` — so a
+// case originally written to pin where parsing stopped now pins the tree it
+// builds instead, which `evals` still exercises the same way.
 //
 // Note that `\\` in a Typst string literal is ONE backslash in the query, which
 // is what a reader would actually type: `"tags:a\\&b"` is the query `tags:a\&b`.
@@ -277,17 +305,18 @@
   // grapheme cluster continues with ASCII. Widen the escape set and this is where
   // it shows up.
   "tags:résumé", "tags:❤️|c̃", "tags:👩‍💻&note", "tags:a\\❤️b",
-  // FIELD:VALUE CLAUSES — an atom now splits on its first unescaped `:`.
-  // Each case here is wrapped in an outer `tags:` so `split-query` strips
-  // it and hands `parse-tag-query` exactly the string named in the comment:
-  // `tags:draft` and `status:done` are field clauses; `window` stays a bare
-  // text atom. `a\:b` pins that an escaped `:` never splits. `a:b:c` pins
-  // that only the FIRST `:` splits (field `a`, value `b:c`). `:draft` pins
-  // that a leading `:` with nothing before it is text, not an empty field
-  // name. The last case hands `parse-tag-query` the bare string `tags:` —
-  // field `tags`, empty value, a valid prefix rather than a repair.
-  "tags:tags:draft", "tags:status:done", "tags:window", "tags:a\\:b",
-  "tags:a:b:c", "tags::draft", "tags:tags:",
+  // FIELD:VALUE CLAUSES — an atom splits on its FIRST unescaped `:`, over the
+  // WHOLE query now that there is no outer `tags:` to strip first. So
+  // `tags:tags:draft` splits at the very first colon — field `tags`, value
+  // `tags:draft` (the colon inside the value does not split a second time) —
+  // and `status:done` is its own field clause, `window` a bare text atom.
+  // `a\:b` pins that an escaped `:` never splits. `a:b:c` pins that only the
+  // first `:` splits (field `a`, value `b:c`). `:draft` pins that a leading
+  // `:` with nothing before it is text, not an empty field name. `tags:` on
+  // its own — the bare string — pins field `tags`, empty value, a valid
+  // prefix rather than a repair.
+  "tags:tags:draft", "status:done", "window", "a\\:b",
+  "a:b:c", ":draft", "tags:",
 )
 // One fixed ladder of tag sets, evaluated for EVERY case, so the runner compares
 // a whole boolean row rather than a single verdict — the last set is the untagged
@@ -304,19 +333,26 @@
     prefix + "\"" + t.at(2) + "\""
   } else { t.at(1) }).join(" ")
   // `array.join()` on an EMPTY array returns `none`, not `""` (MEASURED, and
-  // documented at `#search-index` in `src/lib.typ`), and an empty RPN is a case
-  // here twice over — `tags:` and `window depth` both produce one.
+  // documented at `#search-index` in `src/lib.typ`) — reached only by the
+  // literal empty query, since every other case below builds at least one
+  // atom now that a bare word after a space is a clause of its own rather
+  // than dropped residual text.
   if s == none { "" } else { s }
 }
 // `eval-tag-query` wants FOLDED tags (its atoms are folded at push time), so the
 // fixture folds each set with `_fold` exactly as a real caller must — the one
 // step a port could skip and still look right on ASCII single-word tags.
+//
+// `evals` still runs EVERY case through `eval-tag-query`'s tag-only resolver,
+// bare-word atoms included — a bare word now parses as a field-less atom
+// exactly as it always did, so pinning it against a tag set is the same test
+// it always was, whatever `eval-clauses` in `rank.typ`/`score.js` separately
+// does with it as a text clause.
 #metadata(tag-cases.map(c => {
   let r = split-query(c)
   (
     query: c,
     rpn: _rpn-str(r.rpn),
-    text: r.text,
     evals: tag-sets.map(ts => eval-tag-query(r.rpn, ts.map(_fold))),
   )
 })) <tag-parity>

@@ -4,7 +4,7 @@
 // nothing else, so typing `tags:todo` into a panel fuzzy-matched the literal string
 // "tags:todo" against note titles and found nothing — while the same string in the
 // search bar worked, because `search()` splits the query. Both readmes advertise
-// `tags:todo&!todo-closed`; only one of the two inputs honoured it.
+// `tags:todo&!tags:todo-closed`; only one of the two inputs honoured it.
 //
 // EVERY CASE HERE IS A DOM CASE on purpose. The parser and the evaluator are pinned by
 // `just parity` and by the Typst fixtures; what is unpinned is the JOIN — reading the
@@ -74,9 +74,12 @@ test("`tags:todo` keeps the rows carrying that tag", () => {
   assert.deepEqual(p.shown(), ["a", "b"]);
 });
 
-test("`tags:todo&!todo-closed` is the string both readmes advertise", () => {
+test("`tags:todo&!tags:todo-closed` is the string both readmes advertise", () => {
   const p = wire();
-  p.type("tags:todo&!todo-closed");
+  // `!` negates exactly the clause after it, so a second tag clause under a
+  // negation needs its OWN `tags:` now that the field no longer opens a
+  // whole sub-expression on its own.
+  p.type("tags:todo&!tags:todo-closed");
   assert.deepEqual(p.shown(), ["a"]);
   assert.equal(p.count(), "1 of 4");
 });
@@ -94,7 +97,10 @@ test("a half-typed expression behaves as its valid prefix", () => {
   // `parseTagQuery` repairs rather than throwing and a dangling `&` is dropped.
   p.type("tags:todo&");
   assert.deepEqual(p.shown(), ["a", "b"]);
-  p.type("tags:(todo");
+  // An unclosed group repairs the same way, discarding the dangling `(` — the
+  // second `tags:` is its own clause either side of it, which is what a
+  // reader typing `tags:(tags:todo|` one keystroke at a time is on the way to.
+  p.type("tags:(tags:todo");
   assert.deepEqual(p.shown(), ["a", "b"]);
 });
 
@@ -115,12 +121,14 @@ test("a query with no `tags:` prefix is an ordinary fuzzy filter", () => {
   assert.deepEqual(p.shown(), ["a", "c", "d"]);
 });
 
-test("`tags:` is only recognised in leading position", () => {
+test("a `tags:` clause is recognised anywhere in the tree, not only in leading position", () => {
   const p = wire();
-  // Mid-query it is text, matching how a person reads it — and no row's haystack holds
-  // it, so nothing survives. The point is that it is SCORED rather than parsed.
+  // The implicit `&` ANDs the bare word with the field clause after it: `a`'s
+  // haystack matches "window" AND it carries `todo`, so it alone survives —
+  // `b` matches the tag but not the text, `c` matches the text but not the
+  // tag (it carries `note`, not `todo`), and `d` carries no tags at all.
   p.type("window tags:todo");
-  assert.deepEqual(p.shown(), []);
+  assert.deepEqual(p.shown(), ["a"]);
 });
 
 test("a row with no query channel fails every tag expression", () => {

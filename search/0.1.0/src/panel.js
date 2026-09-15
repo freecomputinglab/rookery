@@ -1,5 +1,6 @@
-// Browser half of `#panel` in `src/panel.typ`: filter, rank and reorder the rows
-// already on the page.
+// Browser half of `#panel` in `src/panel.typ`: filter and reorder the rows
+// already on the page — reorder onto the pills' and query's own combined
+// verdict, never by score, which is what "rank" would imply.
 //
 // NOTHING IS FETCHED AND NOTHING IS BUILT HERE. The Typst side emitted every row
 // up front with its haystack and its faceted values as `data-` attributes, so
@@ -20,13 +21,14 @@
 // way `data-panel-pill-match` says — "any" by default, "all" to intersect. One
 // `wirePanel` serves both and only the predicate branches.
 //
-// THE INPUT TAKES A `tags:` EXPRESSION, the same language the search bar takes —
-// `tags:todo&!todo-closed` in a panel's filter box lists the open todos. The query is
-// split ONCE per keystroke (`splitQuery`), the expression becomes a PREDICATE over the
-// row's own tags (`data-panel-all-tags`, every tag its note carries — not the pill
-// set), and the residual text is what `score` ranks. That division is `score.js`'s and
-// is repeated here rather than reinvented: a tag says WHICH rows exist, the text says
-// how they rank.
+// THE INPUT TAKES THE SAME CLAUSE-TREE LANGUAGE the search bar takes —
+// `tags:todo&!todo-closed` in a panel's filter box lists the open todos, and
+// `tags:todo window` ANDs that gate with a text clause the same way. The
+// query is parsed ONCE per keystroke (`splitQuery`) into one tree, and every
+// row is resolved against it in one `evalClauses` call: a `tags:` clause
+// reads `row.allTags` (every tag its note carries — not the pill set), a
+// text clause reads `row.text` via `score`. The panel only FILTERS on the
+// result — see `apply` for why it does not also rank by it.
 //
 // THE EXPRESSION AND THE PILLS BOTH NARROW. See `apply` for why that is the only
 // composition that is not surprising.
@@ -36,9 +38,9 @@
 // the whole reason those modules exist.
 
 import { score } from "./score.js";
-import { splitQuery, evalTagQuery } from "./tagquery.js";
-// `fold` IS REQUIRED, not decorative: `evalTagQuery`'s contract is that `tags` arrive
-// ALREADY FOLDED, which is how `search()` satisfies it (`score.js`:
+import { splitQuery, evalClauses } from "./tagquery.js";
+// `fold` IS REQUIRED, not decorative: a `tags:` clause's contract is that `tags`
+// arrive ALREADY FOLDED, which is how `search()` satisfies it (`score.js`:
 // `(row.tags ?? []).map(fold)`). Skip it and a panel's tag query is case- and
 // hyphen-sensitive in a way the search bar is not, which reads as the language being
 // broken in one of the two places it runs.
@@ -251,52 +253,49 @@ export const wirePanel = (container, n) => {
   const noun = count ? (count.textContent.split(" ").slice(1).join(" ") || "rows") : "rows";
 
   const apply = () => {
-    // SPLIT ONCE PER KEYSTROKE, ahead of the loop, exactly where `search()` splits it —
-    // not per row. A leading `tags:` becomes `rpn` and the rest becomes the text that
-    // ranks; anything else leaves `rpn` empty and `text` the query untouched, so a
-    // panel with no tag expression behaves precisely as it always did.
-    //
-    // `.trim()` AFTER, which is right for both branches: `splitQuery` trims only
-    // LEADING whitespace itself and hands back an already-trimmed residual for the tags
-    // branch, so this only ever tidies the non-tags one.
-    const { rpn, text } = splitQuery(input.value);
-    const q = text.trim();
+    // SPLIT ONCE PER KEYSTROKE, ahead of the loop, exactly where `search()`
+    // splits it — not per row.
+    const { rpn } = splitQuery(input.value);
     const kept = [];
     for (const row of rows) {
-      // `score` RETURNS `null` FOR NO MATCH and `0` for an empty query, which is
-      // what leaves the build-time order untouched until someone types: every row
-      // scores the same and the index tiebreak decides. The test below must be
-      // `== null` and never `s < 0` — `null < 0` is FALSE in JavaScript, which
-      // would keep every non-matching row and leave the input merely reordering.
-      // `== null` rather than `=== null` so an `undefined` from a caller's own
-      // `haystack:` is treated the same way.
+      // ONE `evalClauses` CALL, not a predicate-then-score sequence: a
+      // `tags:` clause and a bare word are resolved by the SAME walk over
+      // `row.allTags`/`row.text`, so `tags:todo window` gates on `todo` and
+      // requires `window` in one pass. An unknown field (or a bare word,
+      // the same fallback with an empty prefix) falls back to scoring the
+      // whole `field:value` string as text, mirroring `_resolve` in
+      // `src/rank.typ` and `src/score.js`.
       //
-      // THE TAG EXPRESSION IS A PREDICATE and it runs FIRST, ahead of any scoring, so a
-      // row the tags exclude is never scored. No third tier, no bonus for a tag hit, no
-      // perturbation of the sort below — a tag says WHICH rows exist, the residual text
-      // says how they rank. `score.js` states that division for the search bar; this is
-      // the same division in the other place the language runs.
-      //
+      // THE PANEL DOES NOT RANK — it filters. `evalClauses`' score is
+      // computed and thrown away; only `matched` decides whether a row
+      // stays, and a match keeps the row in the build-time order the Typst
+      // side sorted it into rather than reordering it by that score.
+      const resolve = (field, value) => {
+        if (field === "tags") {
+          return {
+            matched: value === "" || row.allTags.some((tg) => tg === value || tg.startsWith(value)),
+            score: 0,
+          };
+        }
+        const s = score(row.text, field === "" ? value : `${field}:${value}`);
+        return s == null ? { matched: false, score: 0 } : { matched: true, score: s };
+      };
       // IT ANDs WITH THE PILLS, which is the only composition that is not
       // surprising: a pressed pill and a typed query are both visible commitments,
       // so a row must satisfy both. A query that silently released the pills would
       // leave buttons on screen reading as pressed while filtering nothing, which
       // is worse than an empty list a reader can explain by looking at it.
       const ok =
-        (rpn.length === 0 || evalTagQuery(rpn, row.allTags)) &&
+        evalClauses(rpn, resolve).matched &&
         (tagMode
           ? passesTags(row, pressed, pillMatch)
           : passesFacets(row, facets, multi, union));
-      const s = ok ? score(row.text, q) : null;
-      if (s == null) {
-        row.el.hidden = true;
+      if (ok) {
+        kept.push({ row });
       } else {
-        kept.push({ row, s });
+        row.el.hidden = true;
       }
     }
-    // Higher score first; equal scores keep their original order, which is
-    // whatever the Typst side sorted them into.
-    kept.sort((a, b) => b.s - a.s || a.row.index - b.row.index);
 
     // EVERY MATCH IS SHOWN. The list is a scroll box `--panel-rows` tall — a
     // stylesheet's business, not this script's — so there is nothing to cap here

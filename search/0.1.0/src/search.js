@@ -36,19 +36,19 @@ import { initPanels, wirePanel } from "./panel.js";
 // were: the public module surface is not what changed.
 import { fold, clusters } from "./text.js";
 import {
-  TAG_PREFIX,
   splitQuery,
   parseTagQuery,
   evalTagQuery,
   evalClauses,
   positiveAtoms,
+  positiveTagAtoms,
 } from "./tagquery.js";
 import { score, bodyScore, search } from "./score.js";
 import { readSync, writeSync, readParam, writeParam, commit, claimKey, debounce } from "./urlstate.js";
 import { initUrlSync, wireRadioGroup } from "./urlsync.js";
 
 export { fold, clusters } from "./text.js";
-export { TAG_PREFIX, splitQuery, parseTagQuery, evalTagQuery, evalClauses, positiveAtoms } from "./tagquery.js";
+export { splitQuery, parseTagQuery, evalTagQuery, evalClauses, positiveAtoms, positiveTagAtoms } from "./tagquery.js";
 export { score, bodyScore, search } from "./score.js";
 export { readIndex, loadIndex } from "./island.js";
 export { initPanels, wirePanel } from "./panel.js";
@@ -192,12 +192,12 @@ if (typeof document !== "undefined") {
   globalThis.RookerySearch ??= {
     fold,
     clusters,
-    TAG_PREFIX,
     splitQuery,
     parseTagQuery,
     evalTagQuery,
     evalClauses,
     positiveAtoms,
+    positiveTagAtoms,
     score,
     bodyScore,
     search,

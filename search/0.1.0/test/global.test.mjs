@@ -57,7 +57,6 @@ test("a document gets the whole surface", () => {
   ]) {
     assert.equal(typeof published[name], "function", `${name} is missing`);
   }
-  assert.equal(published.TAG_PREFIX, "tags:");
 });
 
 test("the global's functions are the module's own", async () => {

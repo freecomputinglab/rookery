@@ -86,12 +86,11 @@ if (tierBad > 0) {
 }
 console.log(`tier parity OK across ${tierCases.length} cases`);
 
-// The `tags:` parser — the one rule here whose output is not a number, so it is
-// diffed AS DATA: the RPN flattened to a string exactly as `_rpn-str` flattens
-// it in `test/parity.typ`, the residual text, and one boolean per fixed tag set.
-// All three, not just the verdict: a parser that agreed only on the final
-// booleans could still have drifted on precedence or on where the expression
-// ends.
+// The query parser and its tag-only evaluator — the one rule here whose
+// output is not a number, so it is diffed AS DATA: the RPN flattened to a
+// string exactly as `_rpn-str` flattens it in `test/parity.typ`, and one
+// boolean per fixed tag set. Both, not just the verdict: a parser that
+// agreed only on the final booleans could still have drifted on precedence.
 let tagBad = 0;
 const tagRows = evalMetadata("tag-parity");
 // CHARACTER FOR CHARACTER `tag-sets` in `test/parity.typ`, AND IN THE SAME
@@ -109,12 +108,11 @@ for (const row of tagRows) {
   // `evalTagQuery`'s atoms were folded at push time and it compares folded
   // against folded.
   const jsEvals = TAG_SETS.map((s) => evalTagQuery(js.rpn, s.map(fold)));
-  if (jsRpn !== row.rpn || js.text !== row.text ||
-      JSON.stringify(jsEvals) !== JSON.stringify(row.evals)) {
+  if (jsRpn !== row.rpn || JSON.stringify(jsEvals) !== JSON.stringify(row.evals)) {
     tagBad++;
     console.error(`MISMATCH query=${JSON.stringify(row.query)}
-  typst rpn=${JSON.stringify(row.rpn)} text=${JSON.stringify(row.text)} evals=${JSON.stringify(row.evals)}
-  js    rpn=${JSON.stringify(jsRpn)} text=${JSON.stringify(js.text)} evals=${JSON.stringify(jsEvals)}`);
+  typst rpn=${JSON.stringify(row.rpn)} evals=${JSON.stringify(row.evals)}
+  js    rpn=${JSON.stringify(jsRpn)} evals=${JSON.stringify(jsEvals)}`);
   }
 }
 if (tagBad > 0) {

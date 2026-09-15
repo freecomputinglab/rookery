@@ -4,8 +4,7 @@
 import { renderRow } from "./row.js";
 import { searchSplit } from "./score.js";
 import { selection } from "./selection.js";
-import { positiveAtoms, splitQuery } from "./tagquery.js";
-import { queryTerms } from "./text.js";
+import { positiveAtoms, positiveTagAtoms, splitQuery } from "./tagquery.js";
 import { readLimit } from "./limit.js";
 
 export const wire = (root, rows, n) => {
@@ -40,19 +39,20 @@ export const wire = (root, rows, n) => {
     root.dataset.rookerySearchOpen = open ? "true" : "false";
     input.setAttribute("aria-expanded", open ? "true" : "false");
     if (!open) return;
-    // HIGHLIGHT TERMS COME FROM THE RESIDUAL, not the raw input: a query of
-    // `tags:draft window` must mark "window" and never the literal "tags:draft",
-    // which is an instruction rather than something any note contains.
+    // HIGHLIGHT TERMS COME FROM THE TREE'S TEXT CLAUSES, not the raw input: a
+    // query of `tags:draft window` must mark "window" and never the literal
+    // "tags:draft", which is an instruction rather than something any note
+    // contains. `positiveAtoms` is restricted to those — see its own comment.
     //
-    // Note the `open` test above still reads the RAW input, on purpose — a bare
-    // `tags:draft` with no residual text should open the dropdown, and it is
-    // non-empty even though its residual is "".
+    // Note the `open` test above still reads the RAW input, on purpose — a
+    // bare `tags:draft` with no text clause should open the dropdown, and it
+    // is non-empty even though it carries nothing to highlight.
     //
     // The tag expression's POSITIVE atoms travel beside them, so a chip an atom
     // prefix-matched is marked too. Computed once per render, not per row.
     const split = splitQuery(q);
-    const terms = queryTerms(split.text);
-    const atoms = positiveAtoms(split.rpn);
+    const terms = positiveAtoms(split.rpn);
+    const atoms = positiveTagAtoms(split.rpn);
     for (const hit of searchSplit(rows, split, limit)) {
       list.append(renderRow(hit, terms, atoms));
     }

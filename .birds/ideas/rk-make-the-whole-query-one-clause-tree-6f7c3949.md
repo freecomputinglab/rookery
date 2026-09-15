@@ -8,7 +8,7 @@ labels:
 - search-clause-roles
 deps:
 - blocked-by:rk-carry-a-score-through-clause-evaluation-8d369f77
-closed: false
+closed: true
 ---
 Make the WHOLE query one clause tree, so a field predicate and a ranked text term
 can be combined with `&`, `|` and `!`. This is the switchover bird: after it,

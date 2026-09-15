@@ -171,9 +171,9 @@ below.
 is a static index of just the notes tagged `phd`. It changes what is searched,
 not what the query matches; see "Scoping the corpus by tag" below.
 
-**A leading `tags:` in the QUERY narrows it too**, on a different axis — the
+**A `tags:` CLAUSE in the QUERY narrows it too**, on a different axis — the
 reader's rather than the author's. `#search-ideas("tags:draft window")` keeps
-the notes tagged `draft` and ranks those by the text query `window`, and the
+the notes tagged `draft` and ranks those by the text clause `window`, and the
 same expression works typed into the bar or the modal. See "Filtering by tag"
 below.
 
@@ -231,16 +231,19 @@ without inventing a second rule that disagrees with the bar's.
 
 ## Filtering by tag
 
-A query that OPENS with `tags:` is a **filter**, not a search term. Everything
-up to the first unescaped space is a boolean expression over each note's own
-tags, applied before a single score is computed; everything after it is an
-ordinary text query over the notes that survived.
+A query is one boolean CLAUSE TREE. A `field:value` atom (`tags:draft`) is a
+**gating** clause — it decides which notes are candidates and contributes no
+score; a bare word is a **scoring** clause — it is ranked the way "What
+matches, and what doesn't" above describes, and it gates too, on whether it
+matched at all. `&`, `|` and `!` compose either kind exactly the same way, so
+a tag and a text term can share ONE expression rather than opening two
+separate queries:
 
 ```
 tags:draft window depth     among my drafts, ranked by "window depth"
 tags:draft                  every draft, newest-dated first, undated by id
-window depth                no prefix, no filter — unchanged
-tags:                       an empty expression is no filter: everything
+window depth                no tag clause, just two ranked terms — unchanged
+tags:                       a field with nothing after its colon is no filter: everything
 ```
 
 This is the READER's axis, typed into a bar or a modal. The `tags:`/`match:`
@@ -251,45 +254,50 @@ compose: a reader's expression filters within whatever the parameter already
 selected.
 
 The rule is written twice, once per language — `parse-tag-query`/
-`eval-tag-query`/`split-query` in `src/lib.typ` and `parseTagQuery`/
-`evalTagQuery`/`splitQuery` in `src/search.js` — so `#search-ideas`
+`eval-clauses`/`split-query` in `src/lib.typ` and `parseTagQuery`/
+`evalClauses`/`splitQuery` in `src/search.js` — so `#search-ideas`
 and the live bar answer the same query identically. `just parity` pins the two
-over 21 cases in `test/parity.typ`, diffing the parsed expression itself as
-data rather than only its final verdict.
+over dozens of cases in `test/parity.typ`, diffing the parsed expression itself
+as data rather than only its final verdict.
 
 ### The grammar
 
-`&` binds tighter than `|`, `!` binds tightest of all, and `()` groups:
+`&` binds tighter than `|`, `!` binds tightest of all, and `()` groups. An
+unescaped SPACE is an implicit `&` between two clauses — the rule SQLite's
+FTS5 states in its own grammar — so `tags:draft window` reads as
+`tags:draft&window` without the reader ever typing the operator:
 
 ```
-tags:a&b                  tagged a AND tagged b
+tags:draft&window         tagged draft AND matching "window" — same as tags:draft window
+tags:draft|window         tagged draft OR matching "window"
 tags:a|b&c                a OR (b AND c) — `&` first, without parentheses
 tags:(a|b)&c              the grouped form: (a OR b) AND c
-tags:!draft               every note NOT tagged draft
-tags:!(draft|todo)&note   tagged note, and neither draft nor todo
+!tags:draft window        NOT tagged draft AND matching "window"
+!(tags:draft|tags:todo)&note   matching "note", and neither tagged draft nor todo
 ```
 
 `!` is right-associative, which is what makes a stacked negation parse rather
 than emit a `!` with nothing under it: `tags:!!draft` is `tags:draft`, and
-`tags:!!!draft&note` is `tags:!draft&note`.
+`tags:!!!draft&note` is `tags:!draft&note` — note `note` there is a BARE WORD,
+scored as text, because `tags:` no longer opens a whole sub-expression that a
+later bare atom implicitly joins. A second field clause under one negation, or
+one `&`/`|`, needs its own `tags:`: `!tags:draft&!tags:todo`, not
+`!tags:draft&!todo`.
 
-### Where the expression ends
+### Where a clause ends
 
-At the **first unescaped whitespace**. What follows is the residual text query,
-trimmed; repeated spaces inside it cost nothing, both matchers dropping empty
-terms.
+Nowhere — the whole query is one tree, and `tags:` is a field name like any
+other rather than a prefix that has to open the string. `tags:draft` inside a
+bigger query is still a gating clause on the tags it names, wherever it sits:
 
 ```
-tags:draft   window  depth      residual "window  depth" — the extra spaces are dropped
-tags:draft                      residual "", so every survivor sits in the name
-                                tier at score 0 — the default browse order,
-                                newest-dated first, undated by id
+window tags:draft      matching "window" AND tagged draft
+tags:draft window      the same tree, read the other way round
 ```
 
-Only a **leading** `tags:` is recognised, case-insensitively (`TAGS:note`
-works), and only leading whitespace is trimmed before that test. So a note
-whose body contains the literal "tags:" can never be mistaken for a filter, and
-a `tags:` appearing mid-query is just characters the text query matches.
+The one thing that still ends a clause the way it always did is UNESCAPED
+whitespace inside a run of them: repeated spaces cost nothing, `parse-tag-query`
+absorbing them instead of emitting an empty clause between two `&`s.
 
 ### The escape set, and it is frozen
 
@@ -350,52 +358,58 @@ concerned; no query distinguishes them.
 **Parsing never fails.** A live search box types every prefix of a valid query
 on the way to it — `tags:(a|` is what a reader has typed one keystroke before
 `tags:(a|b)` — so an incomplete expression cannot be treated as a failure.
-Every malformed form REPAIRS instead. MEASURED, these are the actual answers:
+Every malformed form REPAIRS instead. MEASURED, these are the actual answers —
+`a` and `b` are BARE WORDS, so each still SCORES as text once the dangling
+operator or group around it is gone:
 
 ```
-tags:(a|          unclosed group; the dangling `|` is skipped for want of
-                  operands, so it matches what `tags:a` matches
-tags:a&           dangling operator, the same skip: matches `tags:a`
-tags:)a           unmatched close, discarded: matches `tags:a`
-tags:a\           a trailing `\` has nothing to escape and is dropped: `tags:a`
-tags:note&&draft  the doubled `&` collapses: matches `tags:note&draft`
-tags:((note))     redundant groups: matches `tags:note`
-tags:             no filter at all — every note matches
+tags:draft(a|          unclosed group; the dangling `|` is skipped for want of
+                       operands, matching tagged-draft rows scored by "a"
+tags:draft&a           dangling operand and operator both work — matches
+                       what tags:draft&a matches, gated and scored the same
+tags:draft&            dangling operator, the same skip: matches `tags:draft`
+tags:)a                unmatched close, discarded: matches what `a` alone matches
+a\                     a trailing `\` has nothing to escape and is dropped: `a`
+tags:draft&&a          the doubled `&` collapses: matches `tags:draft&a`
+tags:((draft))         redundant groups: matches `tags:draft`
+tags:                  a field with nothing after its colon: no filter, every note matches
 ```
 
 The parser does record WHY it repaired (`unclosed-open`, `unmatched-close`,
 `trailing-backslash`) on the `repaired` field of its result. Nothing reads that
 field yet; it is there for an affordance in the bar.
 
-This holds on the Typst side too — `#search-ideas("tags:(a|")` returns matches
-rather than failing the build. One lenient rule shared by both languages is
-also the only version of this that could be parity-tested: two different error
-paths cannot be diffed against each other.
+This holds on the Typst side too — `#search-ideas("tags:draft(a|")` returns
+matches rather than failing the build. One lenient rule shared by both
+languages is also the only version of this that could be parity-tested: two
+different error paths cannot be diffed against each other.
 
-### A tag is a predicate, never a scorer
+### A gating clause is a predicate, never a scorer
 
-A tag match adds **no third tier and no score bonus**, and leaves the two-tier
-ranking above exactly as it was. Tags decide which notes are CANDIDATES; the
-residual text decides how they rank. With no residual text there is nothing to
-rank by: `fuzzy-score` returns 0 for an empty query, so every survivor lands in
-the name tier at score 0 — and THAT tie breaks by date, newest first, undated
-notes falling to the end in `#ideas()`'s own id order (the same default browse
-order described above).
+A `tags:` clause adds **no third tier and no score bonus**, and leaves the
+two-tier ranking above exactly as it was: it always resolves to score `0`, so
+`&`'s sum and `|`'s max both pass a scoring clause's own score straight
+through. A tree with NO scoring clause at all — `tags:draft` alone — has
+nothing to rank by, and every survivor lands in the name tier at score 0 —
+which is THAT tie breaks by date, newest first, undated notes falling to the
+end in `#ideas()`'s own id order (the same default browse order described
+above).
 
-**Highlighting uses the residual only.** MEASURED in a browser, `tags:phd alpha`
-marks "Alpha" in a title and "alpha" in an id and nothing else — the literal
-`tags:` is an instruction, not something any note contains, so marking it would
-highlight the query rather than the match. A bare `tags:draft` still opens the
-dropdown, the raw input being non-empty, and marks nothing.
+**Highlighting uses scoring clauses only.** MEASURED in a browser, `tags:phd
+alpha` marks "Alpha" in a title and "alpha" in an id and nothing else — the
+`tags:phd` clause is an instruction, not something any note contains, so
+marking it would highlight the query rather than the match. A bare
+`tags:draft` still opens the dropdown, the raw input being non-empty, and
+marks nothing.
 
 ### What it costs
 
-Filtering happens BEFORE scoring, which makes a tag query **cheaper** than a
-bare text query rather than dearer: the pool the body tier walks shrinks before
-it is walked. MEASURED in node over a synthetic corpus with 1200-cluster
-bodies, per keystroke:
+Filtering happens BEFORE scoring, which makes a `tags:`-only tree **cheaper**
+than one carrying a scoring clause rather than dearer: the pool the body tier
+walks shrinks before it is walked. MEASURED in node over a synthetic corpus
+with 1200-cluster bodies, per keystroke:
 
-| corpus | `window depth` | `tags:note&draft` |
+| corpus | `window depth` | `tags:note&tags:draft` |
 | --- | --- | --- |
 | 500 notes | 1.734 ms | 0.096 ms |
 | 5000 notes | 15.1 ms | 0.850 ms |
@@ -403,8 +417,8 @@ bodies, per keystroke:
 Parsing itself is 1-2 microseconds, which is why it does not show up in those
 numbers.
 
-**A negation is the exception**, keeping most of the corpus: `tags:!draft window
-depth` costs the baseline, 13.2 ms at 5000 notes. No speedup, and no
+**A negation is the exception**, keeping most of the corpus: `!tags:draft
+window depth` costs the baseline, 13.2 ms at 5000 notes. No speedup, and no
 regression either.
 
 Typst-side a parse is about 60 microseconds, and a build parses once — the
@@ -430,33 +444,46 @@ and settles a real per-project question about whether full-text hits are noise.
   disagreeing with rookery about what class a tag carries would be worse than
   reproducing a hazard rookery already has.
 - **The whitespace test is each language's own `trim`**, and JavaScript trims
-  U+FEFF where Rust does not. A tag expression containing a zero-width no-break
-  space therefore ends in the browser and not in Typst. Stated for
+  U+FEFF where Rust does not. A query containing a zero-width no-break space
+  therefore parses one clause further in the browser than in Typst. Stated for
   completeness: it cannot arise from typing.
-- **Only a LEADING `tags:` is a filter**, so a note whose body contains the
-  literal "tags:" is still findable by text. That is the intended trade — a
-  filter that could begin mid-query would make the string unsearchable.
+- **A note whose title or body contains the literal string "tags:draft"** can
+  still be found by typing it: nothing here recognises a substring mid-clause,
+  only a token that begins a fresh atom (an unescaped space, `&`, `|`, `!`,
+  `(` or `)`) can start a new field. `tags:draft` as one contiguous run of
+  characters inside a bare word is just that word.
 
 ### Building your own UI on the same rule
 
-`#parse-tag-query(src)`, `#eval-tag-query(rpn, tags)` and `#split-query(q)` are
-public, and so are their ports `parseTagQuery`, `evalTagQuery` and `splitQuery`
-on the `RookerySearch` global — the same reason the ranking is exported
-there. A site with its own search UI should run the reader's own rule rather
-than fork it or write a second one that disagrees with the bar about what
-`tags:!draft` means.
+`#parse-tag-query(src)`, `#eval-clauses(rpn, resolve)`, `#eval-tag-query(rpn,
+tags)` and `#split-query(q)` are public, and so are their ports
+`parseTagQuery`, `evalClauses`, `evalTagQuery` and `splitQuery` on the
+`RookerySearch` global — the same reason the ranking is exported there. A
+site with its own search UI should run the reader's own rule rather than
+fork it or write a second one that disagrees with the bar about what
+`!tags:draft` means.
 
 The global stands **however the package was installed** — from a release, where
 vite's IIFE assigns it, or straight off a git ref, where `src/search.js` assigns
 it itself. It used to appear only in the first case, so the same site code
 worked or did not depending on which coordinate a project happened to use.
 
-`split-query` is the entry point a UI wants: it returns `(rpn, text, repaired)`,
-with `rpn: ()` for a query carrying no `tags:` prefix and `text` the residual to
-rank and highlight by. `parse-tag-query` returns `(rpn, residual, repaired)` for
-the expression alone. `eval-tag-query` expects tags **you have folded
-yourself** — the expression's atoms are folded when parsed, and folding one side
-only would make `in-progress` unfindable as "in progress". JavaScript exports
+`split-query` is the entry point a UI wants: it returns `(rpn, repaired)` —
+the WHOLE query as one clause tree, gating and scoring clauses both, and
+there is no separate residual text any more, because a bare word is itself a
+scoring clause `eval-clauses` composes with a field clause exactly as it
+composes two field clauses. `parse-tag-query` is `split-query`'s own
+implementation and returns the same shape. `eval-clauses(rpn, resolve)` walks
+that tree over a caller-supplied `resolve(field, value)` returning `(matched,
+score)` — this is what `_rank`/`search` call once per row, with a `resolve`
+scoring a bare word (`field == ""`) against the row's own text and gating a
+`tags:` field against its tags; see `src/rank.typ`'s `_resolve` for the exact
+shape, including its fallback for a field this module does not know.
+`eval-tag-query(rpn, tags)` is the narrower, tag-only convenience atop it —
+every clause read as a tag name regardless of field, matched by PREFIX — for
+a caller with no text to rank. It expects tags **you have folded yourself** —
+the expression's atoms are folded when parsed, and folding one side only
+would make `in-progress` unfindable as "in progress". JavaScript exports
 `fold` for it; the Typst `_fold` is private, so a Typst caller spells out the
 same three steps: `lower(t).replace("-", " ").replace("_", " ")`.
 
@@ -1285,34 +1312,43 @@ there is, from two pills that each worked alone.
 - **Ids are generated at runtime**, so two panels on one page both work. Markup
   carrying a hardcoded id cannot be placed twice.
 
-### The input takes a `tags:` expression
+### The input takes the same clause-tree language
 
 The same query language the search bar takes — see [Filtering by
-tag](#filtering-by-tag) — works in a panel's filter box:
+tag](#filtering-by-tag) — works in a panel's filter box, `tags:` and a bare
+word ANDed by an implicit space exactly as they compose there:
 
 ```
-tags:todo&!todo-closed            the open todos
+tags:todo&!tags:todo-closed       the open todos
 tags:(a|b)&c                      `&` binds tighter than `|`; `()` groups
-tags:draft window                 filter by the tags, rank by "window"
+tags:draft window                 tagged draft AND matching "window"
 ```
 
-- **A leading `tags:` only.** Mid-query it is text, matching how a person reads it, so
-  a note body containing "tags:" can never be mistaken for a filter.
+- **`tags:` is a field name, not a prefix that must open the string.** It is
+  recognised anywhere a `field:value` atom can start, so `window tags:draft`
+  and `tags:draft window` are the same tree read the other way round.
 - **Evaluated against `data-panel-all-tags`** — every tag the row's note carries —
   **not against the pills.** Under `tag-filter:` or `pills: auto` most of a note's tags
   have no pill, and on a `@rookery/todos` panel the whole `todo-*` namespace has none;
   the query can still name all of them.
-- **The expression filters, the residual text ranks.** A tag says WHICH rows exist and
-  the text says how they order — no third tier, no score bonus for a tag hit. Same
-  division `search()` makes for the bar.
+- **The panel FILTERS on the tree, it does not RANK by it.** A row that
+  matches keeps the build-time order the Typst side sorted it into; a bare
+  word still has to match — `score(row.text, ..)` returning `null` hides the
+  row exactly as a `tags:` clause failing to gate does — but a matching row's
+  score is discarded rather than used to reorder the list. No third tier, no
+  bonus for a tag hit. `#panel`'s own comment in `src/panel.js` states this
+  for the code; the search bar's `search()` still ranks, which is the one
+  place the two surfaces differ.
 - **It ANDs with the pills.** A pressed pill is a visible commitment and so is a typed
   query, so a row must satisfy both. A query that silently released the pills would
   leave buttons reading as pressed while no longer filtering.
 - **Every prefix of a valid query works**, because a live input types them all on the
-  way to one: `tags:todo&` behaves as `tags:todo`, and `tags:(todo` as `tags:todo`. The
-  parser repairs and never throws.
+  way to one: `tags:todo&` behaves as `tags:todo`, and `tags:(tags:todo` as
+  `tags:todo`. The parser repairs and never throws.
 - **Matching folds case and hyphens** and is by prefix, so `tags:todo` also matches
-  `todo-closed` — which is why the negation in the first example above is needed.
+  `todo-closed` — which is why the negation in the first example above needs its own
+  `tags:` (`!tags:todo-closed`, not `!todo-closed`) — a bare word under a negation is
+  a negated TEXT clause, not a negated tag.
 
 ### `sync:` — keeping the box and the pills in the URL
 
@@ -1777,12 +1813,14 @@ loudly when they disagree. The cases live in `test/parity.typ`, as labelled
 metadata arrays; extend them when you extend a rule, and change both copies in
 the same commit. It needs no build — the fixture imports `src/` on both sides.
 
-The `tags:` parser is the one pair whose output is not a number, and it is
-diffed the same way: `<tag-parity>`'s 21 cases compare the parsed expression as
-a flattened RPN string, the residual text, and one boolean per fixed tag set —
-all three, because a parser agreeing only on the final verdict could still have
-drifted on precedence or on where the expression ended. That is why the parser
-is shunting-yard and emits a token array; see "Filtering by tag" above.
+The query parser is the one pair whose output is not a number, and it is
+diffed the same way: `<tag-parity>` compares the parsed expression as a
+flattened RPN string and one boolean per fixed tag set, and `<clause-parity>`
+diffs `eval-clauses`/`evalClauses` directly, an RPN plus a resolve table
+against the `(matched, score)` it returns — both, because a parser agreeing
+only on the final verdict could still have drifted on precedence. That is why
+the parser is shunting-yard and emits a token array; see "Filtering by tag"
+above.
 
 To develop against a live rheo project, symlink the package into the Typst
 package cache:
