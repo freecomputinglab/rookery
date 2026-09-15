@@ -2,8 +2,8 @@
 // every score against `score` in `src/search.js`. Not shipped: the
 // release archive tars `dist/`, which vite builds from `src/` alone.
 #import "/src/lib.typ": (
-  _fold, _rank, body-score, eval-tag-query, fuzzy-score, parse-tag-query,
-  split-query,
+  _fold, _rank, body-score, eval-clauses, eval-tag-query, fuzzy-score,
+  parse-tag-query, split-query,
 )
 #let cases = (
   ("flat-ids", "flat"), ("flat-ids", "flat ids"), ("flat-ids", "flat-ids"),
@@ -320,3 +320,41 @@
     evals: tag-sets.map(ts => eval-tag-query(r.rpn, ts.map(_fold))),
   )
 })) <tag-parity>
+
+// `eval-clauses` cases: an RPN plus a table of clause resolutions keyed by
+// atom value, diffed on the resulting `(matched, score)`. Each case supplies
+// its own `resolve` table rather than reusing `tag-sets` above, because a
+// clause's score is part of what is under test here and a tag filter has
+// none.
+#let clause-cases = (
+  // `a & b`, both matching: score is the SUM.
+  (rpn: (("atom", "", "a"), ("atom", "", "b"), ("op", "&")),
+    resolve: (a: (matched: true, score: 3), b: (matched: true, score: 5))),
+  // `a | b`, only the right side matching: score is `b`'s alone, not a max
+  // against a's unmatched (and irrelevant) score.
+  (rpn: (("atom", "", "a"), ("atom", "", "b"), ("op", "|")),
+    resolve: (a: (matched: false, score: 9), b: (matched: true, score: 4))),
+  // `a | b`, both matching: score is the MAX, not the sum.
+  (rpn: (("atom", "", "a"), ("atom", "", "b"), ("op", "|")),
+    resolve: (a: (matched: true, score: 2), b: (matched: true, score: 7))),
+  // `!a` over a matching `a`: negation flips `matched` and always scores `0`.
+  (rpn: (("atom", "", "a"), ("op", "!")),
+    resolve: (a: (matched: true, score: 6),)),
+  // a gating clause (`field:val`, score `0`) ANDed with a scoring clause: the
+  // gate contributes nothing but still must match for the whole to match.
+  (rpn: (("atom", "field", "val"), ("atom", "", "b"), ("op", "&")),
+    resolve: (val: (matched: true, score: 0), b: (matched: true, score: 8))),
+  // a dangling operator (`a &` with no right operand): the arity guard skips
+  // the `&`, leaving `a`'s own resolution on top of the stack.
+  (rpn: (("atom", "", "a"), ("op", "&")),
+    resolve: (a: (matched: true, score: 4),)),
+  // an empty RPN: no filter, `(matched: true, score: 0)`.
+  (rpn: (), resolve: (:)),
+)
+#metadata(clause-cases.map(c => {
+  let resolve(field, value) = c.resolve.at(value)
+  (
+    rpn: _rpn-str(c.rpn),
+    result: eval-clauses(c.rpn, resolve),
+  )
+})) <clause-parity>

@@ -8,7 +8,7 @@ labels:
 - search-clause-roles
 deps:
 - blocked-by:rk-parse-field-value-clauses-in-the-query-0eeeb39e
-closed: false
+closed: true
 ---
 Make clause evaluation return a MATCH and a SCORE instead of a bare boolean, with
 the composition rules every production search engine uses. Additive: nothing reads

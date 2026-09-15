@@ -40,6 +40,7 @@ import {
   splitQuery,
   parseTagQuery,
   evalTagQuery,
+  evalClauses,
   positiveAtoms,
 } from "./tagquery.js";
 import { score, bodyScore, search } from "./score.js";
@@ -47,7 +48,7 @@ import { readSync, writeSync, readParam, writeParam, commit, claimKey, debounce 
 import { initUrlSync, wireRadioGroup } from "./urlsync.js";
 
 export { fold, clusters } from "./text.js";
-export { TAG_PREFIX, splitQuery, parseTagQuery, evalTagQuery, positiveAtoms } from "./tagquery.js";
+export { TAG_PREFIX, splitQuery, parseTagQuery, evalTagQuery, evalClauses, positiveAtoms } from "./tagquery.js";
 export { score, bodyScore, search } from "./score.js";
 export { readIndex, loadIndex } from "./island.js";
 export { initPanels, wirePanel } from "./panel.js";
@@ -195,6 +196,7 @@ if (typeof document !== "undefined") {
     splitQuery,
     parseTagQuery,
     evalTagQuery,
+    evalClauses,
     positiveAtoms,
     score,
     bodyScore,

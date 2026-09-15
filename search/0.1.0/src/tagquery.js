@@ -125,29 +125,59 @@ export const splitQuery = (q) => {
   const { rpn, residual, repaired } = parseTagQuery(s.slice(TAG_PREFIX.length));
   return { rpn, text: residual, repaired };
 };
-// Port of `eval-tag-query`. `tags` must already be folded. An empty RPN is
-// NO FILTER (true), and a binary op with too few operands is skipped — that
-// is what makes a half-typed `tags:a&` behave as `tags:a`.
-export const evalTagQuery = (rpn, tags) => {
-  if (rpn.length === 0) return true;
+// Port of `eval-clauses`. Walks the RPN over clauses rather than a bare
+// boolean: each atom's verdict comes from `resolve(field, value)`, returning
+// `{matched, score}`, and the walk composes those pairs under the max-plus
+// (arctic) semiring every production search engine uses — `a & b` matches on
+// both and scores their sum, `a | b` matches on either and scores the MAX
+// over the MATCHED sides only (an unmatched branch costs nothing), and `!a`
+// matches on the negation and always scores `0` (a negated clause gates but
+// never contributes a score). `resolve` keeps this function free of any
+// knowledge of tags, text or rows; `evalTagQuery` below supplies a
+// tag-prefix resolver scoring `0` throughout.
+//
+// An empty RPN is NO FILTER (`{matched: true, score: 0}`), and a binary op
+// with too few operands is skipped — that is what makes a half-typed
+// `tags:a&` behave as `tags:a`. INTEGER ARITHMETIC ONLY, matching
+// `eval-clauses` in `tagquery.typ`, which is what lets `just parity` diff the
+// two number for number.
+export const evalClauses = (rpn, resolve) => {
+  if (rpn.length === 0) return { matched: true, score: 0 };
   const st = [];
   for (const tok of rpn) {
     if (tok.t === "atom") {
-      st.push(tags.some((tg) => tg === tok.v || tg.startsWith(tok.v)));
+      st.push(resolve(tok.f, tok.v));
       continue;
     }
     if (tok.v === "!") {
       if (st.length === 0) continue;
-      st.push(!st.pop());
+      const a = st.pop();
+      st.push({ matched: !a.matched, score: 0 });
       continue;
     }
     if (st.length < 2) continue;
     const b = st.pop();
     const a = st.pop();
-    st.push(tok.v === "&" ? a && b : a || b);
+    if (tok.v === "&") {
+      st.push({ matched: a.matched && b.matched, score: a.score + b.score });
+      continue;
+    }
+    const matched = a.matched || b.matched;
+    const score = a.matched && b.matched
+      ? Math.max(a.score, b.score)
+      : a.matched ? a.score : b.matched ? b.score : 0;
+    st.push({ matched, score });
   }
-  return st.length === 0 ? true : st[st.length - 1];
+  return st.length === 0 ? { matched: true, score: 0 } : st[st.length - 1];
 };
+// Port of `eval-tag-query`. `tags` must already be folded. A thin call to
+// `evalClauses` above: tags gate and never score, so `resolve` always
+// returns `score: 0` and only `matched` is read.
+export const evalTagQuery = (rpn, tags) =>
+  evalClauses(rpn, (field, value) => ({
+    matched: tags.some((tg) => tg === value || tg.startsWith(value)),
+    score: 0,
+  })).matched;
 // The atoms whose PRESENCE on a note is evidence for the query — i.e. every
 // atom not negated. Walked over the RPN with the same small stack
 // `evalTagQuery` uses, so a `!` consumes the atom below it. Nothing here

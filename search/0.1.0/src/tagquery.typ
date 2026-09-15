@@ -181,14 +181,75 @@
   (rpn: out, residual: residual.trim(), repaired: repaired)
 }
 
+// Evaluate a parsed `rpn` over CLAUSES rather than a bare boolean: each atom's
+// verdict comes from `resolve(field, value)`, a caller-supplied function
+// returning `(matched: bool, score: int)`, and the walk composes those pairs
+// under the max-plus (arctic) semiring every production search engine uses —
+// the same rule Lucene's `BooleanQuery` applies summing MUST/SHOULD scores
+// while FILTER contributes zero, and Xapian's `OP_FILTER` takes its weight
+// from the left side only:
+//
+// - an atom is whatever `resolve` says.
+// - `a & b` matches on `a.matched and b.matched` and scores `a.score + b.score`.
+// - `a | b` matches on `a.matched or b.matched` and scores the MAX over the
+//   MATCHED sides only — an unmatched branch of `|` costs nothing.
+// - `!a` matches on `not a.matched` and always scores `0`: a negated clause
+//   gates but never contributes a score, positive or negative.
+//
+// `resolve` is what keeps this module free of any knowledge of tags, text or
+// rows — `eval-tag-query` below supplies a tag-prefix resolver scoring `0`
+// throughout, and a ranking caller can supply its own without a second copy
+// of this walk. Integer arithmetic only: `+` and `max` over integers are
+// exact in both this module and its JavaScript twin, `evalClauses` in
+// `tagquery.js`, which is what lets `just parity` diff the two number for
+// number.
+//
+// AN EMPTY RPN MEANS NO FILTER: `(matched: true, score: 0)`, so a bare
+// `tags:` lists the whole corpus rather than nothing — the state the bar is
+// in for one keystroke every time a reader starts a tag query.
+//
+// The two arity guards (`st.len() > 0`, `st.len() >= 2`) are the other half of
+// "parsing never fails": a dangling operator from a repaired query is SKIPPED
+// for want of operands rather than crashing the build or the bar. An
+// underflowed stack falls back to `(matched: true, score: 0)`, the same
+// answer an empty RPN gives.
+#let eval-clauses(rpn, resolve) = {
+  if rpn.len() == 0 { return (matched: true, score: 0) }
+  let st = ()
+  for tok in rpn {
+    let kind = tok.at(0)
+    if kind == "atom" {
+      let (_, field, value) = tok
+      st.push(resolve(field, value))
+    } else {
+      let v = tok.at(1)
+      if v == "!" {
+        if st.len() > 0 {
+          let a = st.pop()
+          st.push((matched: not a.matched, score: 0))
+        }
+      } else if st.len() >= 2 {
+        let b = st.pop()
+        let a = st.pop()
+        if v == "&" {
+          st.push((matched: a.matched and b.matched, score: a.score + b.score))
+        } else {
+          let matched = a.matched or b.matched
+          let score = if a.matched and b.matched {
+            calc.max(a.score, b.score)
+          } else if a.matched { a.score } else if b.matched { b.score } else { 0 }
+          st.push((matched: matched, score: score))
+        }
+      }
+    }
+  }
+  if st.len() == 0 { (matched: true, score: 0) } else { st.last() }
+}
+
 // Evaluate a parsed `rpn` against ONE note's tags — `true` when the note passes
 // the filter. `tags` must already be folded by the caller (`_fold` each of
 // them): the RPN's atoms were folded at push time, and folding one side only
 // would make `in-progress` unfindable by "in progress".
-//
-// AN EMPTY RPN MEANS NO FILTER, everything matches, so a bare `tags:` lists the
-// whole corpus rather than nothing — the state the bar is in for one keystroke
-// every time a reader starts a tag query.
 //
 // An atom matches a tag by PREFIX on the folded form, not exact equality, so
 // `tags:note` matches `note`, `notebook` and `notes`. Deliberate: the bar and
@@ -196,30 +257,13 @@
 // keystroke of a tag until it is complete. The tags rendered on each result row
 // are what disambiguates.
 //
-// The two arity guards (`st.len() > 0`, `st.len() >= 2`) are the other half of
-// "parsing never fails": a dangling operator from a repaired query is SKIPPED
-// for want of operands rather than crashing the build or the bar. An underflowed
-// stack falls back to `true`, i.e. to no filter, which is the same answer an
-// empty RPN gives.
+// A thin call to `eval-clauses` above: tags gate and never score, so `resolve`
+// always returns `score: 0` and only `matched` is read.
 #let eval-tag-query(rpn, tags) = {
-  if rpn.len() == 0 { return true }
-  let st = ()
-  for tok in rpn {
-    // `..` swallows an atom's middle FIELD slot, which this evaluator
-    // ignores for now — a 3-tuple atom and a 2-tuple op both destructure to
-    // their first (kind) and last (value/operator) slot.
-    let (kind, .., v) = tok
-    if kind == "atom" {
-      st.push(tags.any(tg => tg == v or tg.starts-with(v)))
-    } else if v == "!" {
-      if st.len() > 0 { st.push(not st.pop()) }
-    } else if st.len() >= 2 {
-      let b = st.pop()
-      let a = st.pop()
-      st.push(if v == "&" { a and b } else { a or b })
-    }
-  }
-  if st.len() == 0 { true } else { st.last() }
+  eval-clauses(rpn, (field, value) => (
+    matched: tags.any(tg => tg == value or tg.starts-with(value)),
+    score: 0,
+  )).matched
 }
 
 // Split a reader's raw query into its tag filter and its text part:

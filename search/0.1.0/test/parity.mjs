@@ -10,7 +10,7 @@
 // under node wires nothing.
 import { execFileSync } from "node:child_process";
 import { writeFileSync, unlinkSync } from "node:fs";
-import { score, bodyScore, search, splitQuery, evalTagQuery, fold } from "../src/search.js";
+import { score, bodyScore, search, splitQuery, evalTagQuery, evalClauses, fold } from "../src/search.js";
 
 // `file` defaults to the hand-written fixture; the generated suite below
 // points it at its own throwaway `.typ` instead, so both fixtures share one
@@ -122,6 +122,50 @@ if (tagBad > 0) {
   process.exit(1);
 }
 console.log(`tag parity OK across ${tagRows.length} cases`);
+
+// `eval-clauses`'s cases — CHARACTER FOR CHARACTER `clause-cases` in
+// `test/parity.typ`, AND IN THE SAME ORDER, each an RPN plus a resolve table
+// keyed by atom value returning `{matched, score}`.
+let clauseBad = 0;
+const clauseRows = evalMetadata("clause-parity");
+const clauseCases = [
+  // `a & b`, both matching.
+  { rpn: [{ t: "atom", f: "", v: "a" }, { t: "atom", f: "", v: "b" }, { t: "op", v: "&" }],
+    resolve: { a: { matched: true, score: 3 }, b: { matched: true, score: 5 } } },
+  // `a | b`, only the right side matching.
+  { rpn: [{ t: "atom", f: "", v: "a" }, { t: "atom", f: "", v: "b" }, { t: "op", v: "|" }],
+    resolve: { a: { matched: false, score: 9 }, b: { matched: true, score: 4 } } },
+  // `a | b`, both matching.
+  { rpn: [{ t: "atom", f: "", v: "a" }, { t: "atom", f: "", v: "b" }, { t: "op", v: "|" }],
+    resolve: { a: { matched: true, score: 2 }, b: { matched: true, score: 7 } } },
+  // `!a` over a matching `a`.
+  { rpn: [{ t: "atom", f: "", v: "a" }, { t: "op", v: "!" }],
+    resolve: { a: { matched: true, score: 6 } } },
+  // a gating clause ANDed with a scoring clause.
+  { rpn: [{ t: "atom", f: "field", v: "val" }, { t: "atom", f: "", v: "b" }, { t: "op", v: "&" }],
+    resolve: { val: { matched: true, score: 0 }, b: { matched: true, score: 8 } } },
+  // a dangling operator.
+  { rpn: [{ t: "atom", f: "", v: "a" }, { t: "op", v: "&" }],
+    resolve: { a: { matched: true, score: 4 } } },
+  // an empty RPN.
+  { rpn: [], resolve: {} },
+];
+clauseCases.forEach((c, i) => {
+  const row = clauseRows[i];
+  const jsRpn = rpnStr(c.rpn);
+  const js = evalClauses(c.rpn, (field, value) => c.resolve[value]);
+  if (jsRpn !== row.rpn || JSON.stringify(js) !== JSON.stringify(row.result)) {
+    clauseBad++;
+    console.error(`MISMATCH rpn=${JSON.stringify(jsRpn)}
+  typst rpn=${JSON.stringify(row.rpn)} result=${JSON.stringify(row.result)}
+  js    rpn=${JSON.stringify(jsRpn)} result=${JSON.stringify(js)}`);
+  }
+});
+if (clauseBad > 0) {
+  console.error(`${clauseBad}/${clauseCases.length} cases disagree — eval-clauses and evalClauses have drifted`);
+  process.exit(1);
+}
+console.log(`clause parity OK across ${clauseCases.length} cases`);
 
 // ---- Generated fuzz suite --------------------------------------------------
 //
