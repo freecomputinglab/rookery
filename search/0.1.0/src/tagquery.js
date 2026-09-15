@@ -11,6 +11,16 @@
 //
 // Every rule here has a Typst twin and `test/parity.mjs` pins the two together
 // case for case.
+//
+// The clause roles are Lucene's: MUST gates and scores, FILTER gates with
+// zero score, SHOULD scores when it matches, MUST_NOT excludes with zero
+// score — <https://lucene.apache.org/core/6_2_1/core/org/apache/lucene/search/BooleanClause.Occur.html>.
+// `field:value`, and the `AND`/`OR`/`NOT` spelling of `&`/`|`/`!`, are
+// Lucene's classic query syntax — <https://lucene.apache.org/core/8_0_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html>.
+// The implicit `&` between two unescaped clauses is SQLite FTS5's own
+// grammar — <https://www.sqlite.org/fts5.html>. A gating clause that
+// contributes no score is Xapian's `OP_FILTER`, whose weight is the left
+// side only — <https://xapian.org/docs/apidoc/html/classXapian_1_1Query.html>.
 
 import { clusters, fold } from "./text.js";
 
@@ -163,9 +173,9 @@ export const parseTagQuery = (src) => {
   return { rpn: out, repaired };
 };
 // Port of `split-query`. THE ENTRY POINT: every clause, gating or scoring,
-// lives in the returned `rpn` — there is no separate residual text, because
-// a bare word is itself a clause `eval-clauses` composes with a field clause
-// exactly as it composes two field clauses.
+// lives in the returned `rpn`, and no text sits outside it — a bare word is
+// itself a clause `eval-clauses` composes with a field clause exactly as it
+// composes two field clauses.
 export const splitQuery = (q) => parseTagQuery(q);
 // Port of `eval-clauses`. Walks the RPN over clauses rather than a bare
 // boolean: each atom's verdict comes from `resolve(field, value)`, returning
@@ -265,8 +275,7 @@ const _evidenceAtoms = (rpn, keep) => {
 };
 // TEXT clauses only (`f === ""`) — a gating clause marks nothing, because
 // there is no body text for it to highlight. This is what marks the TITLE
-// and ID in a result row: every bare word the query positively requires,
-// the same set `queryTerms` used to build out of the old residual text.
+// and ID in a result row: every bare word the query positively requires.
 //
 // Lenient exactly as `evalTagQuery` is — a missing operand is skipped, never
 // thrown on, because a live search box types every prefix of a valid query on

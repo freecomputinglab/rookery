@@ -212,7 +212,7 @@ where two tiers say it plainly. `kind` on each result is what tells a caller
 the note *called* that, not the notes *tagged* with it. What tags do instead is
 choose the corpus, by two routes that both run before anything is scored: the
 author's `tags:` parameter (see "Scoping the corpus by tag" below) and a
-reader's leading `tags:` expression in the query itself (see "Filtering by tag"
+reader's own `tags:` clause anywhere in the query (see "Filtering by tag"
 below). Neither turns a tag into something the query scores against.
 
 **Accents are not folded**, on id/title or on body: "cafe" does not match
@@ -264,8 +264,9 @@ as data rather than only its final verdict.
 
 `&` binds tighter than `|`, `!` binds tightest of all, and `()` groups. An
 unescaped SPACE is an implicit `&` between two clauses — the rule SQLite's
-FTS5 states in its own grammar — so `tags:draft window` reads as
-`tags:draft&window` without the reader ever typing the operator:
+FTS5 states in its own grammar (<https://www.sqlite.org/fts5.html>) — so
+`tags:draft window` reads as `tags:draft&window` without the reader ever
+typing the operator:
 
 ```
 tags:draft&window         tagged draft AND matching "window" — same as tags:draft window
@@ -274,6 +275,23 @@ tags:a|b&c                a OR (b AND c) — `&` first, without parentheses
 tags:(a|b)&c              the grouped form: (a OR b) AND c
 !tags:draft window        NOT tagged draft AND matching "window"
 !(tags:draft|tags:todo)&note   matching "note", and neither tagged draft nor todo
+```
+
+`AND`, `OR` and `NOT` (case-insensitive, and only as a whole atom — `android`
+is untouched) spell `&`, `|` and `!`, and `field:value` plus that keyword
+spelling is Lucene's classic query syntax
+(<https://lucene.apache.org/core/8_0_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html>).
+A `-` that opens a fresh atom spells `!` too; one that lands inside an atom
+already started stays a literal hyphen:
+
+```
+tags:draft AND window     same tree as tags:draft&window
+tags:draft OR window      same tree as tags:draft|window
+NOT tags:draft window     same tree as !tags:draft window
+-tags:draft window        same tree as !tags:draft window
+window -depth             matching "window" and NOT matching "depth"
+in-progress                one atom — the `-` here is not leading a fresh one
+\AND                       the literal atom "and", `\` exempting it from the keyword
 ```
 
 `!` is right-associative, which is what makes a stacked negation parse rather
@@ -402,6 +420,34 @@ marking it would highlight the query rather than the match. A bare
 `tags:draft` still opens the dropdown, the raw input being non-empty, and
 marks nothing.
 
+This is the model Lucene's `BooleanClause.Occur` names — MUST gates and
+scores, FILTER gates with zero score, SHOULD scores when it matches,
+MUST_NOT excludes with zero score
+(<https://lucene.apache.org/core/6_2_1/core/org/apache/lucene/search/BooleanClause.Occur.html>).
+`tags:` plays FILTER; a bare word plays MUST.
+
+**Two composition rules are easy to get wrong, and both are deliberate.** A
+negated clause never contributes a score penalty: `!a`'s score is always `0`,
+whatever `a` would have scored had it matched — the same rule Xapian's
+`OP_FILTER` follows, taking its weight from the left side only
+(<https://xapian.org/docs/apidoc/html/classXapian_1_1Query.html>). And an `|`
+branch that did not match costs nothing: `a|b`'s score is the max over
+whichever side(s) actually matched, never a sum that punishes the side that
+missed.
+
+**An unknown field falls back to a text clause** over the reconstructed
+`field:value` string, rather than matching nothing. A rookery's own ids are
+shaped `idea:flat-ids`, so `idea:flat` — `idea` naming no field this package
+knows — still scores as the text "idea:flat" against a note's id, which is
+what keeps an id typed with its own colon findable.
+
+**A row's tier is the best tier any of its matched text clauses reached.**
+`window depth` can score "window" against a title and "depth" only against a
+body, on the same row — each text clause tries the name tier first and falls
+to the body tier only on a miss there — and the row still lands in exactly
+one tier: name if any matched clause did, body otherwise. A gating clause
+never moves that needle, carrying no tier of its own.
+
 ### What it costs
 
 Filtering happens BEFORE scoring, which makes a `tags:`-only tree **cheaper**
@@ -469,10 +515,10 @@ it itself. It used to appear only in the first case, so the same site code
 worked or did not depending on which coordinate a project happened to use.
 
 `split-query` is the entry point a UI wants: it returns `(rpn, repaired)` —
-the WHOLE query as one clause tree, gating and scoring clauses both, and
-there is no separate residual text any more, because a bare word is itself a
-scoring clause `eval-clauses` composes with a field clause exactly as it
-composes two field clauses. `parse-tag-query` is `split-query`'s own
+the WHOLE query as one clause tree, gating and scoring clauses both, and no
+text sits outside it, because a bare word is itself a scoring clause
+`eval-clauses` composes with a field clause exactly as it composes two field
+clauses. `parse-tag-query` is `split-query`'s own
 implementation and returns the same shape. `eval-clauses(rpn, resolve)` walks
 that tree over a caller-supplied `resolve(field, value)` returning `(matched,
 score)` — this is what `_rank`/`search` call once per row, with a `resolve`

@@ -11,7 +11,7 @@
 //   #context search-ideas("flt")   // -> ((id: "idea:flat-ids", .., score: 47, kind: "name"), ..)
 //   #context search-ideas("flt", body-search: false)   // ids and titles only
 //   #context search-ideas("flt", tags: "phd")          // only notes tagged phd
-//   #context search-ideas("tags:(a|b)&c flt")          // a reader's tag filter
+//   #context search-ideas("tags:draft | window")       // a reader's own clause tree
 //
 // Returns a plain ARRAY of dictionaries — every field `@rookery/core`'s `ideas()`
 // provides (id, name, title, text, label, tags, body, href, page, created) plus
@@ -27,33 +27,56 @@
 // times; a weighted sum would only approximate that and need retuning. `kind` is
 // also what the modal's preview pane reads.
 //
-// A LEADING `tags:` IN THE QUERY IS A FILTER, extracted before any scoring, and
-// the rest of the query is a text search over the survivors:
+// THE QUERY IS ONE CLAUSE TREE, not a tag filter plus a leftover text search.
+// `tags:draft` is a GATING clause: it decides which notes are candidates and
+// contributes no score. A bare word is a SCORING clause: it is ranked by
+// `fuzzy-score`/`body-score` above, and it gates too, on whether it matched at
+// all. `&`, `|` and `!` compose either kind exactly the same way, so a tag and
+// a text term share one expression:
 //
-//   tags:draft window depth   notes tagged draft*, ranked by "window depth"
-//   tags:draft                notes tagged draft*, no residual: the browse
+//   tags:draft window depth   tagged draft AND ranked by "window depth"
+//   tags:draft | window       tagged draft, OR matching "window" — either
+//                              reason is enough, and each still ranks by
+//                              whichever clause matched
+//   tags:draft                every draft, no scoring clause: the browse
 //                              order — dated newest-first, undated by id
-//   window depth              no `tags:` prefix, no filter
-//   tags:                     the whole corpus; an empty expression is no filter
+//   window depth              no gating clause, just two ranked terms
+//   tags:                     a field with nothing after its colon gates
+//                              nothing: the whole corpus
 //
 // The grammar is in full at `parse-tag-query` in `tagquery.typ`: `&` binds
 // tighter than `|`, `()` groups, `!` negates and binds tightest, an unescaped
-// SPACE ends the expression and opens the residual text, `\` escapes the next
-// cluster into the current atom, and an atom matches a tag by PREFIX on the
-// folded form, so `tags:note` also matches `notebook`. Parsing never fails: a
-// half-typed `tags:(a|` repairs to `tags:a`.
+// SPACE between two clauses is an implicit `&`, `AND`/`OR`/`NOT` (case
+// insensitive) spell `&`/`|`/`!`, a `-` that opens a fresh atom spells `!`
+// (`-tags:draft`), `\` escapes the next cluster into the current atom, and an
+// atom matches a tag by PREFIX on the folded form, so `tags:note` also
+// matches `notebook`. Parsing never fails: a half-typed `tags:(a|` repairs to
+// `tags:a`.
+//
+// TWO COMPOSITION RULES ARE EASY TO GET WRONG, and both are deliberate: `!a`
+// never contributes a score penalty, whatever `a` would have scored — a
+// negated clause gates and always scores `0`. And an `|` branch that did not
+// match costs nothing — `a|b`'s score is the max over whichever side(s)
+// actually matched, not a sum that punishes the side that missed.
+//
+// AN UNKNOWN FIELD FALLS BACK TO A TEXT CLAUSE over the reconstructed
+// `field:value` string, rather than matching nothing. Rookery's own ids are
+// shaped `idea:flat-ids`, so `idea:flat` — `idea` naming no field this module
+// knows — still scores as the text "idea:flat" against a row's id, which is
+// what keeps an id typed with its own colon findable.
 //
 // A TAG NEVER BECOMES A SEARCH TERM. Ranking matches a note's id and title, and
 // its body when `body-search` is on, and nothing else — so the bare query "phd"
-// finds the note CALLED that, not the notes tagged with it. Only the `tags:`
-// prefix reaches tags, and it decides which notes are CANDIDATES rather than how
-// they rank: narrowing the corpus and matching the query stay two separate
+// finds the note CALLED that, not the notes tagged with it. Only a `tags:`
+// clause reaches tags, and it decides which notes are CANDIDATES rather than
+// how they rank: narrowing the corpus and matching the query stay two separate
 // things.
 //
 // SO THERE ARE TWO `tags:` AXES and they compose. The `tags:` PARAMETER below is
-// the author's, fixed at build time and handed to `ideas()`; the `tags:` PREFIX
-// in the query string is the reader's, typed into the bar. Both narrow before a
-// score is computed, and a query's prefix filters within whatever the parameter
+// the author's, fixed at build time and handed to `ideas()`; a `tags:` CLAUSE in
+// the query string is the reader's, typed into the bar and recognised anywhere
+// in the tree, not only at its start. Both narrow before a score is computed,
+// and a query's own clause gates within whatever the parameter already
 // selected.
 //
 // TWO SORTED PASSES CONCATENATED rather than one sort on a compound key, Typst's

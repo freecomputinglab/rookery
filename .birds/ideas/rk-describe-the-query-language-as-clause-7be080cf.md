@@ -9,7 +9,7 @@ labels:
 deps:
 - blocked-by:rk-tier-each-text-clause-instead-of-the-55b7f0f0
 - blocked-by:rk-accept-and-or-not-and-a-leading-dash-fbf676d5
-closed: false
+closed: true
 ---
 Rewrite the query language's prose — file headers, comments and the readme — so it
 describes the language as a tree of CLAUSES WITH ROLES rather than as a tag filter

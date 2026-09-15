@@ -13,6 +13,16 @@
 // body-matched against a row's text. `eval-clauses` in `rank.typ`/`score.js`
 // is what resolves either kind and combines their scores — this module only
 // parses and walks the tree.
+//
+// The clause roles are Lucene's: MUST gates and scores, FILTER gates with
+// zero score, SHOULD scores when it matches, MUST_NOT excludes with zero
+// score — <https://lucene.apache.org/core/6_2_1/core/org/apache/lucene/search/BooleanClause.Occur.html>.
+// `field:value`, and the `AND`/`OR`/`NOT` spelling of `&`/`|`/`!`, are
+// Lucene's classic query syntax — <https://lucene.apache.org/core/8_0_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html>.
+// The implicit `&` between two unescaped clauses is SQLite FTS5's own
+// grammar — <https://www.sqlite.org/fts5.html>. A gating clause that
+// contributes no score is Xapian's `OP_FILTER`, whose weight is the left
+// side only — <https://xapian.org/docs/apidoc/html/classXapian_1_1Query.html>.
 
 #import "base.typ": *
 
@@ -20,6 +30,9 @@
 //   tags:!draft         `!` negates, binds tightest, right-associative
 //   tags:draft window   an unescaped SPACE is an implicit `&` — the note must
 //                       be tagged draft AND its text must match "window"
+//   tags:draft AND window   `AND`/`OR`/`NOT` spell `&`/`|`/`!`, case-insensitive
+//   -tags:draft         a `-` that opens a fresh atom spells `!`; one inside
+//                       an atom already started stays literal (`in-progress`)
 //   tags:a\&b           `\` escapes the next cluster into the current atom
 //   tags:in-progress    atoms and tags are BOTH folded, so `-`/`_`/space agree
 //
@@ -408,9 +421,9 @@
 
 // Split a reader's raw query into its clause tree: `(rpn: (..), repaired:
 // (..))`. THE ONE ENTRY POINT A UI NEEDS — every clause, gating or scoring,
-// lives in `rpn`; there is no separate residual text any more, because a bare
-// word is itself a clause (`("atom", "", value)`) that `eval-clauses` can
-// compose with a field clause via `&`, `|` and `!` exactly as it composes two
-// field clauses. `parse-tag-query` and `eval-tag-query`/`eval-clauses` are
+// lives in `rpn`, and no text sits outside it: a bare word is itself a
+// clause (`("atom", "", value)`) that `eval-clauses` can compose with a
+// field clause via `&`, `|` and `!` exactly as it composes two field
+// clauses. `parse-tag-query` and `eval-tag-query`/`eval-clauses` are
 // exported for a caller doing something else with the pieces.
 #let split-query(q) = parse-tag-query(q)
