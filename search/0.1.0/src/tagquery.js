@@ -154,6 +154,15 @@ export const splitQuery = (q) => parseTagQuery(q);
 // `tags:a&` behave as `tags:a`. INTEGER ARITHMETIC ONLY, matching
 // `eval-clauses` in `tagquery.typ`, which is what lets `just parity` diff the
 // two number for number.
+//
+// `resolve` MAY carry a THIRD field, `tier`, on `{matched, score}` — the
+// twin of `_tier-of`/`_tier-max` in `tagquery.typ`'s own comment. Missing
+// reads as `"none"`, which is every gating clause and `evalTagQuery`'s own
+// resolver; `&` and a matching `|` promote to whichever matched side scored
+// in the `"name"` tier, else `"body"`, else `"none"`; `!` always carries
+// `"none"`.
+const _tierOf = (x) => x.tier ?? "none";
+const _tierMax = (a, b) => (a === "name" || b === "name" ? "name" : a === "body" || b === "body" ? "body" : "none");
 export const evalClauses = (rpn, resolve) => {
   if (rpn.length === 0) return { matched: true, score: 0 };
   const st = [];
@@ -165,21 +174,24 @@ export const evalClauses = (rpn, resolve) => {
     if (tok.v === "!") {
       if (st.length === 0) continue;
       const a = st.pop();
-      st.push({ matched: !a.matched, score: 0 });
+      st.push({ matched: !a.matched, score: 0, tier: "none" });
       continue;
     }
     if (st.length < 2) continue;
     const b = st.pop();
     const a = st.pop();
+    const at = _tierOf(a);
+    const bt = _tierOf(b);
     if (tok.v === "&") {
-      st.push({ matched: a.matched && b.matched, score: a.score + b.score });
+      st.push({ matched: a.matched && b.matched, score: a.score + b.score, tier: _tierMax(at, bt) });
       continue;
     }
     const matched = a.matched || b.matched;
     const score = a.matched && b.matched
       ? Math.max(a.score, b.score)
       : a.matched ? a.score : b.matched ? b.score : 0;
-    st.push({ matched, score });
+    const tier = a.matched && b.matched ? _tierMax(at, bt) : a.matched ? at : b.matched ? bt : "none";
+    st.push({ matched, score, tier });
   }
   return st.length === 0 ? { matched: true, score: 0 } : st[st.length - 1];
 };

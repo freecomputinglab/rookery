@@ -1,5 +1,6 @@
-// The tiering rule: a tag expression extracted from the query, the survivors
-// scored on name and title, and a second tier scored on body.
+// The tiering rule: a row's tags gate it, each of its text clauses scores
+// against name/title first and body only on a name-tier miss, and the row's
+// overall tier is the best tier any of its matched text clauses reached.
 //
 // `_rank` takes the rows it ranks rather than reading them, which is what lets
 // `test/parity.typ` hand it the same fixtures `search` in `src/score.js` gets.
@@ -26,18 +27,27 @@
 // test.
 //
 // Resolves one CLAUSE against one row, for `eval-clauses`: a `tags:` field is
-// the folded-prefix gate `eval-tag-query` also runs, scoring `0`; every other
-// field NAMES A TEXT CLAUSE — `text-score(v)` scored over `field + ":" + v` —
-// which is what an unknown field name falls back to rather than silently
-// matching everything, and what lets a note id like `idea:flat-ids` stay
-// findable as `idea:flat` even though `idea` names no field this module knows.
-// A bare word (`field == ""`) is the SAME fallback with an empty prefix, so it
-// needs no separate branch.
+// the folded-prefix gate `eval-tag-query` also runs, scoring `0` and carrying
+// tier `"none"`; every other field NAMES A TEXT CLAUSE, tried against the NAME
+// tier first and the BODY tier only if that comes back `none` — the same
+// fallback that lets a note id like `idea:flat-ids` stay findable as
+// `idea:flat` even though `idea` names no field this module knows. A bare word
+// (`field == ""`) is the SAME fallback with an empty prefix, so it needs no
+// separate branch.
 //
-// `text-score` is `fuzzy-score` against `e.name`/`e.label` for the name tier,
-// `body-score` against `e.body` for the body tier below — the same two rules
-// `_rank` always scored, now called once per TEXT CLAUSE instead of once over
-// the whole residual query.
+// `name-score` is `fuzzy-score` against `e.name`/`e.label`/`e.id`,
+// `body-score` against `e.body` — the same two rules `_rank` always scored,
+// now called once per TEXT CLAUSE (each trying name then body) rather than
+// once over the whole row with the tier fixed in advance. `body-search:
+// false` is threaded in here rather than skipped by the caller, so a row
+// failing the name tier on every clause never reaches `body-score` at all —
+// `eval-clauses` still walks the SAME tree either way.
+//
+// The result CARRIES which tier scored the clause — `"name"` or `"body"`,
+// `"none"` for a gate or a miss — which is what lets `eval-clauses` reduce a
+// row with clauses split across both tiers to ONE tier rather than blending
+// their scores. See its own comment for the reduction rule.
+//
 // The best of several `fuzzy-score`/`body-score` answers, `none` unless at
 // least one of them is — the same none-coalescing `_rank` always did for its
 // name/label pair, generalised to as many haystacks as a caller has.
@@ -46,14 +56,22 @@
   if hits.len() == 0 { none } else { calc.max(..hits) }
 }
 
-#let _resolve(text-score, tags) = (field, value) => {
+#let _resolve(name-score, body-score, tags, body-search) = (field, value) => {
   if field == "tags" {
     // AN EMPTY VALUE IS NO CONSTRAINT: see `eval-tag-query`'s own comment for
     // why a bare `tags:` must not read as "tagged with the empty string".
-    (matched: value == "" or tags.any(tg => tg == value or tg.starts-with(value)), score: 0)
+    (matched: value == "" or tags.any(tg => tg == value or tg.starts-with(value)), score: 0, tier: "none")
   } else {
-    let s = text-score(if field == "" { value } else { field + ":" + value })
-    if s == none { (matched: false, score: 0) } else { (matched: true, score: s) }
+    let text = if field == "" { value } else { field + ":" + value }
+    let ns = name-score(text)
+    if ns != none {
+      (matched: true, score: ns, tier: "name")
+    } else if body-search {
+      let bs = body-score(text)
+      if bs == none { (matched: false, score: 0, tier: "none") } else { (matched: true, score: bs, tier: "body") }
+    } else {
+      (matched: false, score: 0, tier: "none")
+    }
   }
 }
 
@@ -75,10 +93,13 @@
     // `test/parity.typ`'s literal corpus, so a row with no `tags` field reads as
     // untagged rather than erroring.
     let tags = e.at("tags", default: ()).map(_fold)
-    // ONE `eval-clauses` CALL PER TIER, not a predicate-then-score sequence: a
-    // gating clause (`tags:`) and a scoring clause (a bare word, or an unknown
-    // field falling back to text) are resolved by the SAME walk, so
-    // `tags:draft window` gates on `draft` and scores `window` in one pass.
+    // ONE `eval-clauses` CALL PER ROW, not one per tier: a gating clause
+    // (`tags:`), and a scoring clause (a bare word, or an unknown field
+    // falling back to text) trying its name tier and falling to its body
+    // tier, are all resolved by the SAME walk — so `window depth` can score
+    // "window" in the name tier and "depth" in the body tier on one row, and
+    // the row still lands in exactly one tier, per `eval-clauses`'s
+    // reduction.
     //
     // SCORED AGAINST `label`, not `text`: `label` is the authored title
     // flattened, else the body's first 60 characters, else the name, so a
@@ -90,18 +111,23 @@
     // rather than merely non-erroring. It rarely wins the max on its own: the
     // unmatched `"idea:"` prefix costs the near-start and length-closeness
     // bonuses `e.name` alone would earn.
-    let name-eval = eval-clauses(rpn, _resolve(
+    let row-eval = eval-clauses(rpn, _resolve(
       v => _best((fuzzy-score(e.name, v), fuzzy-score(e.label, v), fuzzy-score(e.at("id", default: ""), v))),
+      v => body-score(e.at("body", default: ""), v),
       tags,
+      body-search,
     ))
-    if name-eval.matched {
-      name-hits.push((..e, score: name-eval.score, kind: "name"))
-      continue
-    }
-    if not body-search { continue }
-    let body-eval = eval-clauses(rpn, _resolve(v => body-score(e.at("body", default: ""), v), tags))
-    if body-eval.matched {
-      body-hits.push((..e, score: body-eval.score, kind: "body"))
+    if row-eval.matched {
+      // A ROW WITH NO MATCHED TEXT CLAUSE AT ALL — a pure gating query, or an
+      // empty one — carries tier `"none"` out of `eval-clauses`, which lands
+      // here rather than in the body tier: that is the existing browse-listing
+      // shape (see `_rank`'s own header) and the date-ordering branch below
+      // depends on it.
+      if row-eval.at("tier", default: "none") == "body" {
+        body-hits.push((..e, score: row-eval.score, kind: "body"))
+      } else {
+        name-hits.push((..e, score: row-eval.score, kind: "name"))
+      }
     }
   }
   // A REAL SEARCH (a tree with a text clause) sorts by score descending.

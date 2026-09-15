@@ -259,6 +259,20 @@
 // for want of operands rather than crashing the build or the bar. An
 // underflowed stack falls back to `(matched: true, score: 0)`, the same
 // answer an empty RPN gives.
+//
+// `resolve` MAY carry a THIRD field, `tier`, alongside `matched`/`score` —
+// `_rank`/`search` use it to say which of two scoring rules produced a text
+// clause's score (their own `_resolve` in `rank.typ`/`score.js`), and the walk
+// threads it through `&`/`|` on the SAME pair rather than a second walk:
+// `_tier-of` reads it as `"none"` where a caller's `resolve` omits it, which is
+// every gating clause and `eval-tag-query`'s own resolver. `&` and a matching
+// `|` take the tier of whichever side(s) actually matched, preferring `"name"`
+// over `"body"` over `"none"` — the same reduction `_rank`'s comment spells
+// out: any matched clause scoring in the name tier promotes the whole result.
+// `!` scores `0` and carries tier `"none"`, matching that it never contributes
+// a score either.
+#let _tier-of(x) = x.at("tier", default: "none")
+#let _tier-max(a, b) = if a == "name" or b == "name" { "name" } else if a == "body" or b == "body" { "body" } else { "none" }
 #let eval-clauses(rpn, resolve) = {
   if rpn.len() == 0 { return (matched: true, score: 0) }
   let st = ()
@@ -272,19 +286,23 @@
       if v == "!" {
         if st.len() > 0 {
           let a = st.pop()
-          st.push((matched: not a.matched, score: 0))
+          st.push((matched: not a.matched, score: 0, tier: "none"))
         }
       } else if st.len() >= 2 {
         let b = st.pop()
         let a = st.pop()
+        let (at, bt) = (_tier-of(a), _tier-of(b))
         if v == "&" {
-          st.push((matched: a.matched and b.matched, score: a.score + b.score))
+          st.push((matched: a.matched and b.matched, score: a.score + b.score, tier: _tier-max(at, bt)))
         } else {
           let matched = a.matched or b.matched
           let score = if a.matched and b.matched {
             calc.max(a.score, b.score)
           } else if a.matched { a.score } else if b.matched { b.score } else { 0 }
-          st.push((matched: matched, score: score))
+          let tier = if a.matched and b.matched {
+            _tier-max(at, bt)
+          } else if a.matched { at } else if b.matched { bt } else { "none" }
+          st.push((matched: matched, score: score, tier: tier))
         }
       }
     }

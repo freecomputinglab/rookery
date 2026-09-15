@@ -147,6 +147,19 @@ const clauseCases = [
     resolve: { a: { matched: true, score: 4 } } },
   // an empty RPN.
   { rpn: [], resolve: {} },
+  // `a & b`, a name-tier hit and a body-tier hit: tier promotes to "name".
+  { rpn: [{ t: "atom", f: "", v: "a" }, { t: "atom", f: "", v: "b" }, { t: "op", v: "&" }],
+    resolve: { a: { matched: true, score: 3, tier: "name" }, b: { matched: true, score: 5, tier: "body" } } },
+  // `a | b`, only the body-tier side matching: tier is "body", not "none".
+  { rpn: [{ t: "atom", f: "", v: "a" }, { t: "atom", f: "", v: "b" }, { t: "op", v: "|" }],
+    resolve: { a: { matched: false, score: 9, tier: "name" }, b: { matched: true, score: 4, tier: "body" } } },
+  // `!a` over a name-tier hit: negation carries tier "none".
+  { rpn: [{ t: "atom", f: "", v: "a" }, { t: "op", v: "!" }],
+    resolve: { a: { matched: true, score: 6, tier: "name" } } },
+  // a gate (tier "none") ANDed with a body-tier hit: the gate must not pull
+  // the combined tier down to "none".
+  { rpn: [{ t: "atom", f: "field", v: "val" }, { t: "atom", f: "", v: "b" }, { t: "op", v: "&" }],
+    resolve: { val: { matched: true, score: 0, tier: "none" }, b: { matched: true, score: 8, tier: "body" } } },
 ];
 clauseCases.forEach((c, i) => {
   const row = clauseRows[i];

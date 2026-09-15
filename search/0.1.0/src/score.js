@@ -133,17 +133,27 @@ const dateCmp = (a, b) => {
 // one of them is — `_resolve`'s twin in `src/rank.typ` has the fuller
 // account of why `row.id` joins `row.name`/`row.text` here.
 const _best = (scores) => scores.reduce((best, s) => (s == null ? best : best == null ? s : Math.max(best, s)), null);
-const _resolve = (textScore, tags) => (field, value) => {
+// `_resolve`'s twin in `src/rank.typ` — try the name tier, fall to the body
+// tier on a `null` there, and carry WHICH tier scored the clause (`"name"`,
+// `"body"`, or `"none"` for the gate/miss) on the same `{matched, score}`
+// pair `evalClauses` already threads, so a row with clauses split across
+// both tiers reduces to one tier rather than a blended score. See
+// `evalClauses`'s own comment in `tagquery.js` for the reduction rule.
+const _resolve = (nameScore, bodyScore, tags) => (field, value) => {
   if (field === "tags") {
     // AN EMPTY VALUE IS NO CONSTRAINT: see `evalTagQuery`'s own comment for
     // why a bare `tags:` must not read as "tagged with the empty string".
     return {
       matched: value === "" || tags.some((tg) => tg === value || tg.startsWith(value)),
       score: 0,
+      tier: "none",
     };
   }
-  const s = textScore(field === "" ? value : `${field}:${value}`);
-  return s == null ? { matched: false, score: 0 } : { matched: true, score: s };
+  const text = field === "" ? value : `${field}:${value}`;
+  const ns = nameScore(text);
+  if (ns != null) return { matched: true, score: ns, tier: "name" };
+  const bs = bodyScore(text);
+  return bs == null ? { matched: false, score: 0, tier: "none" } : { matched: true, score: bs, tier: "body" };
 };
 // `search` SPLITS THE QUERY; `searchSplit` takes one already split, for a caller
 // that needs the same `{ rpn }` to mark its rows with. Splitting twice per
@@ -162,24 +172,31 @@ export const searchSplit = (rows, split, limit) => {
   const out = [];
   for (const row of rows) {
     const tags = (row.tags ?? []).map(fold);
-    // ONE `evalClauses` CALL PER TIER, not a predicate-then-score sequence: a
-    // gating clause (`tags:`) and a scoring clause are resolved by the SAME
-    // walk, so `tags:draft window` gates on `draft` and scores `window` in
-    // one pass.
+    // ONE `evalClauses` CALL PER ROW, not one per tier: a gating clause
+    // (`tags:`), and a scoring clause trying its name tier and falling to
+    // its body tier, are resolved by the SAME walk — so `window depth` can
+    // score "window" in the name tier and "depth" in the body tier on one
+    // row, and the row still lands in exactly one tier, per `evalClauses`'s
+    // reduction.
     // `row.id` JOINS `row.name`/`row.text` here — always `"idea:" + row.name`,
     // so a reader typing that literal colon (`idea:flat` for `idea:flat-ids`)
     // still subsequence-matches it. See `_resolve`'s own comment in
     // `src/rank.typ` for why it rarely wins the max on its own.
-    const nameEval = evalClauses(rpn, _resolve((v) => {
-      const sText = row.text === "" ? null : score(row.text, v);
-      return _best([score(row.name, v), sText, score(row.id ?? "", v)]);
-    }, tags));
-    if (nameEval.matched) {
-      out.push({ ...row, score: nameEval.score, kind: "name" });
-      continue;
+    //
+    // `row.body` MISSING is what implements `body-search: false` here — see
+    // `bodyScore`'s own comment — so no explicit flag is threaded through.
+    const rowEval = evalClauses(rpn, _resolve(
+      (v) => {
+        const sText = row.text === "" ? null : score(row.text, v);
+        return _best([score(row.name, v), sText, score(row.id ?? "", v)]);
+      },
+      (v) => bodyScore(row.body ?? "", v),
+      tags,
+    ));
+    if (rowEval.matched) {
+      const kind = (rowEval.tier ?? "none") === "body" ? "body" : "name";
+      out.push({ ...row, score: rowEval.score, kind });
     }
-    const bodyEval = evalClauses(rpn, _resolve((v) => bodyScore(row.body ?? "", v), tags));
-    if (bodyEval.matched) out.push({ ...row, score: bodyEval.score, kind: "body" });
   }
   const tier = (hit) => (hit.kind === "name" ? 0 : 1);
   out.sort(

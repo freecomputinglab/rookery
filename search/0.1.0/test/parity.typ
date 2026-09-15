@@ -168,6 +168,17 @@
   // "window") — the pair the scorer's own comment cites.
   (id: "idea:window-depth", name: "window-depth", text: "Controlling window depth", label: "Controlling window depth"),
   (id: "idea:windows", name: "windows", text: "Windows", label: "Windows"),
+  // MIXED TIERS ON ONE ROW, for the "window depth" case below: "window" is a
+  // name-tier match on the label, "depth" is not — the letters `d`, `e`, `p`,
+  // `t`, `h` do not all occur in order in "window" — so it only matches via
+  // `body-score`. The reduction must promote the whole row to the name tier
+  // rather than blend the two scores or drop to the body tier.
+  (id: "idea:zmix", name: "window", text: "", label: "window", body: "assorted prose about depth analysis and more"),
+  // BODY-ONLY ACROSS BOTH CLAUSES of an AND ("gamma delta" below): neither
+  // word occurs in the name/label, so this pins the reduction staying
+  // `"body"` when every matched text clause is a body-tier match, not just
+  // the first one checked.
+  (id: "idea:zzbody", name: "zzbody", text: "", label: "zzbody", body: "notes about gamma rays and delta variants"),
 )
 // Emitted for the runner too, so the JavaScript side ranks THE SAME rows rather
 // than a hand-copied second corpus that could drift from this one.
@@ -214,8 +225,15 @@
   // each score independently against name/label (or body), and the row must
   // match BOTH — not one `fuzzy-score`/`bodyScore` call over the two-word
   // string, which is what this query was before a bare word became a clause
-  // of its own.
+  // of its own. Also pins the REDUCTION across tiers: `idea:zmix` matches
+  // "window" on its label (name tier) and "depth" only via `body-score`
+  // (body tier), and must be promoted to the name tier rather than blended
+  // or dropped to the body tier.
   ("window depth", none),
+  // BOTH CLAUSES BODY-TIER ONLY: `idea:zzbody` matches neither "gamma" nor
+  // "delta" on its label, so both fall to `body-score` — the reduction stays
+  // `"body"` rather than reading only the first clause it resolves.
+  ("gamma delta", none),
   // THE `tags:` GATE, which nothing above reaches. It is one line in each
   // language and it runs ahead of every scorer, so an untested copy would drift
   // silently: MEASURED, deleting it from the JavaScript side leaves all ten
@@ -386,6 +404,22 @@
     resolve: (a: (matched: true, score: 4),)),
   // an empty RPN: no filter, `(matched: true, score: 0)`.
   (rpn: (), resolve: (:)),
+  // `a & b`, `a` a name-tier hit and `b` a body-tier hit: the combined tier
+  // promotes to `"name"`, the reduction `_rank`/`search` rely on.
+  (rpn: (("atom", "", "a"), ("atom", "", "b"), ("op", "&")),
+    resolve: (a: (matched: true, score: 3, tier: "name"), b: (matched: true, score: 5, tier: "body"))),
+  // `a | b`, only the body-tier side matching: the combined tier is `"body"`,
+  // not `"none"` — an unmatched side's tier is as irrelevant as its score.
+  (rpn: (("atom", "", "a"), ("atom", "", "b"), ("op", "|")),
+    resolve: (a: (matched: false, score: 9, tier: "name"), b: (matched: true, score: 4, tier: "body"))),
+  // `!a` over a name-tier hit: negation carries tier `"none"`, matching that
+  // it never contributes a score either.
+  (rpn: (("atom", "", "a"), ("op", "!")),
+    resolve: (a: (matched: true, score: 6, tier: "name"),)),
+  // a gate (tier `"none"`) ANDed with a body-tier hit: the gate must not
+  // pull the combined tier down to `"none"`.
+  (rpn: (("atom", "field", "val"), ("atom", "", "b"), ("op", "&")),
+    resolve: (val: (matched: true, score: 0, tier: "none"), b: (matched: true, score: 8, tier: "body"))),
 )
 #metadata(clause-cases.map(c => {
   let resolve(field, value) = c.resolve.at(value)

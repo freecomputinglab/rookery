@@ -8,7 +8,7 @@ labels:
 - search-clause-roles
 deps:
 - blocked-by:rk-make-the-whole-query-one-clause-tree-6f7c3949
-closed: false
+closed: true
 ---
 Make the name/body tier a property of each TEXT CLAUSE rather than of the whole
 row, so tiering survives a query with more than one text clause in it.
