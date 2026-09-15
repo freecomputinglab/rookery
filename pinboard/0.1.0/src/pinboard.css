@@ -12,9 +12,14 @@
    summary row that drags, and a body that scrolls instead of growing the
    card past the board. */
 
+/* `--pinboard-height` is written by `src/pinboard.js`'s `sizeBoard`, from
+   the tallest card's bottom edge plus a little slack — a column of
+   absolutely positioned cards does not otherwise push the board's own
+   height, so without it a stacked board would clip everything past the
+   480px floor. */
 .pinboard {
   position: relative;
-  min-height: 480px;
+  min-height: max(480px, var(--pinboard-height, 0px));
 }
 
 /* Position rides on `--pin-x`/`--pin-y`, written by `src/pinboard.js` and by

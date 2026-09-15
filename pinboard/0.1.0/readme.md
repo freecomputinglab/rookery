@@ -25,7 +25,7 @@ is no second set of properties to keep in step.
 #pinboard()
 ```
 
-## `#pinboard(id:, notes:, folded:)`
+## `#pinboard(id:, notes:, folded:, layout:)`
 
 - **`id:`** names THIS board. It becomes `data-pinboard="<id>"` on the
   container, and is the whole of the storage key
@@ -42,6 +42,13 @@ is no second set of properties to keep in step.
   arrangement; `false` shows each note's body under its title. It is an
   initial state only — a card whose state is in the store is restored to
   that instead, and a reader may open or shut any card whatever this says.
+- **`layout:`** the INITIAL arrangement for a card the store has nothing for,
+  `"stack"` (the default) or `"flow"`. `"stack"` places every unplaced card
+  in one column, top to bottom, in the order `ideas()` (or `notes:`) hands
+  them back — the same sequence a reader already reads every other rookery
+  view in. `"flow"` is the older wrapping grid, laid out left to right and
+  wrapping into rows. Either way this only ever places a card the store has
+  nothing for; one the reader has already dragged never moves.
 
 ## Import both packages
 
@@ -66,8 +73,10 @@ board comes back exactly as it was left, because every card's position is
 re-read from that store on boot rather than recomputed.
 
 A note with no stored entry — one written since the board was last
-arranged — falls back to a flow layout: laid out left to right and wrapping
-into rows, in the first free slot of the grid.
+arranged — falls into the board's `layout:`: a column, top to bottom, by
+default, or the older wrapping grid under `layout: "flow"`. Either way it
+lands after whatever the store already placed, rather than wherever a
+full-board layout would put it.
 
 ## Requirements
 

@@ -7,7 +7,7 @@ labels:
 - feat-pinboard
 - stack-pinboard-cards-by-default
 deps: []
-closed: false
+closed: true
 ---
 A board's initial arrangement is a wrapping grid: `flowPositions` in
 `/home/lox/code/_fcl/rookery/pinboard/0.1.0/src/layout.js` lays ids left to right and
