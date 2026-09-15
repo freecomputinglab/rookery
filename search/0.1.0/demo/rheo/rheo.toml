@@ -1,0 +1,33 @@
+# @rookery/search's only in-repo rheo fixture. Until this existed the
+# package was the one here whose rheo path had NO demo — it shipped src/, dist/
+# and test/, and its Justfile never invoked rheo at all — while this repo's own
+# definition of lint is "the package builds and its demo compiles".
+#
+# The corpus is seeded from `@rookery/core`'s own demo, deliberately: what this
+# fixture has to exercise is a REAL rookery under rheo, with minted pages and
+# notes at two spine depths, because the depth-relative asset prefix and the
+# per-note index rows are precisely what a root-only page cannot catch.
+version = "0.5.2"
+content_dir = "content"
+formats = ["html"]
+
+# `lib.typ` is a library, not a page: it holds the named `idea-page` function
+# and the one `#show: rookery.with(..)` both vertebrae apply. Without this it
+# would compile to its own `lib.html`.
+[spine]
+exclude = ["lib.typ"]
+
+# THE FIXTURE STYLESHEET, and it is load-bearing rather than cosmetic. It sets
+# `display` on `.panel-row` from an UNLAYERED rule, which is what every real
+# consuming project does and what defeats this package's own layered hide rule.
+# `check.sh` asserts the thing that still works under that pressure. See
+# `style.css`'s own comment.
+[[html.assets]]
+css_stylesheet = "./style.css"
+
+# The Typst cache's `rookery` namespace is a per-machine symlink that can
+# point at a different checkout of this repo, so this reads `@rookery/*` out
+# of this tree instead. See `slipshow/0.1.0/demo/rheo/rheo.toml` for the full
+# argument.
+[packages.rookery]
+path = "../../../.."

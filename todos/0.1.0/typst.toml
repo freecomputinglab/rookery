@@ -1,0 +1,48 @@
+[package]
+name = "todos"
+version = "0.1.0"
+compiler = "0.15.0"
+entrypoint = "src/lib.typ"
+authors = ["The Free Computing Lab <https://freecomputinglab.ohrg.org>"]
+license = "MIT"
+description = "Todos, epics and a dependency DAG over @rookery/core notes"
+repository = "https://github.com/freecomputinglab/rookery"
+
+# Matches the floor @rookery/core 0.6.0 declares. This package hard-imports
+# rookery (and @rookery/timeline), so a project using it is already on a rheo
+# that can build rookery — the floor is inherited rather than independently
+# owned.
+[tool.rheo]
+# 0.6.1 is where rheo learned to resolve a namespace it does not ship — the
+# `[packages.<ns>]` table a project needs to say where `@rookery` comes from at
+# all. The Typst surface these packages use has not moved since 0.6.0; what
+# changed is that consuming them under their own namespace is impossible before
+# 0.6.1, and `[tool.rheo.source.html]` below is a 0.6.1 manifest key an older
+# rheo reads straight past. Declaring the floor turns "package not found" into a
+# message naming the version, which is the whole point of a floor.
+#
+# 0.6.2 raises it again, and this one is the sharpest reason yet: 0.6.1 located
+# packages by probing Typst's directory layout in the two places that read a
+# package's `.marrow.typ`, and a package fetched from a ref lives at a path keyed
+# by its resolved commit, which no probe matches. Every page THIS FAMILY MINTS
+# FROM MARROW therefore went missing — on a build that succeeded and warned about
+# nothing. Declaring 0.6.2 is what turns that silence into an error naming the
+# version.
+min_version = "0.6.2"
+
+# BUILT: this package ships JavaScript for the dependency graph view, so a
+# release still bundles it into `dist/lib.js`. `entrypoint` and
+# `css_stylesheet` point at `src/` regardless — vite only copies those files
+# into `dist/` byte-identically — and `[tool.rheo.source.html]` above lists
+# the unbundled scripts a git-ref build serves instead. `@rookery/core` and
+# `@rookery/timeline` are buildless outright, and only because they ship no
+# JS at all.
+[tool.rheo.html]
+js_scripts = "dist/lib.js"
+css_stylesheet = "src/todos.css"
+
+[tool.rheo.source.html]
+# Dependency-first: `src/todos.js` imports both, and rheo's asset copy acts
+# on exactly this list rather than scanning import statements.
+js_scripts = ["src/layout.js", "src/todo-search.js", "src/todos.js"]
+js_module = true

@@ -1,0 +1,19 @@
+/* A FIXTURE, not decoration. Every real project styles its own panel rows and
+   does it unlayered, which defeats @rookery/search's own layered
+   `.panel-row[hidden]` (src/search.css, inside `@layer search`). Without this
+   rule here the demo is easier than reality and check.sh proves nothing: a
+   filter-panel row would be hidden by a rule this fixture never puts under
+   pressure.
+
+   NOT wrapped in `@layer` — being unlayered is the entire point. An unlayered
+   author rule beats every layered one regardless of specificity, so this
+   `display: grid` (0,1,0) defeats the package's `display: none` (0,2,0), and
+   the only thing that still hides a filtered row is @rookery/core's own
+   unlayered `[data-rookery="row"][hidden]`. check.sh asserts the rows carry
+   that attribute for exactly this reason. */
+.panel-row {
+  display: grid;
+  grid-template-columns: 7.5em 1fr auto;
+  gap: 0 0.9rem;
+  align-items: baseline;
+}
