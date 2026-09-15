@@ -29,6 +29,8 @@ const TITLE = '[data-rookery="window-title"]';
 const LABEL = 'a[data-rookery="label"]';
 const DETAILS = '[data-rookery="window-details"]';
 const BODY = '[data-rookery="window-body"]';
+// The drag handle `drag.js` requires a press to land inside.
+const HANDLE = '[data-rookery="window-summary"]';
 
 const cardLocator = (page, id) => page.locator(`${CARD}[data-pinboard-id="${id}"]`);
 
@@ -45,20 +47,87 @@ const isOpen = (card) => card.locator(DETAILS).evaluate((d) => d.hasAttribute("o
 
 const clearStorage = (page) => page.evaluate(() => localStorage.clear());
 
-// A press in the middle of the title span never lands on the tab's `<a
-// data-rookery="label">` link, which sits before it in the same summary row —
-// so this is the one point in a card's handle that is always safe for a real
-// drag press. `scrollIntoViewIfNeeded` first: a raw `boundingBox()` reports
-// viewport-relative coordinates, and a navigation that leaves the page
-// scrolled to a different offset (a `goBack` restoring scroll position, a
-// reload) silently mis-aims a `page.mouse` call built from a stale box —
-// unlike a locator's own `.click()`, which scrolls before it clicks.
-const titleCenter = async (card) => {
-  const title = card.locator(TITLE);
-  await title.scrollIntoViewIfNeeded();
-  const box = await title.boundingBox();
-  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+// A press point HIT-TESTED rather than assumed, because the three things that
+// make a point draggable are all layout-dependent and this suite runs on three
+// engines whose text metrics differ:
+//
+//   - it must land on THIS card. The demo's `"stack"` layout puts every card in
+//     one column, so a font that renders cards taller than the stack's spacing
+//     overlaps them, and a press aimed at one card's title can be taken by the
+//     card painted over it — which moves the wrong card and leaves this one
+//     exactly where it was.
+//   - it must land inside the summary row, the handle `drag.js` requires.
+//   - it must MISS the tab's `<a data-rookery="label">` permalink and any other
+//     interactive descendant, which `drag.js` bails on so their click survives.
+//
+// `elementFromPoint` answers all three from inside the page. Candidates walk
+// across the title's FIRST client rect — the first line's own box, not the
+// union `getBoundingClientRect` returns, whose centre falls between the lines
+// when a title wraps.
+//
+// `scrollIntoViewIfNeeded` first: a raw client rect is viewport-relative, and a
+// navigation leaving the page at a different offset (a `goBack` restoring
+// scroll position, a reload) silently mis-aims a `page.mouse` call built from a
+// stale box — unlike a locator's own `.click()`, which scrolls before it clicks.
+//
+// Returns `{ point }` or `{ point: null, tried }`, where `tried` says what each
+// candidate hit. The caller turns that into its own failure message: a suite
+// that cannot aim a press must say WHY rather than report a card that did not
+// move.
+const pressPoint = async (page, id) => {
+  const card = cardLocator(page, id);
+  await card.locator(TITLE).scrollIntoViewIfNeeded();
+  return page.evaluate(
+    ([id, TITLE, HANDLE]) => {
+      const card = document.querySelector(`.pinboard-card[data-pinboard-id="${id}"]`);
+      if (!card) return { point: null, tried: [`no card with id ${id}`] };
+      const rect = card.querySelector(TITLE).getClientRects()[0];
+      if (!rect) return { point: null, tried: ["the title has no client rect"] };
+      const y = rect.y + rect.height / 2;
+      const tried = [];
+      // Right of centre first: the permalink sits BEFORE the title in the row,
+      // so the far end of the first line is the point least likely to be under
+      // it once metrics shift.
+      for (const fraction of [0.75, 0.5, 0.9, 0.25]) {
+        const x = rect.x + rect.width * fraction;
+        const hit = document.elementFromPoint(x, y);
+        if (!hit) {
+          tried.push(`${fraction}: nothing at (${Math.round(x)}, ${Math.round(y)})`);
+          continue;
+        }
+        const hitCard = hit.closest(".pinboard-card");
+        const hitId = hitCard ? hitCard.dataset.pinboardId : null;
+        if (hitId !== id) {
+          tried.push(`${fraction}: landed on card ${hitId ?? "(none)"}`);
+          continue;
+        }
+        if (!hit.closest(HANDLE)) {
+          tried.push(`${fraction}: landed outside the summary row`);
+          continue;
+        }
+        if (hit.closest("a, button, input")) {
+          tried.push(`${fraction}: landed on an interactive ${hit.closest("a, button, input").tagName}`);
+          continue;
+        }
+        return { point: { x, y }, tried };
+      }
+      return { point: null, tried };
+    },
+    [id, TITLE, HANDLE],
+  );
 };
+
+// What the board actually looks like, for a failure message. A drag that moved
+// nothing is explained by the geometry around it — overlapping cards, a card
+// somewhere other than where the stack should have put it — and none of that
+// survives in `x moved 0`.
+const boardGeometry = (page) =>
+  page.$$eval(".pinboard-card", (cards) =>
+    cards.map((c) => {
+      const r = c.getBoundingClientRect();
+      return `${c.dataset.pinboardId} @(${Math.round(r.x)},${Math.round(r.y)}) ${Math.round(r.width)}x${Math.round(r.height)}`;
+    }),
+  );
 
 // `page.mouse.move` resolves when the event is DISPATCHED, not when the page
 // has handled it, so the last move of a drag can still be in flight when the
@@ -81,8 +150,9 @@ const dragStarted = async (page, id) => {
     await page
       .locator(`.pinboard-card[data-pinboard-id="${id}"][data-dragging]`)
       .waitFor({ state: "attached", timeout: 2000 });
+    return true;
   } catch {
-    /* the assertion below is the diagnostic */
+    return false;
   }
 };
 
@@ -142,20 +212,32 @@ try {
     // Case 2: a real drag on the handle moves the card by the pointer delta.
     const outline = cardLocator(page, "idea:outline");
     const before = (await positions(page)).find((p) => p.id === "idea:outline");
-    const start = await titleCenter(outline);
+    const aim = await pressPoint(page, "idea:outline");
+    assert.ok(
+      aim.point,
+      `no draggable point on idea:outline's handle — tried ${JSON.stringify(aim.tried)}; ` +
+        `board: ${JSON.stringify(await boardGeometry(page))}`,
+    );
+    const start = aim.point;
     await page.mouse.move(start.x, start.y);
     await page.mouse.down();
     // EVERY STAGE OF THE GESTURE WAITS ON WHAT IT CAUSED, and the waits happen
     // while the pointer is still down — `mouse.up` ends the drag, so a move
     // still in flight when it fires is a move that never happens at all.
     await page.mouse.move(start.x + 20, start.y + 15, { steps: 3 });
-    await dragStarted(page, "idea:outline");
+    const started = await dragStarted(page, "idea:outline");
     await page.mouse.move(start.x + 45, start.y + 30, { steps: 3 });
     await page.mouse.move(start.x + 60, start.y + 40, { steps: 3 });
     await settleAt(page, "idea:outline", before.x + 60, 2);
     await page.mouse.up();
     const after = (await positions(page)).find((p) => p.id === "idea:outline");
-    assert.ok(Math.abs(after.x - before.x - 60) <= 2, `x moved ${after.x - before.x}, wanted ~60`);
+    // The geometry and whether the press ever became a drag both go in the
+    // message: "moved 0" on its own cannot tell a press that missed from a
+    // press that landed and was ignored.
+    const why =
+      ` (drag ${started ? "started" : "NEVER STARTED"}; pressed (${Math.round(start.x)}, ` +
+      `${Math.round(start.y)}); board: ${JSON.stringify(await boardGeometry(page))})`;
+    assert.ok(Math.abs(after.x - before.x - 60) <= 2, `x moved ${after.x - before.x}, wanted ~60${why}`);
     assert.ok(Math.abs(after.y - before.y - 40) <= 2, `y moved ${after.y - before.y}, wanted ~40`);
     assert.equal(page.errors.length, 0, `page recorded errors during drag: ${page.errors}`);
 
