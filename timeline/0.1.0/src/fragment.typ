@@ -53,15 +53,18 @@
 }
 
 // Dates compared as zero-padded STRINGS rather than as `datetime`s — the same
-// device `when.typ`'s `_stamp` uses, and rookery's own `_sort-ids`. Same width
-// every time, so string order is date order, and the question of how `datetime`
-// orders as a sort key never arises.
-//
-// TIME OF DAY IS PART OF THE KEY where an entry has one, because a log that
-// ignored it would order two same-day events by the sequence they were WRITTEN and
-// call that a timeline. A todo activated at 15:00 and closed at 16:00 on one day
-// is in the right order because the clock says so, not because of how it was
-// typed.
+// device rookery's own `_sort-ids` uses. Same width every time, so string order
+// is date order, and the question of how `datetime` orders as a sort key never
+// arises. This is the DAY alone, and has callers across the package: the
+// `as-date`/`as-entered` projections in `index.typ` feed a day column in a
+// consumer's table and a `tag-index` field that must stay a fixed 8 characters —
+// widening those to 14 would change what a projected date IS.
+#let _day-of(d) = d.display("[year][month][day]")
+
+// `_day-of` plus the clock, where an entry has one — for a log that must order
+// two same-day events by when they actually happened rather than by the sequence
+// they were WRITTEN. A todo activated at 15:00 and closed at 16:00 on one day is
+// in the right order because the clock says so, not because of how it was typed.
 //
 // THE `none` BRANCH IS REQUIRED, not defensive, and it is why this cannot be one
 // `display` call. MEASURED on typst 0.15.1: `.display("[hour]")` on a DATE-ONLY
@@ -69,12 +72,6 @@
 // `.hour()` on one is `none`. A date-only entry therefore sorts as the START of
 // its day — which is also the right reading, since a `deadline` given as a bare
 // date should precede a timed event that happened during it.
-// The DAY alone, which is a different question and has its own callers: the
-// `as-date`/`as-entered` projections in `index.typ` feed a day column in a
-// consumer's table and a `tag-index` field that must stay a fixed 8 characters.
-// Widening those to 14 would change what a projected date IS.
-#let _day-of(d) = d.display("[year][month][day]")
-
 #let _stamp-of(d) = {
   let day = _day-of(d)
   if d.hour() == none { day + "000000" } else { day + d.display("[hour][minute][second]") }

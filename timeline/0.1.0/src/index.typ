@@ -39,8 +39,8 @@
 // A NAMED stage's date as a zero-padded `[year][month][day]` STRING, not a
 // datetime. Two reasons, and the second is the useful one: a projected value must
 // be a scalar for core's assert to pass, and a fixed-width numeric string sorts
-// lexically in date order — the device `when.typ`'s `_stamp` and rookery's own
-// `_sort-ids` both already use. So `as-date(DEADLINE-STAGE)` is the ordinary
+// lexically in date order — the device `fragment.typ`'s `_day-of` and rookery's
+// own `_sort-ids` both already use. So `as-date(DEADLINE-STAGE)` is the ordinary
 // "filter and sort by deadline" projection, and the sort is free.
 #let as-date(stage) = tags => {
   let d = stage-date(tags, stage)

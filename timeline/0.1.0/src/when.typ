@@ -6,12 +6,6 @@
 
 #import "read.typ": *
 
-// Dates compared as zero-padded `[year][month][day]` STRINGS rather than as
-// `datetime`s. This sidesteps the question of how `datetime` orders as a sort
-// key at all, and it is the same technique @rookery/core already uses in its
-// own `_sort-ids`. Same width every time, so string order is date order.
-#let _stamp(d) = d.display("[year][month][day]")
-
 // The reference date, most specific first: the explicit `today:` argument, then
 // the document's own `#set document(date:)`, then a panic.
 //
@@ -51,7 +45,7 @@
 #let is-overdue(tags, today: none) = {
   let d = deadline-of(tags)
   if d == none { return false }
-  _stamp(d) < _stamp(_today(today))
+  _day-of(d) < _day-of(_today(today))
 }
 
 // Has a deadline falling from the reference date up to and including `within`
@@ -67,8 +61,8 @@
   let d = deadline-of(tags)
   if d == none { return false }
   let now = _today(today)
-  let s = _stamp(d)
-  s >= _stamp(now) and s <= _stamp(now + duration(days: within))
+  let s = _day-of(d)
+  s >= _day-of(now) and s <= _day-of(now + duration(days: within))
 }
 
 // Scheduled, and that date has arrived — on or before the reference date. This
@@ -82,7 +76,7 @@
 #let is-scheduled-now(tags, today: none) = {
   let d = scheduled-of(tags)
   if d == none { return false }
-  _stamp(d) <= _stamp(_today(today))
+  _day-of(d) <= _day-of(_today(today))
 }
 
 // ---- The log's own reference-date questions -------------------------------
@@ -102,15 +96,15 @@
 // entry is still in the future (an open call nothing has been sent to). A consumer
 // that does need the difference asks `timeline-of(tags).len()`.
 #let stage-of(tags, today: none) = {
-  let now = _stamp(_today(today))
-  let past = timeline-of(tags).filter(e => _stamp(e.timestamp) <= now)
+  let now = _day-of(_today(today))
+  let past = timeline-of(tags).filter(e => _day-of(e.timestamp) <= now)
   if past.len() == 0 { none } else { past.last().stage }
 }
 
 // That same entry's date, for "how long has it been at this stage".
 #let stage-on(tags, today: none) = {
-  let now = _stamp(_today(today))
-  let past = timeline-of(tags).filter(e => _stamp(e.timestamp) <= now)
+  let now = _day-of(_today(today))
+  let past = timeline-of(tags).filter(e => _day-of(e.timestamp) <= now)
   if past.len() == 0 { none } else { past.last().timestamp }
 }
 
@@ -120,8 +114,8 @@
 // or a promised decision is an ordinary log entry rather than a special slot, and
 // this is the reader that finds it.
 #let next-of(tags, today: none) = {
-  let now = _stamp(_today(today))
-  let future = timeline-of(tags).filter(e => _stamp(e.timestamp) > now)
+  let now = _day-of(_today(today))
+  let future = timeline-of(tags).filter(e => _day-of(e.timestamp) > now)
   if future.len() == 0 { none } else { future.first() }
 }
 

@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-timeline-api
 deps: []
-closed: false
+closed: true
 ---
 This package writes a zero-padded `[year][month][day]` sort key in three places,
 with three names, and one of the comments about it is already false:

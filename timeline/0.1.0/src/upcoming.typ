@@ -88,14 +88,9 @@
   (date: none, stage: none, firm: false)
 }
 
-// A DATE AS A ZERO-PADDED STRING, which is what makes it a free sort key: fixed
-// width, so string order is date order. `zzzzzzzz` puts every undated row after
-// every dated one without a second comparison.
-//
-// NOT `_stamp` from `when.typ`, which is private and carries a time component this
-// does not want: two events on one day should keep their authored order (which is
-// the note name here), not be split by a clock the log may not even carry.
-#let _key(d) = if d == none { "zzzzzzzz" } else { d.display("[year][month][day]") }
+// `zzzzzzzz` puts every undated row after every dated one without a second
+// comparison.
+#let _key(d) = if d == none { "zzzzzzzz" } else { _day-of(d) }
 
 // The ISO form, for the `datetime` ATTRIBUTE only — zero-padded, and deliberately
 // not the form the row shows. A machine reads the attribute; a person reads
