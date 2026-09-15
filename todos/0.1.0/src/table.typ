@@ -28,12 +28,7 @@
 
 #import "@rookery/search:0.1.0": facet-pill, panel
 #import "@rookery/core:0.1.0": idea-row-body
-#import "@rookery/timeline:0.1.0": deadline-of, scheduled-of
-// AND AS A MODULE, for `countdown`/`days-until`: the parameter below is also called
-// `countdown`, and a parameter and a function of the same name cannot both be
-// reachable by that name inside the panel. Same reason `#upcoming` imports its own
-// `when.typ` twice.
-#import "@rookery/timeline:0.1.0" as _tl
+#import "@rookery/timeline:0.1.0": deadline-of, scheduled-of, countdown, days-until
 #import "target.typ": *
 #import "tags.typ": *
 #import "todo.typ": epic-of
@@ -52,7 +47,7 @@
 // and stays there; what this reads is the SIGN of the same number, which is the one
 // thing that ladder folds away (overdue and due-today are both `urgent` to it). A row
 // with no date, or a panel with no `today:`, is not overdue — it is unmeasured.
-#let _past(d, today) = d != none and today != none and _tl.days-until(d, today) < 0
+#let _past(d, today) = d != none and today != none and days-until(d, today) < 0
 
 // A COUNTDOWN LEVEL AS A BAND NUMBER. The cutoffs that produce the level are
 // @rookery/timeline's and stay there; this is only the ordering of the three
@@ -73,7 +68,7 @@
 #let _band(row, days, scale, hoist: none) = {
   if hoist != none and hoist(row) { return 0 }
   if row.status == "in-progress" { return 0 }
-  let c = _tl.countdown(days)
+  let c = countdown(days)
   let date-band = if c == none { _BANDS - 1 } else { _LEVEL-BAND.at(c.level) }
   let rung = priority-rung(row.priority, scale, rungs: _BANDS)
   let pri-band = if rung == none { _BANDS - 1 } else { rung }
@@ -297,7 +292,7 @@
   // predicates in `when.typ` a countdown has no tag dictionary to resolve a
   // document-date fallback from — so with no `today:` passed, no row is measured and
   // no countdown band drawn (priority still bands where it applies).
-  countdown: true,
+  show-countdown: true,
   // WHETHER A ROW WHOSE DATE HAS PASSED IS LISTED AT ALL. `true` lists it and paints
   // its date cell the `overdue` band — solid rather than a wash, the one band above
   // the countdown's three; `false` drops it from the panel entirely.
@@ -307,7 +302,7 @@
   // lapsed work elsewhere, or one whose todos accumulate dates nobody means to honour,
   // where a permanent red bar at the top of the list stops being read.
   //
-  // IT NEEDS A `today:` for the same reason `countdown:` does — with no reference date
+  // IT NEEDS A `today:` for the same reason `show-countdown:` does — with no reference date
   // no row is measured, so nothing is dropped and no overdue band is drawn.
   overdue: true,
   // WHICH BANDS ARE LISTED. `auto` (the default) is all of them. An array of
@@ -445,7 +440,7 @@
       // field as a plain string — which is date order exactly when it is padded.
       let stamp = if d == none { none } else { d.display("[year][month][day]") }
       let band = _band(r, if d == none or today == none { none } else {
-        _tl.days-until(d, today)
+        days-until(d, today)
       }, scale, hoist: hoist)
       (
         ..r,
@@ -493,8 +488,8 @@
       // THE COUNTDOWN IS @rookery/timeline's, not this package's: `countdown`
       // maps whole days onto the three bands and the words for them, and deriving a
       // second copy of `if days <= 7` here is exactly how two surfaces drift apart.
-      let c = if countdown and d != none and today != none {
-        _tl.countdown(_tl.days-until(d, today))
+      let c = if show-countdown and d != none and today != none {
+        countdown(days-until(d, today))
       } else { none }
       if not _is-markup() {
         // EVERY RUNG HERE, not just the ramp's three: on paper the label is
@@ -523,7 +518,7 @@
       // OVERDUE IS THE FOURTH BAND, and it is this package's own: `countdown()` folds
       // a date behind you into `urgent` along with today and tomorrow, which is right
       // for a chip saying how long you have and wrong for a worklist, where "late" and
-      // "due today" are different instructions. It rides on `countdown:` like the other
+      // "due today" are different instructions. It rides on `show-countdown:` like the other
       // three — a caller turning the washes off gets no colour at all.
       let band = if c == none { none } else if _past(d, today) {
         "todo-when-overdue"

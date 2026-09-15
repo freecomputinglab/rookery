@@ -500,19 +500,19 @@
 #assert.eq(countdown(none), none)
 // PAST THE BAND, and silent. A deadline a month out is not news.
 #assert.eq(countdown(15), none)
-#assert.eq(countdown(14), (text: "in 14 days", level: "later"))
-#assert.eq(countdown(8), (text: "in 8 days", level: "later"))
+#assert.eq(countdown(14), (text: "in 14 days", level: "later", tag: "due-later"))
+#assert.eq(countdown(8), (text: "in 8 days", level: "later", tag: "due-later"))
 // THE BAND EDGES, and the two assertions that pin 7 as one boundary rather than 8,
 // and 2 as the other rather than 1.
-#assert.eq(countdown(7), (text: "in 7 days", level: "soon"))
-#assert.eq(countdown(2), (text: "in 2 days", level: "soon"))
+#assert.eq(countdown(7), (text: "in 7 days", level: "soon", tag: "due-soon"))
+#assert.eq(countdown(2), (text: "in 2 days", level: "soon", tag: "due-soon"))
 // WORDS AT THE EDGES: nobody writes `in 1 days`.
-#assert.eq(countdown(1), (text: "tomorrow", level: "urgent"))
-#assert.eq(countdown(0), (text: "today", level: "urgent"))
-#assert.eq(countdown(-1), (text: "yesterday", level: "urgent"))
+#assert.eq(countdown(1), (text: "tomorrow", level: "urgent", tag: "due-urgent"))
+#assert.eq(countdown(0), (text: "today", level: "urgent", tag: "due-urgent"))
+#assert.eq(countdown(-1), (text: "yesterday", level: "urgent", tag: "due-urgent"))
 // OVERDUE HAS NO FLOOR — the view sorts ascending, so these rows are at the TOP.
-#assert.eq(countdown(-7), (text: "7 days ago", level: "urgent"))
-#assert.eq(countdown(-400), (text: "400 days ago", level: "urgent"))
+#assert.eq(countdown(-7), (text: "7 days ago", level: "urgent", tag: "due-urgent"))
+#assert.eq(countdown(-400), (text: "400 days ago", level: "urgent", tag: "due-urgent"))
 
 // ---- days-until — signed, and rounded to whole days -----------------------
 #assert.eq(days-until(d(2026, 9, 1), d(2026, 8, 27)), 5)

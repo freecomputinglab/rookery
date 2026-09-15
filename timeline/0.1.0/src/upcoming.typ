@@ -26,7 +26,8 @@
 //   and should keep its own view for that. Fixed columns are what make one call on
 //   two unrelated corpora look like one table.
 //
-// THE ONE THING `countdown:` ADDS, and why it is not a breach of the rule above.
+// THE ONE THING `show-countdown:` ADDS, and why it is not a breach of the rule
+// above.
 // It draws a fourth thing — a chip reading `in 5 days` — but it asks the CALLER
 // for nothing: the words are computed from the log and the reference date, which
 // is data this file already holds and already sorts by. What the fixed-columns
@@ -43,10 +44,6 @@
 #import "fragment.typ": *
 #import "read.typ": *
 #import "when.typ": *
-// ALSO AS A MODULE, because `#upcoming`'s own `countdown:` flag shadows the
-// `countdown` function this file calls: a parameter and a function of the same name
-// cannot both be reachable by that name inside the view.
-#import "when.typ" as _when
 
 // The rookery spec is the one the sibling modules use — `lib.typ` names it twice
 // and nothing else here imports rookery at all. Keep the three in step: a spec
@@ -156,8 +153,8 @@
 // SORTED ASCENDING, oldest first, which puts a date already behind you at the TOP
 // rather than the bottom. An overdue row is the most urgent thing on the list.
 //
-// `countdown:` DRAWS HOW LONG YOU HAVE, off by default. With it on, a row whose
-// date falls within a fortnight gains a chip on the right reading `today`,
+// `show-countdown:` DRAWS HOW LONG YOU HAVE, off by default. With it on, a row
+// whose date falls within a fortnight gains a chip on the right reading `today`,
 // `tomorrow`, `yesterday`, `in 5 days` or `9 days ago`. Three bands: today,
 // tomorrow and anything overdue are `urgent`; two to seven days is `soon`; eight to
 // fourteen is `later`; anything further off, or undated, draws nothing at all.
@@ -267,7 +264,7 @@
       // HOW LONG YOU HAVE: whole days until this row's date, negative where it is
       // already behind you, `none` where the row has no date at all.
       //
-      // SHIPPED ON EVERY ROW rather than behind the view's `countdown:` flag. It
+      // SHIPPED ON EVERY ROW rather than behind the view's `show-countdown:` flag. It
       // is one subtraction, and this is the DATA half of the pair — a project
       // feeding these rows into @rookery/search's `#filter-panel` draws its
       // own urgency column and never calls `#upcoming` at all.
@@ -293,7 +290,7 @@
 
 // ---- #upcoming — the queue as a LIST ----------------------------------------
 //
-// `#upcoming-rows` above plus the drawing, and nothing else — plus `countdown:`,
+// `#upcoming-rows` above plus the drawing, and nothing else — plus `show-countdown:`,
 // which is a drawing argument and so lives only here. `#upcoming-rows` computes
 // `in-days` unconditionally and leaves what to do with it to whoever renders.
 #let upcoming(
@@ -306,7 +303,7 @@
   from: none,
   within: none,
   limit: none,
-  countdown: false,
+  show-countdown: false,
   title: none,
   empty: [Nothing upcoming.],
 ) = context {
@@ -351,8 +348,8 @@
             // THE COUNTDOWN AS PLAIN TEXT, and no colour: a paged target has no
             // chip to tint, and red ink in a PDF is a decision about the page
             // rather than about the deadline.
-            if countdown {
-              let c = _when.countdown(r.in-days)
+            if show-countdown {
+              let c = countdown(r.in-days)
               if c != none { [ #text(gray, "(" + c.text + ")")] }
             }
           }),
@@ -409,8 +406,8 @@
             // rookery's `.idea-row-badges` is `justify-content: flex-end`, so the
             // final chip is the rightmost thing on the row. No new column in
             // `#idea-row`, and so no edit to @rookery/core.
-            let c = if countdown { _when.countdown(r.in-days) } else { none }
-            if c != none { bs.push((text: c.text, tag: "due-" + c.level)) }
+            let c = if show-countdown { countdown(r.in-days) } else { none }
+            if c != none { bs.push((text: c.text, tag: c.tag)) }
             bs
           },
         ))

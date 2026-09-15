@@ -11,7 +11,7 @@
 //   3. `from:` — a cutoff drops what is too old, and keeps an undated row
 //   4. nothing selected — the empty line, not a bare empty list
 //   5. `name-from:` — a dated note named by the durable note it points at
-//   6. `countdown:` — the chip on the right, across both bands and both silences
+//   6. `show-countdown:` — the chip on the right, across both bands and both silences
 //
 // EVERY CALL IS TAG-SCOPED, because the registry is the whole document: the
 // `name-from` notes below would otherwise join the first two lists and the assertions
@@ -35,7 +35,7 @@
 #idea("try-2", tags: ("attempt": "venue-x"), deadline: d(2026, 9, 4))[Sent a second one.]
 #idea("try-lost", tags: ("attempt": "no-such-note"), deadline: d(2026, 9, 5))[Dangling pointer.]
 
-// `countdown:`'s case, on a tag of its own so these seven do not join the lists
+// `show-countdown:`'s case, on a tag of its own so these seven do not join the lists
 // above. One note per outcome the band table has, counted from NOW = 27.8.26:
 // -7, 0, +1, +6, +12, +66, and no date at all.
 #idea("overdue", title: [Overdue], tags: ("due",), deadline: d(2026, 8, 20))[Body.]
@@ -64,4 +64,4 @@
 
 = 5. The countdown column
 
-#upcoming(tags: "due", today: NOW, countdown: true)
+#upcoming(tags: "due", today: NOW, show-countdown: true)

@@ -834,9 +834,10 @@ days; later is eight to fourteen. The colour is the reading at a glance; the wor
 cell on hover and on focus, and as its `aria-label` for a reader who cannot see a
 colour. The badge strip stays about facets.
 
-It is **on by default** here, where `#upcoming`'s own `countdown:` is off, because a
-panel of outstanding work is read for what is due next. Pass `countdown: false` to
-drop it, and note that it needs a `today:` — with none passed no row can be measured
+It is **on by default** here, where `#upcoming`'s own `show-countdown:` is off,
+because a panel of outstanding work is read for what is due next. Pass
+`show-countdown: false` to drop it, and note that it needs a `today:` — with none
+passed no row can be measured
 and no countdown band is drawn. (`#upcoming` is untouched: that view keeps its chips.)
 
 **Priority is the fallback, and only where the countdown is silent.** A todo three

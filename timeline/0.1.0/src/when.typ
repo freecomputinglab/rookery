@@ -160,8 +160,9 @@
 #let days-until(d, today) = int(calc.round((d - today).days()))
 
 // HOW LONG YOU HAVE, AS WORDS, or `none` where the row should say nothing at all.
-// Returns `(text: .., level: ..)`; the level is a presentation band, and a view
-// turns it into the class a stylesheet colours.
+// Returns `(text: .., level: .., tag: ..)`; `level` is a presentation band and
+// `tag` is `"due-" + level`, the CSS class name a caller wires straight into a
+// badge without re-spelling the prefix.
 //
 // THE EDGES ARE WORDS, not arithmetic. `in 1 days` is not something anyone writes,
 // and the three dates a reader acts on today are exactly the three worth naming.
@@ -184,12 +185,20 @@
 #let countdown(days) = {
   if days == none { return none }
   if days > 14 { return none }
-  if days < -1 { return (text: str(-days) + " days ago", level: "urgent") }
-  if days == -1 { return (text: "yesterday", level: "urgent") }
-  if days == 0 { return (text: "today", level: "urgent") }
-  if days == 1 { return (text: "tomorrow", level: "urgent") }
-  if days <= 7 { return (text: "in " + str(days) + " days", level: "soon") }
-  (text: "in " + str(days) + " days", level: "later")
+  let (text, level) = if days < -1 {
+    (str(-days) + " days ago", "urgent")
+  } else if days == -1 {
+    ("yesterday", "urgent")
+  } else if days == 0 {
+    ("today", "urgent")
+  } else if days == 1 {
+    ("tomorrow", "urgent")
+  } else if days <= 7 {
+    ("in " + str(days) + " days", "soon")
+  } else {
+    ("in " + str(days) + " days", "later")
+  }
+  (text: text, level: level, tag: "due-" + level)
 }
 
 // ---- Ladder-free by design ------------------------------------------------

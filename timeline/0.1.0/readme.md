@@ -648,7 +648,7 @@ rather than visibly absent, and Typst has no wall clock to check them against (s
 | `from:` | a `datetime`; drops a row dated before it |
 | `within:` | days; drops a row dated later than `today + within` |
 | `limit:` | truncate after sorting |
-| `countdown:` | draw how long you have, as a chip on the right — see below |
+| `show-countdown:` | draw how long you have, as a chip on the right — see below |
 | `title:` | optional label above the list |
 | `empty:` | what to show when nothing survives |
 
@@ -680,14 +680,14 @@ asked to be queued by; it is not a claim about the date's reliability.
 Rows sort **ascending, oldest first**, which puts a date already behind you at the
 TOP. An overdue row is the most urgent thing on the list, not the stalest.
 
-### `countdown:` — how long you have, on the right of the row
+### `show-countdown:` — how long you have, on the right of the row
 
 Off by default. With it on, a row whose date falls within a fortnight gains a chip at
 the right-hand end reading `today`, `tomorrow`, `yesterday`, `in 5 days` or
 `9 days ago`:
 
 ```typst
-#upcoming(tags: "submission", today: NOW, within: 90, countdown: true)
+#upcoming(tags: "submission", today: NOW, within: 90, show-countdown: true)
 ```
 
 ```
@@ -770,14 +770,15 @@ project may want the queue inside somebody else's widget:
 )
 ```
 
-It takes every argument `#upcoming` does except `title:`, `empty:` and `countdown:`
-(which are about drawing), and returns the row dictionaries: rookery's own `ideas()`
-fields plus `shown` (what to call the row), `link-to`, `when`, `firm`, `key` (the
-zero-padded sort stamp), `at` (the stage reached) and `in-days`.
+It takes every argument `#upcoming` does except `title:`, `empty:` and
+`show-countdown:` (which are about drawing), and returns the row dictionaries:
+rookery's own `ideas()` fields plus `shown` (what to call the row), `link-to`,
+`when`, `firm`, `key` (the zero-padded sort stamp), `at` (the stage reached) and
+`in-days`.
 
 `in-days` is whole days until the row's date — negative where it is already behind
 you, `none` where the row has no date at all. It ships on **every** row regardless of
-`countdown:`, because this is the data half of the pair: a project rendering these
+`show-countdown:`, because this is the data half of the pair: a project rendering these
 rows inside somebody else's widget draws its own urgency column and never calls
 `#upcoming` at all.
 
@@ -803,7 +804,7 @@ school, a path to a manuscript — is a question about the caller's own data mod
 which this package cannot see; a project needing one keeps its own view. Fixed
 columns are what make one call over two unrelated corpora read as one table.
 
-`countdown:` is not an exception to that. It draws a fourth thing, but it asks the
+`show-countdown:` is not an exception to that. It draws a fourth thing, but it asks the
 caller for nothing: the words come from the log and the reference date, which this
 view already holds and already sorts by. What the rule refuses is a column only the
 caller can fill, because that is the one that stops two corpora looking like one
@@ -828,7 +829,7 @@ hook this package keeps, and where the rule between rows is drawn), and
 `idea-tag-<tag>` classes, so a project theming a tag on a card has already themed it
 here.
 
-The `countdown:` chip adds three classes of this view's own,
+The `show-countdown:` chip adds three classes of this view's own,
 `.idea-tag-due-urgent`, `.idea-tag-due-soon` and `.idea-tag-due-later`, riding on an
 otherwise ordinary `.idea-tag`.
 

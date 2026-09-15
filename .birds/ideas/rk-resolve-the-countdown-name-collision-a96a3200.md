@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-timeline-api
 deps: []
-closed: false
+closed: true
 ---
 `countdown` is both a function (`timeline/0.1.0/src/when.typ:190`) and a flag on
 `#upcoming` (`timeline/0.1.0/src/upcoming.typ:315`). A parameter and a
