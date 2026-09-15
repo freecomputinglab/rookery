@@ -8,7 +8,7 @@
 //    `.idea-tag-<key>` class, and is filterable by rookery's own
 //    `#window(tags:)`/`#ideas(tags:)` AND by @rookery/search's tag query
 //    language. That last one is the payoff and it costs this package nothing:
-//    `tags:todo&!todo-closed` in a search bar lists open todos with no
+//    `tags:todo&!tags:todo-closed` in a search bar lists open todos with no
 //    rookery-todos code involved at all.
 //
 // 2. VALUED — `todo-closed`, `todo-deps`, `todo-metadata`. A valued tag renders
@@ -89,7 +89,7 @@
 // WHAT THIS KEY STILL IS: a FLAT presence marker, valued `none`, written
 // alongside the log entry. It carries no date and is not a second copy of one.
 // It exists for one reason, and the header above already calls that reason the
-// payoff of the flat-tag surface: `tags:todo&!todo-closed` in a search bar lists
+// payoff of the flat-tag surface: `tags:todo&!tags:todo-closed` in a search bar lists
 // the open todos with no rookery-todos code involved. Rookery's tag predicate
 // and rookery-search's `tags:` query both test KEYS, so a fact living only
 // inside `timeline-log`'s value is invisible to them. Losing that query to buy

@@ -20,7 +20,7 @@ import { passes, score, wire } from "../src/todo-search.js";
 // of these three would only pin the stub. Test-only: nothing in `src/` imports
 // across this boundary, and no manifest declares the edge.
 import { fold } from "../../../search/0.1.0/src/text.js";
-import { splitQuery, evalTagQuery } from "../../../search/0.1.0/src/tagquery.js";
+import { splitQuery, evalClauses } from "../../../search/0.1.0/src/tagquery.js";
 
 test("a non-subsequence does not match", () => {
   assert.equal(score("the manifest parser", "zzz"), -1);
@@ -106,7 +106,7 @@ const WIDGET = `<!doctype html><body>
 const widget = ({ language = true } = {}) => {
   const { document } = parseHTML(WIDGET);
   globalThis.document = document;
-  if (language) globalThis.RookerySearch = { splitQuery, evalTagQuery, fold };
+  if (language) globalThis.RookerySearch = { splitQuery, evalClauses, fold };
   else delete globalThis.RookerySearch;
   wire(document.querySelector(".todo-search"));
   const input = document.querySelector(".todo-search-input");
@@ -140,9 +140,9 @@ test("`tags:todo` keeps the rows carrying that tag", () => {
   assert.equal(w.count(), "2 of 4");
 });
 
-test("`tags:todo&!todo-closed` is the string the readme advertises", () => {
+test("`tags:todo&!tags:todo-closed` is the string the readme advertises", () => {
   const w = widget();
-  w.type("tags:todo&!todo-closed");
+  w.type("tags:todo&!tags:todo-closed");
   // NOTE the prefix rule: an atom matches by prefix, so `todo` alone also matches
   // `todo-closed` — which is why the negation is what excludes `ship`.
   assert.deepEqual(w.shown(), ["parse"]);
@@ -206,7 +206,7 @@ test("a partial global degrades exactly as an absent one does", () => {
   globalThis.document = document;
   // A version skew: `fold` missing. All three or none — a surface this widget
   // cannot fully use must not be half-used.
-  globalThis.RookerySearch = { splitQuery, evalTagQuery };
+  globalThis.RookerySearch = { splitQuery, evalClauses };
   wire(document.querySelector(".todo-search"));
   const input = document.querySelector(".todo-search-input");
   input.value = "tags:todo";

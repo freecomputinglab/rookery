@@ -17,13 +17,13 @@ note() { echo "FAIL: $*"; fail=1; }
 #    `demo/pure`'s whole claim, now made over this rookery's actual content
 #    rather than a smaller standalone fixture.
 for class in idea-box idea-window idea-footnotes idea-references; do
-  rg -q "$class" "$N" || note "build/native.html has no $class — the core apparatus did not render"
+  grep -q "$class" "$N" || note "build/native.html has no $class — the core apparatus did not render"
 done
 
 # 2. NO minted-page href anywhere. Without rheo there are no pages to link to,
 #    so every row that would otherwise point at one degrades to unlinked text
 #    or an in-page fragment instead.
-if rg -q 'ideas/[a-zA-Z0-9_-]+\.html' "$N"; then
+if grep -Eq 'ideas/[a-zA-Z0-9_-]+\.html' "$N"; then
   note "build/native.html links a minted note page — there should be none without rheo"
 fi
 

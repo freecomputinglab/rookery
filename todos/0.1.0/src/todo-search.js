@@ -88,12 +88,12 @@ export function wire(container) {
   // time rather than per keystroke, so a page either has the capability or does
   // not and the filter loop below has no third case to consider.
   //
-  // ALL THREE FUNCTIONS OR NONE: `splitQuery` recognises the prefix, `fold`
+  // ALL THREE FUNCTIONS OR NONE: `splitQuery` parses the query, `fold`
   // normalises the row's tags to what the parser already did to the atoms, and
-  // `evalTagQuery` decides. A partial surface is a version skew, and must degrade
+  // `evalClauses` decides. A partial surface is a version skew, and must degrade
   // exactly as an absent one does rather than half-work.
   const tq = globalThis.RookerySearch;
-  const hasTagQuery = Boolean(tq && tq.splitQuery && tq.evalTagQuery && tq.fold);
+  const hasTagQuery = Boolean(tq && tq.splitQuery && tq.evalClauses && tq.fold);
 
   // THE URL-SYNC SURFACE, same all-five-or-none rule as `hasTagQuery` above,
   // over `@rookery/search`'s `urlstate.js`. `data-todo-search-sync` names the
@@ -139,29 +139,50 @@ export function wire(container) {
   const pills = [...container.querySelectorAll(".todo-search-pill")];
 
   const apply = () => {
-    // SPLIT ONCE PER KEYSTROKE, ahead of the loop, exactly where `#panel` splits
-    // it — not per row. A leading `tags:` becomes `rpn` and the rest becomes the
-    // text that ranks; anything else leaves `rpn` empty and `text` the query
-    // untouched. With no language on the page the input value goes to `score`
-    // whole, which is what it always did.
-    const { rpn, text } = hasTagQuery
-      ? tq.splitQuery(input.value)
-      : { rpn: [], text: input.value };
-    const q = text.trim();
+    // PARSED ONCE PER KEYSTROKE, ahead of the loop, exactly where `#panel`
+    // parses it — not per row. Every clause, gating or scoring, lives in the
+    // one `rpn`: `tags:todo` gates and a bare word ranks, and no text sits
+    // outside the tree. With no language on the page there is no tree at all
+    // and the input value goes to `score` whole, which is what it always did.
+    const rpn = hasTagQuery ? tq.splitQuery(input.value).rpn : [];
+    const q = input.value.trim();
     const scored = [];
     for (const row of rows) {
-      // THE EXPRESSION IS A PREDICATE and it runs before any scoring, so a row
-      // the tags exclude is never scored: a tag says WHICH rows exist, the
-      // residual text says how they rank. It ANDs with the pills for the reason
-      // `#panel` does — a pressed pill and a typed query are both visible
-      // commitments, and a query that silently released the pills would leave
-      // buttons on screen reading as pressed while no longer filtering.
+      // ONE `evalClauses` CALL, not a predicate-then-score sequence: a `tags:`
+      // clause and a bare word are resolved by the SAME walk, so `tags:todo
+      // window` gates on the tag and ranks on the word in one pass. An unknown
+      // field falls back to scoring the whole `field:value` string as text,
+      // mirroring `_resolve` in `@rookery/search`'s `panel.js`.
       //
       // `score` HERE STAYS THIS FILE'S OWN subsequence matcher, deliberately
       // simpler than `@rookery/search`'s (see its comment above). The language
-      // and the ranking are separate questions and this bead answers only one.
-      const ok = passes(row, facets) && (rpn.length === 0 || tq.evalTagQuery(rpn, row.tags));
-      const s = ok ? score(row.text, q) : -1;
+      // and the ranking are separate questions, and only the language is
+      // borrowed.
+      //
+      // AN EMPTY VALUE IS NO CONSTRAINT, per `evalTagQuery`'s own rule: a
+      // half-typed `tags:` filters nothing, tagged row or not.
+      const resolve = (field, value) => {
+        if (field === "tags") {
+          return {
+            matched: value === "" || row.tags.some((tg) => tg === value || tg.startsWith(value)),
+            score: 0,
+          };
+        }
+        const s = score(row.text, field === "" ? value : `${field}:${value}`);
+        return s < 0 ? { matched: false, score: 0 } : { matched: true, score: s };
+      };
+      // It ANDs with the pills for the reason `#panel` does — a pressed pill
+      // and a typed query are both visible commitments, and a query that
+      // silently released the pills would leave buttons on screen reading as
+      // pressed while no longer filtering.
+      //
+      // An empty tree matches with score `0`, which is what leaves the
+      // build-time priority order untouched until someone types.
+      const verdict = hasTagQuery
+        ? tq.evalClauses(rpn, resolve)
+        : { matched: true, score: score(row.text, q) };
+      const ok = passes(row, facets) && verdict.matched && verdict.score >= 0;
+      const s = ok ? verdict.score : -1;
       if (s < 0) {
         // THE `hidden` ATTRIBUTE NEEDS `.todo-search-row[hidden]` IN THE
         // STYLESHEET to do anything here, and the two must move together. A

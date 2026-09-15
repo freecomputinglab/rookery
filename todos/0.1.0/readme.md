@@ -193,7 +193,7 @@ language.
 | `todo-in-progress`, `todo-deferred`, `todo-draft` | `status:` (or `active:` for the first) |
 | `epic-<name>` | `#epic(name)` |
 
-The payoff is concrete and costs this package nothing: **`tags:todo&!todo-closed`
+The payoff is concrete and costs this package nothing: **`tags:todo&!tags:todo-closed`
 in a search bar lists open todos**, with no rookery-todos code involved.
 
 **2. Valued.** No pill, but the KEY is still present, so a valued tag is still
@@ -209,7 +209,7 @@ dependencies.
 not simply disappear. The DATE a todo closed lives in the log, with every other
 dated event in its life — that is the whole point of 0.6.0. But rookery's tag
 predicate and rookery-search's `tags:` query both test KEYS, so a fact living only
-inside a tag's VALUE is invisible to them, and `tags:todo&!todo-closed` — the
+inside a tag's VALUE is invisible to them, and `tags:todo&!tags:todo-closed` — the
 payoff named at the top of surface 1 — would have been lost to buy tidiness.
 
 So `todo-closed` is now a FLAT presence marker valued `none`, carrying no date and
@@ -319,7 +319,7 @@ language, against **every tag the todo carries** rather than the pill
 vocabulary:
 
 ```
-tags:todo&!todo-closed        the open todos
+tags:todo&!tags:todo-closed   the open todos
 tags:todo-p9                  the priority-9 ones — no pill names a priority
 tags:phd window               a tag filter, then "window" as the fuzzy query
 ```
@@ -474,7 +474,7 @@ takes — so the string this package's own tag-surface note has always advertise
 works in the box as well:
 
 ```
-tags:todo&!todo-closed
+tags:todo&!tags:todo-closed
 ```
 
 It is evaluated against every tag the todo carries rather than against the pills, and

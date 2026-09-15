@@ -150,7 +150,7 @@
       active: active,
       // THE FLAT MARKER IS DERIVED FROM THE LOG, not from an argument — so
       // `done:` and `timeline: (closed: ..)` always agree, and
-      // `tags:todo&!todo-closed` (the query this package's header calls the
+      // `tags:todo&!tags:todo-closed` (the query this package's header calls the
       // payoff of the flat-tag surface) never disagrees with `is-closed`.
       //
       // Deriving it here is what makes them one way. `todo-tags` cannot do it: it
