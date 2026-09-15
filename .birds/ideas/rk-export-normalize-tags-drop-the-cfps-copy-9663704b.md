@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-timeline-api
 deps: []
-closed: false
+closed: true
 ---
 `_norm-tags` (`/home/lox/code/_fcl/rookery/timeline/0.1.0/src/fragment.typ:273`)
 normalizes the four shapes rookery accepts for `tags:` — `none`, a bare string, an

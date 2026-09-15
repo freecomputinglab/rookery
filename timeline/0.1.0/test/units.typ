@@ -90,6 +90,10 @@
 // No dates at all adds no key.
 #assert.eq(_dated-spy(tags: (phd: none)).tags, (phd: none))
 
+// ---- normalize-tags — the four shapes rookery's own `tags:` accepts -------
+#assert.eq(normalize-tags(none), (:))
+#assert.eq(normalize-tags(("a", "b")), (a: none, b: none))
+
 // ---- readers ---------------------------------------------------------------
 #assert.eq(deadline-of(entries(deadline: d(2026, 9, 1))), d(2026, 9, 1))
 #assert.eq(deadline-of((:)), none)

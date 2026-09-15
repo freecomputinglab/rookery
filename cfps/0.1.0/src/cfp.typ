@@ -31,8 +31,8 @@
 #import "@rookery/core:0.1.0": tagged-idea, _norm
 #import "@rookery/todos:0.1.0": todo
 #import "@rookery/timeline:0.1.0": (
-  CLOSED-STAGE, DEADLINE-STAGE, SCHEDULED-STAGE, assert-ladder, entries, is-settled, stage-matches, stage-of,
-  timeline-of, timeline-view,
+  CLOSED-STAGE, DEADLINE-STAGE, SCHEDULED-STAGE, assert-ladder, entries, is-settled, normalize-tags, stage-matches,
+  stage-of, timeline-of, timeline-view,
 )
 
 // ---- Tag keys ---------------------------------------------------------------
@@ -58,22 +58,6 @@
 // Marks a cfp's body as carried over from a past cycle's call rather than read
 // off this round's own.
 #let ESTIMATED-KEY = "submission-estimated"
-
-// A local copy of rookery's four-form tag normalizer (none, string, array,
-// dictionary), so this module stays a pure function of its arguments rather
-// than reaching into a private core name — the same choice @rookery/todos'
-// `tags.typ` makes for the same reason.
-#let _norm-tags-local(v) = {
-  if v == none {
-    (:)
-  } else if type(v) == str {
-    ((v): none)
-  } else if type(v) == dictionary {
-    v
-  } else {
-    v.fold((:), (acc, t) => acc + ((t): none))
-  }
-}
 
 // ---- The two-column metadata table -------------------------------------------
 //
@@ -177,7 +161,7 @@
   (tagged-idea(VENUE-KEY))(
     name,
     title: title,
-    tags: own + _norm-tags-local(tags),
+    tags: own + normalize-tags(tags),
     show-tags: show-tags,
     ..args.named(),
     full,
@@ -375,7 +359,7 @@
         timeline: timeline,
         done: close-on,
         priority: priority,
-        tags: own + _norm-tags-local(tags),
+        tags: own + normalize-tags(tags),
         show-tags: show-tags,
         ..args.named(),
         full,

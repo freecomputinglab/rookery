@@ -243,7 +243,9 @@ name rather than two.
 
 Your own `tags:` is kept whole and the date fragment folded in on top. All four
 shapes rookery accepts for `tags:` are normalized, so `tags: "phd"` works
-alongside `deadline:`.
+alongside `deadline:`. That normalizer is exported as `normalize-tags(tags)`,
+for any other package building its own constructor over `#idea` that needs
+the same four-shapes-to-dictionary conversion.
 
 ## Reading dates back
 

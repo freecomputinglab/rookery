@@ -267,7 +267,7 @@
 // All four shapes rookery accepts for `tags:` are normalized here (none, a bare
 // string, an array, a dictionary), because a decorator that handled only a
 // dictionary would break `#dated-note("x", tags: "phd", deadline: d)`.
-#let _norm-tags(tags) = {
+#let normalize-tags(tags) = {
   if tags == none {
     (:)
   } else if type(tags) == str {
@@ -294,7 +294,7 @@
     // Caller's own tags on the LEFT, this package's fragment on the right. The
     // two cannot collide by accident, since `timeline-log` is namespaced, and a
     // caller who wrote that key by hand meant to.
-    tags: _norm-tags(tags) + entries(scheduled: scheduled, deadline: deadline, timeline: timeline),
+    tags: normalize-tags(tags) + entries(scheduled: scheduled, deadline: deadline, timeline: timeline),
     ..args,
   )
 }
