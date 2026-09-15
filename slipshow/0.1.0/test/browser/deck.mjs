@@ -28,16 +28,31 @@ const focusMatch = deckHtml.match(/<section[^>]*\bid="([^"]+)"[^>]*\bdata-enter=
 assert.ok(focusMatch, "deck.html carries no slip with data-enter=\"focus\" to land on");
 const focusId = focusMatch[1];
 
-// The built page (if any) carrying `data-slip-edges`, read from every file in
-// the demo build rather than assumed to be `deck.html` — which page (if any)
-// wires edges is not asserted anywhere else in this repo.
-const builtFiles = (await readdir(ROOT)).filter((f) => f.endsWith(".html"));
-let edgesFile = null;
-for (const f of builtFiles) {
-  const html = await readFile(`${ROOT}${f}`, "utf8");
-  if (html.includes("data-slip-edges")) {
-    edgesFile = f;
-    break;
+// The built page carrying `data-slip-edges`, found by reading every file in
+// each build rather than assumed to be a particular one — which page wires
+// edges is not asserted anywhere else in this repo.
+//
+// TWO ROOTS, because the demo does not wire edges and `examples/dag/` does:
+// the feature's only built fixture lives in that example's own build, which
+// `just examples` produces and CI runs before the browser suites. Served from
+// its own root below, since a page can only be loaded from the server rooted
+// at the directory holding it.
+// EVERY such page, not the first: a deck can wire edges and still draw none —
+// `across.html` points at slips on other pages, which `collect()` drops — so
+// the page that proves `redraw()` is the first candidate that yields a path,
+// decided in the browser below rather than guessed from the markup here.
+const EDGE_ROOTS = [ROOT, new URL("../../examples/dag/build/html/", import.meta.url).pathname];
+const edgeCandidates = [];
+for (const root of EDGE_ROOTS) {
+  let entries;
+  try {
+    entries = await readdir(root);
+  } catch {
+    continue;
+  }
+  for (const f of entries.filter((f) => f.endsWith(".html"))) {
+    const html = await readFile(`${root}${f}`, "utf8");
+    if (html.includes("data-slip-edges")) edgeCandidates.push({ root, file: f });
   }
 }
 
@@ -99,30 +114,50 @@ try {
 
     await context.close();
 
-    // 5. The edge layer, drawn from real geometry — only reachable on a
-    // built page that actually wires `data-slip-edges`, which the demo does
-    // not (see the comment on `edgesFile` above).
-    if (edgesFile === null) {
-      assert.fail(
-        "no page under demo/rheo/build/html/ carries data-slip-edges — " +
-          "examples/dag/ wires the edges feature and demo/rheo/ does not, " +
-          "so src/edges.js's redraw() and deckBox() have no built fixture " +
-          "this suite can assert against. Not fixed here: adding edges to " +
-          "the demo is a content decision for the operator, not this test.",
-      );
+    // 5. The edge layer, drawn from real geometry — reachable only on a built
+    // page that actually wires `data-slip-edges` (see the comment on
+    // `EDGE_ROOTS` above for which build that is).
+    assert.ok(
+      edgeCandidates.length > 0,
+      "no page under demo/rheo/build/html/ or examples/dag/build/html/ carries " +
+        "data-slip-edges, so src/edges.js's redraw() and deckBox() have no " +
+        "built fixture this suite can assert against — run " +
+        "`cd slipshow/0.1.0 && just examples` to build the example that wires it",
+    );
+    let drawn = null;
+    for (const candidate of edgeCandidates) {
+      const own = candidate.root === ROOT ? null : await serve(candidate.root);
+      const edgePage = await newPage();
+      try {
+        await edgePage.goto(`${own ? own.origin : origin}/${candidate.file}`);
+        // Advance the deck fully so every slip is revealed (`offsetParent` is
+        // non-null) — `collect()` (`src/edges.js:119`) drops an edge whose
+        // either endpoint is still hidden by the progressive reveal.
+        //
+        // TWICE, because `goTo` ignores its index while `started` is false: the
+        // first press only enters the deck at slip 0, and the second is the one
+        // that jumps to the last slip.
+        await edgePage.keyboard.press("End");
+        await edgePage.keyboard.press("End");
+        const layer = edgePage.locator("div.slipshow > :first-child.slip-edges");
+        await layer.waitFor();
+        const paths = layer.locator("path.slip-edge");
+        if ((await paths.count()) > 0) {
+          drawn = { file: candidate.file, d: await paths.first().getAttribute("d") };
+        }
+      } finally {
+        if (own) await own.close();
+      }
+      if (drawn) break;
     }
-    const edgePage = await newPage();
-    await edgePage.goto(`${origin}/${edgesFile}`);
-    // Advance the deck fully so every slip is revealed (`offsetParent` is
-    // non-null) — `collect()` (`src/edges.js:119`) drops an edge whose
-    // either endpoint is still hidden by the progressive reveal.
-    await edgePage.keyboard.press("End");
-    const layer = edgePage.locator("div.slipshow > :first-child.slip-edges");
-    await layer.waitFor();
-    const paths = layer.locator("path.slip-edge");
-    assert.ok((await paths.count()) > 0, `${edgesFile}: .slip-edges carries no path.slip-edge`);
-    const d = await paths.first().getAttribute("d");
-    assert.ok(d && d.length > 0 && d.startsWith("M"), `${edgesFile}: first path's d is not a valid path string: ${d}`);
+    assert.ok(
+      drawn,
+      `none of ${edgeCandidates.map((c) => c.file).join(", ")} drew a path.slip-edge`,
+    );
+    assert.ok(
+      drawn.d && drawn.d.length > 0 && drawn.d.startsWith("M"),
+      `${drawn.file}: first path's d is not a valid path string: ${drawn.d}`,
+    );
   });
 } finally {
   await close();

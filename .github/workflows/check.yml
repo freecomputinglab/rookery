@@ -24,6 +24,15 @@ jobs:
 
       - uses: extractions/setup-just@v3
 
+      # `pdftotext`, which `slipshow/0.1.0/demo/rheo/check.sh` reads the combined
+      # PDF with to prove no HTML tag leaks into a paged compile. The runner image
+      # carries no poppler, and the script's `2>/dev/null` on that call means an
+      # absent binary would otherwise kill it silently under `set -e`.
+      - name: Install poppler-utils
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils
+
       # Pinned to the version this repo is developed against, and the one all
       # four manifests declare as their `compiler` floor (0.15.0). Installed
       # from the release tarball rather than a third-party action: one pinned URL
@@ -253,6 +262,12 @@ jobs:
       # rheo cannot resolve the package until vite has written it.
       - name: slipshow examples compile
         run: cd slipshow/0.1.0 && just examples
+
+      # The ninth package, on the same footing as the four above: `just check`
+      # builds `dist/` and then the demo whose built HTML `test/browser/board.mjs`
+      # asserts against, so the browser step below has a fixture to serve.
+      - name: pinboard build, unit suite and rheo demo
+        run: cd pinboard/0.1.0 && just build && just test-js && just check
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4

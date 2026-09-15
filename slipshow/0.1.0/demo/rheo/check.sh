@@ -119,6 +119,12 @@ grep -q 'data-enter="focus"' "$H/deck.html" ||
 #    decks legitimately print each transcluded note a second time, bracketed
 #    "[idea:<name>]" by `#window`'s own paged rendering — a real feature of
 #    the tag-query route, not the artefact this check is guarding against.
+#
+#    `pdftotext` (poppler-utils) is the one binary this script needs beyond a
+#    POSIX toolbox, and its own stderr is discarded below — so an absent one is
+#    named here rather than exiting 127 with nothing printed.
+command -v pdftotext >/dev/null ||
+  { echo "demo/rheo: pdftotext (poppler-utils) is not installed"; exit 1; }
 txt=$(pdftotext "$pdf" - 2>/dev/null)
 [ -n "$(echo "$txt" | tr -d '[:space:]')" ] || note "rheo.pdf: pdftotext produced no text at all"
 # A NARROW pattern, deliberately: several slides' own prose describes the
