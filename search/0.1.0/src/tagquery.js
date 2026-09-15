@@ -19,6 +19,15 @@ import { clusters, fold } from "./text.js";
 // reads as an accident rather than a rule, so it is named here.
 export const OPS = { "!": 3, "&": 2, "|": 1 };
 export const RIGHT = { "!": true };
+// `_kw-op`'s twin: a bare atom whose UNFOLDED text is exactly `AND`, `OR` or
+// `NOT` (case-insensitive) spells the operator it names — `escaped` (set
+// when the atom consumed a `\`) exempts it. Run on the complete accumulated
+// atom, so a word merely containing "and", like `android`, never matches.
+const kwOp = (raw, escaped) => {
+  if (escaped) return null;
+  const up = raw.toUpperCase();
+  return up === "AND" ? "&" : up === "OR" ? "|" : up === "NOT" ? "!" : null;
+};
 // Port of `parse-tag-query` in src/tagquery.typ. Shunting-yard to RPN,
 // iterative (no recursion), tokens as small objects: an atom carries `f`
 // (field, `""` for a bare word) and `v` (value); an op carries only `v`.
@@ -47,20 +56,33 @@ export const parseTagQuery = (src) => {
   let field = "";
   let value = "";
   let split = false;
+  // Whether the atom now being built consumed a `\` — an escaped atom is
+  // never a keyword operator, so `kwOp` skips it. Reset at every flush,
+  // where a new atom starts.
+  let escaped = false;
   // Whether the character just processed closed a group (`)`) — the other
   // shape an implicit `&` below can follow, besides an atom still being
   // built. Cleared by every other branch, so it can never survive past an
   // unrelated character.
   let afterClose = false;
+  // Returns whether it pushed an OPERATOR (a keyword atom resolving to one)
+  // rather than an atom — the whitespace branch below needs to know, so a
+  // space right after `NOT`/`AND`/`OR` is never mistaken for a space between
+  // two operands.
   const flushAtom = () => {
+    let wasOp = false;
     if (split) {
       out.push({ t: "atom", f: fold(field), v: fold(value) });
     } else if (field !== "") {
-      out.push({ t: "atom", f: "", v: fold(field) });
+      const kw = kwOp(field, escaped);
+      if (kw === null) out.push({ t: "atom", f: "", v: fold(field) });
+      else { pushOp(kw); wasOp = true; }
     }
     field = "";
     value = "";
     split = false;
+    escaped = false;
+    return wasOp;
   };
   const pushOp = (op) => {
     while (stack.length) {
@@ -78,6 +100,7 @@ export const parseTagQuery = (src) => {
       afterClose = false;
       if (i + 1 < cs.length) {
         if (split) value += cs[i + 1]; else field += cs[i + 1];
+        escaped = true;
         i++;
       } else repaired.push("trailing-backslash");
       continue;
@@ -98,11 +121,13 @@ export const parseTagQuery = (src) => {
       const precedes = split || field !== "" || afterClose;
       afterClose = false;
       if (precedes) {
-        if (split || field !== "") flushAtom();
-        let j = i + 1;
-        while (j < cs.length && cs[j].trim() === "") j++;
-        const follows = j < cs.length && cs[j] !== ")" && !(cs[j] in OPS && cs[j] !== "!");
-        if (follows) pushOp("&");
+        const wasOp = flushAtom();
+        if (!wasOp) {
+          let j = i + 1;
+          while (j < cs.length && cs[j].trim() === "") j++;
+          const follows = j < cs.length && cs[j] !== ")" && !(cs[j] in OPS && cs[j] !== "!");
+          if (follows) pushOp("&");
+        }
       }
       continue;
     }
@@ -122,6 +147,10 @@ export const parseTagQuery = (src) => {
       continue;
     }
     if (c in OPS) { afterClose = false; flushAtom(); pushOp(c); continue; }
+    // A `-` that OPENS an atom — nothing accumulated yet, so it cannot be the
+    // hyphen inside a word like `in-progress` — spells `!`: `-tags:draft` is
+    // `!tags:draft`, `window -depth` is `window & !depth`.
+    if (c === "-" && !split && field === "") { afterClose = false; pushOp("!"); continue; }
     afterClose = false;
     if (split) value += c; else field += c;
   }

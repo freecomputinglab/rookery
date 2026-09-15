@@ -335,6 +335,16 @@
   // prefix rather than a repair.
   "tags:tags:draft", "status:done", "window", "a\\:b",
   "a:b:c", ":draft", "tags:",
+  // KEYWORD SPELLINGS OF `&`/`|`/`!`, plus a LEADING `-` for `!` on a clause.
+  // `a AND b`/`a and b` pin the case-insensitive whole-word test producing
+  // the same tree as `a & b`; `a OR b` and `NOT a` pin the other two. `android`
+  // pins that a keyword promotes only a COMPLETE atom, never a substring.
+  // `\AND` pins that an escaped keyword is the literal atom "and". `-tags:draft`
+  // and `window -depth` pin a leading `-` opening a clause as `!`, and
+  // `in-progress` pins that a `-` INSIDE an already-started atom stays part
+  // of the word.
+  "a AND b", "a and b", "a OR b", "NOT a", "android", "\\AND",
+  "-tags:draft", "window -depth", "in-progress",
 )
 // One fixed ladder of tag sets, evaluated for EVERY case, so the runner compares
 // a whole boolean row rather than a single verdict — the last set is the untagged

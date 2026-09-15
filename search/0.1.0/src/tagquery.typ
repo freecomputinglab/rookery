@@ -46,6 +46,41 @@
 // each cluster — and the precedence it needs next is in the same structure.
 #let _prec = ("!": 3, "&": 2, "|": 1)
 
+// A bare atom whose UNFOLDED text is exactly `AND`, `OR` or `NOT`
+// (case-insensitive) spells the operator it names — `escaped` (set when the
+// atom consumed a `\`) exempts it, so `\AND` stays the atom "and". Run on
+// the COMPLETE accumulated atom at push time, this rejects any substring: a
+// word merely containing "and", like `android`, never reaches here as
+// anything but the whole word.
+#let _kw-op(raw, escaped) = {
+  if escaped { return none }
+  let up = upper(raw)
+  if up == "AND" { "&" } else if up == "OR" { "|" } else if up == "NOT" { "!" } else { none }
+}
+
+// The precedence-climbing pop-then-push shared by every place an operator
+// reaches the stack: an explicit `!`/`&`/`|` cluster, and a keyword or a
+// leading `-` once either resolves to the operator it stands for. Isolated
+// here so all three go through the identical climb.
+#let _push-op(out, stack, op) = {
+  let go = true
+  while go and stack.len() > 0 {
+    let top = stack.last()
+    if top == "(" {
+      go = false
+    } else {
+      // `!` at EQUAL precedence does NOT pop — the `op != "!"` below — its
+      // right-associativity, matching the explicit-operator branch.
+      let higher = if _prec.at(top) > _prec.at(op) {
+        true
+      } else if _prec.at(top) == _prec.at(op) and op != "!" { true } else { false }
+      if higher { out.push(("op", stack.pop())) } else { go = false }
+    }
+  }
+  stack.push(op)
+  (out, stack)
+}
+
 // Parse a WHOLE query into RPN. `(rpn: (("atom", field, str)|("op", str),
 // ..), repaired: (str, ..))`.
 //
@@ -78,6 +113,10 @@
   let atom-field = ""
   let atom-value = ""
   let split = false
+  // Whether the atom now being built consumed a `\` — an escaped atom is
+  // never a keyword operator, so `_kw-op` skips it. Reset at every flush,
+  // where a new atom starts.
+  let atom-escaped = false
   // Whether the character just processed closed a group (`)`) — the other
   // shape, besides an atom still being built, that an implicit `&` below can
   // follow. Every other branch clears it, so it can never survive past an
@@ -97,6 +136,7 @@
       // reading past the end.
       if i + 1 < n {
         if split { atom-value += cs.at(i + 1) } else { atom-field += cs.at(i + 1) }
+        atom-escaped = true
         i += 1
       } else {
         repaired.push("trailing-backslash")
@@ -127,31 +167,47 @@
       let precedes = split or atom-field != "" or after-close
       after-close = false
       if precedes {
+        // Whether the flush below emitted an OPERATOR (a keyword atom
+        // resolving to one) rather than an atom — if it did, the space
+        // separates that operator from ITS OWN right operand, not two
+        // operands from each other, so the implicit-`&` check below must not
+        // run: `NOT a` would otherwise splice a spurious `&` between `!` and
+        // `a`, and `a OR b` between `|` and `b`, corrupting both.
+        let flushed-op = false
         if split {
           out.push(("atom", _fold(atom-field), _fold(atom-value)))
           atom-field = ""; atom-value = ""; split = false
         } else if atom-field != "" {
-          out.push(("atom", "", _fold(atom-field)))
+          let kw = _kw-op(atom-field, atom-escaped)
+          if kw == none {
+            out.push(("atom", "", _fold(atom-field)))
+          } else {
+            (out, stack) = _push-op(out, stack, kw)
+            flushed-op = true
+          }
           atom-field = ""
         }
-        let j = i + 1
-        while j < n and cs.at(j).trim() == "" { j += 1 }
-        let follows = j < n and cs.at(j) != ")" and not (cs.at(j) in _prec and cs.at(j) != "!")
-        if follows {
-          // The same precedence-climbing pop every explicit operator below
-          // does, at `&`'s own precedence — the only place that is
-          // observable is `a|b c`, which must parse as `a | (b & c)` rather
-          // than `(a|b) & c`.
-          let go = true
-          while go and stack.len() > 0 {
-            let top = stack.last()
-            if top == "(" {
-              go = false
-            } else if _prec.at(top) >= _prec.at("&") {
-              out.push(("op", stack.pop()))
-            } else { go = false }
+        atom-escaped = false
+        if not flushed-op {
+          let j = i + 1
+          while j < n and cs.at(j).trim() == "" { j += 1 }
+          let follows = j < n and cs.at(j) != ")" and not (cs.at(j) in _prec and cs.at(j) != "!")
+          if follows {
+            // The same precedence-climbing pop every explicit operator below
+            // does, at `&`'s own precedence — the only place that is
+            // observable is `a|b c`, which must parse as `a | (b & c)` rather
+            // than `(a|b) & c`.
+            let go = true
+            while go and stack.len() > 0 {
+              let top = stack.last()
+              if top == "(" {
+                go = false
+              } else if _prec.at(top) >= _prec.at("&") {
+                out.push(("op", stack.pop()))
+              } else { go = false }
+            }
+            stack.push("&")
           }
-          stack.push("&")
         }
       }
     } else if c == "(" {
@@ -160,18 +216,30 @@
         out.push(("atom", _fold(atom-field), _fold(atom-value)))
         atom-field = ""; atom-value = ""; split = false
       } else if atom-field != "" {
-        out.push(("atom", "", _fold(atom-field)))
+        let kw = _kw-op(atom-field, atom-escaped)
+        if kw == none {
+          out.push(("atom", "", _fold(atom-field)))
+        } else {
+          (out, stack) = _push-op(out, stack, kw)
+        }
         atom-field = ""
       }
+      atom-escaped = false
       stack.push("(")
     } else if c == ")" {
       if split {
         out.push(("atom", _fold(atom-field), _fold(atom-value)))
         atom-field = ""; atom-value = ""; split = false
       } else if atom-field != "" {
-        out.push(("atom", "", _fold(atom-field)))
+        let kw = _kw-op(atom-field, atom-escaped)
+        if kw == none {
+          out.push(("atom", "", _fold(atom-field)))
+        } else {
+          (out, stack) = _push-op(out, stack, kw)
+        }
         atom-field = ""
       }
+      atom-escaped = false
       let found = false
       while stack.len() > 0 and not found {
         let top = stack.pop()
@@ -187,25 +255,22 @@
         out.push(("atom", _fold(atom-field), _fold(atom-value)))
         atom-field = ""; atom-value = ""; split = false
       } else if atom-field != "" {
-        out.push(("atom", "", _fold(atom-field)))
+        let kw = _kw-op(atom-field, atom-escaped)
+        if kw == none {
+          out.push(("atom", "", _fold(atom-field)))
+        } else {
+          (out, stack) = _push-op(out, stack, kw)
+        }
         atom-field = ""
       }
-      let go = true
-      while go and stack.len() > 0 {
-        let top = stack.last()
-        if top == "(" {
-          go = false
-        } else {
-          // `!` at EQUAL precedence does NOT pop — the `c != "!"` below — which is
-          // its right-associativity, and what makes `!!a` parse instead of
-          // emitting a `!` with no operand under it.
-          let higher = if _prec.at(top) > _prec.at(c) {
-            true
-          } else if _prec.at(top) == _prec.at(c) and c != "!" { true } else { false }
-          if higher { out.push(("op", stack.pop())) } else { go = false }
-        }
-      }
-      stack.push(c)
+      atom-escaped = false
+      (out, stack) = _push-op(out, stack, c)
+    } else if c == "-" and not split and atom-field == "" {
+      // A `-` that OPENS an atom — nothing accumulated yet, so it cannot be
+      // the hyphen inside a word like `in-progress` — spells `!`:
+      // `-tags:draft` is `!tags:draft`, `window -depth` is `window & !depth`.
+      after-close = false
+      (out, stack) = _push-op(out, stack, "!")
     } else {
       after-close = false
       if split { atom-value += c } else { atom-field += c }
@@ -219,7 +284,12 @@
   if split {
     out.push(("atom", _fold(atom-field), _fold(atom-value)))
   } else if atom-field != "" {
-    out.push(("atom", "", _fold(atom-field)))
+    let kw = _kw-op(atom-field, atom-escaped)
+    if kw == none {
+      out.push(("atom", "", _fold(atom-field)))
+    } else {
+      (out, stack) = _push-op(out, stack, kw)
+    }
   }
   while stack.len() > 0 {
     let top = stack.pop()

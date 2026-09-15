@@ -8,7 +8,7 @@ labels:
 - search-clause-roles
 deps:
 - blocked-by:rk-make-the-whole-query-one-clause-tree-6f7c3949
-closed: false
+closed: true
 ---
 Accept `AND`, `OR`, `NOT` and a leading `-` as spellings of `&`, `|` and `!`, so
 the query language matches the syntax readers already know from other search
