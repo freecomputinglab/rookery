@@ -64,37 +64,6 @@ export function movedEnough(startPointer, pointer, threshold = DRAG_THRESHOLD) {
   );
 }
 
-// The dragged position is the drag's start position plus the pointer's
-// delta since `pointerdown` — never the raw pointer position, which would
-// snap the card's top-left corner under the cursor the instant a drag
-// begins. `makeDraggable` computes a group's delta through `clampGroupDelta`
-// instead, but the single-card arithmetic here is still unit-tested on its
-// own.
-export function offsetPosition(start, startPointer, pointer) {
-  return {
-    x: start.x + (pointer.x - startPointer.x),
-    y: start.y + (pointer.y - startPointer.y),
-  };
-}
-
-// Clamps a card's position to the board's own coordinate space. `x` is
-// held inside the board's width — the board is as wide as the page column
-// and a card past its right edge would give the whole page a horizontal
-// scrollbar. `y` has a floor and NO ceiling: a drag downward is how a
-// reader makes the board taller, and `src/pinboard.js`'s `growBoardFor`
-// raises `--pinboard-height` to whatever the drag reaches. Hence the third
-// argument's height field is not read here. `makeDraggable` clamps a group's
-// delta through `clampGroupDelta` instead of clamping each card through
-// this, but a single card's clamp is still the one `readPosition` documents
-// and is still unit-tested on its own.
-export function clampPosition(pos, size, boardSize) {
-  const maxX = Math.max(0, boardSize.width - size.width);
-  return {
-    x: Math.min(Math.max(0, pos.x), maxX),
-    y: Math.max(0, pos.y),
-  };
-}
-
 // Narrows a drag's delta until every card in the group stays inside the
 // board, rather than clamping each card on its own — an independent clamp
 // deforms the group the moment one member reaches an edge, and the whole
@@ -102,11 +71,13 @@ export function clampPosition(pos, size, boardSize) {
 // from each card is gathered first and the delta clamped once at the end:
 // clamping card by card lets a later card's bound undo an earlier card's,
 // so the result would depend on the order the cards happen to arrive in.
-// Only `dx` has an upper bound: the board's height follows a downward drag
-// (see `clampPosition`). A group wider than the board can leave its left
-// and right bounds unsatisfiable together; the left bound wins, since a
-// card pushed to a negative `x` cannot be dragged back (the board does not
-// scroll leftward), while one left past the right edge is still draggable.
+// Only `dx` has an upper bound: `dy` has a floor and no ceiling, because a
+// drag downward is how the board is made taller, and `src/pinboard.js`'s
+// `growBoardFor` raises `--pinboard-height` to follow it. A group wider than
+// the board can leave its left and right bounds unsatisfiable together; the
+// left bound wins, since a card pushed to a negative `x` cannot be dragged
+// back (the board does not scroll leftward), while one left past the right
+// edge is still draggable.
 export function clampGroupDelta(items, delta, boardWidth) {
   let minDx = -Infinity;
   let maxDx = Infinity;

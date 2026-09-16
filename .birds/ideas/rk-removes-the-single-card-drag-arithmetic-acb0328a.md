@@ -7,7 +7,7 @@ labels:
 - chore-pinboard-drop-single-card-clamp
 deps:
 - blocked-by:rk-clamps-a-group-drag-against-every-card-d9c278df
-closed: false
+closed: true
 ---
 `offsetPosition` and `clampPosition` in `pinboard/0.1.0/src/drag.js` have no
 caller left. The drag path computes one delta for the whole selection through
