@@ -4,10 +4,12 @@
 // the store has nothing for with the board's chosen layout from
 // `src/layout.js`, and wires the summary-row drag from `src/drag.js` and the
 // card's own disclosure from `src/collapse.js` to persist through the same
-// store on change. Position rides on the `--pin-x`/`--pin-y` custom
-// properties for `src/pinboard.css` to place a card with, and not
-// `style.left`/`style.top`, so the store, the layouts and the drag all go
-// through the same pair.
+// store on change. The marquee selection from `src/select.js` is wired
+// alongside them and persists nothing: a selection is a gesture in progress,
+// not part of a board's arrangement. Position rides on the
+// `--pin-x`/`--pin-y` custom properties for `src/pinboard.css` to place a
+// card with, and not `style.left`/`style.top`, so the store, the layouts and
+// the drag all go through the same pair.
 //
 // Restoring the store happens synchronously, before a card is ever painted
 // with a computed position — under `rheo watch`, a rebuild reloads the whole
@@ -21,6 +23,7 @@
 import { flowPositions, stackPositions } from "./layout.js";
 import { makeDraggable, readPosition, writePosition } from "./drag.js";
 import { makeCollapsible, isCollapsed, setCollapsed } from "./collapse.js";
+import { makeSelectable } from "./select.js";
 import { loadBoard, saveCard } from "./store.js";
 
 // Recomputes `--pinboard-height` (read by `src/pinboard.css`) from every
@@ -124,6 +127,7 @@ function layOutBoard(board) {
   sizeBoard(board);
   makeDraggable(board, { onChange: persist, onMove: (card) => growBoardFor(board, card) });
   makeCollapsible(board, { onChange: persist });
+  makeSelectable(board);
 }
 
 function init() {

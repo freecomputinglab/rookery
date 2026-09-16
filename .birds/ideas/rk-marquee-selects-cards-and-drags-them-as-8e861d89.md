@@ -7,7 +7,7 @@ labels:
 - feat-pinboard-marquee-select
 deps:
 - blocked-by:rk-lets-a-drag-extend-the-board-downward-23eac6b6
-closed: false
+closed: true
 ---
 A pinboard can only be rearranged one card at a time. Moving a cluster of
 related notes means dragging each of them and eyeballing the spacing. This

@@ -16,5 +16,5 @@ js_scripts = "dist/lib.js"
 css_stylesheet = "src/pinboard.css"
 
 [tool.rheo.source.html]
-js_scripts = ["src/store.js", "src/layout.js", "src/drag.js", "src/collapse.js", "src/pinboard.js"]
+js_scripts = ["src/store.js", "src/layout.js", "src/select.js", "src/drag.js", "src/collapse.js", "src/pinboard.js"]
 js_module = true

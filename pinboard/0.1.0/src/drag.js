@@ -9,7 +9,10 @@
 // `#window`). Two gestures on one row, told apart by distance: a press that
 // stays inside `DRAG_THRESHOLD` is a click and must reach the `<summary>`
 // under it, anything further is a drag and the click it ends with is
-// suppressed. Hence the two rules below that read as omissions:
+// suppressed. A press on a SELECTED card (`src/select.js`'s `data-selected`)
+// drags every selected card together, preserving their relative offsets; a
+// press on an unselected one drops the selection first and drags that card
+// alone. Hence the two rules below that read as omissions:
 //
 //   - NO `preventDefault` on `pointerdown`. It is the ordinary way to stop a
 //     drag becoming a text selection, and it also costs the disclosure its
@@ -30,6 +33,8 @@
 // `opts.onMove`, unlike `onChange`, IS called on every `pointermove` of a
 // real drag, so the board's height can follow a card dragged past its
 // bottom edge — it must stay cheap and must not write to storage.
+
+import { selectedCards, isSelected, clearSelection } from "./select.js";
 
 const HANDLE = '[data-rookery="window-summary"]';
 
@@ -62,7 +67,9 @@ export function movedEnough(startPointer, pointer, threshold = DRAG_THRESHOLD) {
 // The dragged position is the drag's start position plus the pointer's
 // delta since `pointerdown` — never the raw pointer position, which would
 // snap the card's top-left corner under the cursor the instant a drag
-// begins.
+// begins. `makeDraggable` computes a group's delta through `clampGroupDelta`
+// instead, but the single-card arithmetic here is still unit-tested on its
+// own.
 export function offsetPosition(start, startPointer, pointer) {
   return {
     x: start.x + (pointer.x - startPointer.x),
@@ -76,13 +83,33 @@ export function offsetPosition(start, startPointer, pointer) {
 // scrollbar. `y` has a floor and NO ceiling: a drag downward is how a
 // reader makes the board taller, and `src/pinboard.js`'s `growBoardFor`
 // raises `--pinboard-height` to whatever the drag reaches. Hence the third
-// argument's height field is not read here.
+// argument's height field is not read here. `makeDraggable` clamps a group's
+// delta through `clampGroupDelta` instead of clamping each card through
+// this, but a single card's clamp is still the one `readPosition` documents
+// and is still unit-tested on its own.
 export function clampPosition(pos, size, boardSize) {
   const maxX = Math.max(0, boardSize.width - size.width);
   return {
     x: Math.min(Math.max(0, pos.x), maxX),
     y: Math.max(0, pos.y),
   };
+}
+
+// Narrows a drag's delta until every card in the group stays inside the
+// board, rather than clamping each card on its own — an independent clamp
+// deforms the group the moment one member reaches an edge, and the whole
+// point of a group drag is that the arrangement travels intact. Only `dx`
+// has an upper bound: the board's height follows a downward drag (see
+// `clampPosition`).
+export function clampGroupDelta(items, delta, boardWidth) {
+  let dx = delta.x;
+  let dy = delta.y;
+  for (const item of items) {
+    dx = Math.max(dx, -item.x);
+    dx = Math.min(dx, boardWidth - item.width - item.x);
+    dy = Math.max(dy, -item.y);
+  }
+  return { x: dx, y: dy };
 }
 
 export function makeDraggable(board, opts = {}) {
@@ -121,10 +148,21 @@ export function makeDraggable(board, opts = {}) {
     const card = handle.closest(".pinboard-card");
     if (!card) return;
 
+    // A press on a selected card moves the whole selection; a press on an
+    // unselected one is the "click anywhere that is not a selected handle"
+    // that drops the selection, and then drags that card alone.
+    let cards;
+    if (isSelected(card)) {
+      cards = selectedCards(board);
+    } else {
+      clearSelection(board);
+      cards = [card];
+    }
+
     clearSuppressor();
     drag = {
-      card,
-      start: readPosition(card),
+      cards,
+      starts: cards.map((c) => readPosition(c)),
       startPointer: { x: event.clientX, y: event.clientY },
       pointerId: event.pointerId,
       moved: false,
@@ -132,40 +170,46 @@ export function makeDraggable(board, opts = {}) {
     // Raised on the press rather than on the drag: a card the reader is
     // reading belongs in front of the ones it overlaps, whether or not they
     // go on to move it.
-    card.style.zIndex = String(++topZ);
+    for (const c of cards) c.style.zIndex = String(++topZ);
   });
 
   board.addEventListener("pointermove", (event) => {
     if (!drag) return;
     const pointer = { x: event.clientX, y: event.clientY };
-    const { card, start, startPointer } = drag;
+    const { cards, starts, startPointer } = drag;
     if (!drag.moved) {
       if (!movedEnough(startPointer, pointer)) return;
       drag.moved = true;
-      card.dataset.dragging = "";
+      for (const c of cards) c.dataset.dragging = "";
       // From here the gesture is a drag, and capture keeps it on the board
-      // even when the pointer outruns the card.
+      // even when the pointer outruns the cards.
       board.setPointerCapture(event.pointerId);
     }
-    const next = offsetPosition(start, startPointer, pointer);
-    const clamped = clampPosition(
-      next,
-      { width: card.offsetWidth, height: card.offsetHeight },
-      { width: board.scrollWidth, height: board.scrollHeight },
+    const items = cards.map((c, i) => ({
+      x: starts[i].x,
+      y: starts[i].y,
+      width: c.offsetWidth,
+    }));
+    const delta = clampGroupDelta(
+      items,
+      { x: pointer.x - startPointer.x, y: pointer.y - startPointer.y },
+      board.scrollWidth,
     );
-    writePosition(card, clamped.x, clamped.y);
-    opts.onMove?.(card);
+    cards.forEach((c, i) => {
+      writePosition(c, starts[i].x + delta.x, starts[i].y + delta.y);
+      opts.onMove?.(c);
+    });
   });
 
   function endDrag() {
     if (!drag) return;
-    const { card, moved, pointerId } = drag;
+    const { cards, moved, pointerId } = drag;
     drag = null;
     if (!moved) return;
-    delete card.dataset.dragging;
+    for (const c of cards) delete c.dataset.dragging;
     if (board.hasPointerCapture(pointerId)) board.releasePointerCapture(pointerId);
     suppressNextClick();
-    opts.onChange?.(card);
+    for (const c of cards) opts.onChange?.(c);
   }
 
   // `pointercancel` fires when the browser takes the gesture over — a touch

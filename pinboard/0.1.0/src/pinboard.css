@@ -86,3 +86,27 @@
   max-height: 200px;
   overflow: auto;
 }
+
+/* A selected card is marked for the group drag a press on it will start.
+   A ring rather than a fill: a card is transparent by default so the
+   board's own ground shows through it, and a tint here would be the
+   second ground the card deliberately does not have. */
+.pinboard-card[data-selected] {
+  outline: 2px solid var(--pinboard-select, currentColor);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* The rubber band, appended to the board by `src/select.js` for the
+   duration of a marquee drag and positioned in the board's own
+   coordinate space — the same space the cards' `--pin-x`/`--pin-y` are
+   in, since `.pinboard` is the positioned ancestor of both. Under the
+   cards, and transparent to the pointer, so it never takes an event
+   from the gesture drawing it. */
+.pinboard-marquee {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  border: 1px dashed var(--pinboard-select, currentColor);
+  background: color-mix(in srgb, var(--pinboard-select, currentColor) 8%, transparent);
+}
