@@ -17,25 +17,16 @@
 #import "@rookery/timeline:0.1.0": deadline-of, scheduled-of
 #import "@rookery/todos:0.1.0": priority-of, priority-rung
 
-// The reference date, same fallback chain `#cfp` itself uses (`cfp.typ`'s own
-// `_resolve-today`, private to that module and so re-derived here rather than
-// imported): the explicit `today:` argument, then the document's own
-// `#set document(date:)`, then a panic — there being no wall clock inside Typst.
+// The reference date is always an explicit `today:` argument (a private copy of
+// `cfp.typ`'s own `_resolve-today` — Typst has no wall clock, so there is nothing
+// to fall back to).
 #let _resolve-today(today) = {
-  if today != none {
-    assert(
-      type(today) == datetime,
-      message: "@rookery/cfps: `today` must be a datetime — got " + repr(today),
-    )
-    return today
-  }
-  let d = document.date
-  if d != auto and d != none { return d }
-  panic(
-    "@rookery/cfps: #panel needs a reference date and there is none. Pass one "
-      + "explicitly — `today: datetime(year: 2026, month: 8, day: 25)` — or set "
-      + "the document's own date with `#set document(date: ..)`.",
+  assert(
+    type(today) == datetime,
+    message: "@rookery/cfps: #panel needs a reference date — pass one explicitly, "
+      + "e.g. `today: datetime(year: 2026, month: 8, day: 25)`. Got " + repr(today),
   )
+  today
 }
 
 // `tags:` narrows a panel to whatever grouping the CALLER's site wants (a cycle, a

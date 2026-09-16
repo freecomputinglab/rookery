@@ -6,38 +6,20 @@
 
 #import "read.typ": *
 
-// The reference date, most specific first: the explicit `today:` argument, then
-// the document's own `#set document(date:)`, then a panic.
-//
-// MEASURED, and the reason this is a function rather than an inline `or`: a
-// document with NO date set yields `auto`, NOT `none`. Testing only for `none`
-// would let `auto` through into `.display()` and fail somewhere unrecognisable.
-// @rookery/core's `#idea` carries the same note for the same reason.
-//
-// Reading `document.date` requires context, so a caller resolving the fallback
-// must be inside a `#context` block — which every caller of these predicates
-// already is, since they are reading a rookery registry to get the tags.
-//
-// THE PANIC IS DELIBERATE. Defaulting to some arbitrary date would make
-// "overdue" a silent lie, which is precisely the failure mode `datetime.today()`
-// already offers and this package exists to refuse.
+// The reference date is always an explicit `today:` argument — there is nothing
+// else to resolve it from. THE PANIC IS DELIBERATE: defaulting to some arbitrary
+// date would make "overdue" a silent lie, which is precisely the failure mode
+// `datetime.today()` already offers and this package exists to refuse.
 #let _today(today) = {
-  if today != none {
-    assert(
-      type(today) == datetime,
-      message: "@rookery/timeline: `today` must be a datetime — got " + repr(today),
-    )
-    return today
-  }
-  let d = document.date
-  if d != auto and d != none { return d }
-  panic(
-    "@rookery/timeline: this view needs a reference date and there is none. "
-      + "Typst has no wall clock — `datetime.today()` returns 1980-01-01 under a "
-      + "reproducible build — so pass one explicitly, e.g. "
-      + "`today: datetime(year: 2026, month: 8, day: 25)`, or set the document's "
-      + "own date with `#set document(date: ..)`.",
+  assert(
+    type(today) == datetime,
+    message: "@rookery/timeline: this view needs a reference date — pass one "
+      + "explicitly, e.g. `today: datetime(year: 2026, month: 8, day: 25)`. "
+      + "Typst has no wall clock (`datetime.today()` returns 1980-01-01 under a "
+      + "reproducible build), so there is nothing to fall back to. Got "
+      + repr(today),
   )
+  today
 }
 
 // Has a deadline, and it is STRICTLY BEFORE the reference date. A deadline

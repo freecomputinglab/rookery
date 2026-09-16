@@ -639,13 +639,8 @@ ONE ROW PER NOTE across a whole corpus, ordered by what is coming next.
 Three columns: when, the note's name, and the stage it is CURRENTLY at. Every row
 links to the note.
 
-**`today:` is required here**, and this is the one place in the package where it is.
-The predicates in `when.typ` fall back to the document's own `#set document(date:)`
-before they panic; these two views do not, and assert on the argument instead. A
-predicate answers a question you asked, but a queue asserts an ordering, a window and
-a set of stage badges — all of which read as facts about the reader's today. A
-document date set once and then forgotten makes every one of them quietly wrong
-rather than visibly absent, and Typst has no wall clock to check them against (see
+**`today:` is required here**, as it is everywhere in this package — one rule, no
+exceptions. Typst has no wall clock to check these dates against (see
 [Every date is author-supplied](#every-date-is-author-supplied-and-here-is-why)).
 
 ### The arguments
@@ -898,12 +893,11 @@ So:
 
 - Nothing here is auto-stamped. You write the dates.
 - **No function in this package calls `datetime.today()`**, and none should.
-- Every predicate takes an explicit `today:`. With none given it falls back to
-  the document's own `#set document(date: ..)` — and MEASURED, a document with
-  no date yields `auto`, not `none`, so that case is tested for explicitly.
-- With neither available it **panics**, naming the problem and both fixes.
-  Defaulting to some arbitrary date would make "overdue" a silent lie, which is
-  the failure mode this whole section exists to refuse.
+- Every function that takes a reference date requires `today:` explicitly —
+  there is no fallback to the document's own date.
+- Omitting it **panics**, naming the problem and the one fix. Defaulting to
+  some arbitrary date would make "overdue" a silent lie, which is the failure
+  mode this whole section exists to refuse.
 
 If you generate notes programmatically, have the generator take `today()` from
 its own environment and write the resulting literal into the `.typ`.

@@ -172,6 +172,12 @@ cell by how many days remain, the same three-week band `@rookery/todos`'
 `#todo-table` reads. On a paged target the same rows draw as a plain list —
 there is no grid to align there.
 
+### Every `today:` is explicit
+
+Every function here that needs a reference date takes it as `today:`. There is
+no fallback to the document's own date — a call that omits it panics, naming
+the problem.
+
 ## The four states, and why they are net of the reserved stages
 
 `cfp-state(tags, ladder:, today:)` returns one of `"watching"` (nothing

@@ -81,25 +81,16 @@
   })
 }
 
-// The reference date, most specific first: the explicit `today:` argument, then
-// the document's own `#set document(date:)`, then a panic — the exact fallback
-// pattern @rookery/timeline's own `when.typ` uses. `document.date` yields `auto`
-// on a document with no date set, not `none`, so both are tested for.
+// The reference date is always an explicit `today:` argument — Typst has no wall
+// clock to fall back to.
 #let _resolve-today(today) = {
-  if today != none {
-    assert(
-      type(today) == datetime,
-      message: "@rookery/cfps: `today` must be a datetime — got " + repr(today),
-    )
-    return today
-  }
-  let d = document.date
-  if d != auto and d != none { return d }
-  panic(
-    "@rookery/cfps: #cfp needs a reference date and there is none. Typst has no "
-      + "wall clock, so pass one explicitly — `today: datetime(year: 2026, month: 8, "
-      + "day: 25)` — or set the document's own date with `#set document(date: ..)`.",
+  assert(
+    type(today) == datetime,
+    message: "@rookery/cfps: #cfp needs a reference date — pass one explicitly, "
+      + "e.g. `today: datetime(year: 2026, month: 8, day: 25)`. Typst has no wall "
+      + "clock, so there is nothing to fall back to. Got " + repr(today),
   )
+  today
 }
 
 // ---- `kinds:` validation ------------------------------------------------------

@@ -6,7 +6,7 @@ priority: 1
 labels:
 - chore-explicit-today
 deps: []
-closed: false
+closed: true
 ---
 Every function that needs a reference date takes one explicitly. The fallback to
 the document's own `#set document(date:)` is removed from `@rookery/timeline` and
