@@ -276,13 +276,7 @@ try {
     assert.deepEqual(afterBody, beforeBody, "a press on the card body moved the card");
 
     // Closes interview again: case 6 below persists the closed round trip
-    // (`collapsed: true`), which `src/pinboard.js` restores explicitly. An
-    // OPEN card's stored `collapsed: false` is written by the same `persist`
-    // call but never read back — `layOutBoard` only ever calls
-    // `setCollapsed(card, true)`, never `setCollapsed(card, false)` — so a
-    // card left open here would silently render closed again after a
-    // reload. That is a real gap in `src/pinboard.js`, not something this
-    // suite's job is to paper over by asserting it away.
+    // (`collapsed: true`); case 8 persists the open round trip instead.
     await interview.locator(TITLE).click();
     assert.equal(await isOpen(interview), false, "closing the title did not close the card again");
 
@@ -385,6 +379,25 @@ try {
       unplacedKeys.add(key);
     }
     assert.equal(seedPage.errors.length, 0, `page recorded errors placing an unseen card: ${seedPage.errors}`);
+
+    // Case 8: an OPEN card's disclosure survives a reload too, not just a
+    // closed one — the gap Case 6's comment above flags. `counterargument`
+    // has never been dragged or toggled, so its stored entry (if any) is
+    // whatever `persist()` last wrote for it; open it here, reload, and
+    // confirm `layOutBoard` restores the open state rather than defaulting
+    // it back to `#pinboard`'s `folded: true`.
+    const reopenPage = await newPage();
+    await reopenPage.goto(`${origin}/index.html`);
+    const counterargumentCard = cardLocator(reopenPage, "idea:counterargument");
+    await counterargumentCard.locator(TITLE).click();
+    assert.equal(await isOpen(counterargumentCard), true, "clicking the title did not open counterargument");
+    await reopenPage.reload();
+    assert.equal(
+      await isOpen(cardLocator(reopenPage, "idea:counterargument")),
+      true,
+      "an open card's disclosure did not survive a reload",
+    );
+    assert.equal(reopenPage.errors.length, 0, `page recorded errors reopening a card: ${reopenPage.errors}`);
   });
 } finally {
   await close();

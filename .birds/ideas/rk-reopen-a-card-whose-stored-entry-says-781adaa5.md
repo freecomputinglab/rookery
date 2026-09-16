@@ -6,7 +6,7 @@ priority: 2
 labels:
 - fix-pinboard-restore
 deps: []
-closed: false
+closed: true
 ---
 Touches: pinboard/0.1.0/src/pinboard.js, pinboard/0.1.0/test/browser/board.mjs
 

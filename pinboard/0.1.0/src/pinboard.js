@@ -73,7 +73,7 @@ function layOutBoard(board) {
       continue;
     }
     writePosition(card, entry.x, entry.y);
-    if (entry.collapsed) setCollapsed(card, true);
+    setCollapsed(card, entry.collapsed);
     const bottom = entry.y + card.getBoundingClientRect().height;
     if (bottom > restoredBottom) restoredBottom = bottom;
   }
