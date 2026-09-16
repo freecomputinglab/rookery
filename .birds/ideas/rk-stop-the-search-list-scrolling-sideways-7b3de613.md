@@ -6,7 +6,7 @@ priority: 3
 labels:
 - fix-search-list-overflow
 deps: []
-closed: false
+closed: true
 ---
 Touches: search/0.1.0/src/search.css, search/0.1.0/test/browser/modal.mjs
 

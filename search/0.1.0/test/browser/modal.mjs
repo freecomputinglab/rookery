@@ -56,6 +56,17 @@ try {
     await rows.first().waitFor();
     assert.ok((await rows.count()) > 0, `query "${word}", drawn from the corpus's own first row, produced no rows`);
 
+    // A long title, id or tag must wrap or break inside the list pane rather
+    // than push it wide — regression guard for the pane's overflow-x rule.
+    // The built demo's own fixtures may be short enough that this never
+    // failed before that rule existed; it still stands guard against a
+    // future row wide enough to trigger it.
+    const listOverflows = await dialog.evaluate((d) => {
+      const list = d.querySelector(".rookery-search-list");
+      return list.scrollWidth > list.clientWidth;
+    });
+    assert.equal(listOverflows, false, "the search list pane scrolls horizontally");
+
     // A non-empty query is load-bearing here: a focused `type="search"` input
     // with a value consumes the first Escape for its own clear action before
     // it reaches the dialog's cancel algorithm, which is why `modal.js`
