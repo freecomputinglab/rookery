@@ -495,7 +495,8 @@
 
   /* THE LOADING INDICATOR. `data-rookery-search-loading` is set on the pane for
      as long as the selected note's minted page is being fetched — see the comment
-     beside it in search.js. The pane is EMPTY while it spins: the excerpt
+     beside it in search.js — and, in the modal, for as long as the search index
+     itself is still being fetched — see modal.js's `render`. The pane is EMPTY while it spins: the excerpt
      no longer renders up front, so the fetched rendering is the first text the
      pane shows and this is the only thing in it until then.
 

@@ -6,7 +6,7 @@ priority: 3
 labels:
 - fix-search-modal-pending-state
 deps: []
-closed: false
+closed: true
 ---
 Touches: search/0.1.0/src/modal.js, search/0.1.0/src/search.js, search/0.1.0/src/search.css, search/0.1.0/test/browser/modal.mjs
 

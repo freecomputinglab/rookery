@@ -119,6 +119,41 @@ try {
       warnings.some((w) => w.includes("@rookery/search")),
       `no console warning named @rookery/search; got ${JSON.stringify(warnings)}`,
     );
+
+    // Case 6: the index fetch is merely SLOW, not failed. Opened while it is
+    // still in flight, the dialog must say it is loading, not that nothing
+    // matched — the pending state this bird distinguishes from the loaded
+    // one above and the failed one in case 5.
+    const slowPage = await newPage();
+    await slowPage.route(`${origin}/${indexSrc}`, async (route) => {
+      await new Promise((r) => setTimeout(r, 3000));
+      await route.continue();
+    });
+    await slowPage.goto(`${origin}/index.html`);
+    await slowPage.click(".rookery-search-trigger");
+    const slowDialog = slowPage.locator(DIALOG);
+    assert.equal(await slowDialog.evaluate((d) => d.open), true, "a slow index left the trigger inert");
+    const slowPreview = slowDialog.locator(".rookery-search-preview");
+    await slowPreview.filter({ hasText: "Loading search index" }).waitFor({ timeout: 2_000 });
+    assert.equal(
+      await slowPreview.evaluate((p) => p.textContent.includes("No match found")),
+      false,
+      "the pending preview reads \"No match found\" before the index has arrived",
+    );
+    assert.equal(
+      await slowPreview.evaluate((p) => "rookerySearchLoading" in p.dataset),
+      true,
+      "the pending preview carries no data-rookery-search-loading attribute",
+    );
+    const slowRows = slowDialog.locator(".rookery-search-list .rookery-search-row");
+    await slowRows.first().waitFor({ timeout: 10_000 });
+    assert.ok((await slowRows.count()) > 0, "the index landed but the modal shows no rows");
+    assert.equal(
+      await slowPreview.evaluate((p) => "rookerySearchLoading" in p.dataset),
+      false,
+      "data-rookery-search-loading survives the index landing",
+    );
+    assert.equal(slowPage.errors.length, 0, `page recorded errors: ${slowPage.errors}`);
   });
 } finally {
   await close();

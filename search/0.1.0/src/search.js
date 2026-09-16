@@ -95,11 +95,12 @@ export const init = async () => {
   // WIRED BEFORE THE INDEX IS FETCHED, and that ordering is the whole point:
   // a trigger registered after an `await` is a dead button whenever the fetch
   // fails, with nothing on screen and nothing in the console to say so. A modal
-  // with no rows opens and says it has none; `setRows` below fills it in.
+  // opened before the index lands reports that it is still loading; `setRows`
+  // below fills it in.
   const modals = new Map();
   for (const dialog of dialogs) {
     const elemId = dialog.dataset.rookerySearch || "rookery-search-index";
-    const modal = wireModal(dialog, []);
+    const modal = wireModal(dialog);
     if (modal !== null) modals.set(elemId, modal);
   }
   if (modals.size > 0) {

@@ -25,7 +25,10 @@ export const wireModal = (dialog, rows) => {
   // index has loaded so its trigger is live on first paint, then hands the
   // rows over when they land — or hands over `null` when they never will.
   let corpus = Array.isArray(rows) ? rows : [];
-  let loaded = Array.isArray(rows);
+  // Three states, not two: rows have not arrived YET (the modal was wired
+  // before the fetch, so its trigger is live on first paint), rows arrived, or
+  // rows are never coming. Pending and loaded-but-empty need different words.
+  let status = Array.isArray(rows) ? "loaded" : rows === undefined ? "pending" : "failed";
 
   let hits = [];
   // Bumped by every `renderPreview`, so a `fetch` that lands after the reader
@@ -162,9 +165,13 @@ export const wireModal = (dialog, rows) => {
       delete preview.dataset.rookerySearchLoading;
       const empty = document.createElement("p");
       empty.className = "rookery-search-preview-empty";
-      empty.textContent = loaded
-        ? "No match found"
-        : "Search index unavailable — reload the page, or check the browser console.";
+      empty.textContent =
+        status === "pending"
+          ? "Loading search index…"
+          : status === "loaded"
+            ? "No match found"
+            : "Search index unavailable — reload the page, or check the browser console.";
+      if (status === "pending") preview.dataset.rookerySearchLoading = "true";
       preview.replaceChildren(empty);
       return;
     }
@@ -224,8 +231,8 @@ export const wireModal = (dialog, rows) => {
     // Called once by `search.js` when the index settles. `null` means it never
     // will, which is what the empty-state message above reads.
     setRows: (next) => {
-      loaded = Array.isArray(next);
-      corpus = loaded ? next : [];
+      status = Array.isArray(next) ? "loaded" : "failed";
+      corpus = status === "loaded" ? next : [];
       if (dialog.open) render();
     },
   };
