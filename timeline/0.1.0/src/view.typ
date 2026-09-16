@@ -113,9 +113,9 @@
   let shares-day(i) = {
     let d = dated.at(i).timestamp
     if not _has-time(d) { return false }
-    let day = d.display("[year][month][day]")
+    let day = _day-of(d)
     let others = dated.enumerate().filter(((idx, _)) => idx != i).map(((_, e)) => e.timestamp)
-    others.any(o => o.display("[year][month][day]") == day)
+    others.any(o => _day-of(o) == day)
   }
 
   if target() != "html" {
