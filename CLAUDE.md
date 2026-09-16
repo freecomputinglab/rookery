@@ -5,13 +5,14 @@ interlinked, transcludable notes (`core`), fuzzy search over them (`search`),
 a dated lifecycle log (`timeline`), todos/epics/a dependency DAG (`todos`),
 dated meeting notes (`meetings`), a BibTeX reader and `#citation` note
 constructor (`bibtex`), an endlessly scrolling presentation over notes
-(`slipshow`), and a board of draggable cards for arranging notes by hand
-(`pinboard`). Each package lives in `<name>/<version>/` (e.g. `search/0.1.0/`)
+(`slipshow`), a board of draggable cards for arranging notes by hand
+(`pinboard`), and venues with their calls and deadlines (`cfps`). Each package
+lives in `<name>/<version>/` (e.g. `search/0.1.0/`)
 and mirrors the same layout: `typst.toml`, `src/`, and a `Justfile`, plus a
 `flake.nix` where the package pins a toolchain of its own (`search` for
 node/pnpm, `slipshow` likewise). Four of them (`search`, `todos`, `slipshow`,
 `pinboard`) also ship JS via `package.json`/vite — see "Pure-Typst packages"
-below for the four that don't.
+below for the five that don't.
 
 This repo was split out of `rheo-packages` (`freecomputinglab/rheo-packages`)
 on 2026-08-30, once `@rookery` needed a repository URL of its own to resolve
@@ -34,8 +35,8 @@ one thing every consuming site hand-rolls. `#todos-search` still reaches for
 nothing in `search` — see that package's `search.typ` for which half of the
 old rule still holds.
 
-Those two edges are not the whole graph. Every package imports `core`, and two
-also import `timeline`:
+Those two edges are not the whole graph. Every package imports `core`, and
+three also import `timeline`:
 
 ```
 core      -> nothing
@@ -46,6 +47,7 @@ timeline  -> core
 meetings  -> core, timeline
 todos     -> core, timeline, search, slipshow
 pinboard  -> core
+cfps      -> core, timeline, todos
 ```
 
 `timeline` is `todos`'s heaviest edge — six files import it:
@@ -54,6 +56,12 @@ pinboard  -> core
 Its `slipshow` edge is one file, `src/deck.typ:27`, and its `search` edge is
 the one file described above, `src/table.typ:30`. `meetings`'s `timeline` edge
 is `src/lib.typ:22`.
+
+`cfps` is the only package importing `todos`, and it does so because a cfp IS a
+todo: `#cfp` mints through `todo(..)` rather than hand-rolling a closing flag,
+so closedness, priority and the dated log all come from the packages that
+already define them. Both of its source files carry all three edges —
+`src/cfp.typ:31-33` and `src/panel.typ:16-18`.
 
 ## Build
 
@@ -124,8 +132,8 @@ entry first rather than trying to overwrite it, then confirm with `jj status`
 that nothing landed in the tree.
 
 Then `just build` the package (skip this for `core`/`timeline`/`meetings`/
-`bibtex`, the four dist-less pure-Typst packages — see "Pure-Typst packages"
-below) and `rheo
+`bibtex`/`cfps`, the five dist-less pure-Typst packages — see "Pure-Typst
+packages" below) and `rheo
 compile` a test project that imports it. No per-package devShell needed
 either for most work: this repo's own root `flake.nix`/`.envrc` provide
 `just` and `typst`, and direnv finds them by walking up from anywhere under
@@ -226,13 +234,13 @@ rheo" (A) or "works standalone, rheo optionally enhances it" (B).
 
 ## Pure-Typst packages
 
-`core`, `timeline`, `meetings` and `bibtex` are pure Typst (+ CSS) — no
+`core`, `timeline`, `meetings`, `bibtex` and `cfps` are pure Typst (+ CSS) — no
 `package.json`, no `pnpm-lock.yaml`, no build step at all: `typst.toml`'s
 `entrypoint` and `css_stylesheet` point straight at `src/` — editing `src/`
 takes effect immediately, nothing to rebuild or forget to re-run.
 
-`search`, `todos` and `slipshow` are ORDINARY built packages — `package.json`
-+ vite. `search` shares core's name-space and hard-imports it, and is
+`search`, `todos`, `slipshow` and `pinboard` are ORDINARY built packages —
+`package.json` + vite. `search` shares core's name-space and hard-imports it, and is
 nonetheless built because search is only worth having with JavaScript; core
 ships none. Splitting kept that true instead of trading it away.
 
@@ -253,8 +261,8 @@ own; only the optimized bundle is genuinely missing outside a release.
 `package.json` present means `pnpm install && pnpm run build`; its absence
 means no build step at all. The release archive step tars `src/` always, and
 ADDS `dist/` on top of it when the build produced one — so
-`core`/`timeline`/`meetings`/`bibtex` ship their `src/` directly, and
-`search`/`todos`/`slipshow` ship both `src/`
+`core`/`timeline`/`meetings`/`bibtex`/`cfps` ship their `src/` directly, and
+`search`/`todos`/`slipshow`/`pinboard` ship both `src/`
 (entrypoint, stylesheet, source-mode scripts) and `dist/` (the optimized JS
 bundle).
 
