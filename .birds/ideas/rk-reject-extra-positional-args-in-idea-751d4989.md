@@ -6,7 +6,7 @@ priority: 2
 labels:
 - fix-idea-positional-args
 deps: []
-closed: false
+closed: true
 ---
 `#idea` accepts any number of positional arguments and silently uses only the
 first two. Everything from the third onwards is discarded with no error and no

@@ -73,6 +73,19 @@
 #assert.eq(_join(()), "")
 #assert.eq(_join(("a", "b")), "ab")
 
+// ---- #idea — the two legal positional shapes still compile -----------------
+// A name-carrying positional plus a body, and a bare body, are the two shapes
+// `#idea`'s own guard (idea.typ) allows through. A third positional is
+// rejected there and cannot be pinned here as a regression, since Typst has
+// no way to catch a panic from inside a document — the negative case is a
+// manual VERIFY instead. Reaching the guard without it firing is the whole
+// assertion: a wrong bound there fails this compile just as loudly as a real
+// three-positional call would.
+#context {
+  let _named = idea(<idea-units-legal-named>, title: [Some Title])[body text]
+  let _bare = idea[body text]
+}
+
 // ---- _plain — a `raw` span must contribute its text, not a hole ------------
 // MEASURED defect: "The  marker" (two spaces) where `raw` fell through to "".
 #assert.eq(_plain(none), "")

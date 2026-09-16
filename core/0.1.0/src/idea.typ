@@ -55,6 +55,17 @@
   _assert-tags(tags, "#idea's")
   let tags = _norm-tags(tags)
   let pos = args.pos()
+  // Variadic, not a plain positional: a positional parameter cannot carry a
+  // default in Typst, and `#idea[body]` has to be callable with no name at
+  // all. `#window` and `#hyperlink` take the same shape for the same reason.
+  assert(
+    pos.len() >= 1 and pos.len() <= 2,
+    message: "@rookery/core: #idea takes a body, optionally preceded by a "
+      + "name — #idea(<x>, title: [T])[body], not #idea(<x>, [T])[body]. "
+      + "A title is a named argument; a third positional is silently the "
+      + "one that gets dropped — got "
+      + str(pos.len()) + " positional arguments.",
+  )
   let (name, body) = if pos.len() == 1 {
     (none, pos.at(0))
   } else {
