@@ -769,3 +769,11 @@
 // when read back in the beacon scanner. Place inline within a paragraph to tag
 // the next-nearest group, or anywhere in a section's body under `separator: heading`.
 #let ideate-tag(tags) = [#metadata((rookery-ideate-tags: tags))]
+
+// Public metadata beacon for a fixed ideate id: wrap a string to name a
+// section's note explicitly, overriding the `auto` counter (or a `name:`
+// function's derived slug) for that one section. Place inline within a
+// paragraph, or anywhere in a section's body under any separator — unlike
+// `name:` as a function, this beacon does not require `separator: heading`,
+// since it carries its own value rather than reading one off a heading.
+#let ideate-id(id) = [#metadata((rookery-ideate-id: id))]

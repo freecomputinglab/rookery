@@ -6,7 +6,7 @@ priority: 1
 labels:
 - ideate
 deps: []
-closed: false
+closed: true
 ---
 ## Problem
 

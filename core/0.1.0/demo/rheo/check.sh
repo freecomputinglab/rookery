@@ -147,8 +147,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">43 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 43 ideas"
+  grep -q 'idea-index-count">46 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 46 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -628,6 +628,37 @@ grep -q 'class="idea-tag' "$H/tags.html" ||
   note "tags.html does not show the nested card's pill where it is hatched in place"
 grep -q 'class="idea-tag' "$H/ideas/tag-nest-outer.html" ||
   note "ideas/tag-nest-outer.html replays the nested card without its tag pill"
+
+# 27. `#ideate-id` NAMES A NOTE EXPLICITLY UNDER ANY SEPARATOR
+#     (`content/ideated-id.typ`). `separator: none` has no heading to feed a
+#     `name:` function at all — a single beacon anywhere in that one-note body
+#     still mints it under a fixed id rather than the package counter.
+p="$H/ideas/fixed-id-note.html"
+[ -f "$p" ] || note "no minted page at ideas/fixed-id-note.html — #ideate-id did not name the separator: none note"
+if [ -f "$p" ]; then
+  grep -q 'FIXEDIDBODY' "$p" || note "ideas/fixed-id-note.html does not render its own body"
+fi
+#     `separator: par` splits two paragraphs into two notes; only the second
+#     carries a beacon, so it alone mints under a fixed id while its sibling
+#     keeps the counter — proving the beacon is per-section, not document-wide.
+p="$H/ideas/second-para-note.html"
+[ -f "$p" ] || note "no minted page at ideas/second-para-note.html — #ideate-id did not name the beaconed paragraph"
+if [ -f "$p" ]; then
+  grep -q 'SECONDPARABODY' "$p" || note "ideas/second-para-note.html does not render its own body"
+  if grep -q 'AUTOCOUNTBODY' "$p"; then
+    note "ideas/second-para-note.html also renders the OTHER paragraph's body — the split did not separate the two notes"
+  fi
+fi
+#     The unbeaconed sibling paragraph still mints somewhere, under whatever
+#     counter value the whole bundle assigns it — not asserted by number, only
+#     that it exists and is not the named page above.
+if ! grep -rq 'AUTOCOUNTBODY' "$H"; then
+  note "AUTOCOUNTBODY never appears in the build — the unbeaconed paragraph did not mint at all"
+fi
+#     Two `#ideate-id` beacons in one section is a build error (panic naming
+#     both ids), which a passing HTML build cannot exercise — verified
+#     manually instead, the same way `#idea`'s own third-positional-argument
+#     rejection is (see `core/0.1.0/test/units.typ`).
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"
