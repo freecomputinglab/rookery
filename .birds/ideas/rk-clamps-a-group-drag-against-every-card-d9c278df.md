@@ -6,7 +6,7 @@ priority: 3
 labels:
 - fix-pinboard-group-clamp-order
 deps: []
-closed: false
+closed: true
 ---
 `clampGroupDelta` narrows a group drag's delta one card at a time, interleaving
 the left bound and the right bound, so when no delta can satisfy every card the

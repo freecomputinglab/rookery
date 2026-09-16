@@ -98,18 +98,32 @@ export function clampPosition(pos, size, boardSize) {
 // Narrows a drag's delta until every card in the group stays inside the
 // board, rather than clamping each card on its own — an independent clamp
 // deforms the group the moment one member reaches an edge, and the whole
-// point of a group drag is that the arrangement travels intact. Only `dx`
-// has an upper bound: the board's height follows a downward drag (see
-// `clampPosition`).
+// point of a group drag is that the arrangement travels intact. The bound
+// from each card is gathered first and the delta clamped once at the end:
+// clamping card by card lets a later card's bound undo an earlier card's,
+// so the result would depend on the order the cards happen to arrive in.
+// Only `dx` has an upper bound: the board's height follows a downward drag
+// (see `clampPosition`). A group wider than the board can leave its left
+// and right bounds unsatisfiable together; the left bound wins, since a
+// card pushed to a negative `x` cannot be dragged back (the board does not
+// scroll leftward), while one left past the right edge is still draggable.
 export function clampGroupDelta(items, delta, boardWidth) {
-  let dx = delta.x;
-  let dy = delta.y;
+  let minDx = -Infinity;
+  let maxDx = Infinity;
+  let minDy = -Infinity;
   for (const item of items) {
-    dx = Math.max(dx, -item.x);
-    dx = Math.min(dx, boardWidth - item.width - item.x);
-    dy = Math.max(dy, -item.y);
+    minDx = Math.max(minDx, -item.x);
+    maxDx = Math.min(maxDx, boardWidth - item.width - item.x);
+    minDy = Math.max(minDy, -item.y);
   }
-  return { x: dx, y: dy };
+  const ceilingDx = Math.max(maxDx, minDx);
+  // `+ 0` folds a `-0` produced by clamping against a card already at that
+  // edge (`Math.max`/`Math.min` preserve the sign of a zero bound) back to
+  // an ordinary zero, which a caller comparing the delta to `0` expects.
+  return {
+    x: Math.min(Math.max(delta.x, minDx), ceilingDx) + 0,
+    y: Math.max(delta.y, minDy) + 0,
+  };
 }
 
 export function makeDraggable(board, opts = {}) {

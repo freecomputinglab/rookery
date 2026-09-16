@@ -125,3 +125,21 @@ test("clampGroupDelta passes a large downward delta through unnarrowed", () => {
   const delta = clampGroupDelta(items, { x: 0, y: 5000 }, 1200);
   assert.deepEqual(delta, { x: 0, y: 5000 });
 });
+
+test("clampGroupDelta is independent of the order its members arrive in", () => {
+  const a = { x: 0, y: 0, width: 100 };
+  const b = { x: 1150, y: 0, width: 100 };
+  const forward = clampGroupDelta([a, b], { x: -50, y: 0 }, 1200);
+  const reversed = clampGroupDelta([b, a], { x: -50, y: 0 }, 1200);
+  assert.deepEqual(forward, reversed);
+});
+
+test("clampGroupDelta keeps the leftmost member on the board when the group is too wide for it", () => {
+  const items = [
+    { x: 0, y: 0, width: 100 },
+    { x: 1150, y: 0, width: 100 },
+  ];
+  const delta = clampGroupDelta(items, { x: -50, y: 0 }, 1200);
+  assert.equal(delta.x, 0);
+  assert.ok(items[0].x + delta.x >= 0);
+});
