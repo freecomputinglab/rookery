@@ -6,7 +6,7 @@ priority: 1
 labels:
 - chore-timeline-api
 deps: []
-closed: false
+closed: true
 ---
 Touches: todos/0.1.0/src/tags.typ
 

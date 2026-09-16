@@ -34,7 +34,7 @@
 // The log readers and the reserved stage names this package builds on. `closed`
 // is one of rookery-timeline's three reserved stages, so this package names it
 // through the exported constant rather than hardcoding the string.
-#import "@rookery/timeline:0.1.0": CLOSED-STAGE, SCHEDULED-STAGE, has-stage, stage-date
+#import "@rookery/timeline:0.1.0": CLOSED-STAGE, SCHEDULED-STAGE, has-stage, normalize-tags, stage-date
 
 // The base key every todo carries.
 #let TODO-KEY = "todo"
@@ -97,28 +97,6 @@
 //
 // So: presence here, date in the log, and `is-closed` below reads either.
 #let CLOSED-KEY = "todo-closed"
-
-// A local copy of rookery's four-form tag normalizer, so this module stays a
-// pure function of its arguments and the merge below cannot depend on which
-// form the caller wrote.
-//
-// Deliberately NOT an import of rookery's private `_norm-tags`: this is six
-// lines, and a package reaching into another package's underscore names to
-// save them is a dependency on an internal that can move without notice.
-//
-// Defined ABOVE its caller because a `#let` closure captures the scope visible
-// AT DEFINITION time — a helper defined further down is invisible.
-#let _norm-tags-local(v) = {
-  if v == none {
-    (:)
-  } else if std.type(v) == str {
-    ((v): none)
-  } else if std.type(v) == dictionary {
-    v
-  } else {
-    v.fold((:), (d, t) => { d.insert(t, none); d })
-  }
-}
 
 // `#todo`'s arguments, folded into one tag dictionary.
 //
@@ -237,7 +215,7 @@
 
   // The caller's own tags LAST, so their keys win on a collision. MEASURED:
   // typst dictionary `+` is right-wins, which is exactly the precedence wanted.
-  out + _norm-tags-local(tags)
+  out + normalize-tags(tags)
 }
 
 // ---- Readers over a todo's tag dictionary ---------------------------------

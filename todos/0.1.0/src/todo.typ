@@ -239,7 +239,7 @@
       + "alphanumerics and interior hyphens only.",
   )
   let key = "epic-" + name
-  (tags: none, ..args) => todo(tags: _norm-tags-local(tags) + ((key): none), ..args)
+  (tags: none, ..args) => todo(tags: normalize-tags(tags) + ((key): none), ..args)
 }
 
 // The epic a todo belongs to, or `none`. Takes the tag DICTIONARY, like every
