@@ -52,13 +52,13 @@ test("clampPosition floors negative coordinates at zero", () => {
   assert.deepEqual(pos, { x: 0, y: 0 });
 });
 
-test("clampPosition keeps the card's far edge inside the board", () => {
+test("clampPosition keeps the card's right edge inside the board and leaves y alone", () => {
   const pos = clampPosition(
     { x: 1150, y: 750 },
     { width: 300, height: 200 },
     { width: 1200, height: 800 },
   );
-  assert.deepEqual(pos, { x: 900, y: 600 });
+  assert.deepEqual(pos, { x: 900, y: 750 });
 });
 
 test("clampPosition never asks for a negative max when the card is larger than the board", () => {
@@ -67,5 +67,14 @@ test("clampPosition never asks for a negative max when the card is larger than t
     { width: 400, height: 400 },
     { width: 300, height: 300 },
   );
-  assert.deepEqual(pos, { x: 0, y: 0 });
+  assert.deepEqual(pos, { x: 0, y: 500 });
+});
+
+test("clampPosition lets a card pass the board's bottom edge, growing it", () => {
+  const pos = clampPosition(
+    { x: 40, y: 5000 },
+    { width: 300, height: 200 },
+    { width: 1200, height: 800 },
+  );
+  assert.deepEqual(pos, { x: 40, y: 5000 });
 });

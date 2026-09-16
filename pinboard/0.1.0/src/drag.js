@@ -27,6 +27,9 @@
 // synchronous storage write per frame, and not at all for a press that only
 // clicked. `src/pinboard.js` supplies the callback that persists a card's new
 // position via `src/store.js`; this module has no dependency on storage.
+// `opts.onMove`, unlike `onChange`, IS called on every `pointermove` of a
+// real drag, so the board's height can follow a card dragged past its
+// bottom edge — it must stay cheap and must not write to storage.
 
 const HANDLE = '[data-rookery="window-summary"]';
 
@@ -67,15 +70,18 @@ export function offsetPosition(start, startPointer, pointer) {
   };
 }
 
-// Clamps a card's position so it never carries the card off the board: `x`
-// and `y` are never negative, and the card's own width/height never push it
-// past the board's scrollable extent.
+// Clamps a card's position to the board's own coordinate space. `x` is
+// held inside the board's width — the board is as wide as the page column
+// and a card past its right edge would give the whole page a horizontal
+// scrollbar. `y` has a floor and NO ceiling: a drag downward is how a
+// reader makes the board taller, and `src/pinboard.js`'s `growBoardFor`
+// raises `--pinboard-height` to whatever the drag reaches. Hence the third
+// argument's height field is not read here.
 export function clampPosition(pos, size, boardSize) {
   const maxX = Math.max(0, boardSize.width - size.width);
-  const maxY = Math.max(0, boardSize.height - size.height);
   return {
     x: Math.min(Math.max(0, pos.x), maxX),
-    y: Math.min(Math.max(0, pos.y), maxY),
+    y: Math.max(0, pos.y),
   };
 }
 
@@ -148,6 +154,7 @@ export function makeDraggable(board, opts = {}) {
       { width: board.scrollWidth, height: board.scrollHeight },
     );
     writePosition(card, clamped.x, clamped.y);
+    opts.onMove?.(card);
   });
 
   function endDrag() {

@@ -23,10 +23,11 @@ import { makeDraggable, readPosition, writePosition } from "./drag.js";
 import { makeCollapsible, isCollapsed, setCollapsed } from "./collapse.js";
 import { loadBoard, saveCard } from "./store.js";
 
-// The board's own height only ever grows to fit its tallest column of
-// cards — nothing here shrinks it — so a drag downward or a card opening
-// both call this to keep `--pinboard-height` (read by `src/pinboard.css`)
-// in step with the content it is sized around.
+// Recomputes `--pinboard-height` (read by `src/pinboard.css`) from every
+// card's own bottom edge, so the board both grows and shrinks with its
+// content — a card opening or a drag ending both call this. `growBoardFor`
+// below is the grow-only path used while a drag is still in flight, where
+// measuring every card on each `pointermove` would be too slow.
 function sizeBoard(board) {
   const cards = [...board.querySelectorAll(":scope > .pinboard-card")];
   let maxBottom = 0;
@@ -35,6 +36,17 @@ function sizeBoard(board) {
     if (bottom > maxBottom) maxBottom = bottom;
   }
   board.style.setProperty("--pinboard-height", `${maxBottom + 24}px`);
+}
+
+// The per-frame half of `sizeBoard`, for a card being dragged: raises
+// `--pinboard-height` to clear this one card's bottom edge and never
+// lowers it, so a drag downward grows the board under the pointer
+// instead of stopping at its old extent. The drag's end calls `persist`,
+// and so `sizeBoard`, which recomputes the exact height from every card.
+function growBoardFor(board, card) {
+  const bottom = readPosition(card).y + card.getBoundingClientRect().height + 24;
+  const current = parseFloat(board.style.getPropertyValue("--pinboard-height")) || 0;
+  if (bottom > current) board.style.setProperty("--pinboard-height", `${bottom}px`);
 }
 
 function layOutBoard(board) {
@@ -110,7 +122,7 @@ function layOutBoard(board) {
   }
 
   sizeBoard(board);
-  makeDraggable(board, { onChange: persist });
+  makeDraggable(board, { onChange: persist, onMove: (card) => growBoardFor(board, card) });
   makeCollapsible(board, { onChange: persist });
 }
 

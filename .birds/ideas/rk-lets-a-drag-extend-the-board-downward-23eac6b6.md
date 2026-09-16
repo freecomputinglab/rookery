@@ -6,7 +6,7 @@ priority: 3
 labels:
 - feat-pinboard-drag-extends-board
 deps: []
-closed: false
+closed: true
 ---
 Dragging a card down currently stops at the board's present bottom edge, so a
 board can never be made taller by hand. `pointermove` in
