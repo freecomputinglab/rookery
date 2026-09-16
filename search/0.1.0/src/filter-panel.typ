@@ -327,6 +327,7 @@
         extra: ("panel-row",),
         attrs: (
           "data-panel-text": lower(hay(r)),
+          "data-panel-name": lower(_row-name(r)),
           // SPACE-PADDED AT BOTH ENDS, which is not cosmetic: the script tests
           // `includes(" x ")`, and without the padding a tag that is another's prefix
           // would half-match.

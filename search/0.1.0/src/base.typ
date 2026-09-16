@@ -85,6 +85,14 @@
   r.at("body", default: ""),
 ).filter(s => s != "" and s != none).join(" ")
 
+// The short half of the haystack — the row's own name, with no body. The panel
+// subsequence-matches THIS (see `panel.js`), because a subsequence of a
+// paragraph is not a match; the body is matched by substring instead.
+#let _row-name(r) = (
+  r.at("label", default: ""),
+  r.at("name", default: ""),
+).filter(s => s != "" and s != none).join(" ")
+
 // A `datetime` as the zero-padded `[year][month][day]` string every date sort
 // here compares, or `none` for an undated row. The padding is what makes a
 // plain string sort a date sort, with no `datetime` comparison anywhere.

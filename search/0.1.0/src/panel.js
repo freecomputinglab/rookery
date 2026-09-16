@@ -37,7 +37,7 @@
 // imported rather than re-ported: one ranking rule and one parser per language is
 // the whole reason those modules exist.
 
-import { score } from "./score.js";
+import { score, bodyScore } from "./score.js";
 import { splitQuery, evalClauses } from "./tagquery.js";
 // `fold` IS REQUIRED, not decorative: a `tags:` clause's contract is that `tags`
 // arrive ALREADY FOLDED, which is how `search()` satisfies it (`score.js`:
@@ -236,6 +236,7 @@ export const wirePanel = (container, n) => {
       el,
       index,
       text: el.getAttribute("data-panel-text") || "",
+      name: el.getAttribute("data-panel-name") || "",
       values,
       tags,
       allTags,
@@ -277,8 +278,12 @@ export const wirePanel = (container, n) => {
             score: 0,
           };
         }
-        const s = score(row.text, field === "" ? value : `${field}:${value}`);
-        return s == null ? { matched: false, score: 0 } : { matched: true, score: s };
+        const text = field === "" ? value : `${field}:${value}`;
+        // TWO TIERS, `_resolve`'s rule in `score.js` — subsequence over the row's
+        // NAME, substring-AND over its body. A subsequence of a 24,000-character
+        // body matches every row and filters nothing.
+        if (score(row.name, text) != null) return { matched: true, score: 0 };
+        return { matched: bodyScore(row.text, text) != null, score: 0 };
       };
       // IT ANDs WITH THE PILLS, which is the only composition that is not
       // surprising: a pressed pill and a typed query are both visible commitments,

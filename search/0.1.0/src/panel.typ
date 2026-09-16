@@ -551,6 +551,7 @@
             ("panel-row",) + if row-class == none { () } else { row-class(r) }
           ).join(" "),
           "data-panel-text": lower(hay(r)),
+          "data-panel-name": lower(_row-name(r)),
           // EVERY TAG THE NOTE CARRIES, for the input's `tags:` expression.
           // Unconditional, and `""` where the note has none — a row missing the
           // attribute and a row with no tags must be indistinguishable, so the

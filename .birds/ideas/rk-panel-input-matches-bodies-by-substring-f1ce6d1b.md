@@ -6,7 +6,7 @@ priority: 3
 labels:
 - fix-panel-body-substring
 deps: []
-closed: false
+closed: true
 ---
 A panel's text input filters almost nothing on a real corpus, because it
 subsequence-matches the note's whole BODY. On waterline's `index.typ` — two
