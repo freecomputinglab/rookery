@@ -147,8 +147,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">46 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 46 ideas"
+  grep -q 'idea-index-count">47 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 47 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -567,6 +567,13 @@ declare -A IDEATED_TITLES=(
   [fuzzy-search-ranking]="Fuzzy search ranking"
   [testing-edge-cases]="Testing edge cases"
   [rookery]="Rookery"
+  #   A section with NOTHING under it mints too. `== An empty section` in that
+  #   file has no body at all, and a stub heading is still a note an author
+  #   wrote; it used to be emitted as a bare heading and never reach the
+  #   registry, so a chapter of stubs pinned only the sections that happened to
+  #   carry a sentence. The page existing, titled by its own heading, is the
+  #   assertion — and the twice-only count below holds for it unchanged.
+  [an-empty-section]="An empty section"
 )
 for slug in "${!IDEATED_TITLES[@]}"; do
   p="$H/ideas/$slug.html"

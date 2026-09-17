@@ -31,6 +31,16 @@ prove the ids don't collide. Its heading carries a label too — `<sec:one>` —
 proving a label without the `tag:` prefix is left alone: no extra tag on this
 note, and no panic either.
 
+// AN EMPTY SECTION IS STILL A NOTE, and this one has nothing under it on
+// purpose. A stub heading an author has not filled in yet is a note they wrote,
+// so it mints titled and bodyless rather than being emitted as a bare heading —
+// otherwise a chapter of stubs pins only the sections that happen to have a
+// sentence in them. NOT THE LAST SECTION in this file, deliberately: the last
+// group carries rheo's trailing `context` postamble (fact 5 in `ideate.typ`),
+// which would make it mint whatever the heading-only rule says and so prove
+// nothing.
+== An empty section
+
 == Rookery
 
 A fourth section, tagged `rookery` by an `#ideate-tag` beacon placed in its own

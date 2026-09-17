@@ -182,13 +182,47 @@
   false
 }
 
+// A heading's level lives in one of TWO different fields, MEASURED on typst
+// 0.15.1, depending on how the heading was written:
+//
+//   written as                    | .fields()          | .at("level") | .at("depth")
+//   ------------------------------|---------------------|--------------|-------------
+//   `== Markup two` (markup)      | (depth: 2, body: ..) | ABSENT      | 2
+//   `=== Markup three` (markup)   | (depth: 3, body: ..) | ABSENT      | 3
+//   `#heading(level: 2)[x]`       | (level: 2, body: ..) | 2           | ABSENT
+//   `heading(level: 2)[]` (a      | (level: 2, body: []) | 2           | ABSENT
+//     `separator:` spec)
+//
+// A markup heading — which is what a body being ideated actually contains —
+// carries `depth` and NO `level`, while a `separator:` spec a caller writes
+// carries `level` and NO `depth`. Comparing `level` to `level` would match
+// nothing. So read an effective level off BOTH sides with this one helper:
+// `level` if present, else `depth`, else `1`.
+#let _level-of(h) = h.at("level", default: h.at("depth", default: 1))
+
 // A group that is nothing but a heading is STRUCTURE, not a note: it names the
 // run of notes under it, and wrapping it would produce a card whose entire body
 // is a title. Everything else a group can be — prose, a list, a figure, a code
 // block, a raw block — is content, and becomes a note.
-#let _heading-only(group) = {
+//
+// `want:` IS THE ONE EXCEPTION, and it is what makes a heading-separated
+// document's note set match its heading set. In heading mode the separator
+// heading STARTS its group, so a group holding nothing but that heading is an
+// empty SECTION — a note an author wrote and has not filled in yet — not a
+// structural title standing over other notes. Dropping it deleted the section
+// from `#ideas()` and so from every pinboard, outline and index, which read the
+// registry: a chapter of stub headings pinned only the headings that happened to
+// have a sentence under them. Such a group mints, titled and bodyless.
+//
+// A heading of any OTHER level alone stays structure (`= Part One` over a run of
+// `==` sections; a stray `===` in the preamble group), and `want: none` — par
+// mode, `none` mode, and the unit tests' own default — keeps the old rule whole.
+#let _heading-only(group, want: none) = {
   let real = group.filter(c => not _blank(c))
-  real.len() == 1 and real.first().func() == heading
+  if real.len() != 1 { return false }
+  let only = real.first()
+  if only.func() != heading { return false }
+  want == none or _level-of(only) != want
 }
 
 // A REFERENCE VALUE FOR THE CONTEXT ELEMENT, and there is no other way to get
@@ -245,23 +279,6 @@
 // rendered.
 #let _no-content(group) = group.all(c => _blank(c) or _inert(c))
 
-// A heading's level lives in one of TWO different fields, MEASURED on typst
-// 0.15.1, depending on how the heading was written:
-//
-//   written as                    | .fields()          | .at("level") | .at("depth")
-//   ------------------------------|---------------------|--------------|-------------
-//   `== Markup two` (markup)      | (depth: 2, body: ..) | ABSENT      | 2
-//   `=== Markup three` (markup)   | (depth: 3, body: ..) | ABSENT      | 3
-//   `#heading(level: 2)[x]`       | (level: 2, body: ..) | 2           | ABSENT
-//   `heading(level: 2)[]` (a      | (level: 2, body: []) | 2           | ABSENT
-//     `separator:` spec)
-//
-// A markup heading — which is what a body being ideated actually contains —
-// carries `depth` and NO `level`, while a `separator:` spec a caller writes
-// carries `level` and NO `depth`. Comparing `level` to `level` would match
-// nothing. So read an effective level off BOTH sides with this one helper:
-// `level` if present, else `depth`, else `1`.
-#let _level-of(h) = h.at("level", default: h.at("depth", default: 1))
 
 // The same level, read off a SELECTOR instead — `heading.where(level: 2)`, which
 // is the bracket-free spelling and Typst's own idiom for naming a heading level.
@@ -488,7 +505,7 @@
     if group.all(_blank) { continue }
     if _no-content(group) {
       group.join()
-    } else if _heading-only(group) {
+    } else if _heading-only(group, want: want) {
       group.join()
     } else {
       // A group's own separating heading is its first non-blank child — heading

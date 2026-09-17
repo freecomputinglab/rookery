@@ -589,6 +589,16 @@
 #assert(not _heading-only((text("prose"),)))
 #assert(not _heading-only((heading(depth: 2)[A heading], text("prose"))))
 #assert(not _heading-only(()))
+// `want:` — AN EMPTY SECTION IS STILL A NOTE. In heading mode the separator
+// heading starts its own group, so a group holding nothing but a heading of
+// THAT level is a section an author has not filled in yet, and minting it is
+// what keeps a chapter's note set equal to its heading set (a stub `== Title`
+// used to vanish from `#ideas()`, and so from every pinboard and outline). A
+// heading of any other level alone remains structure.
+#assert(not _heading-only((heading(depth: 2)[Empty section],), want: 2))
+#assert(not _heading-only(([ ], heading(depth: 2)[Empty section], parbreak()), want: 2))
+#assert(_heading-only((heading(depth: 1)[Part One],), want: 2))
+#assert(_heading-only((heading(depth: 3)[A subsection],), want: 2))
 
 // ---- _slug — a heading's plain text as a URL-safe name ---------------------
 //
