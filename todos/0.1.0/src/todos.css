@@ -306,10 +306,32 @@
    * `--todo-band-<name>` first, then a mix of the family-wide `--rookery-heat-*`
    * ramp, then the literal hue. A site sets the ramp ONCE and all six washes follow,
    * along with `#timeline-upcoming`'s countdown chips in @rookery/timeline. */
+  /* A BAND IS THE ROW'S FULL HEIGHT, not the height of the six characters in it. The
+   * cell stretches out of the row's baseline alignment and then eats the row's own
+   * vertical padding — `--idea-row-pad-block`, published by whichever stylesheet set
+   * it (@rookery/core's `#idea-row`, @rookery/search's `.panel-row`) — so the wash
+   * meets the rules above and below it instead of floating between them. The text goes
+   * back to the middle of what is now a taller box, which is where a date in a column
+   * of dates has to stay.
+   *
+   * The negative inline margin is the same device one axis over: room for the wash
+   * around the text without moving the date off the alignment its unwashed neighbours
+   * keep. */
+  [data-rookery="row-when"][data-countdown],
+  [data-rookery="row-when"].todo-when-priority {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    padding-block: var(--idea-row-pad-block, 0);
+    margin-block: calc(-1 * var(--idea-row-pad-block, 0));
+  }
+
+  /* SQUARE, now that the band is the row's full height: a rounded corner reads as a
+   * chip that happens to be tall, where a column of squared bands reads as the rows
+   * themselves being coloured. */
   [data-rookery="row-when"][data-countdown] {
     position: relative;
-    border-radius: 3px;
-    padding: 0 0.3em;
+    padding-inline: 0.3em;
     margin-left: -0.3em;
     cursor: help;
   }
@@ -375,8 +397,7 @@
    * `--todo-pri-fg-rung-<n>` is the per-rung override, and the ramp underneath it is
    * the same red/orange/yellow the washes and `#timeline-upcoming`'s chips take. */
   [data-rookery="row-when"].todo-when-priority {
-    border-radius: 3px;
-    padding: 0 0.3em;
+    padding-inline: 0.3em;
     margin-left: -0.3em;
     font-weight: 700;
     font-variant-numeric: normal;

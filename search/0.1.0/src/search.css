@@ -954,8 +954,14 @@
     align-items: baseline;
   }
 
+  /* THE PADDING IS PUBLISHED as `--idea-row-pad-block`, the same name @rookery/core's
+     `#idea-row` sets, so a cell painting a background can negate it and fill the row
+     top to bottom. A `#filter-panel` row is both this class and `[data-rookery="row"]`,
+     and core.css is unlayered, so there the row's own 0.45rem wins on both the padding
+     and the variable — which keeps the two in step whichever rule is in charge. */
   .panel-row {
-    padding: 0.35em 0;
+    --idea-row-pad-block: 0.35em;
+    padding: var(--idea-row-pad-block) 0;
     border-bottom: 1px solid var(--rookery-search-hover, rgba(127, 127, 127, 0.15));
   }
 

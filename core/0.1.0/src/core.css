@@ -1175,12 +1175,18 @@ h6[data-rookery="idea"] {
    The row emits an `<li>` and nothing around it: whether the list is a plain `<ul>`,
    a scroll box or a table is the VIEW's business, so no rule here touches the parent.
    ============================================ */
+/* THE VERTICAL PADDING IS PUBLISHED as `--idea-row-pad-block`, and it inherits: a cell
+   that paints a background has to reach past it, or the wash stops at the text's line
+   box and reads as a chip sitting in the row rather than as the row's own band. Such a
+   cell stretches and negates this value — @rookery/todos' date band does exactly
+   that — which works whatever a view sets the padding to. */
 [data-rookery="row"] {
+  --idea-row-pad-block: 0.45rem;
   display: grid;
   grid-template-columns: var(--idea-row-gutter, 7.5em) 1fr auto auto;
   gap: 0 0.9rem;
   align-items: baseline;
-  padding: 0.45rem 0;
+  padding: var(--idea-row-pad-block) 0;
 }
 
 /* HIDING A ROW HAS TO WORK FROM A DOWNSTREAM PACKAGE, and without this rule it does
