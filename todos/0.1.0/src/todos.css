@@ -305,7 +305,13 @@
    * TWO LAYERS OF `var()`, as everywhere else in this family: the per-band override
    * `--todo-band-<name>` first, then a mix of the family-wide `--rookery-heat-*`
    * ramp, then the literal hue. A site sets the ramp ONCE and all six washes follow,
-   * along with `#timeline-upcoming`'s countdown chips in @rookery/timeline. */
+   * along with `#timeline-upcoming`'s countdown chips in @rookery/timeline.
+   *
+   * DECLARED AS `--todo-band-color` AND READ BACK, rather than written straight
+   * into `background-color`: at narrow widths the row is a card and the band is
+   * its hat, and the rule down the card's left edge has to be painted the same
+   * colour. A pseudo-element inherits from the cell, so one property beside the
+   * fill is all that bar needs (see the narrow block at the end of this file). */
   /* A BAND IS THE ROW'S FULL HEIGHT, not the height of the six characters in it. The
    * cell stretches out of the row's baseline alignment and then eats the row's own
    * vertical padding — `--idea-row-pad-block`, published by whichever stylesheet set
@@ -340,51 +346,58 @@
    * page's text colour nor its muted one legibly. `--todo-band-overdue-fg` overrides it
    * for a site whose heat ramp is light enough to want dark ink back. */
   [data-rookery="row-when"].todo-when-overdue {
-    background-color: var(--todo-band-overdue, var(--rookery-heat-urgent, #b3261e));
+    --todo-band-color: var(--todo-band-overdue, var(--rookery-heat-urgent, #b3261e));
+    background-color: var(--todo-band-color);
     color: var(--todo-band-overdue-fg, #fff);
     font-weight: 600;
   }
 
   [data-rookery="row-when"].todo-when-urgent {
-    background-color: var(
+    --todo-band-color: var(
       --todo-band-urgent,
       color-mix(in oklab, var(--rookery-heat-urgent, #b3261e) 38%, transparent)
     );
+    background-color: var(--todo-band-color);
   }
 
   [data-rookery="row-when"].todo-when-soon {
-    background-color: var(
+    --todo-band-color: var(
       --todo-band-soon,
       color-mix(in oklab, var(--rookery-heat-soon, #b3611e) 30%, transparent)
     );
+    background-color: var(--todo-band-color);
   }
 
   [data-rookery="row-when"].todo-when-later {
-    background-color: var(
+    --todo-band-color: var(
       --todo-band-later,
       color-mix(in oklab, var(--rookery-heat-later, #b38f1e) 24%, transparent)
     );
+    background-color: var(--todo-band-color);
   }
 
   [data-rookery="row-when"].todo-when-rung-0 {
-    background-color: var(
+    --todo-band-color: var(
       --todo-band-rung-0,
       color-mix(in oklab, var(--rookery-heat-urgent, #b3261e) 34%, transparent)
     );
+    background-color: var(--todo-band-color);
   }
 
   [data-rookery="row-when"].todo-when-rung-1 {
-    background-color: var(
+    --todo-band-color: var(
       --todo-band-rung-1,
       color-mix(in oklab, var(--rookery-heat-soon, #b3611e) 28%, transparent)
     );
+    background-color: var(--todo-band-color);
   }
 
   [data-rookery="row-when"].todo-when-rung-2 {
-    background-color: var(
+    --todo-band-color: var(
       --todo-band-rung-2,
       color-mix(in oklab, var(--rookery-heat-later, #b38f1e) 22%, transparent)
     );
+    background-color: var(--todo-band-color);
   }
 
   /* THE UNDATED ROW'S PRIORITY, standing where the date would be (`undated-priority:`
@@ -596,5 +609,48 @@
      `white-space`, so nothing competes with this. */
   [data-rookery="row-badges"] > .panel-pill {
     white-space: nowrap;
+  }
+
+  /* NARROW: THE ROW IS A CARD AND THE BAND IS ITS HAT. @rookery/core's own
+   * narrow block turns `#idea-row` into a corner — the date at the top-left,
+   * a rule down the left edge under it, the title indented past that rule —
+   * and draws the rule from `--idea-row-rule-color`, which it reads and never
+   * sets. Pointing that at the band is what makes a phone-sized list read as a
+   * column of cards each edged in its own heat, rather than as a stack of
+   * lines with a coloured chip on top of each.
+   *
+   * THE BAND'S HEIGHT IS RETUNED HERE, and it has to be. The wide-row
+   * geometry above stretches the cell and negates the row's vertical padding
+   * on BOTH sides so the wash meets the rules above and below it. As a hat
+   * that is wrong below: the negative bottom margin paints the band down over
+   * the title on the next line. So the top negation stays — that is what puts
+   * the hat's fill on the row's own top edge, closing the corner — and the
+   * bottom becomes a little breathing room under the date instead.
+   *
+   * Core declares nothing about this cell's block spacing, precisely so these
+   * two declarations still bite from inside `@layer todos`. What it DOES
+   * declare — `position`, `margin-left`, `padding-left`, `grid-row`,
+   * `grid-column` — must not be restated here: this file is layered and would
+   * lose. */
+  @media (max-width: 768px) {
+    [data-rookery="row-when"][data-countdown],
+    [data-rookery="row-when"].todo-when-priority {
+      margin-block: calc(-1 * var(--idea-row-pad-block, 0)) 0;
+      padding-block: var(--idea-row-pad-block, 0) 0.15em;
+    }
+
+    [data-rookery="row-when"][data-countdown] {
+      --idea-row-rule-color: var(--todo-band-color, currentColor);
+    }
+
+    /* AN UNDATED ROW'S PRIORITY RULES FROM ITS INK. The cell wears a
+     * `todo-when-rung-<n>` wash too, but two pixels of a 22%-alpha mix is
+     * nothing to see; the saturated rung hue this cell sets as `color` is the
+     * whole reason it reads, and `currentColor` is that hue. After the rule
+     * above on purpose — equal specificity, later wins — though the two can
+     * never both match, since `[data-countdown]` is absent on these cells. */
+    [data-rookery="row-when"].todo-when-priority {
+      --idea-row-rule-color: currentColor;
+    }
   }
 }

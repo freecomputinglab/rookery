@@ -7,7 +7,7 @@ labels:
 - mobile-row-hat
 deps:
 - blocked-by:rk-draws-a-narrow-row-as-a-hat-and-a-rule-bce277eb
-closed: false
+closed: true
 ---
 At narrow widths `#idea-row` now draws its date cell as a HAT at the row's
 top-left corner with a rule running down the left edge beneath it (see the
