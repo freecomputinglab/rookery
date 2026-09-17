@@ -1247,18 +1247,91 @@ a[data-rookery="row-title"]:hover {
   flex-wrap: wrap;
 }
 
-/* NARROW: the date column stops paying for itself — a fixed 7.5em beside a title
-   leaves the title two words per line — so the date spans the row and everything
-   stacks under it. BOTH RULES ARE REQUIRED TOGETHER: flattening the tracks without
-   also spanning the date puts the title back in the narrow first track. */
+/* NARROW: the date column stops paying for itself — a fixed 7.5em beside a
+   title leaves the title two words per line — so the row stops being a
+   table and becomes a CARD: the date is a hat at the top-left corner, a
+   rule in the hat's colour runs down the left edge under it, the badges
+   join the hat on that line, and the title sits below both, indented past
+   the rule. The same corner `[data-rookery="tab"]` and `[data-rookery="box"]`
+   draw for a note, at the size a row can afford.
+
+   THE FIRST LINE IS BUILT BY PLACEMENT, not by DOM order: the badge strip
+   is emitted LAST (see `idea-row-body`) and grid places definitely-positioned
+   items before it flows anything, so naming a row and a column for the hat
+   and the strip is enough. The title and any `cells:` entry take a column
+   span only and flow into the lines beneath, in the order they were written.
+
+   NAMED AREAS WERE REJECTED for the same reason: a template would need a
+   third row for `cells:`, and `gap` applies between empty tracks — every
+   row without one would gain a phantom line. */
 @media (max-width: 768px) {
   [data-rookery="row"] {
-    grid-template-columns: 1fr auto;
+    position: relative;
+    grid-template-columns: auto 1fr;
+    gap: 0.15rem 0.5rem;
+    align-items: center;
+    padding-left: calc(var(--idea-rule-width, 2px) + var(--idea-pad, 0.5em));
   }
 
-  [data-rookery="row-when"],
+  /* THE HAT. `margin-left` cancels the row's indent and `padding-left`
+     pays it back inside the cell, so a cell that paints a background
+     paints it right out to the row's left edge — over the rule below,
+     which closes the corner — while the date's glyphs stay on the
+     content margin the title keeps.
+
+     `position: static` is load-bearing: @rookery/todos makes this cell
+     `relative` to anchor its countdown tooltip, and that would make the
+     HAT the containing block for the rule below rather than the row. At
+     this width the row is the containing block for both. */
+  [data-rookery="row-when"] {
+    grid-row: 1;
+    grid-column: 1;
+    position: static;
+    margin-left: calc(-1 * (var(--idea-rule-width, 2px) + var(--idea-pad, 0.5em)));
+    padding-left: calc(var(--idea-rule-width, 2px) + var(--idea-pad, 0.5em));
+  }
+
+  /* THE RULE, drawn from the hat's own pseudo-element and not from a
+     `border-left` on the row. The colour is the point: a consumer paints
+     the hat on THIS cell, and a custom property reaches descendants only —
+     a bar belonging to the row could never read what was set on the cell
+     inside it. `--idea-row-rule-color` is read and never set here, so a
+     layered stylesheet can re-point it (@rookery/todos runs its urgency
+     band down this bar) without losing to this unlayered file. */
+  [data-rookery="row-when"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--idea-rule-width, 2px);
+    background-color: var(
+      --idea-row-rule-color,
+      var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12)))
+    );
+  }
+
+  /* Beside the hat, and LEFT-aligned: the strip's `justify-content:
+     flex-end` is right when it terminates a wide row and wrong here,
+     where it is the second thing on a line rather than the last thing
+     in a table. */
+  [data-rookery="row-badges"] {
+    grid-row: 1;
+    grid-column: 2;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  [data-rookery="row-title"],
   [data-rookery="row-cell"] {
     grid-column: 1 / -1;
+  }
+
+  /* A chip sharing a line with the date has to be smaller than one that
+     had a column to itself, or the hat's line is the tallest thing in
+     the row and the title reads as its caption. */
+  [data-rookery="row-badges"] > [data-rookery="tag"] {
+    font-size: var(--idea-tag-size, 0.72em);
   }
 }
 

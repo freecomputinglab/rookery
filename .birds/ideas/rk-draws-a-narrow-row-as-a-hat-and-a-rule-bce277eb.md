@@ -6,7 +6,7 @@ priority: 3
 labels:
 - mobile-row-hat
 deps: []
-closed: false
+closed: true
 ---
 A narrow `#idea-row` currently stacks by flattening its grid: the date cell
 spans the full width on its own line, the title and the badge strip share
