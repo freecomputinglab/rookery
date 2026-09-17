@@ -7,7 +7,7 @@ labels:
 - mobile-row-hat
 deps:
 - blocked-by:rk-draws-a-narrow-row-as-a-hat-and-a-rule-bce277eb
-closed: false
+closed: true
 ---
 `#panel` / `#filter-panel` draw a tag as a `.panel-pill` button in two
 different places: in the filter bar at the top of the panel, and inside a

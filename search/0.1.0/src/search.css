@@ -897,6 +897,28 @@
     background: var(--rookery-search-hover, rgba(127, 127, 127, 0.15));
   }
 
+  /* NARROW: A PILL IN A ROW IS SMALL PRINT. @rookery/core's narrow block
+     makes `#idea-row` a card — the date a hat at the top-left corner, the
+     badge strip beside it on that line, the title indented underneath — and
+     at the size a pill takes in the filter bar it is taller than the hat it
+     now sits next to, which makes the first line the tallest thing in the
+     row and the title read as its caption.
+
+     ONLY IN A ROW. The bar's own pills are the reader's primary tap target
+     on a phone and keep their size at every width, which is why this hangs
+     off core's badge strip rather than off `.panel-pill` alone.
+
+     STILL A BUTTON: the leading stays near 1.3 and the horizontal padding
+     near two thirds of the bar's, so the box keeps a pressable area and
+     still reads as a pill rather than as a bare word. */
+  @media (max-width: 768px) {
+    [data-rookery="row-badges"] > .panel-pill {
+      font-size: 0.72em;
+      line-height: 1.3;
+      padding: 0 0.45em;
+    }
+  }
+
   .panel-count {
     margin: 0.5rem 0 0;
     font-size: 0.85em;
