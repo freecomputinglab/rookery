@@ -6,7 +6,7 @@ priority: 3
 labels:
 - feat-pinboard-select-fill
 deps: []
-closed: false
+closed: true
 ---
 A card selected by a marquee drag across the board currently wears a ring —
 a 2px `outline` offset 2px from the card's edge — and is otherwise

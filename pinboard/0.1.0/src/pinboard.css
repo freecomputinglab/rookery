@@ -87,14 +87,28 @@
   overflow: auto;
 }
 
-/* A selected card is marked for the group drag a press on it will start.
-   A ring rather than a fill: a card is transparent by default so the
-   board's own ground shows through it, and a tint here would be the
-   second ground the card deliberately does not have. */
-.pinboard-card[data-selected] {
-  outline: 2px solid var(--pinboard-select, currentColor);
-  outline-offset: 2px;
-  border-radius: 2px;
+/* A selected card is marked for the group drag a press on it will
+   start. A fill rather than a ring: the window's ground goes to the
+   project's own border colour, so a selection reads as a block of that
+   hue and the left rule merges into it.
+
+   The fill lands on the window and not on the card because core writes
+   `--idea-border-color` as an inline style on the window, and a custom
+   property reaches descendants only — a rule on the card, which is that
+   window's ancestor, would resolve the chain to its final fallback
+   instead of the colour the project set. */
+.pinboard-card[data-selected] [data-rookery="window"] {
+  background: var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12)));
+  color: var(--pinboard-select-fg, #fff);
+}
+
+/* The hat's id and an idea's date carry their own colours, which core
+   emits inline on the window — where a stylesheet cannot outrank them.
+   One level down it can, and a grey minted to read against the page
+   would otherwise sit unreadable on the fill. */
+.pinboard-card[data-selected] [data-rookery="window-details"] {
+  --idea-id-color: var(--pinboard-select-fg, #fff);
+  --idea-date-color: var(--pinboard-select-fg, #fff);
 }
 
 /* The rubber band, appended to the board by `src/select.js` for the
