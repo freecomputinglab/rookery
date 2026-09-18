@@ -3,6 +3,7 @@
 #import "@rookery/core:0.1.0": tagged-idea, _norm
 #import "@rookery/timeline:0.1.0": CLOSED-STAGE, dated
 #import "tags.typ": *
+#import "fields.typ": todo-blocked-by
 
 // A todo is a rookery note tagged `todo`, plus whatever `todo-tags` folds in.
 //
@@ -138,36 +139,64 @@
   // the flat marker included, so `done:` and `timeline: (closed: ..)` cannot
   // produce different tags. See the derivation note below.
   let log = _closing(done, timeline)
-  (dated(tagged-idea(TODO-KEY)))(
-    timeline: log,
-    tags: todo-tags(
-      tags: tags,
-      priority: priority,
-      // Renamed on the way in: a parameter named `type` shadows Typst's built-in
-      // `type()` for the whole callee body, and `todo-tags` needs that builtin.
-      kind: type,
-      status: status,
-      active: active,
-      // THE FLAT MARKER IS DERIVED FROM THE LOG, not from an argument — so
-      // `done:` and `timeline: (closed: ..)` always agree, and
-      // `tags:todo&!tags:todo-closed` (the query this package's header calls the
-      // payoff of the flat-tag surface) never disagrees with `is-closed`.
-      //
-      // Deriving it here is what makes them one way. `todo-tags` cannot do it: it
-      // builds this package's keys and never sees the log, which belongs to
-      // @rookery/timeline. `done:` gets it for free by folding into `log`
-      // upstream rather than by being checked for here — which is what keeps the
-      // two spellings of a close one write path.
-      closed: log != none and CLOSED-STAGE in log,
-      deps: deps,
-      metadata: metadata,
-      // Rookery's own name normalizer, so a dep written as a bare name, a full
-      // `idea:x` id or a label `<x>` all resolve to the same string — the same
-      // set of forms `#window` and `#hyperlink` accept.
-      norm: _norm,
-    ),
-    ..args,
+  let all-tags = todo-tags(
+    tags: tags,
+    priority: priority,
+    // Renamed on the way in: a parameter named `type` shadows Typst's built-in
+    // `type()` for the whole callee body, and `todo-tags` needs that builtin.
+    kind: type,
+    status: status,
+    active: active,
+    // THE FLAT MARKER IS DERIVED FROM THE LOG, not from an argument — so
+    // `done:` and `timeline: (closed: ..)` always agree, and
+    // `tags:todo&!tags:todo-closed` (the query this package's header calls the
+    // payoff of the flat-tag surface) never disagrees with `is-closed`.
+    //
+    // Deriving it here is what makes them one way. `todo-tags` cannot do it: it
+    // builds this package's keys and never sees the log, which belongs to
+    // @rookery/timeline. `done:` gets it for free by folding into `log`
+    // upstream rather than by being checked for here — which is what keeps the
+    // two spellings of a close one write path.
+    closed: log != none and CLOSED-STAGE in log,
+    deps: deps,
+    metadata: metadata,
+    // Rookery's own name normalizer, so a dep written as a bare name, a full
+    // `idea:x` id or a label `<x>` all resolve to the same string — the same
+    // set of forms `#window` and `#hyperlink` accept.
+    norm: _norm,
   )
+  let pos = args.pos()
+  assert(
+    pos.len() == 1 or pos.len() == 2,
+    message: "@rookery/todos: #todo takes a body, optionally preceded by a name "
+      + "— `#todo[..]`, `#todo(\"x\")[..]` or `#todo(<x>)[..]` — got "
+      + str(pos.len())
+      + " positional argument(s).",
+  )
+  let name = if pos.len() == 2 { pos.at(0) } else { none }
+  let body = pos.last()
+  // The record opens the note, above the prose, rather than being drawn by a
+  // page template: `#window` renders the body and knows nothing about the
+  // consuming project's page chrome, so a template's record would exist on the
+  // note's own page and nowhere else.
+  //
+  // Normalized here as well as inside `todo-tags`, because the two are separate
+  // readers of the same argument and the stored deps are normalized too — a dep
+  // written as a bare name, an `idea:x` id or a label `<x>` has to reach the
+  // graph as the one string either way.
+  let full = {
+    todo-blocked-by(deps.map(_norm))
+    body
+  }
+  let mint = dated(tagged-idea(TODO-KEY))
+  // Two branches because a name is positional and Typst has no way to pass "no
+  // positional argument here": an unnamed todo must be called with the body
+  // alone, not with `none` in front of it, which `#idea` would read as the name.
+  if name == none {
+    mint(timeline: log, tags: all-tags, ..args.named(), full)
+  } else {
+    mint(name, timeline: log, tags: all-tags, ..args.named(), full)
+  }
 }
 
 // ---- #done — the same close, as a factory --------------------------------

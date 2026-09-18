@@ -31,6 +31,42 @@
     margin: 0;
   }
 
+  /* The record at the top of a todo note: the field's name in the gutter, its
+   * value to the right. A grid on the `<dl>` itself, with each `<dt>`/`<dd>`
+   * auto-placed as its own item — so a value wrapping to three lines pushes the
+   * next row down instead of drifting out of column. The default gutter reads
+   * `--timeline-gutter` first, so setting that one property lines this block up
+   * with @rookery/meetings' record and @rookery/bibtex's citation. */
+  .todo-fields {
+    display: grid;
+    grid-template-columns: var(--todo-fields-gutter, var(--timeline-gutter, 7.5em)) 1fr;
+    column-gap: 0.9rem;
+    margin: 0.6rem 0 1.2rem;
+    border-top: 1px solid var(--todo-fields-line, var(--timeline-line, currentColor));
+  }
+
+  /* The rule between fields is drawn once per row, on both cells, so the two
+   * segments abut into a single line across the block. */
+  .todo-fields dt,
+  .todo-fields dd {
+    padding: var(--todo-fields-gap, 0.4rem) 0;
+    border-bottom: 1px solid var(--todo-fields-line, var(--timeline-line, currentColor));
+  }
+
+  .todo-fields dt {
+    color: var(--todo-muted-color, var(--idea-id-color, gray));
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.85em;
+  }
+
+  /* `margin: 0` is load-bearing rather than tidy: a browser's default `<dd>`
+   * carries `margin-inline-start: 40px`, which in a grid cell indents every
+   * value away from its own column. */
+  .todo-fields dd {
+    margin: 0;
+  }
+
   .todo-list {
     list-style: none;
     margin: 0;

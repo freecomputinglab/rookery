@@ -20,6 +20,7 @@
 #import "tags.typ": *
 #import "todo.typ": *
 #import "graph.typ": *
+#import "fields.typ": *
 #import "views.typ": *
 #import "search.typ": *
 // AFTER `graph.typ`, whose `is-ready`/`is-blocked` it projects, and after

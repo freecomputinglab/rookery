@@ -138,6 +138,27 @@ Migrating: change every `closed: true` to `done: <the date it closed>`, and ever
 `closed: <datetime>` to `done: <datetime>`. If you read `closed-on`, it now comes
 from the log; if you filtered on `tags:todo-closed`, that still works.
 
+## Blocked by, on the note itself
+
+A todo note opens with a one-row record naming the todos still in front of it,
+the same two-column shape `@rookery/meetings` gives its `with:` record:
+
+```typst
+#todo("docs", deps: ("ship",))[Write the user guide.]
+```
+
+renders `docs`'s own page with a `Blocked by` row linking to `ship`, and the
+same row appears inside a `#window` transclusion of the note, since the record
+lives in the body rather than in a page template. Only OPEN, RESOLVABLE
+blockers show up, read straight from `blockers-of`: a closed dependency and a
+dangling one (naming a todo nothing mints) both leave the record absent rather
+than empty. It is HTML/EPUB only — `html.elem` contributes nothing on a paged
+target.
+
+Restyle it with `--todo-fields-gutter`, `--todo-fields-line` and
+`--todo-fields-gap`; the gutter falls back to `--timeline-gutter`, so setting
+that one property lines this block up with a meeting's own record.
+
 ## A skin over rookery
 
 Same pattern as `@rookery/timeline`, one layer further out: import `idea`,

@@ -7,7 +7,7 @@ labels:
 - feat-todo-blocked-by-header
 deps:
 - blocked-by:rk-move-a-row-s-label-into-graph-typ-8b327208
-closed: false
+closed: true
 ---
 Touches: todos/0.1.0/src/fields.typ, todos/0.1.0/src/lib.typ, todos/0.1.0/src/todo.typ, todos/0.1.0/src/todos.css, todos/0.1.0/readme.md
 
