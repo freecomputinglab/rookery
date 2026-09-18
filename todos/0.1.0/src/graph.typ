@@ -83,6 +83,9 @@
   (nodes: nodes, edges: edges, unresolved: unresolved)
 }
 
+// A row's label: its title, or its name when untitled.
+#let _label(row) = if row.title == none { raw(row.name) } else { row.title }
+
 // ---- cycle detection ------------------------------------------------------
 //
 // A depth-first walk colouring each node white/grey/black. A grey node reached

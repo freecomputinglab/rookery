@@ -6,7 +6,7 @@ priority: 2
 labels:
 - feat-todo-blocked-by-header
 deps: []
-closed: false
+closed: true
 ---
 Touches: todos/0.1.0/src/graph.typ, todos/0.1.0/src/views.typ
 

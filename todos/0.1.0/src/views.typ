@@ -32,9 +32,6 @@
   ("todo-row",) + extra + row.tags-dict.keys().map(k => "idea-tag-" + k)
 ).join(" ")
 
-// A row's label: its title, or its name when untitled.
-#let _label(row) = if row.title == none { raw(row.name) } else { row.title }
-
 // One row: a link to the note, its label, and whatever trailing note the view
 // wants to add.
 //
