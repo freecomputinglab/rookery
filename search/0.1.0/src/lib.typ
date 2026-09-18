@@ -16,6 +16,12 @@
 // A BUILT PACKAGE, unlike `@rookery/core`: `dist/lib.js` comes from `just build`,
 // so an edit to `src/*.js` takes effect only after a rebuild. The Typst
 // entrypoint and the stylesheet are read from `src/` directly.
+// Depended on for its JavaScript, not for any Typst API it exports: this
+// import is what puts `@rheo/rehydrate`'s script on the page, which this
+// package's own script then reads as the `RheoRehydrate` global to re-wire
+// its widgets after a `rheo watch` morph.
+#import "@rheo/rehydrate:0.1.0"
+
 #import "@rookery/core:0.1.0": ideas, note-href
 
 // THE ENTRYPOINT IS A MANIFEST. Every name this package exports lives in one of

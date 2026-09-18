@@ -11,6 +11,21 @@ import { GEOM, layer, place, rows } from "./layout.js";
 // nothing imports is simply not shipped. `#todos-search` wires itself up.
 import "./todo-search.js";
 
+// `@rheo/rehydrate`'s ensure-exactly-one-child guard. READ AT CALL TIME: script
+// execution order between two packages is whatever order a consuming project
+// imported them in, which neither package can see, so a module body that read
+// the global would be a coin toss. The fallback is the same remove-then-append
+// the helper performs, so a page that never received it still ends up with one
+// drawing rather than a stack of them.
+const only = (parent, selector, make) => {
+  const helper = globalThis.RheoRehydrate?.only;
+  if (helper) return helper(parent, selector, make);
+  parent.querySelectorAll(selector).forEach((node) => node.remove());
+  const made = make();
+  parent.append(made);
+  return made;
+};
+
 const SVG = "http://www.w3.org/2000/svg";
 
 function el(name, attrs, text) {
@@ -167,14 +182,16 @@ export function render(container) {
   // morph (see the rehydrate registration below) rather than only once at boot,
   // and a morph re-fetches the PRE-HYDRATION markup — fallback list present,
   // no `.todo-graph-svg` — but does not GUARANTEE it strips a runtime-appended
-  // node it cannot match to anything in that markup. Removing any prior SVG
-  // before appending the new one is what keeps a second pass from leaving two
-  // stacked drawings rather than trusting the morph to have already done it.
-  const stale = container.querySelector(".todo-graph-svg");
-  if (stale) stale.remove();
+  // node it cannot match to anything in that markup. `only` replaces any prior
+  // SVG rather than trusting the morph to have removed it, which is what keeps
+  // a second pass from leaving two stacked drawings.
+  //
+  // The fallback list is a separate removal, not part of that guard: it comes
+  // BACK with every morph and has to go every time, whereas the SVG is
+  // something this function itself put there.
   const fallback = container.querySelector(".todo-graph-fallback");
   if (fallback) fallback.remove();
-  container.appendChild(svg);
+  only(container, ".todo-graph-svg", () => svg);
 }
 
 function init() {

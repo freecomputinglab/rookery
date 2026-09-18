@@ -68,11 +68,19 @@ const cssEscape = (s) =>
 // twice and write the URL twice, which is why each pass abandons the last one's
 // listeners rather than adding to them.
 //
-// A WEAKMAP, not a property on the element: where a morph REPLACES the container
-// instead of matching it, the entry for the dead node goes with the node, and the
-// fresh one is simply unwired — which is already the right answer. An expando
-// would have survived on the old node and gone looking for nothing.
-const wirings = new WeakMap();
+// `@rheo/rehydrate` keeps the per-key controller bookkeeping this file used to
+// hold itself, so the WeakMap-not-an-expando reasoning now lives there once
+// rather than in each package that needs it.
+//
+// READ AT CALL TIME: script execution order between two packages is whatever
+// order a consuming project imported them in, which neither package can see, so
+// a module body that read the global would be a coin toss.
+//
+// The fallback returns a signal without aborting a previous one. That is only
+// reached on a rheo too old to have injected the helper — which is a rheo too
+// old to morph, so it reloads the page and there is no previous pass to drop.
+const wiring = (key) =>
+  globalThis.RheoRehydrate?.wiring?.(key) ?? new AbortController().signal;
 
 // DOES ONE GROUP ACCEPT THE ROW? Within a facet the values OR — two state pills mean
 // "either".
@@ -162,13 +170,10 @@ export const wirePanel = (container, n) => {
   const list = container.querySelector(".panel-results");
   if (input === null || list === null) return null;
 
-  // Abandoned BEFORE anything below runs, so a re-wire cannot briefly have two
-  // live wirings racing on one input. `signal` then scopes every listener this
-  // pass adds, and the next pass drops all of them in one call.
-  wirings.get(container)?.abort();
-  const wiring = new AbortController();
-  wirings.set(container, wiring);
-  const { signal } = wiring;
+  // Abandons the previous pass BEFORE anything below runs, so a re-wire cannot
+  // briefly have two live wirings racing on one input. `signal` then scopes
+  // every listener this pass adds, and the next pass drops all of them at once.
+  const signal = wiring(container);
 
   // TWO PANELS, ONE WIRING. `#panel` facets on projected FIELDS; `#filter-panel`
   // filters on bare TAGS. Everything else — the input, the count, the scroll reset,

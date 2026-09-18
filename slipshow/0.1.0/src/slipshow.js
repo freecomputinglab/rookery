@@ -63,10 +63,20 @@ let revealing = false;
 // keydown and `window` resize listeners are bound to nodes a morph never
 // replaces, so re-adding them on every pass without dropping the last one
 // would accumulate a second, third, fourth copy — one extra step per edit,
-// each keypress advancing the deck an extra slide. Aborted at the top of
-// `wire()`, before anything is re-bound, the same shape `@rookery/search`
-// and `@rookery/todos` use for the same reason.
-let pass = null;
+// each keypress advancing the deck an extra slide. Dropped in `teardown()`
+// before anything is re-bound, the same shape `@rookery/search` and
+// `@rookery/todos` use for the same reason.
+//
+// `@rheo/rehydrate` keeps the controller bookkeeping; the key is `document`,
+// the node these page-level listeners hang off. READ AT CALL TIME: script
+// execution order between two packages is whatever order a consuming project
+// imported them in, which neither package can see.
+//
+// The fallback returns a signal without aborting a previous one, which is only
+// reached on a rheo too old to have injected the helper — and that is a rheo too
+// old to morph, so it reloads the page and there is no previous pass to drop.
+const wiring = (key) =>
+  globalThis.RheoRehydrate?.wiring?.(key) ?? new AbortController().signal;
 
 // The index of the LAST slip a progressive deck should be showing, given the
 // two pieces of state that decide it. `-1` — show nothing — whenever `started`
@@ -340,14 +350,21 @@ function onResize() {
 }
 
 // Drops everything the LAST wiring pass owns before a new one measures
-// anything. `pass.abort()` releases the `document`/`window`/`deck`
-// listeners in one call — see `pass`'s own comment for why the first two
-// matter, since a morph never replaces those nodes. The pending resize
+// anything. A fresh wiring for `document` releases the `document`/`window`/
+// `deck` listeners in one call — see `wiring`'s own comment for why the first
+// two matter, since a morph never replaces those nodes. The pending resize
 // debounce is cleared for the same reason: a timer armed against the OLD
 // `deck`/`slips` must not fire `reposition()`/`redrawEdges()` against
 // whatever the morph put in their place.
 function teardown() {
-  pass?.abort();
+  // Called for the ABORT, not the signal: issuing a fresh wiring for `document`
+  // drops everything the last pass bound to it. The returned signal goes unused
+  // and is itself dropped by `wire()`'s own call below.
+  //
+  // This has to happen here rather than being left to `wire()`, because `wire()`
+  // returns early — before it ever asks for a signal — on a page whose deck the
+  // edit just removed. The old listeners still have to go in that case.
+  wiring(document);
   clearTimeout(resizeTimer);
   resizeTimer = null;
 }
@@ -379,8 +396,7 @@ function wire() {
   reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   revealing = deck.dataset.reveal !== "all";
 
-  pass = new AbortController();
-  const { signal } = pass;
+  const signal = wiring(document);
   document.addEventListener("keydown", onKeydown, { signal });
   deck.addEventListener("click", onClick, { signal });
   window.addEventListener("resize", onResize, { signal });

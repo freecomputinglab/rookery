@@ -16,13 +16,13 @@
 // visible jump whether the page just loaded or `rheo watch` just morphed it.
 //
 // THIS FILE DECLARES `js_rehydrate = true` (`typst.toml`) and pushes `init`
-// onto `window.__rheoRehydrate`: a rebuild that touched only `.typ` sources
+// onto `globalThis.__rheoRehydrate`: a rebuild that touched only `.typ` sources
 // now patches the edit into the live DOM (Idiomorph) rather than reloading,
 // re-running no script, and writes the PRE-HYDRATION markup back over
 // whatever a board's boot already did to it — so `init` has to run again,
 // exactly as it did on first load, and running it twice on the same board has
-// to be safe. `layOutBoard` gets that safety from a fresh `AbortController`
-// per board (the `wirings` WeakMap below), which drops the previous pass's
+// to be safe. `layOutBoard` gets that safety from a fresh wiring per board
+// (`@rheo/rehydrate`'s `wiring`, below), which drops the previous pass's
 // drag, collapse and selection listeners before wiring a new set on whatever
 // the morph left behind. An asset change still reloads the page outright,
 // where nothing here runs at all.
@@ -39,14 +39,18 @@ import { loadBoard, saveCard } from "./store.js";
 
 // ONE WIRING PASS PER BOARD. `layOutBoard` calls three separate modules'
 // wiring functions on every pass — `makeDraggable`, `makeCollapsible`,
-// `makeSelectable` — so the controller that scopes all three lives here,
-// keyed on the board, rather than one WeakMap per module the way
-// `@rookery/search`'s `panel.js` keeps it for its own single wiring
-// function. A WeakMap rather than a property on the element: where a morph
-// REPLACES the board instead of matching it, the entry for the dead node
-// goes with the node, and the fresh one is simply unwired — already the
-// right answer.
-const wirings = new WeakMap();
+// `makeSelectable` — so one signal keyed on the board scopes all three, rather
+// than a wiring per module.
+//
+// `@rheo/rehydrate` keeps the per-key controller bookkeeping. READ AT CALL
+// TIME: script execution order between two packages is whatever order a
+// consuming project imported them in, which neither package can see.
+//
+// The fallback returns a signal without aborting a previous one, which is only
+// reached on a rheo too old to have injected the helper — and that is a rheo too
+// old to morph, so it reloads the page and there is no previous pass to drop.
+const wiring = (key) =>
+  globalThis.RheoRehydrate?.wiring?.(key) ?? new AbortController().signal;
 
 // Recomputes `--pinboard-height` (read by `src/pinboard.css`) from every
 // card's own bottom edge, so the board both grows and shrinks with its
@@ -82,10 +86,7 @@ function layOutBoard(board) {
   // still live. `signal` then scopes every listener `makeDraggable`,
   // `makeCollapsible` and `makeSelectable` add below, and the NEXT pass's
   // abort drops all three sets in one call.
-  wirings.get(board)?.abort();
-  const wiring = new AbortController();
-  wirings.set(board, wiring);
-  const { signal } = wiring;
+  const signal = wiring(board);
 
   const cards = [...board.querySelectorAll(":scope > .pinboard-card")];
   if (cards.length === 0) return;
@@ -184,8 +185,8 @@ if (document.readyState === "loading") {
 // reloads the page and never calls this.
 //
 // RE-RUNNING `init()` IS SAFE: `layOutBoard` aborts its own previous pass's
-// listeners before wiring a new set (the `wirings` WeakMap above, the same
-// pattern `@rookery/search`'s `panel.js` uses for the identical reason), and
+// listeners before wiring a new set (`@rheo/rehydrate`'s `wiring`, keyed on
+// the board, the same helper `@rookery/search`'s `panel.js` uses), and
 // every boot-time DOM write it makes — the custom properties, the
 // position/collapsed restore — is a write rather than an append, so
 // repeating it changes nothing a second time. Nothing needs preserving by

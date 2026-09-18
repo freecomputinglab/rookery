@@ -78,16 +78,22 @@ const APPLE =
 // would accumulate one copy per edit, and the pointerdown handler in particular
 // closes over a `bars` array that the morph has already invalidated.
 //
-// ONE CONTROLLER FOR THE WHOLE PASS rather than one per widget, because the
+// ONE WIRING FOR THE WHOLE PASS rather than one per widget, because the
 // listeners that need dropping are not all owned by a widget: two of them are
-// the page's. `wirePanel` keeps its own per-container wiring instead, since it
-// is public API a site may call on its own schedule.
-let pass = null;
+// the page's, so the key is `document`. `wirePanel` takes its own per-container
+// wiring instead, since it is public API a site may call on its own schedule.
+//
+// `@rheo/rehydrate` keeps the controller bookkeeping. READ AT CALL TIME: script
+// execution order between two packages is whatever order a consuming project
+// imported them in, which neither package can see. The fallback returns a
+// signal without aborting a previous one, which is only reached on a rheo too
+// old to have injected the helper — and that is a rheo too old to morph, so it
+// reloads the page and there is no previous pass to drop.
+const wiring = (key) =>
+  globalThis.RheoRehydrate?.wiring?.(key) ?? new AbortController().signal;
 
 export const init = async () => {
-  pass?.abort();
-  pass = new AbortController();
-  const { signal } = pass;
+  const signal = wiring(document);
 
   // Panels are wired FIRST and unconditionally, because they are independent of
   // the search bar: a page may carry panels and no bar at all, and the early

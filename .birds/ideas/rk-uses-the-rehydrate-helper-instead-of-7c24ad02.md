@@ -6,7 +6,7 @@ priority: 2
 labels:
 - rehydrate-via-helper
 deps: []
-closed: false
+closed: true
 ---
 Touches: search/0.1.0/src/panel.js, search/0.1.0/src/search.js, todos/0.1.0/src/todo-search.js, pinboard/0.1.0/src/pinboard.js, slipshow/0.1.0/src/slipshow.js
 

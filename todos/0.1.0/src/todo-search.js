@@ -49,10 +49,17 @@
 // `wire` on a survivor without dropping its old listeners first would double-fire
 // every keystroke and every pill press.
 //
-// A WEAKMAP, not a property on the container: where a morph REPLACES the
-// container instead of matching it, the entry for the dead node goes with the
-// node, and the fresh one is simply unwired — already the right answer.
-const wirings = new WeakMap();
+// `@rheo/rehydrate` keeps the per-key controller bookkeeping, so the
+// WeakMap-not-an-expando reasoning lives there once instead of in every package
+// that needs it. READ AT CALL TIME: script execution order between two packages
+// is whatever order a consuming project imported them in, which neither package
+// can see.
+//
+// The fallback returns a signal without aborting a previous one, which is only
+// reached on a rheo too old to have injected the helper — and that is a rheo too
+// old to morph, so it reloads the page and there is no previous pass to drop.
+const wiring = (key) =>
+  globalThis.RheoRehydrate?.wiring?.(key) ?? new AbortController().signal;
 
 export function score(haystack, query) {
   if (!query) return 0;
@@ -99,13 +106,10 @@ export function wire(container) {
   const count = container.querySelector(".todo-search-count");
   if (!input || !list) return;
 
-  // Abandoned BEFORE anything below runs, so a re-wire cannot briefly have two
-  // live wirings racing on one input. `signal` then scopes every listener this
-  // pass adds, and the next pass drops all of them in one call.
-  wirings.get(container)?.abort();
-  const wiring = new AbortController();
-  wirings.set(container, wiring);
-  const { signal } = wiring;
+  // Abandons the previous pass BEFORE anything below runs, so a re-wire cannot
+  // briefly have two live wirings racing on one input. `signal` then scopes
+  // every listener this pass adds, and the next pass drops all of them at once.
+  const signal = wiring(container);
 
   // THE `tags:` LANGUAGE, IF `@rookery/search` PUT IT THERE. Read ONCE at wire
   // time rather than per keystroke, so a page either has the capability or does
@@ -339,8 +343,8 @@ if (typeof document !== "undefined") {
   // calls this.
   //
   // RE-RUNNING `init()` IS SAFE because `wire` aborts its own previous pass
-  // before adding a single listener — the `wirings` WeakMap above, the same
-  // pattern `@rookery/search`'s `panel.js` uses for the identical reason.
+  // before adding a single listener — `@rheo/rehydrate`'s `wiring`, keyed on
+  // the container, the same helper `@rookery/search`'s `panel.js` uses.
   //
   // AND IT HAS NO ORDERING DEPENDENCY ON `@rookery/search`'s OWN HOOK, which is
   // the whole reason `wire` passes its container to `tq.claimKey` rather than
