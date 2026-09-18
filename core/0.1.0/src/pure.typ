@@ -17,8 +17,8 @@
 //
 // Order still matters WITHIN this file, for the same definition-time-capture
 // reason: `_INLINE-FUNCS` -> `_is-inline` -> `_blocks` -> `_truncate`,
-// `_join` -> `_body-text` -> `_body-plain`, and `IK`/`WK` above both footnote
-// walkers.
+// `_join` -> `_body-text` -> `_body-plain` -> `_derived-title` -> `_rec-label`,
+// and `IK`/`WK` above both footnote walkers.
 //
 // `_std-footnotes`'s `footnote` is TYPST'S BUILT-IN, deliberately: rookery
 // defines its own `#footnote` far down in `lib.typ` and nothing here shadows
@@ -384,39 +384,6 @@
   }
 }
 
-// WHAT TO CALL THE NOTE `rec` RECORDS, and never empty: its title as plain text,
-// else the `label` `#idea` derived at registration time (the title flattened
-// purely, else the body's first sixty characters), else the note's own name.
-//
-// `ref-text` is `_ref-text(reg)` wherever the registry is in hand and `_ => ""`
-// where it is not. THE RESOLVER IS THE ARGUMENT rather than the registry so a
-// caller walking the whole corpus resolves the state ONCE for the pass, which is
-// the cost `ideas()` exists to keep to one — a per-row `_registry.final()` is
-// exactly the walk-per-note that accessor's own comments warn about.
-//
-// EVERY PLACE THAT NAMES A NOTE READS THIS, so a search hit, an index row, a
-// reference, a window's summary and a bottomed-out window row cannot drift
-// apart: the `if t == "" { name } else { title }` chain was copied by hand
-// before, and the copies disagreed the moment a title could contain a reference.
-//
-// `fallback:` IS WHAT A NOTE WITH NO NAME AT ALL COMES BACK AS — no title and an
-// empty body, which `#idea("x")[]` legally is. `ideas()` passes the note's own
-// name, its `label` field being documented as never empty; a caller RENDERING a
-// name keeps the default `none`, where nothing-to-show is the real answer and
-// `core.css` has rules (`h*.idea:empty`) that exist to collapse it.
-//
-// TAKES NO ID, which is what lets `#ideas-outline` share it: an outline entry
-// reads the note's METADATA PAYLOAD rather than its registry record, and the
-// payload carries no id. Nothing here needs one — the only caller wanting an id
-// as its last resort is `ideas()`, which has it and passes it as the fallback.
-#let _rec-label(rec, ref-text, fallback: none) = {
-  let t = _plain-with(rec.at("title", default: none), ref-text)
-  if t != none and t != "" { t } else {
-    let l = rec.at("label", default: none)
-    if l == none or l == "" { fallback } else { l }
-  }
-}
-
 // Plain text of a note's BODY, for `ideas()`. Every registry body has been
 // through `_flatten`, which wraps it in a `show`-rule scope that Typst
 // represents as a `styled` node hanging off `.child` — unwrap that first,
@@ -435,35 +402,53 @@
 // array.
 #let _join(arr) = if arr.len() == 0 { "" } else { arr.join() }
 
-#let _body-text(c) = {
+// A `ref` IS THE SAME LEAF `_plain-with` PARAMETERISES, through the same
+// `resolve` hook and for a sharper reason: a note with NO TITLE names itself by
+// its body (`_derived-title` below), so `#todo[Write @idea:nz-man post]` is
+// called "Write  post" on every worklist, index row and search hit unless
+// whoever holds the registry can say what that reference is worth. MEASURED on
+// exactly that todo. `_body-text` below passes the pure answer, `_ => ""`, which
+// is what a body's plain text was before the hook existed; `_rec-label` and
+// `ideas()` pass `_ref-text(reg)`.
+#let _body-text-with(c, resolve) = {
   if c == none { "" } else if type(c) == str { c } else if type(c) != content {
     ""
   } else {
     let c = c
     while repr(c.func()) == "styled" { c = c.child }
     let f = repr(c.func())
-    if c == none { "" } else if c.func() == metadata { "" } else if f == "parbreak" {
+    if c == none { "" } else if c.func() == metadata { "" } else if c.func() == ref {
+      resolve(c)
+    } else if f == "parbreak" {
       " "
     } else if f == "item" {
-      let inner = if c.has("children") { _join(c.children.map(_body-text)) } else if c.has(
-        "body",
-      ) { _body-text(c.body) } else { "" }
+      let inner = if c.has("children") {
+        _join(c.children.map(x => _body-text-with(x, resolve)))
+      } else if c.has("body") { _body-text-with(c.body, resolve) } else { "" }
       " " + inner + " "
     } else if c.has("text") { c.text } else if c.func() == smartquote {
       // The same branch `_plain` above carries, for the same reason and with the
       // same ASCII decision — read its banner. A quote inside a note's BODY has to
       // survive too, or the search index drops it exactly as the title did.
       if c.at("double", default: true) { "\"" } else { "'" }
-    } else if c.func() == [ ].func() { " " } else if c.has(
-      "children",
-    ) { _join(c.children.map(_body-text)) } else if c.has("body") { _body-text(c.body) } else { "" }
+    } else if c.func() == [ ].func() { " " } else if c.has("children") {
+      _join(c.children.map(x => _body-text-with(x, resolve)))
+    } else if c.has("body") { _body-text-with(c.body, resolve) } else { "" }
   }
 }
 
+// A body's plain text with no registry to hand: a reference contributes nothing,
+// every other leaf reads as it does above. `#idea` computes a titleless note's
+// registration-time `label` with it, before there is anything to resolve against.
+#let _body-text(c) = _body-text-with(c, _ => "")
+
 // Collapses `_body-text`'s raw walk into one search-ready string: runs of
 // whitespace (including the boundary spaces `_body-text` inserts) become a
-// single space, and the ends are trimmed.
-#let _body-plain(c) = _body-text(c).replace(regex("\s+"), " ").trim()
+// single space, and the ends are trimmed. A resolved reference lands between two
+// space elements, so the collapse is also what closes the gap a dropped one left.
+#let _body-plain-with(c, resolve) = _body-text-with(c, resolve).replace(regex("\s+"), " ").trim()
+
+#let _body-plain(c) = _body-plain-with(c, _ => "")
 
 // ---- _derived-title — a titleless note names itself by its body -------------
 //
@@ -493,11 +478,69 @@
 //
 // The limit is a parameter for the tests' sake, not a knob: `#idea` never
 // passes one, and there is deliberately no way for a project to change it.
-#let _derived-title(raw, limit: 60) = {
-  let s = _body-plain(raw)
+//
+// TRUNCATION HAPPENS AFTER RESOLUTION, which is why the resolver rides this far
+// down rather than stopping at `_body-plain-with`: a reference's target name is
+// as much of the sixty characters as any other word, and cutting first would
+// give one derived name under `_ => ""` and a differently-cut one under the
+// registry.
+#let _derived-title-with(raw, resolve, limit: 60) = {
+  let s = _body-plain-with(raw, resolve)
   if s == "" { return none }
   let cs = s.clusters()
   if cs.len() <= limit { s } else { cs.slice(0, limit).join() + "..." }
+}
+
+#let _derived-title(raw, limit: 60) = _derived-title-with(raw, _ => "", limit: limit)
+
+// WHAT TO CALL THE NOTE `rec` RECORDS, and never empty: its title as plain text,
+// else its body's first sixty characters, else the `label` `#idea` derived at
+// registration time, else the note's own name.
+//
+// `ref-text` is `_ref-text(reg)` wherever the registry is in hand and `_ => ""`
+// where it is not. THE RESOLVER IS THE ARGUMENT rather than the registry so a
+// caller walking the whole corpus resolves the state ONCE for the pass, which is
+// the cost `ideas()` exists to keep to one — a per-row `_registry.final()` is
+// exactly the walk-per-note that accessor's own comments warn about.
+//
+// EVERY PLACE THAT NAMES A NOTE READS THIS, so a search hit, an index row, a
+// reference, a window's summary and a bottomed-out window row cannot drift
+// apart: the `if t == "" { name } else { title }` chain was copied by hand
+// before, and the copies disagreed the moment a title could contain a reference.
+//
+// THE BODY RUNG IS DERIVED HERE, not read off `rec.label`, and that is the whole
+// reason this sits below `_derived-title-with` rather than above it. The stored
+// `label` was flattened PURELY at registration time — `#idea` runs before any
+// registry exists — so a titleless note whose body references another
+// (`#todo[Write @idea:nz-man post]`) has "Write  post" stored, and a caller
+// holding the registry that read that field would print the gap it can itself
+// fill. Deriving it again with `ref-text` is what makes a reference worth its
+// target's name in a note's derived name too, and the stored field stays as the
+// last rung for a caller with no registry.
+//
+// STILL TOTAL, for the reason `_ref-text` gives: that resolver reads the
+// TARGET's registration-time `label` and never re-flattens, so two notes naming
+// each other in their bodies cannot walk in a circle any more than two naming
+// each other in their titles can.
+//
+// `fallback:` IS WHAT A NOTE WITH NO NAME AT ALL COMES BACK AS — no title and an
+// empty body, which `#idea("x")[]` legally is. `ideas()` passes the note's own
+// name, its `label` field being documented as never empty; a caller RENDERING a
+// name keeps the default `none`, where nothing-to-show is the real answer and
+// `core.css` has rules (`h*.idea:empty`) that exist to collapse it.
+//
+// TAKES NO ID, which is what lets `#ideas-outline` share it: an outline entry
+// reads the note's METADATA PAYLOAD rather than its registry record, and the
+// payload carries no id. Nothing here needs one — the only caller wanting an id
+// as its last resort is `ideas()`, which has it and passes it as the fallback.
+// A payload carrying no `raw` either simply skips the body rung.
+#let _rec-label(rec, ref-text, fallback: none) = {
+  let t = _plain-with(rec.at("title", default: none), ref-text)
+  if t != none and t != "" { return t }
+  let d = _derived-title-with(rec.at("raw", default: none), ref-text)
+  if d != none and d != "" { return d }
+  let l = rec.at("label", default: none)
+  if l == none or l == "" { fallback } else { l }
 }
 
 #let IK = "rheo-idea" // marker for an idea

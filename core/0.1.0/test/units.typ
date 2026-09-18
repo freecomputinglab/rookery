@@ -17,9 +17,9 @@
 // demo-based beads.
 
 #import "/src/lib.typ": (
-  _bib, _bib-keys, _blocks, _body-plain, _body-text, _cite-scan, _dedup-tag,
+  _bib, _bib-keys, _blocks, _body-plain, _body-plain-with, _body-text, _cite-scan, _dedup-tag,
   _is-inline, _join, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
-  _derived-title, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
+  _derived-title, _derived-title-with, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
   _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _ideate-tag-value, _ideate-id-value,
   footnote, idea, note-href, note-path, slug,
   tag-index, window,
@@ -135,6 +135,21 @@
 // name, the note's own name for `ideas()`, whose `label` is never empty.
 #assert.eq(_rec-label(REG.at("idea:98"), _ref-text(REG)), none)
 #assert.eq(_rec-label(REG.at("idea:98"), _ref-text(REG), fallback: "98"), "98")
+// MEASURED defect: a titleless note whose BODY references another —
+// `#todo[Write @idea:nz-man post]` — was called "Write post" on every worklist,
+// index row, outline entry and search hit. Its `label` was flattened before
+// there was a registry, and `_rec-label` read that field rather than deriving
+// the body rung again with the resolver it holds.
+#let TODO-REC = (
+  title: none,
+  label: "Write post",
+  raw: [Write #ref(<idea:doshi-velez-finale>) post],
+)
+#assert.eq(_rec-label(TODO-REC, _ref-text(REG)), "Write Finale Doshi-Velez post")
+// With no registry to hand the derived name agrees with the stored one, which
+// is what keeps the last rung honest for a payload carrying no `raw` at all.
+#assert.eq(_rec-label(TODO-REC, _ => ""), "Write post")
+#assert.eq(_rec-label((title: none, label: "Write post"), _ref-text(REG)), "Write post")
 
 // ---- _body-text / _body-plain — block boundaries, and the empty body -------
 // MEASURED defect: "raw code.A second paragraph" — a `parbreak` contributed
@@ -150,6 +165,13 @@
 )
 // `metadata` contributes nothing: `#idea`'s own marker sits inside the body.
 #assert.eq(_body-plain([A#metadata((k: 1))B]), "AB")
+// A `ref` in a body is the caller's to name, exactly as it is in a title, and
+// the whitespace collapse is what closes the gap a dropped one leaves.
+#assert.eq(_body-plain([Write #ref(<idea:x>) post]), "Write post")
+#assert.eq(
+  _body-plain-with([Write #ref(<idea:x>) post], it => "New Zealand's Second Smartest Man"),
+  "Write New Zealand's Second Smartest Man post",
+)
 
 // ---- _blocks — the styled unwrap, item grouping, whitespace ---------------
 // MEASURED REGRESSION (v6y.7): every registry body goes through `_flatten`,
@@ -469,6 +491,13 @@
 #assert.eq(_derived-title([#("é" * 61)]), "é" * 60 + "...")
 // The limit is a parameter for these tests only — `#idea` never passes one.
 #assert.eq(_derived-title([abcdef], limit: 3), "abc...")
+// TRUNCATION HAPPENS AFTER RESOLUTION: a reference's target name is as much of
+// the sixty characters as any other word, so cutting first would give one
+// derived name with a registry and a differently-cut one without.
+#assert.eq(
+  _derived-title-with([Write #ref(<idea:x>) post], it => "b" * 60),
+  "Write " + "b" * 54 + "...",
+)
 
 // ---- _plain / _body-text — a smart quote is its own element ----------------
 // It used to contribute NOTHING, so every apostrophe and quotation mark vanished

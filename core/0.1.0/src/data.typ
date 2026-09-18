@@ -328,7 +328,11 @@
         // Keeping values off the row makes that failure impossible rather than
         // merely unlikely. Reach for `tag-data()` below when you want them.
         tags: rec.at("tags", default: (:)).keys(),
-        body: _body-plain(rec.at("raw", default: none)),
+        // A REFERENCE IN THE BODY READS AS ITS TARGET'S NAME here too, through the
+        // same one-per-walk resolver the title and the label use: a search over
+        // `#todo[Write @idea:nz-man post]` has to match the words a reader can see
+        // in that row, and typing "New Zealand" is how they would look for it.
+        body: _body-plain-with(rec.at("raw", default: none), ref-text),
         href: _note-href(id),
         page: _note-path(id),
         created: rec.at("created", default: none),
