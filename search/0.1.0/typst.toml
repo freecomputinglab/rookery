@@ -36,8 +36,31 @@ min_version = "0.6.2"
 [tool.rheo.html]
 js_scripts = "dist/lib.js"
 css_stylesheet = "src/search.css"
+# THIS PACKAGE REBUILDS ITS OWN STATE AFTER A MORPH, so it does not need the
+# reload rheo's dev server would otherwise fall back to. `search.js`'s `init()`
+# wires every bar, modal and panel off the DOM as it stands at the moment it
+# runs, and rheo's `watch` build can now patch a content edit straight into the
+# live page (Idiomorph) instead of reloading it — a pass nothing re-runs
+# script for, and after which a widget wired against the OLD DOM is reading
+# markup that has moved under it. Declaring `js_rehydrate = true` is this
+# package saying it has its own fix: `search.js` pushes a callback onto
+# `window.__rheoRehydrate`, a queue rheo's live client drains after every
+# morph, which resets the URL-sync claim registry and re-runs `init()` from
+# scratch against the patched markup. OMITTING THE FLAG BREAKS NOTHING — an
+# older rheo, or a project that never opts in, reads straight past a key it
+# does not know and falls back to the full-page reload it already does today.
+js_rehydrate = true
 
 [tool.rheo.source.html]
+# THE SAME DECLARATION AS ABOVE, REPEATED RATHER THAN INHERITED: rheo merges
+# `[tool.rheo.source.*]` OVER `[tool.rheo.html]` for a project built against
+# `src/` rather than the `dist/lib.js` release, and a key stated only in the
+# release table is not something that merge carries across to the source one.
+# Skip it here and a source build would silently lose the fix above and fall
+# back to a full reload, while the very same package built as a release kept
+# rehydrating — the one asymmetry between the two build shapes that must never
+# show up as a behaviour difference.
+js_rehydrate = true
 # Every file `src/search.js` reaches via a relative ES import, listed
 # dependency-first: rheo's asset copy acts on exactly this list, not on a
 # scan of import statements, so a file left out here never lands in the

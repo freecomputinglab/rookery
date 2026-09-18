@@ -56,6 +56,18 @@ let started = false;
 // header). Read once at init.
 let revealing = false;
 
+// THE LISTENERS ONE WIRING PASS OWNS. rheo's dev server can morph a content
+// edit straight into the live DOM instead of reloading (`docs/contract.md`'s
+// rehydrate protocol), which re-runs no script — so `wire()` below runs
+// again on the SAME module, against a fresh `deck`/`slips`. The `document`
+// keydown and `window` resize listeners are bound to nodes a morph never
+// replaces, so re-adding them on every pass without dropping the last one
+// would accumulate a second, third, fourth copy — one extra step per edit,
+// each keypress advancing the deck an extra slide. Aborted at the top of
+// `wire()`, before anything is re-bound, the same shape `@rookery/search`
+// and `@rookery/todos` use for the same reason.
+let pass = null;
+
 // The index of the LAST slip a progressive deck should be showing, given the
 // two pieces of state that decide it. `-1` — show nothing — whenever `started`
 // is false: before the reader's first press, and again after `stop()` sends
@@ -327,61 +339,138 @@ function onResize() {
   }, RESIZE_DEBOUNCE_MS);
 }
 
-function init() {
+// Drops everything the LAST wiring pass owns before a new one measures
+// anything. `pass.abort()` releases the `document`/`window`/`deck`
+// listeners in one call — see `pass`'s own comment for why the first two
+// matter, since a morph never replaces those nodes. The pending resize
+// debounce is cleared for the same reason: a timer armed against the OLD
+// `deck`/`slips` must not fire `reposition()`/`redrawEdges()` against
+// whatever the morph put in their place.
+function teardown() {
+  pass?.abort();
+  clearTimeout(resizeTimer);
+  resizeTimer = null;
+}
+
+// Finds the deck fresh and wires every listener this pass owns. Returns
+// false when there is nothing to wire — no `div.slipshow`, or one with no
+// slips — which is exactly `init()`'s own former early-return shape: a page
+// with no deck stays free of any allocation or listener, first load or
+// rehydrate alike, and the caller skips `restore()` too rather than reaching
+// into state `wire()` never set up.
+function wire() {
   const found = document.querySelector("div.slipshow");
-  if (!found) return;
+  if (!found) {
+    deck = null;
+    slips = [];
+    return false;
+  }
   deck = found;
 
   slips = Array.from(deck.querySelectorAll("section.slip")).sort(
     (a, b) => Number(a.dataset.index) - Number(b.dataset.index),
   );
-  if (slips.length === 0) return;
+  if (slips.length === 0) return false;
 
+  // DOM-DEPENDENT, so re-read every pass rather than carried forward: a
+  // morph can change which slips exist or what `data-reveal` says, and
+  // `matchMedia` is cheap enough that caching it across an unbounded number
+  // of edits buys nothing.
   reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  // THE HIDING IS TURNED ON FROM HERE, not from the stylesheet's own
-  // selectors, and that is deliberate: `slipshow-revealing` is the marker
-  // that this controller is alive, so a reader whose JavaScript never ran (a
-  // script blocked, an EPUB reader that executes none) gets the whole deck
-  // rendered rather than a page that is permanently empty and has no key
-  // that would fill it.
-  //
-  // A missing `data-reveal` reads as progressive, matching `#slipshow`'s own
-  // default: the Typst side always writes the attribute, so the only markup
-  // without one is older than this file, and defaulting the other way would
-  // silently opt such a page out of the behaviour it is about to be rebuilt
-  // with anyway.
   revealing = deck.dataset.reveal !== "all";
-  if (revealing) {
-    deck.classList.add("slipshow-revealing");
-    // With `started` still false this reveals NOTHING, which is the point:
-    // the deck occupies no height at all until the reader's first press.
-    syncReveal();
-  }
 
-  // A `#slip-<id>` fragment is a request to open the deck there, so the
-  // camera runs on load. WITHOUT one it does not: a page carrying a deck
-  // usually carries its own heading and prose above it, and scrolling that
-  // out of view before the reader has pressed anything is the deck taking
-  // over a page it only occupies part of.
-  const hashIndex = slips.findIndex((s) => s.id === window.location.hash.slice(1));
-  currentIndex = hashIndex === -1 ? 0 : hashIndex;
-  if (hashIndex !== -1) {
-    started = true;
-    apply(slips[currentIndex], { recordFocus: false });
-  }
-
-  document.addEventListener("keydown", onKeydown);
-  deck.addEventListener("click", onClick);
-  window.addEventListener("resize", onResize);
+  pass = new AbortController();
+  const { signal } = pass;
+  document.addEventListener("keydown", onKeydown, { signal });
+  deck.addEventListener("click", onClick, { signal });
+  window.addEventListener("resize", onResize, { signal });
 
   // A row scrolling sideways moves its slides' rails under curves anchored
   // outside it. A `.slip-row`'s scroll event does not bubble to `deck`, so
   // only a capture-phase listener — which runs top-down on the way to the
   // event's target regardless of bubbling — sees it here.
-  deck.addEventListener("scroll", redrawEdges, { capture: true, passive: true });
+  deck.addEventListener("scroll", redrawEdges, { capture: true, passive: true, signal });
+
+  return true;
+}
+
+// Puts reveal/zoom/history state onto the DOM `wire()` just found.
+// `rehydrating` is the explicit switch `wire()` cannot see from the DOM
+// alone — a fresh `div.slipshow` looks the same whether this is the page's
+// first load or its fiftieth morph — so it is passed in by the caller
+// (`init()`/`rehydrate()` below) rather than inferred from, say,
+// `currentIndex === 0`, which slide 0 can be reached under either case.
+//
+// FIRST LOAD (`rehydrating` false): there is no prior state to reuse, so the
+// initial slide comes from the URL fragment exactly as it always has — this
+// branch is byte-for-byte what `init()` did before the split.
+//
+// REHYDRATE (`rehydrating` true): this module was never re-evaluated by the
+// morph, so `currentIndex`/`currentScale`/`focusStack` are still whatever
+// the reader left them at — carried forward rather than re-derived.
+// `currentIndex` is CLAMPED into the new slip count first, because an edit
+// can delete the slip the reader was on. Deliberately NOT calling `apply()`
+// here: `apply()` re-derives scale from the slip's OWN declared `data-enter`
+// action, and a reader who has `unfocus()`-ed out of a "focus" slip sits AT
+// that slip's index but NOT at its declared scale — re-running `apply()`
+// would silently re-zoom them into a focus they had already escaped.
+// `applyScale` alone reapplies exactly the scale already held in memory, and
+// the scroll position is left untouched: Idiomorph already preserves it
+// across a morph (`docs/contract.md`), and recomputing a scroll target here
+// would fight that rather than agree with it.
+function restore(rehydrating) {
+  if (revealing) deck.classList.add("slipshow-revealing");
+
+  if (!rehydrating) {
+    // A `#slip-<id>` fragment is a request to open the deck there, so the
+    // camera runs on load. WITHOUT one it does not: a page carrying a deck
+    // usually carries its own heading and prose above it, and scrolling
+    // that out of view before the reader has pressed anything is the deck
+    // taking over a page it only occupies part of.
+    const hashIndex = slips.findIndex((s) => s.id === window.location.hash.slice(1));
+    currentIndex = hashIndex === -1 ? 0 : hashIndex;
+    started = hashIndex !== -1;
+    // With `started` still false this reveals NOTHING, which is the point:
+    // the deck occupies no height at all until the reader's first press.
+    syncReveal();
+    if (started) apply(slips[currentIndex], { recordFocus: false });
+  } else {
+    currentIndex = Math.min(Math.max(currentIndex, 0), slips.length - 1);
+    syncReveal();
+    if (started) {
+      applyScale(currentScale, slips[currentIndex]);
+      // Keeps the URL in step with a CLAMPED index — an edit that deleted
+      // the reader's slip must not leave the address bar naming one that no
+      // longer exists.
+      history.replaceState(null, "", "#" + slips[currentIndex].id);
+    }
+  }
 
   redrawEdges();
+}
+
+// TEARDOWN, then WIRE, then RESTORE — always in that order, so a listener
+// never fires against a DOM `wire()` has not measured yet, and `restore()`
+// never reads `deck`/`slips` before `wire()` set them. `wire()` returning
+// false (no deck, or a deck with nothing in it) skips `restore()` outright:
+// a page with no deck stays exactly the no-op it already was.
+function boot(rehydrating) {
+  teardown();
+  if (!wire()) return;
+  restore(rehydrating);
+}
+
+function init() {
+  boot(false);
+}
+
+// The callback pushed onto `globalThis.__rheoRehydrate` at the bottom of
+// this file. Named separately from `init()`, rather than defaulting an
+// `init(rehydrating = false)` parameter, so which state a boot reuses is a
+// decision visible at each CALL SITE and not an implicit reading of some
+// parameter's default.
+function rehydrate() {
+  boot(true);
 }
 
 if (typeof document !== "undefined") {
@@ -390,4 +479,31 @@ if (typeof document !== "undefined") {
   } else {
     init();
   }
+
+  // REHYDRATE AFTER A rheo MORPH. rheo's dev server patches a content edit
+  // into the live DOM instead of reloading (`docs/contract.md`), which
+  // re-runs no script — and the markup it patches in is the PRE-HYDRATION
+  // build output, so the deck comes back with no `slipshow-revealing`, no
+  // `slip-revealed` anywhere and no zoom transform, while `currentIndex`/
+  // `currentScale`/`focusStack` sit untouched in memory because this module
+  // was never re-evaluated. `js_rehydrate = true` in `typst.toml` is the
+  // other half of the declaration: without it rheo reloads the page and
+  // never calls this — and a naive reload-free re-run of `init()` in its
+  // place would jump the reader back to slide 0 at zoom 1, which is the
+  // regression this whole split exists to avoid.
+  //
+  // `boot(true)`, NOT a bare re-run of `init()`: `init()` reads the URL
+  // fragment for the starting slide, which is right on a first load and
+  // wrong on a rehydrate — see `restore()`'s own comment for the escaped-
+  // focus case a naive re-derive gets wrong even when the fragment still
+  // happens to name the right slide.
+  //
+  // `globalThis`, not `window`: every other guard in this file tests
+  // `document`, never `window` — `test/reveal.test.mjs` imports this module
+  // under plain node, where neither global exists, and reading `window`
+  // here would be the one place in this file that assumed a browser.
+  //
+  // `??=` rather than an assignment: load order between rheo's live client
+  // and this module is not something either end can assume.
+  (globalThis.__rheoRehydrate ??= []).push(rehydrate);
 }

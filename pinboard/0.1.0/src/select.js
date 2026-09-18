@@ -57,6 +57,10 @@ export function clearSelection(board) {
 }
 
 export function makeSelectable(board, opts = {}) {
+  // SCOPES EVERY LISTENER THIS PASS ADDS, the same reason `src/drag.js`'s
+  // `makeDraggable` takes one: `src/pinboard.js` holds one AbortController
+  // per board and aborts the previous pass's before calling this again.
+  const { signal } = opts;
   let gesture = null;
 
   board.addEventListener("pointerdown", (event) => {
@@ -74,7 +78,7 @@ export function makeSelectable(board, opts = {}) {
       pointerId: event.pointerId,
       band: null,
     };
-  });
+  }, { signal });
 
   board.addEventListener("pointermove", (event) => {
     if (!gesture) return;
@@ -95,7 +99,7 @@ export function makeSelectable(board, opts = {}) {
     gesture.band.style.width = `${rect.width}px`;
     gesture.band.style.height = `${rect.height}px`;
     gesture.lastPointer = pointer;
-  });
+  }, { signal });
 
   function endGesture(select) {
     if (!gesture) return;
@@ -113,8 +117,18 @@ export function makeSelectable(board, opts = {}) {
     if (board.hasPointerCapture(pointerId)) board.releasePointerCapture(pointerId);
   }
 
-  board.addEventListener("pointerup", () => endGesture(true));
+  board.addEventListener("pointerup", () => endGesture(true), { signal });
   // A gesture the browser takes over must not leave the board stuck with a
   // band on it, mirroring `src/drag.js`'s own `pointercancel` handling.
-  board.addEventListener("pointercancel", () => endGesture(false));
+  board.addEventListener("pointercancel", () => endGesture(false), { signal });
+
+  // RESET ANY IN-FLIGHT MARQUEE WHEN THIS PASS IS SUPERSEDED, for the same
+  // reason `src/drag.js` resets an in-flight drag: this pass's own
+  // `pointerup`/`pointercancel` are removed by this same abort, so a gesture
+  // mid-band when the rewire happened would otherwise never reach
+  // `endGesture` at all. `endGesture(false)` is reusable here, unlike
+  // `drag.js`'s `endDrag` — the cancel path removes the band and releases
+  // capture but never reads a card's position, so there is nothing for the
+  // morph having already reverted the DOM to corrupt.
+  signal?.addEventListener("abort", () => endGesture(false));
 }

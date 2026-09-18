@@ -55,6 +55,25 @@ import { readSync, writeSync, commit, claimKey, debounce } from "./urlstate.js";
 const cssEscape = (s) =>
   globalThis.CSS?.escape ? CSS.escape(s) : s.replace(/["\\]/g, "\\$&");
 
+// ONE WIRING PER CONTAINER, and this is what enforces it. `wirePanel` is no
+// longer called once per page: rheo's dev server morphs a content edit into the
+// live DOM (`docs/contract.md`, the rehydrate protocol) and every panel is
+// re-wired against the result, because a morph writes the PRE-HYDRATION markup
+// back over a live panel — `data-panel-ready="false"`, an empty input, released
+// pills, every row unhidden — and re-runs no script that would undo that.
+//
+// A MORPH MUTATES ELEMENTS IN PLACE where it can match them, so the container
+// and its input usually SURVIVE — and so do the listeners bound to them. Wiring
+// a surviving input a second time is what would make one keystroke run `apply`
+// twice and write the URL twice, which is why each pass abandons the last one's
+// listeners rather than adding to them.
+//
+// A WEAKMAP, not a property on the element: where a morph REPLACES the container
+// instead of matching it, the entry for the dead node goes with the node, and the
+// fresh one is simply unwired — which is already the right answer. An expando
+// would have survived on the old node and gone looking for nothing.
+const wirings = new WeakMap();
+
 // DOES ONE GROUP ACCEPT THE ROW? Within a facet the values OR — two state pills mean
 // "either".
 //
@@ -143,6 +162,14 @@ export const wirePanel = (container, n) => {
   const list = container.querySelector(".panel-results");
   if (input === null || list === null) return null;
 
+  // Abandoned BEFORE anything below runs, so a re-wire cannot briefly have two
+  // live wirings racing on one input. `signal` then scopes every listener this
+  // pass adds, and the next pass drops all of them in one call.
+  wirings.get(container)?.abort();
+  const wiring = new AbortController();
+  wirings.set(container, wiring);
+  const { signal } = wiring;
+
   // TWO PANELS, ONE WIRING. `#panel` facets on projected FIELDS; `#filter-panel`
   // filters on bare TAGS. Everything else — the input, the count, the scroll reset,
   // the score-and-reorder loop, the `hidden` handling — is identical, and a second
@@ -157,7 +184,9 @@ export const wirePanel = (container, n) => {
   // duplicate simply does not sync, and the panel otherwise works exactly as
   // it does with no `sync:` at all.
   const syncKey = container.dataset.panelSync;
-  const syncing = syncKey !== undefined && syncKey !== "" && claimKey(syncKey);
+  // `container` AS THE CLAIM'S OWNER, so re-wiring this panel after a morph
+  // re-claims the key it already held rather than colliding with itself.
+  const syncing = syncKey !== undefined && syncKey !== "" && claimKey(syncKey, container);
 
   // The facet fields, read off the groups the Typst side emitted. A panel with no
   // pills is legal and gets an empty map; a tag panel emits no groups at all.
@@ -346,8 +375,8 @@ export const wirePanel = (container, n) => {
   };
   const persistSoon = debounce(persist);
 
-  input.addEventListener("input", apply);
-  input.addEventListener("input", persistSoon);
+  input.addEventListener("input", apply, { signal });
+  input.addEventListener("input", persistSoon, { signal });
   input.addEventListener("keydown", (ev) => {
     // Escape clears the query and restores the original order.
     if (ev.key === "Escape") {
@@ -357,7 +386,7 @@ export const wirePanel = (container, n) => {
       // once rather than wait out a quiet period nothing else is filling.
       persist();
     }
-  });
+  }, { signal });
 
   // `aria-pressed` IS THE STATE, in both modes: the sets above mirror it, and
   // nothing carries a pressed CLASS — a class would be a second source of truth and
@@ -375,7 +404,7 @@ export const wirePanel = (container, n) => {
       // A pill press is one deliberate act, unlike a keystroke, so it lands
       // in the URL immediately rather than behind the input's debounce.
       persist();
-    });
+    }, { signal });
   }
 
   // REHYDRATE BEFORE THE FIRST `apply()`, so the restored state renders as

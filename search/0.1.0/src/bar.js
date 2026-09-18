@@ -7,7 +7,14 @@ import { selection } from "./selection.js";
 import { positiveAtoms, positiveTagAtoms, splitQuery } from "./tagquery.js";
 import { readLimit } from "./limit.js";
 
-export const wire = (root, rows, n) => {
+// `signal` COMES FROM `search.js`'s PER-PASS CONTROLLER, not one this file owns:
+// rheo's dev server re-runs `init()` after a morph, and a morph MUTATES A
+// SURVIVING INPUT IN PLACE rather than replacing it, so the listeners bound
+// below would otherwise pile up one copy per edit and double-fire on every
+// keystroke and every arrow key. Passed straight through as the options
+// argument on every `addEventListener` in this file, so the next pass's
+// `abort()` drops all of them in one call.
+export const wire = (root, rows, n, signal) => {
   const input = root.querySelector(".rookery-search-input");
   const list = root.querySelector(".rookery-search-results");
   if (input === null || list === null) return;
@@ -61,7 +68,7 @@ export const wire = (root, rows, n) => {
   input.addEventListener("input", () => {
     dismissed = false;
     render();
-  });
+  }, { signal });
   input.addEventListener("keydown", (ev) => {
     // ArrowDown/ArrowUp plus Ctrl-n/Ctrl-p, the same pair the modal takes, so a
     // reader does not have to learn two sets of keys for one search.
@@ -95,7 +102,7 @@ export const wire = (root, rows, n) => {
       render();
       input.blur();
     }
-  });
+  }, { signal });
 
   return {
     root,

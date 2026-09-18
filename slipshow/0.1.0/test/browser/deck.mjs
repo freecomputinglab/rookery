@@ -95,7 +95,55 @@ try {
     const before = await revealedCount();
     assert.ok(before > 0, "no section.slip carries slip-revealed after landing on a fragment");
 
-    // 3. A forward keypress advances the reveal by exactly one slip.
+    // 3. REHYDRATE PRESERVES POSITION AND ZOOM rather than resetting to
+    // slide 0 — the regression the TEARDOWN/WIRE/RESTORE split in
+    // `src/slipshow.js` exists to avoid. Run HERE, on the freshly-landed
+    // focus slip, while the deck is still actually zoomed (`transform` from
+    // step 1) — a later slip reached with a plain "scroll" action
+    // legitimately resets scale to 1 on its own, and rehydrating only after
+    // navigating there would prove nothing about zoom restoration.
+    //
+    // rheo's dev server morphs a content edit into the live DOM without
+    // re-running this module (`docs/contract.md`), simulated here by
+    // swapping the live `div.slipshow` for a fresh parse of the SAME
+    // pre-hydration markup this suite already fetched into `deckHtml` —
+    // exactly what a morph leaves behind before calling `__rheoRehydrate`.
+    // The two checks right after the swap prove the swap itself, not the
+    // rehydrate, wiped the runtime state — without them the assertions
+    // below could pass on a page carrying no rehydrate hook at all.
+    const hashBeforeMorph = await page.evaluate(() => location.hash);
+    await deck.evaluate((d, html) => {
+      const fresh = new DOMParser().parseFromString(html, "text/html").querySelector("div.slipshow");
+      d.replaceWith(fresh);
+    }, deckHtml);
+    assert.equal(await revealedCount(), 0, "the simulated morph did not clear slip-revealed");
+    assert.equal(
+      await page.locator("div.slipshow").evaluate((d) => d.classList.contains("slipshow-revealing")),
+      false,
+      "the simulated morph did not clear slipshow-revealing",
+    );
+
+    await page.evaluate(() => {
+      for (const fn of globalThis.__rheoRehydrate ?? []) fn();
+    });
+
+    assert.equal(
+      await page.evaluate(() => location.hash),
+      hashBeforeMorph,
+      "rehydrate changed the URL fragment instead of restoring the pre-morph slide",
+    );
+    assert.equal(
+      await revealedCount(),
+      before,
+      `rehydrate should restore ${before} revealed slips, got a different count — the deck reset instead of resuming`,
+    );
+    const transformAfterRehydrate = await page.locator("div.slipshow").evaluate((d) => d.style.transform);
+    assert.ok(transformAfterRehydrate.length > 0, "rehydrate did not restore the zoom transform");
+
+    // 4. A forward keypress after rehydrate still advances the reveal by
+    // exactly one slip — proof the PREVIOUS pass's listener was dropped
+    // rather than left bound alongside the new one, since a double-bound
+    // keydown would advance by two.
     await page.keyboard.press("ArrowRight");
     await page.waitForFunction(
       (n) => document.querySelectorAll("section.slip.slip-revealed").length !== n,
@@ -104,7 +152,7 @@ try {
     const after = await revealedCount();
     assert.equal(after, before + 1, `expected the revealed count to grow by 1 (was ${before}), got ${after}`);
 
-    // 4. The camera scrolls: this deck has no `.slip-row`, so `apply()`
+    // 5. The camera scrolls: this deck has no `.slip-row`, so `apply()`
     // (`src/slipshow.js:161`) moves the page itself, not a row.
     const scrollBefore = await page.evaluate(() => window.scrollY);
     for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowRight");
@@ -114,7 +162,7 @@ try {
 
     await context.close();
 
-    // 5. The edge layer, drawn from real geometry — reachable only on a built
+    // 6. The edge layer, drawn from real geometry — reachable only on a built
     // page that actually wires `data-slip-edges` (see the comment on
     // `EDGE_ROOTS` above for which build that is).
     assert.ok(

@@ -44,7 +44,7 @@ import {
   positiveTagAtoms,
 } from "./tagquery.js";
 import { score, bodyScore, search } from "./score.js";
-import { readSync, writeSync, readParam, writeParam, commit, claimKey, debounce } from "./urlstate.js";
+import { readSync, writeSync, readParam, writeParam, commit, claimKey, resetKeys, debounce } from "./urlstate.js";
 import { initUrlSync, wireRadioGroup } from "./urlsync.js";
 
 export { fold, clusters } from "./text.js";
@@ -52,7 +52,7 @@ export { splitQuery, parseTagQuery, evalTagQuery, evalClauses, positiveAtoms, po
 export { score, bodyScore, search } from "./score.js";
 export { readIndex, loadIndex } from "./island.js";
 export { initPanels, wirePanel } from "./panel.js";
-export { readSync, writeSync, readParam, writeParam, commit, claimKey, debounce } from "./urlstate.js";
+export { readSync, writeSync, readParam, writeParam, commit, claimKey, resetKeys, debounce } from "./urlstate.js";
 export { initUrlSync, wireRadioGroup } from "./urlsync.js";
 
 // ASYNC, because `mode: "asset"` fetches the index rather than reading it out
@@ -70,7 +70,25 @@ const APPLE =
   typeof navigator !== "undefined" &&
   /Mac|iPhone|iPad|iPod/.test(navigator.platform ?? "");
 
+// THE LISTENERS ONE `init()` PASS OWNS, so the next pass can drop them. rheo's
+// dev server re-runs `init()` after it morphs a content edit into the live DOM
+// (see the rehydrate registration at the bottom of this file), and the two
+// `document` listeners below — Ctrl+K, and the click-outside that dismisses a
+// dropdown — are bound to a node no morph ever replaces. Left unscoped they
+// would accumulate one copy per edit, and the pointerdown handler in particular
+// closes over a `bars` array that the morph has already invalidated.
+//
+// ONE CONTROLLER FOR THE WHOLE PASS rather than one per widget, because the
+// listeners that need dropping are not all owned by a widget: two of them are
+// the page's. `wirePanel` keeps its own per-container wiring instead, since it
+// is public API a site may call on its own schedule.
+let pass = null;
+
 export const init = async () => {
+  pass?.abort();
+  pass = new AbortController();
+  const { signal } = pass;
+
   // Panels are wired FIRST and unconditionally, because they are independent of
   // the search bar: a page may carry panels and no bar at all, and the early
   // return below would otherwise skip them.
@@ -80,7 +98,7 @@ export const init = async () => {
   try { initPanels(); } catch (err) {
     console.error("@rookery/search: panels could not be initialised.", err);
   }
-  try { initUrlSync(); } catch (err) {
+  try { initUrlSync(signal); } catch (err) {
     console.error("@rookery/search: URL sync could not be initialised.", err);
   }
 
@@ -100,14 +118,14 @@ export const init = async () => {
   const modals = new Map();
   for (const dialog of dialogs) {
     const elemId = dialog.dataset.rookerySearch || "rookery-search-index";
-    const modal = wireModal(dialog);
+    const modal = wireModal(dialog, signal);
     if (modal !== null) modals.set(elemId, modal);
   }
   if (modals.size > 0) {
     for (const trigger of document.querySelectorAll(".rookery-search-trigger")) {
       const modal = modals.get(trigger.dataset.rookerySearchModal);
       if (modal === undefined) continue;
-      trigger.addEventListener("click", () => modal.open());
+      trigger.addEventListener("click", () => modal.open(), { signal });
       // THE HINT FOLLOWS THE PLATFORM, because the binding already does: the
       // keydown listener below opens on `ctrlKey || metaKey`, and on a Mac or
       // an iPad the discoverable modifier is Command — Control-K there is a
@@ -130,7 +148,7 @@ export const init = async () => {
       if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) return;
       ev.preventDefault();
       modals.values().next().value?.open();
-    });
+    }, { signal });
   }
 
   // Shared across bars AND modals, so a page with both fetches and parses the
@@ -151,7 +169,7 @@ export const init = async () => {
     // other bar emitted it, the build emitted none, or the asset could not be
     // fetched) — leave the input inert rather than throwing.
     if (rows === null) continue;
-    const bar = wire(root, rows, n++);
+    const bar = wire(root, rows, n++, signal);
     if (bar) bars.push(bar);
   }
   if (bars.length > 0) {
@@ -168,7 +186,7 @@ export const init = async () => {
       for (const bar of bars) {
         if (!bar.root.contains(ev.target)) bar.dismiss();
       }
-    });
+    }, { signal });
   }
 
   // Each wired modal is fed its rows once the index settles — or fed `null`
@@ -212,6 +230,7 @@ if (typeof document !== "undefined") {
     writeParam,
     commit,
     claimKey,
+    resetKeys,
     debounce,
     initUrlSync,
     wireRadioGroup,
@@ -232,4 +251,35 @@ if (typeof document !== "undefined") {
   } else {
     boot();
   }
+
+  // REHYDRATE AFTER A rheo MORPH. rheo's dev server patches a content edit into
+  // the live DOM instead of reloading (`docs/contract.md`), which re-runs no
+  // script — and the markup it patches in is the PRE-HYDRATION build output, so
+  // every panel comes back `data-panel-ready="false"` with its input hidden by
+  // the stylesheet, its pills released and its filter dropped, while the URL
+  // still names the filter that is no longer applied. `js_rehydrate = true` in
+  // `typst.toml` is the other half of the declaration: without it rheo reloads
+  // the page and never calls this.
+  //
+  // A FULL `init()`, not a panel-only pass, and deliberately so: the rows the
+  // bars and the modal rank are the rows the morph just replaced, and the
+  // fetched search index is rebuilt by the same edit. Re-running the lot is the
+  // only pass that leaves no widget reading a DOM that has moved under it.
+  //
+  // NOTHING IS RESET FIRST. The claim registry is module-level and a morph does
+  // not clear the heap the way a reload did, so every URL key is still held by
+  // the pass that just became history — but `claimKey` now refuses only a
+  // holder still in the document, so each widget re-claims its own key on the
+  // way past. Clearing the registry from here instead would have made this
+  // package's hook a prerequisite of every other package's, ordered by a
+  // consuming project's import order that neither of them can see.
+  //
+  // `globalThis`, not `window`: this file guards on `document` throughout
+  // because that is the global the node suite supplies, and reading `window` at
+  // module-evaluation time would throw there on an access every real page
+  // satisfies for free. They are the same object in a browser.
+  //
+  // `??=` rather than an assignment: load order between rheo's live client and
+  // this module is not something either end can assume.
+  (globalThis.__rheoRehydrate ??= []).push(boot);
 }

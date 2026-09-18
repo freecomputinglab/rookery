@@ -40,9 +40,23 @@ min_version = "0.6.2"
 [tool.rheo.html]
 js_scripts = "dist/lib.js"
 css_stylesheet = "src/todos.css"
+# DECLARES THAT THIS BUNDLE CAN REBUILD ITS OWN STATE ON DEMAND: `todo-search.js`
+# and `todos.js` each push a callback onto `window.__rheoRehydrate`, so rheo's
+# dev server calls those instead of reloading when it morphs a content edit into
+# the live DOM. Renders the script tag with `data-rheo-rehydrate`, which is what
+# admits the page to the morph path at all — the survey runs over EVERY
+# `script[src]` on the page, and one undeclared script disqualifies the lot.
+# Leaving this unset is not a defect; it is only the safe reading, where a morph
+# falls back to a full reload rather than leave a widget half-wired.
+js_rehydrate = true
 
 [tool.rheo.source.html]
 # Dependency-first: `src/todos.js` imports both, and rheo's asset copy acts
 # on exactly this list rather than scanning import statements.
 js_scripts = ["src/layout.js", "src/todo-search.js", "src/todos.js"]
 js_module = true
+# Same declaration as `[tool.rheo.html]` above, needed a second time because
+# rheo merges source over release rather than falling one back to the other —
+# a git-ref build reading only this table would otherwise take the full-reload
+# path a bundled release build does not.
+js_rehydrate = true

@@ -20,11 +20,20 @@ import { readParam, writeParam, commit, claimKey } from "./urlstate.js";
 // Wires one group scoped to `container`, keyed by `key` in the URL. Returns
 // something truthy on success, `null` when there is nothing to sync — no
 // valued radio in the container, or `key` already claimed by another group.
-export function wireRadioGroup(container, key) {
+//
+// `signal` IS OPTIONAL and this is public API, so it stays that way: a caller
+// wiring a group by hand has nothing to abort. `init()` passes the signal for
+// its own pass, because rheo's dev server re-runs the wiring after it morphs a
+// content edit into the live DOM and a radio it matched in place keeps the
+// listener the last pass gave it — two `change` handlers then write the same
+// param twice per click.
+export function wireRadioGroup(container, key, signal) {
   const radios = [...container.querySelectorAll('input[type="radio"]')].filter(
     (radio) => (radio.getAttribute("value") ?? "") !== "",
   );
-  if (radios.length === 0 || !claimKey(key)) return null;
+  // `container` owns the claim, so a re-wire after a morph re-claims rather
+  // than colliding with the claim it made last pass.
+  if (radios.length === 0 || !claimKey(key, container)) return null;
 
   const want = readParam(key, location.search);
   if (want !== null && radios.some((radio) => radio.getAttribute("value") === want)) {
@@ -41,15 +50,15 @@ export function wireRadioGroup(container, key) {
       // time: a synced panel on the same page can write between two of
       // these, and a stale captured string would drop its params.
       commit(writeParam(key, radio.getAttribute("value"), location.search));
-    });
+    }, { signal });
   }
 
   return { container, key };
 }
 
-export function initUrlSync() {
+export function initUrlSync(signal) {
   for (const el of document.querySelectorAll("[data-rookery-url-radio]")) {
     const key = el.dataset.rookeryUrlRadio;
-    if (key) wireRadioGroup(el, key);
+    if (key) wireRadioGroup(el, key, signal);
   }
 }

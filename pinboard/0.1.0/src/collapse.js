@@ -46,6 +46,10 @@ export function setCollapsed(card, collapsed) {
 // `toggle` it queues lands after this is wired. Idempotent, and cheaper than
 // a flag that has to be cleared correctly.
 export function makeCollapsible(board, opts = {}) {
+  // SCOPED TO `opts.signal`, the same AbortController `src/pinboard.js` holds
+  // one of per board and aborts before wiring a board a second time — no
+  // in-flight state to reset here, `toggle` carries none, so scoping the
+  // listener is the whole fix.
   board.addEventListener(
     "toggle",
     (event) => {
@@ -55,6 +59,6 @@ export function makeCollapsible(board, opts = {}) {
       if (!card || cardDetails(card) !== event.target) return;
       opts.onChange?.(card);
     },
-    true,
+    { capture: true, signal: opts.signal },
   );
 }

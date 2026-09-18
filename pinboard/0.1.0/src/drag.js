@@ -97,8 +97,36 @@ export function clampGroupDelta(items, delta, boardWidth) {
   };
 }
 
+// The board's current z-index high-water mark, read off its own cards rather
+// than carried in a variable that would not survive a rewire. `makeDraggable`
+// runs again after a rheo morph (`src/pinboard.js`'s rehydrate hook), and by
+// then a rewired board's inline `z-index` may either still be there (the
+// morph matched the card and left its attributes alone) or gone (the morph
+// reverted it to the pre-hydration markup's, which sets none) — nothing this
+// module can predict from here. Re-reading it off the DOM is right either
+// way: it resumes past whatever is actually still raised if the morph kept
+// it, and it falls back to the same starting point a fresh boot would use if
+// the morph wiped it. A held-over JS value or a hard reset to 0 could each
+// resume BELOW a card the DOM still shows raised, which is the one outcome
+// that is wrong regardless of which case actually happened.
+function currentTopZ(board) {
+  let max = 0;
+  for (const card of board.querySelectorAll(":scope > .pinboard-card")) {
+    const z = parseInt(card.style.zIndex, 10);
+    if (Number.isFinite(z) && z > max) max = z;
+  }
+  return max;
+}
+
 export function makeDraggable(board, opts = {}) {
-  let topZ = 1;
+  // SCOPES EVERY LISTENER THIS PASS ADDS, including the click-suppressor
+  // `suppressNextClick` below. `src/pinboard.js` holds one AbortController
+  // per board and aborts the previous pass's before calling this again, so
+  // `signal` is what lets that abort actually drop this pass's own
+  // listeners rather than leaving them bound to a board a second, unrelated
+  // pass is now also wiring.
+  const { signal } = opts;
+  let topZ = currentTopZ(board);
   let drag = null;
   // The one-shot listener that eats the click ending a real drag, so letting
   // go over the summary does not also toggle the card. Held in a variable
@@ -120,7 +148,7 @@ export function makeDraggable(board, opts = {}) {
       event.stopPropagation();
       clearSuppressor();
     };
-    board.addEventListener("click", suppressor, true);
+    board.addEventListener("click", suppressor, { capture: true, signal });
   }
 
   board.addEventListener("pointerdown", (event) => {
@@ -156,7 +184,7 @@ export function makeDraggable(board, opts = {}) {
     // reading belongs in front of the ones it overlaps, whether or not they
     // go on to move it.
     for (const c of cards) c.style.zIndex = String(++topZ);
-  });
+  }, { signal });
 
   board.addEventListener("pointermove", (event) => {
     if (!drag) return;
@@ -184,7 +212,7 @@ export function makeDraggable(board, opts = {}) {
       writePosition(c, starts[i].x + delta.x, starts[i].y + delta.y);
       opts.onMove?.(c);
     });
-  });
+  }, { signal });
 
   function endDrag() {
     if (!drag) return;
@@ -200,6 +228,24 @@ export function makeDraggable(board, opts = {}) {
   // `pointercancel` fires when the browser takes the gesture over — a touch
   // turning into a scroll, for instance — and must end the drag exactly as
   // `pointerup` does, or the board is left stuck mid-drag until reload.
-  board.addEventListener("pointerup", endDrag);
-  board.addEventListener("pointercancel", endDrag);
+  board.addEventListener("pointerup", endDrag, { signal });
+  board.addEventListener("pointercancel", endDrag, { signal });
+
+  // RESET ANY IN-FLIGHT DRAG WHEN THIS PASS IS SUPERSEDED. This pass's own
+  // `pointerup`/`pointercancel` are removed by this same abort, so a drag
+  // that was mid-gesture when the rewire happened would otherwise never
+  // reach `endDrag` at all — the card left `data-dragging`, its pointer
+  // still captured on a board about to be handed a second, disjoint wiring
+  // pass. `endDrag` itself is NOT reusable here: by the time this fires, the
+  // morph that triggered the rewire has already reverted the card's
+  // `--pin-x`/`--pin-y` to the pre-hydration markup's (none), so calling
+  // `endDrag`'s `opts.onChange` now would persist that reverted position
+  // over whatever was actually saved before the drag started.
+  signal?.addEventListener("abort", () => {
+    if (!drag) return;
+    const { cards, pointerId } = drag;
+    drag = null;
+    for (const c of cards) delete c.dataset.dragging;
+    if (board.hasPointerCapture(pointerId)) board.releasePointerCapture(pointerId);
+  });
 }

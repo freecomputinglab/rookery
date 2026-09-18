@@ -26,6 +26,12 @@ await import("../src/search.js");
 const bare = globalThis.RookerySearch;
 
 globalThis.document = parseHTML("<!doctype html><body></body>").document;
+// DELIBERATELY NO `globalThis.window`, and that absence is load-bearing.
+// `search.js` registers its rheo rehydrate hook at module-evaluation time, and
+// reading `window` to do it would throw on this import while working on every
+// real page — so it reads `globalThis`, and this import is what holds it to
+// that. Supplying a `window` here to keep the import quiet would only hide the
+// next regression of the same kind.
 await import("../src/search.js?dom=1");
 const published = globalThis.RookerySearch;
 
@@ -53,6 +59,7 @@ test("a document gets the whole surface", () => {
     "readIndex",
     "initPanels",
     "wirePanel",
+    "resetKeys",
     "init",
   ]) {
     assert.equal(typeof published[name], "function", `${name} is missing`);

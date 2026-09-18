@@ -12,9 +12,20 @@
 // the drag all go through the same pair.
 //
 // Restoring the store happens synchronously, before a card is ever painted
-// with a computed position — under `rheo watch`, a rebuild reloads the whole
-// page (rheo exposes no lighter refresh hook), so a stored layout applied a
-// frame late would be a visible jump on every single save.
+// with a computed position — a stored layout applied a frame late would be a
+// visible jump whether the page just loaded or `rheo watch` just morphed it.
+//
+// THIS FILE DECLARES `js_rehydrate = true` (`typst.toml`) and pushes `init`
+// onto `window.__rheoRehydrate`: a rebuild that touched only `.typ` sources
+// now patches the edit into the live DOM (Idiomorph) rather than reloading,
+// re-running no script, and writes the PRE-HYDRATION markup back over
+// whatever a board's boot already did to it — so `init` has to run again,
+// exactly as it did on first load, and running it twice on the same board has
+// to be safe. `layOutBoard` gets that safety from a fresh `AbortController`
+// per board (the `wirings` WeakMap below), which drops the previous pass's
+// drag, collapse and selection listeners before wiring a new set on whatever
+// the morph left behind. An asset change still reloads the page outright,
+// where nothing here runs at all.
 //
 // Injected on every page of a rheo project, most of which carry no board at
 // all, so absent a `[data-pinboard]` this finds nothing and returns silently
@@ -25,6 +36,17 @@ import { makeDraggable, readPosition, writePosition } from "./drag.js";
 import { makeCollapsible, isCollapsed, setCollapsed } from "./collapse.js";
 import { makeSelectable } from "./select.js";
 import { loadBoard, saveCard } from "./store.js";
+
+// ONE WIRING PASS PER BOARD. `layOutBoard` calls three separate modules'
+// wiring functions on every pass — `makeDraggable`, `makeCollapsible`,
+// `makeSelectable` — so the controller that scopes all three lives here,
+// keyed on the board, rather than one WeakMap per module the way
+// `@rookery/search`'s `panel.js` keeps it for its own single wiring
+// function. A WeakMap rather than a property on the element: where a morph
+// REPLACES the board instead of matching it, the entry for the dead node
+// goes with the node, and the fresh one is simply unwired — already the
+// right answer.
+const wirings = new WeakMap();
 
 // Recomputes `--pinboard-height` (read by `src/pinboard.css`) from every
 // card's own bottom edge, so the board both grows and shrinks with its
@@ -53,6 +75,18 @@ function growBoardFor(board, card) {
 }
 
 function layOutBoard(board) {
+  // Abandoned BEFORE anything below runs, so a re-wire cannot briefly leave
+  // this pass's listeners racing the last one's, and so a board that has
+  // lost its last card since the previous pass still drops whatever that
+  // pass wired on it rather than returning early with the old listeners
+  // still live. `signal` then scopes every listener `makeDraggable`,
+  // `makeCollapsible` and `makeSelectable` add below, and the NEXT pass's
+  // abort drops all three sets in one call.
+  wirings.get(board)?.abort();
+  const wiring = new AbortController();
+  wirings.set(board, wiring);
+  const { signal } = wiring;
+
   const cards = [...board.querySelectorAll(":scope > .pinboard-card")];
   if (cards.length === 0) return;
 
@@ -125,9 +159,9 @@ function layOutBoard(board) {
   }
 
   sizeBoard(board);
-  makeDraggable(board, { onChange: persist, onMove: (card) => growBoardFor(board, card) });
-  makeCollapsible(board, { onChange: persist });
-  makeSelectable(board);
+  makeDraggable(board, { onChange: persist, onMove: (card) => growBoardFor(board, card), signal });
+  makeCollapsible(board, { onChange: persist, signal });
+  makeSelectable(board, { signal });
 }
 
 function init() {
@@ -139,3 +173,28 @@ if (document.readyState === "loading") {
 } else {
   init();
 }
+
+// REHYDRATE AFTER A rheo MORPH. The dev server patches a content edit into
+// the live DOM instead of reloading (`docs/contract.md`), which re-runs no
+// script — and the markup it patches in is the PRE-HYDRATION build output,
+// so every board comes back with no `--pinboard-height`, no restored
+// `--pin-x`/`--pin-y` and no restored collapsed state, while listeners bound
+// to whatever nodes survived the morph are still live. `js_rehydrate = true`
+// in `typst.toml` is the other half of the declaration: without it rheo
+// reloads the page and never calls this.
+//
+// RE-RUNNING `init()` IS SAFE: `layOutBoard` aborts its own previous pass's
+// listeners before wiring a new set (the `wirings` WeakMap above, the same
+// pattern `@rookery/search`'s `panel.js` uses for the identical reason), and
+// every boot-time DOM write it makes — the custom properties, the
+// position/collapsed restore — is a write rather than an append, so
+// repeating it changes nothing a second time. Nothing needs preserving by
+// hand across the morph either: a board's arrangement lives in
+// `localStorage`, read fresh by `src/store.js` on every pass, not in any
+// variable this module or `drag.js`/`select.js` would otherwise have to
+// carry across the rewire.
+//
+// `globalThis`, not `window`: the node suites supply a document and no
+// `window`, and reading one at module-evaluation time would throw there on
+// an access every real page satisfies for free.
+(globalThis.__rheoRehydrate ??= []).push(init);

@@ -163,6 +163,15 @@ export function render(container) {
     if (pt) svg.appendChild(drawNode(n, pt));
   }
 
+  // IDEMPOTENT ON A SECOND PASS: rheo's dev server can re-run `render` after a
+  // morph (see the rehydrate registration below) rather than only once at boot,
+  // and a morph re-fetches the PRE-HYDRATION markup — fallback list present,
+  // no `.todo-graph-svg` — but does not GUARANTEE it strips a runtime-appended
+  // node it cannot match to anything in that markup. Removing any prior SVG
+  // before appending the new one is what keeps a second pass from leaving two
+  // stacked drawings rather than trusting the morph to have already done it.
+  const stale = container.querySelector(".todo-graph-svg");
+  if (stale) stale.remove();
   const fallback = container.querySelector(".todo-graph-fallback");
   if (fallback) fallback.remove();
   container.appendChild(svg);
@@ -172,8 +181,36 @@ function init() {
   for (const c of document.querySelectorAll(".todo-graph")) render(c);
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
-} else {
-  init();
+// GUARDED, though this file has no node suite that imports it the way
+// `todo-search.js` does (`test/todo-search.test.mjs` runs `wire` under
+// linkedom; `render` is only ever exercised through a real page —
+// `test/browser/graph.mjs`) — the guard is what lets the rehydrate
+// registration below sit in the same block as the boot it belongs beside,
+// rather than reading as a second, differently-guarded concern.
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+
+  // REHYDRATE AFTER A rheo MORPH. The dev server patches a content edit into
+  // the live DOM instead of reloading (`docs/contract.md`), re-running no
+  // script — so the SVG this file drew is gone from the refetched markup (it
+  // never existed in the build output) and the no-JS fallback list is back,
+  // exactly the pre-hydration state `render` already knows how to leave.
+  // `js_rehydrate = true` in `typst.toml` is the other half of the
+  // declaration: without it rheo reloads the page and never calls this.
+  //
+  // RE-RUNNING `init()` IS SAFE: `render` removes any prior `.todo-graph-svg`
+  // before appending a fresh one (see the comment above), so a second pass
+  // replaces the drawing rather than stacking a second one behind or beside
+  // it. Nothing here binds a listener that a re-run could double-fire — the
+  // graph carries none; only `todo-search.js`'s own hook, registered when its
+  // module-level code runs as part of this bundle, has that concern.
+  //
+  // `globalThis`, not `window`: the node suite supplies a document and no
+  // `window`, so reading one at module-evaluation time would throw there while
+  // working on every real page. They are the same object in a browser.
+  (globalThis.__rheoRehydrate ??= []).push(init);
 }

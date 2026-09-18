@@ -39,6 +39,21 @@
 // in Typst and pinned by a parity test. This filter runs over tens of rows
 // already on the page rather than a whole corpus, and copying that ranking here
 // would create a second copy of it with no parity test to keep the two honest.
+
+// ONE WIRING PER CONTAINER, the same reason `@rookery/search`'s `panel.js`
+// keeps one: rheo's dev server morphs a rebuilt page into the live DOM instead
+// of reloading it (`docs/contract.md`'s rehydrate protocol), and a morph writes
+// the PRE-HYDRATION markup back over a live widget — `data-todo-search-ready`
+// reverts to absent, the input empties, pressed pills release, hidden rows
+// unhide — while leaving listeners bound to surviving nodes intact. Re-running
+// `wire` on a survivor without dropping its old listeners first would double-fire
+// every keystroke and every pill press.
+//
+// A WEAKMAP, not a property on the container: where a morph REPLACES the
+// container instead of matching it, the entry for the dead node goes with the
+// node, and the fresh one is simply unwired — already the right answer.
+const wirings = new WeakMap();
+
 export function score(haystack, query) {
   if (!query) return 0;
   const h = haystack.toLowerCase();
@@ -84,6 +99,14 @@ export function wire(container) {
   const count = container.querySelector(".todo-search-count");
   if (!input || !list) return;
 
+  // Abandoned BEFORE anything below runs, so a re-wire cannot briefly have two
+  // live wirings racing on one input. `signal` then scopes every listener this
+  // pass adds, and the next pass drops all of them in one call.
+  wirings.get(container)?.abort();
+  const wiring = new AbortController();
+  wirings.set(container, wiring);
+  const { signal } = wiring;
+
   // THE `tags:` LANGUAGE, IF `@rookery/search` PUT IT THERE. Read ONCE at wire
   // time rather than per keystroke, so a page either has the capability or does
   // not and the filter loop below has no third case to consider.
@@ -103,7 +126,14 @@ export function wire(container) {
   const hasUrlState = Boolean(
     tq && tq.readSync && tq.writeSync && tq.commit && tq.claimKey && tq.debounce,
   );
-  const syncing = Boolean(syncKey) && hasUrlState && tq.claimKey(syncKey);
+  //
+  // `container` IS PASSED AS THE CLAIM'S OWNER, which is what lets this widget
+  // re-wire itself after a rheo morph without colliding with the claim it made
+  // last pass: `claimKey` refuses only a holder still in the document, so the
+  // same container re-claims and a container the morph replaced hands its key
+  // over. An older `@rookery/search` ignores the extra argument and keeps its
+  // write-once behaviour, which is why this needs no feature test of its own.
+  const syncing = Boolean(syncKey) && hasUrlState && tq.claimKey(syncKey, container);
 
   // Read once. The rows never change after this — filtering only toggles
   // `hidden` and re-appends, so the original index survives as the tiebreak
@@ -225,8 +255,8 @@ export function wire(container) {
   };
   const persistSoon = syncing ? tq.debounce(persist) : () => {};
 
-  input.addEventListener("input", apply);
-  input.addEventListener("input", persistSoon);
+  input.addEventListener("input", apply, { signal });
+  input.addEventListener("input", persistSoon, { signal });
   input.addEventListener("keydown", (ev) => {
     // Escape clears the query and restores the original order.
     if (ev.key === "Escape") {
@@ -234,7 +264,7 @@ export function wire(container) {
       apply();
       persist();
     }
-  });
+  }, { signal });
 
   for (const pill of pills) {
     pill.addEventListener("click", () => {
@@ -251,7 +281,7 @@ export function wire(container) {
       }
       apply();
       persist();
-    });
+    }, { signal });
   }
 
   // Rehydrates from the URL before the ready flag flips, so the first paint a
@@ -298,4 +328,31 @@ if (typeof document !== "undefined") {
   } else {
     init();
   }
+
+  // REHYDRATE AFTER A rheo MORPH. The dev server patches a content edit into
+  // the live DOM instead of reloading (`docs/contract.md`), which re-runs no
+  // script — and the markup it patches in is the PRE-HYDRATION build output, so
+  // `.todo-search` comes back with no `data-todo-search-ready`, an empty input,
+  // released pills and every row unhidden while the URL still names the filter
+  // that is no longer applied. `js_rehydrate = true` in `typst.toml` is the
+  // other half of the declaration: without it rheo reloads the page and never
+  // calls this.
+  //
+  // RE-RUNNING `init()` IS SAFE because `wire` aborts its own previous pass
+  // before adding a single listener — the `wirings` WeakMap above, the same
+  // pattern `@rookery/search`'s `panel.js` uses for the identical reason.
+  //
+  // AND IT HAS NO ORDERING DEPENDENCY ON `@rookery/search`'s OWN HOOK, which is
+  // the whole reason `wire` passes its container to `tq.claimKey` rather than
+  // this hook clearing the shared registry first. Hooks run in registration
+  // order, fixed at page load by which package's `<script>` executed first,
+  // which follows a consuming project's import order — nothing either package
+  // can see, let alone force. A claim refused on its holder's LIVENESS needs no
+  // such agreement: whichever hook runs first, each widget re-claims its own
+  // key on the way past.
+  //
+  // `globalThis`, not `window`, matching how this file already reaches
+  // `RookerySearch`: the node suite supplies a document and no `window`, and
+  // reading one at module-evaluation time would throw there.
+  (globalThis.__rheoRehydrate ??= []).push(init);
 }

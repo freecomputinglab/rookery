@@ -1,7 +1,12 @@
 // Query-string state primitives, so a stateful widget survives rheo's `watch`
-// reload (a hard `location.reload()`, not a patch) by mirroring its state
-// into the URL rather than keeping it only in a closure. A filtered view
-// becomes a copyable link as a side effect.
+// rebuild by mirroring its state into the URL rather than keeping it only in a
+// closure. A filtered view becomes a copyable link as a side effect.
+//
+// THAT REBUILD IS NO LONGER ALWAYS A NAVIGATION, which is why `resetKeys`
+// exists below. rheo 0.6.4 morphs the new HTML into the live DOM on a content
+// edit rather than reloading the page: a reload took the whole JS heap with it,
+// a morph keeps it, so the module-level claim registry now outlives the widgets
+// that filled it.
 //
 // Every function but `commit` takes and returns a plain STRING rather than
 // reading `location`/`history` directly — the node suite here runs under
@@ -11,7 +16,10 @@
 // `pushState`: `pushState` would stack one history entry per keystroke, and
 // Back must keep leaving the page.
 
-const claimedKeys = new Set();
+// key -> the element holding it, or `null` for an ownerless claim. A MAP rather
+// than the Set this was, because a claim is now refused on the holder's
+// liveness and not merely on its existence — see `claimKey`.
+const claimedKeys = new Map();
 
 // `{ q, values }` for one widget's namespace: `<key>.q` as a scalar, every
 // other `<key>.<field>` repeated-and-collected into a Set. A param outside
@@ -84,13 +92,41 @@ export function commit(search) {
 // One widget per key. Typst cannot see across two widget calls to assert
 // this itself, so it is checked here: the first claim wins, every repeat
 // warns and refuses, and the second widget simply never syncs.
-export function claimKey(key) {
-  if (claimedKeys.has(key)) {
+//
+// `owner` IS THE ELEMENT MAKING THE CLAIM, and passing it is what makes the
+// claim survivable across a rheo morph. A claim is refused only by an owner
+// that is STILL IN THE DOCUMENT, so the same widget re-wiring itself re-claims
+// its own key, and a widget whose element the morph replaced leaves a claim
+// that the replacement can take over. Two widgets genuinely sharing a key on
+// one live page still collide, which is the mistake this exists to catch.
+//
+// SO THERE IS NOTHING TO RESET, AND NO ORDER TO GET RIGHT. The alternative was
+// clearing the registry at the top of each rehydrate, which only works if the
+// package that clears it is guaranteed to run before every package that claims
+// — and hook order follows script order, which follows a consuming project's
+// own import order. Neither package can see that, let alone control it, so a
+// project that imported them the other way round would have silently lost its
+// URL sync on the first edit. Liveness is a property each claim can answer by
+// itself.
+//
+// `owner` STAYS OPTIONAL because this is published API. An ownerless claim
+// keeps the original write-once behaviour exactly: `undefined` is never `null`
+// and reports no `isConnected`, so a repeat is refused the way it always was.
+export function claimKey(key, owner) {
+  const held = claimedKeys.get(key);
+  if (held !== undefined && held !== owner && held?.isConnected !== false) {
     console.warn(`@rookery/search: "${key}" is already synced to the URL by another widget — this one will not sync.`);
     return false;
   }
-  claimedKeys.add(key);
+  claimedKeys.set(key, owner ?? null);
   return true;
+}
+
+// DROPS EVERY CLAIM. Not needed by the rehydrate path — see `claimKey` on why
+// liveness replaced a reset — and kept because a test suite sharing one module
+// instance across cases needs a way back to a clean registry.
+export function resetKeys() {
+  claimedKeys.clear();
 }
 
 // Runs `fn` at most once per quiet `ms`, so a caller can wire this straight

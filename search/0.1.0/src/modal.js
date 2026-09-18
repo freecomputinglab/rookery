@@ -10,7 +10,13 @@ import { positiveAtoms, positiveTagAtoms, splitQuery } from "./tagquery.js";
 import { readLimit } from "./limit.js";
 import { renderKeywords } from "./keywords.js";
 
-export const wireModal = (dialog, rows) => {
+// `signal` COMES FROM `search.js`'s PER-PASS CONTROLLER, exactly as `wire`'s
+// does: rheo's dev server re-runs `init()` after a morph, and a morph MUTATES
+// A SURVIVING `<dialog>` (and its input) IN PLACE rather than replacing it —
+// so the `document`/`dialog`-scoped listeners below are the ones most at risk
+// of surviving a re-wire and firing twice. Threaded down as the options
+// argument on every `addEventListener` in this file.
+export const wireModal = (dialog, signal) => {
   const input = dialog.querySelector(".rookery-search-input");
   const list = dialog.querySelector(".rookery-search-list");
   const preview = dialog.querySelector(".rookery-search-preview");
@@ -21,14 +27,14 @@ export const wireModal = (dialog, rows) => {
   // the two into agreement.
   const limit = readLimit(dialog.dataset.rookerySearchLimit, 30);
 
-  // The corpus, re-fed after wiring. `search.js` wires this modal before the
-  // index has loaded so its trigger is live on first paint, then hands the
-  // rows over when they land — or hands over `null` when they never will.
-  let corpus = Array.isArray(rows) ? rows : [];
-  // Three states, not two: rows have not arrived YET (the modal was wired
-  // before the fetch, so its trigger is live on first paint), rows arrived, or
+  // The corpus, fed in after wiring, never at it: `search.js` wires this modal
+  // before the index has loaded so its trigger is live on first paint, then
+  // calls `setRows` when the rows land — or with `null` when they never will.
+  // Three states, not two: rows have not arrived YET (true at every `wireModal`
+  // call, since nothing here ever gets them synchronously), rows arrived, or
   // rows are never coming. Pending and loaded-but-empty need different words.
-  let status = Array.isArray(rows) ? "loaded" : rows === undefined ? "pending" : "failed";
+  let corpus = [];
+  let status = "pending";
 
   let hits = [];
   // Bumped by every `renderPreview`, so a `fetch` that lands after the reader
@@ -143,7 +149,7 @@ export const wireModal = (dialog, rows) => {
     const atoms = positiveTagAtoms(split.rpn);
     for (const [i, hit] of hits.entries()) {
       const row = renderRow(hit, terms, atoms);
-      row.addEventListener("pointerenter", () => select(i));
+      row.addEventListener("pointerenter", () => select(i), { signal });
       list.append(row);
     }
     // NO HITS: the pane is emptied HERE, because `select` cannot do it — it
@@ -178,7 +184,7 @@ export const wireModal = (dialog, rows) => {
     select(0);
   };
 
-  input.addEventListener("input", render);
+  input.addEventListener("input", render, { signal });
 
   dialog.addEventListener("keydown", (ev) => {
     if (ev.key === "ArrowDown" || (ev.ctrlKey && ev.key === "n")) {
@@ -201,14 +207,14 @@ export const wireModal = (dialog, rows) => {
       ev.preventDefault();
       dialog.close();
     }
-  });
+  }, { signal });
 
   // A `<dialog>`'s backdrop clicks register on the dialog element itself, so
   // the click target must BE the dialog (not a descendant) before closing —
   // otherwise every click inside the panel would close it.
   dialog.addEventListener("click", (ev) => {
     if (ev.target === dialog) dialog.close();
-  });
+  }, { signal });
 
   // Resets selection state once the dialog has actually closed, by whatever
   // means — the explicit Escape handler above, a backdrop click, or a caller
@@ -217,7 +223,7 @@ export const wireModal = (dialog, rows) => {
   // and the next `open` re-renders and selects for itself.
   dialog.addEventListener("close", () => {
     sel.clear();
-  });
+  }, { signal });
 
   return {
     open: () => {
