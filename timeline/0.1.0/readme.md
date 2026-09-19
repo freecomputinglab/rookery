@@ -94,11 +94,11 @@ versions that take its date arguments:
 #window("ship")   // rookery's own, unchanged
 ```
 
-**Two names are overridden and everything else passes through.** `idea` is
-`dated(rookery.idea)`; `tagged-idea` is the same decoration applied to the factory,
-so a family you build over this skin — a `#submission`, a `#todo` — takes the date
-arguments without wrapping anything itself. `window`, `ideas`, `tag-data`,
-`note-href`, `rookery` and the rest are rookery's, untouched.
+**One name is overridden and everything else passes through.** `idea` is
+`dated(rookery.idea)`, and a family you build over this skin — a `#submission`, a
+`#todo` — is `idea.with(base-tags: ..)`, which takes the date arguments because
+`dated`'s sink forwards core's tag arguments untouched. `window`, `ideas`,
+`tag-data`, `note-href`, `rookery` and the rest are rookery's, untouched.
 
 **You can still import from rookery directly**, and nothing changes if you do. The
 skin is opt-in: it is where a name comes FROM, not which package provides it.
@@ -230,14 +230,14 @@ consumer's view will put it.
 ### `dated(mint)` — dates as named arguments
 
 ```typst
-#import "@rookery/core:0.1.0": idea, tagged-idea
+#import "@rookery/core:0.1.0": idea
 #import "@rookery/timeline:0.1.0": dated
 
 #let dated-note = dated(idea)
 #dated-note("ship", deadline: d)[Cut the release.]
 
 // or put your own tag family on top:
-#let submission = dated(tagged-idea("submission"))
+#let submission = dated(idea).with(base-tags: "submission")
 #submission("wolf", deadline: d, timeline: (submitted: d2))[...]
 ```
 

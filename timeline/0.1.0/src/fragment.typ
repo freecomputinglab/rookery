@@ -250,7 +250,7 @@
 
 // ---- dated(mint) — the decorator -----------------------------------------
 //
-//   #let dated-note = dated(tagged-idea("note"))
+//   #let dated-note = dated(idea).with(base-tags: "note")
 //   #dated-note("ship", deadline: d, timeline: (submitted: d2))[..]
 //
 // TAKES A MINTING FUNCTION and returns one that also accepts this package's date
@@ -287,7 +287,7 @@
   assert(
     type(mint) == function,
     message: "@rookery/timeline: `dated` takes a minting FUNCTION — rookery's "
-      + "`idea`, a `tagged-idea(..)` factory, or another decorated one. Got "
+      + "`idea`, an `idea.with(..)` constructor, or another decorated one. Got "
       + repr(mint),
   )
   (scheduled: none, deadline: none, timeline: none, tags: none, ..args) => mint(

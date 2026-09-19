@@ -85,22 +85,15 @@
 //   3. a later top-level `#let` SHADOWS a star-imported name, so what this module
 //      exports is the decorated one.
 //
-// WHAT IS OVERRIDDEN, and it is only these two. Everything else is rookery's,
+// WHAT IS OVERRIDDEN, and it is only this one. Everything else is rookery's,
 // unchanged, and a consumer importing it from here gets exactly what it would get
 // from there.
 #import "@rookery/core:0.1.0": *
 #import "@rookery/core:0.1.0" as _rk
 
-// A rookery note that also takes `timeline:`/`scheduled:`/`deadline:`.
+// A rookery note that also takes `timeline:`/`scheduled:`/`deadline:`. Its
+// `..args` sink forwards core's merging `tag:`/`base-tags:` arguments
+// untouched, so a consumer builds a family of its own directly over this
+// skin — `idea.with(base-tags: "submission")` — and gets the date arguments
+// together with the tag family, with nothing else to wrap.
 #let idea = dated(_rk.idea)
-
-// The FACTORY, decorated too, so a consumer building its own family over this skin
-// — a `#submission`, a `#todo` — gets the date arguments without wrapping anything
-// itself. Without this, every such family would call `dated(..)` around its own
-// `tagged-idea(..)`, which is the boilerplate the skin exists to absorb.
-//
-// A WHOLESALE SINK, so this skin declares nothing about the factory's own
-// signature: several positional tags, `value:` and `exclude-tags:` all reach core
-// untouched, and a family built over the skin gets the same surface as one built
-// over core.
-#let tagged-idea(..family) = dated(_rk.tagged-idea(..family))

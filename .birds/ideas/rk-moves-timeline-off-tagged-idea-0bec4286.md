@@ -7,7 +7,7 @@ labels:
 - migrate-tagged-idea
 deps:
 - blocked-by:rk-adds-tag-and-base-tags-to-idea-9960f68e
-closed: false
+closed: true
 ---
 Touches: timeline/0.1.0/src/lib.typ, timeline/0.1.0/src/fragment.typ, timeline/0.1.0/test/units.typ, timeline/0.1.0/readme.md
 
