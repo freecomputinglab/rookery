@@ -892,8 +892,7 @@ its marker element, with no registry to resolve it against. A caller who wants
 to resolve one themselves (e.g., to slugify a reference's target name instead of
 its marker) can do so, but doing so inside a function that is itself about to
 add to the registry carries a measurable risk: the registry's value can then
-depend on this very node's own output, breaking `ideate`'s convergence. Read
-`ideate.typ`'s own comments at line 460 for the measured failure, and do not
+depend on this very node's own output, breaking `ideate`'s convergence. Do not
 attempt it unless you have a very specific reason.
 
 `slug()` is exported from this package and accepts either content or a string,

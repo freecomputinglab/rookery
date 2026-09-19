@@ -6,7 +6,7 @@ priority: 2
 labels:
 - readme-xref
 deps: []
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/readme.md
 
