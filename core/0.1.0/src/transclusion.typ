@@ -86,21 +86,34 @@
 // `<a>` around the whole summary does — so the permalink navigates on its
 // own click while the summary keeps the rest.
 //
-// `show-date` is OFF by default, same as `#idea`'s own — a date is always
+// `display.date` is OFF by default, same as `#idea`'s own — a date is always
 // RESOLVED and stored on the note's registry record regardless, so passing
-// `show-date: true` here can surface it even for a note whose own `#idea`
+// `display.date: true` here can surface it even for a note whose own `#idea`
 // call left it hidden; the two are independent per call site, not one shared
 // setting.
 //
+// `display` is the resolved dictionary `#window` (or `_flatten`'s WK rule)
+// already produced — this function reads its six keys (`date`, `tags`,
+// `frame`, `id`, `label`, `background`) and ignores the other three, which
+// ride along unused.
+//
 // Must be called from inside a `context` block: `_permalink` reads the page
 // handle and the prefix state. Both callers already are.
-#let _window-content(id, rec, shown, folded, show-date, show-tags, show-frame: true, show-id: true, show-label: true, foldable: true, reserve-title: true, show-background: true, windows-claim: false) = {
+#let _window-content(id, rec, shown, folded, display, foldable: true, reserve-title: true, windows-claim: false) = {
+  // Fills any key `display` leaves out with `#window`'s own defaults —
+  // covers a WK marker from an older rookery version, which carries no
+  // `display` key at all (`_flatten`'s WK rule passes `(:)` for one).
+  // Dictionary `+` favours the right operand per key, so this only ever
+  // fills gaps rather than overriding a value `display` already set.
+  let display = (
+    date: false, tags: false, frame: true, id: true, label: true, background: true,
+  ) + display
   // `created`, matching `#idea`'s own hat. A hand-maintained `updated:` field
   // would be a second date that can contradict the note's actual history, so
   // core carries none: `@rookery/timeline` stores a dated log and derives
   // last-touched from it. A project wanting that in a window hat passes it,
   // or reads `updated-of(row)` there.
-  let date = if show-date and rec.created != none {
+  let date = if display.date and rec.created != none {
     rec.created.display("[year]-[month]-[day]")
   } else { none }
 
@@ -118,7 +131,7 @@
   // written by an older rookery in the same document degrades to no name
   // rather than panicking.
   //
-  // `show-label: false` PICKS THE OTHER FIELD instead (see `#idea`'s
+  // `display.label: false` PICKS THE OTHER FIELD instead (see `#idea`'s
   // title-vs-label banner in idea.typ): `label` is the derived name — the
   // authored title where there is one, else the body's own first sixty
   // characters — and `title` is only ever the AUTHORED one, `none` on a note
@@ -133,7 +146,7 @@
   // a note titled [Meeting with #ref(<idea:x>)] has a registration-time
   // label of "Meeting with " and nothing more, computed before there was a
   // registry to resolve against.
-  let name = if show-label {
+  let name = if display.label {
     let reg = _registry.final()
     _rec-label(rec, _ref-text(reg))
   } else {
@@ -179,12 +192,12 @@
       _permalink-tab(
         id,
         // Flat tags only, matching `#idea`'s own hat: a valued tag's name alone
-        // says nothing useful in a pill, so `show-tags:` shows the plain ones.
-        tags: if show-tags {
+        // says nothing useful in a pill, so `display.tags` shows the plain ones.
+        tags: if display.tags {
           rec.at("tags", default: (:)).pairs().filter(((_, v)) => v == none).map(((k, _)) => k)
         } else { () },
         date: date,
-        show-id: show-id,
+        display-id: display.id,
       ) + title-span,
     )
     // `open` is a BOOLEAN html attribute: present means present and there is no
@@ -240,9 +253,9 @@
       // cursor off, `data-rookery-no-bg` the tint.
       attrs: _themed(
         (class: win-cls.join(" "), data-rookery: "window")
-          + (if show-frame { (:) } else { ("data-rookery-bare": "bare") })
+          + (if display.frame { (:) } else { ("data-rookery-bare": "bare") })
           + (if foldable { (:) } else { ("data-rookery-static": "static") })
-          + (if show-background { (:) } else { ("data-rookery-no-bg": "none") })
+          + (if display.background { (:) } else { ("data-rookery-no-bg": "none") })
           + _tags-attr(visible),
       ),
       html.elem(if foldable { "details" } else { "div" }, attrs: d-attrs,
@@ -343,7 +356,7 @@
             tags: if d.at("tags", default: false) {
               v.tags.pairs().filter(((_, val)) => val == none).map(((k, _)) => k)
             } else { () },
-            show-id: d.at("id", default: true),
+            display-id: d.at("id", default: true),
           )
         },
         html.elem(
@@ -399,8 +412,8 @@
   //
   // With budget left, it renders as a real window instead, identical to the
   // same `#window` written at the top level — same summary, same disclosure,
-  // same `folded`/`limit`/`show-date`, which is why `#window` records all four
-  // on the WK marker.
+  // same `folded`/`limit`/`display`, which is why `#window` records all
+  // three on the WK marker.
   //
   // Bracketed as a WINDOW, not left bare: the expanded body's links belong to
   // the note it came from, and its nested `#idea`s are echoes rather than this
@@ -437,26 +450,18 @@
         _flatten(rec.raw, depth: depth - 1)
       }
       let shown = _truncate(inner, v.limit)
-      // `.at(..., default: false)`, not a bare field access: a WK marker from
-      // an older rookery version may carry no `show-tags` key at all.
+      // `.at(..., default: (:))`: a WK marker from an older rookery version
+      // carries no `display` key at all, and `_window-content` fills every
+      // gap in whatever comes back from its own defaults.
       _bracket(
         _window-content(
           id,
           rec,
           shown,
           v.folded,
-          v.at("show-date", default: false),
-          v.at("show-tags", default: false),
-          // `.at(.., default: true)` for the same reason `show-tags` above uses
-          // one, but defaulting the OTHER way: core's default for `show-frame`
-          // is `true`, so a marker with no such key must read as a framed
-          // window.
-          show-frame: v.at("show-frame", default: true),
-          show-id: v.at("show-id", default: true),
-          show-label: v.at("show-label", default: true),
+          v.at("display", default: (:)),
           foldable: v.at("foldable", default: true),
           reserve-title: v.at("reserve-title", default: true),
-          show-background: v.at("show-background", default: true),
           windows-claim: depth - 1 > 1,
         ),
         WK,

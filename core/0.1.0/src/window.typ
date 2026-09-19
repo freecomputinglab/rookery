@@ -58,26 +58,32 @@
 // and it cannot cycle — an idea's body is finite and literally contains its
 // nested ones), so `depth` measures exactly the thing that can cycle.
 //
-// Rendering — `folded`, `show-date`, `limit:`, click budget: `_window-content`.
+// Rendering — `folded`, `display.date`, `limit:`, click budget: `_window-content`.
 #let window(
   ..args,
   limit: none,
   folded: false,
-  show-date: false,
-  show-tags: false,
+  // The nine-key display dictionary `#idea` also takes (`_resolve-display`,
+  // pure.typ). `#window` uses six of the nine — `date`, `tags`, `frame`,
+  // `id`, `label`, `background` — and ignores `context`, `backlinks` and
+  // `title`, which ride along unused so the dictionary is interchangeable
+  // with `#idea`'s.
+  display: (:),
+  display-date: auto,
+  display-tags: auto,
   // The same per-window switch `#idea` takes for a card: `false` drops the
   // window's left rule and indent and leaves everything else — the summary, the
   // disclosure, the body — exactly as it was. See `#idea`'s own comment.
-  show-frame: true,
+  display-frame: auto,
   // `false` omits the `[idea:<name>]` permalink from the summary. With
-  // `show-tags`/`show-date` also off the summary keeps only its title, and with
+  // `display-tags`/`display-date` also off the summary keeps only its title, and with
   // no title it keeps nothing — see `_permalink-tab` (permalink.typ).
-  show-id: true,
+  display-id: auto,
   // `false` names this window only if its note carries an AUTHORED title,
   // instead of falling back to the label derived from the note's first line.
   // For a window that RENDERS a note rather than referring to it — see
   // `_window-content`'s own comment on `name`.
-  show-label: true,
+  display-label: auto,
   // `false` renders this window with NO disclosure at all — no `<details>`,
   // no `<summary>`, nothing to click and nothing that can hide the body. For
   // a window that IS the thing being read, not a reference to it: a
@@ -90,10 +96,10 @@
   // dead space above a slide's body. No effect on a titled window, which
   // never hit that reservation to begin with.
   reserve-title: true,
-  // `false` drops the window's hover tint, independent of `show-frame`
+  // `false` drops the window's hover tint, independent of `display.frame`
   // (which takes the rule and indent but leaves the tint alone) — a slide
   // wants the frame gone and the tint kept, hence two switches.
-  show-background: true,
+  display-background: auto,
   // Whether this window COUNTS AS A LINK from wherever it sits to the note it
   // shows. `true` is right for an ordinary window written in a note's prose;
   // `false` is for a DERIVED view — a deck, an index, a preview — where the
@@ -128,14 +134,31 @@
       + repr(reserve-title),
   )
   assert(
-    type(show-background) == bool,
-    message: "@rookery/core: #window's `show-background` must be a bool — got "
-      + repr(show-background),
-  )
-  assert(
     sort == auto or sort == "date" or sort == "lexicographic",
     message: "@rookery/core: #window's `sort` must be auto, \"date\" or "
       + "\"lexicographic\" — got " + repr(sort),
+  )
+  // `_resolve-display` already rejects a non-boolean dictionary value with
+  // its own message, so the per-argument asserts these six replaced are
+  // redundant for the dictionary path.
+  let display = _resolve-display(
+    display,
+    (
+      date: display-date, tags: display-tags, frame: display-frame,
+      id: display-id, label: display-label, background: display-background,
+    ),
+    "#window's",
+  )
+  // `#window`'s own built-in defaults, applied once every key has had its
+  // chance to come from a flag or the dictionary — matches the six defaults
+  // the replaced `show-*` parameters carried.
+  let display = display + (
+    date: if display.date == auto { false } else { display.date },
+    tags: if display.tags == auto { false } else { display.tags },
+    frame: if display.frame == auto { true } else { display.frame },
+    id: if display.id == auto { true } else { display.id },
+    label: if display.label == auto { true } else { display.label },
+    background: if display.background == auto { true } else { display.background },
   )
   // Variadic, not a plain positional: a positional parameter cannot carry a
   // default in typst, and `#window(tags: "todo")` has to be callable with no
@@ -281,14 +304,9 @@
     let marker = metadata((
       rookery-window-id: id,
       folded: folded,
-      show-date: show-date,
-      show-tags: show-tags,
-      show-frame: show-frame,
-      show-id: show-id,
-      show-label: show-label,
+      display: display,
       foldable: foldable,
       reserve-title: reserve-title,
-      show-background: show-background,
       limit: limit,
     ))
 
@@ -328,7 +346,7 @@
     // its links must not read as links from whatever page is showing it.
     _bracket(
       figure(kind: WK, supplement: none, [
-        #marker#_window-content(id, rec, shown, folded, show-date, show-tags, show-frame: show-frame, show-id: show-id, show-label: show-label, foldable: foldable, reserve-title: reserve-title, show-background: show-background, windows-claim: d > 1)
+        #marker#_window-content(id, rec, shown, folded, display, foldable: foldable, reserve-title: reserve-title, windows-claim: d > 1)
       ]),
       WK,
     )

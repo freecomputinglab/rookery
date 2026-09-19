@@ -468,7 +468,7 @@
         // `@idea:etal` fragment link, so dropping the element would break them;
         // `h*.idea:empty` in the stylesheet is what keeps it from taking any space.
         let header = _head(
-          _permalink-tab(id, tags: if display.tags { flat-tags } else { () }, date: date, show-id: display.id),
+          _permalink-tab(id, tags: if display.tags { flat-tags } else { () }, date: date, display-id: display.id),
           html.elem(
             "h" + str(level + 1),
             attrs: (id: id, class: cls.join(" "), data-rookery: "idea")
