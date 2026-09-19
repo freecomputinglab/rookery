@@ -385,7 +385,7 @@
         tags: tags,
         // `display` carries `context`/`backlinks`/`title` as `auto` (the
         // default) when unset, meaning "use the document-wide
-        // `rookery.with(show-context:, show-backlinks:, show-title:)"
+        // `rookery.with(display-context:, display-backlinks:, display-title:)"
         // setting" — `.marrow.typ` reads these off the record ONLY for the
         // minted page (the footer for the first two, the `<h1>` for the
         // third) and falls back to the document default when the value is

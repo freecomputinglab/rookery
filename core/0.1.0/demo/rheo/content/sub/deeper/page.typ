@@ -46,9 +46,9 @@ depth-2 case a root-only and a one-level spine cannot catch.
 // folded: true — same block, `<details>` starts closed.
 #window("w-outer", folded: true)
 
-// show-date: true — the resolved `created` date appears at the right-hand
+// display-date: true — the resolved `created` date appears at the right-hand
 // end of the hat, regardless of whether `#idea` itself was told to show one.
-#window("w-outer", show-date: true)
+#window("w-outer", display-date: true)
 
 // sort: "date" — naming a sort orders the WHOLE selection (oldest first),
 // unlike the default `auto`, which keeps call-site order.

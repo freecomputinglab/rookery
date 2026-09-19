@@ -194,7 +194,7 @@ fi
 # SEVEN dated notes: `plain-note`, `secret-note` and `sub-note`, each carrying
 # an explicit `created:`; `w-inner`/`w-outer`/`w-early` (added for `sort:
 # "date"`, which needs notes that differ in date to order); and `tag-hat`
-# (added for `show-date: true` alongside tag pills in the same hat).
+# (added for `display-date: true` alongside tag pills in the same hat).
 # `private-note` is excluded and so emits no beacon either — a second place
 # the exclusion has to reach, since `.marrow.typ` writes one beacon per
 # minted page.
@@ -250,7 +250,7 @@ fi
   note "no minted page at ideas/secret-note.html — the non-excluded control is missing"
 
 # 10. INVISIBLE TAGS on the surfaces only a rheo build has. A minted note page
-#     renders its tags UNCONDITIONALLY (nothing writes a `show-tags:` argument for
+#     renders its tags UNCONDITIONALLY (nothing writes a `display-tags:` argument for
 #     a page `.marrow.typ` mints), and the index page puts `idea-tag-<tag>` on
 #     every row — so these are the two places an invisible tag would most
 #     obviously leak. `content/lib.typ` sets `invisible-tags: ("secret",)` AND
@@ -630,7 +630,7 @@ p="$H/ideas/wk-0-rheo.html"
 grep -q '<title>Rheo</title>' "$p" ||
   note "ideas/wk-0-rheo.html's <title> is not 'Rheo'"
 
-# 26. `show-tags: true` SURVIVES A REPLAY. `tag-nest-inner` is hatched with a
+# 26. `display-tags: true` SURVIVES A REPLAY. `tag-nest-inner` is hatched with a
 #     pill on its own card in tags.html; the outer note's minted page rebuilds
 #     that card from its beacon, and the pill has to come back with it.
 grep -q 'class="idea-tag' "$H/tags.html" ||

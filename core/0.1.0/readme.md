@@ -21,18 +21,47 @@ generated id in order to paste it into a `#window`.
 ```
 
 Full signature: `idea(level: 1, title: none, tags: (), tag: none, base-tags: none,
-exclude-tags: (), created: none, show-date: false, show-tags: false, show-frame: true, show-id: true,
-..args)`, where
+exclude-tags: (), created: none, display: (:), display-date: auto, display-tags: auto,
+display-frame: auto, display-id: auto, ..args)`, where
 the sink accepts the body alone, `(name, body)`, or `(<name>, body)` — the name
 may be a string or a Typst label, identically. All positionals may also be
 omitted, giving an unnamed note with an empty body — this is how a
 title-only note is written: `#idea(title: [hello])`.
 
-`show-frame: false` drops the card's BOX — its left rule and the indent that goes
+`display-frame: false` drops the card's BOX — its left rule and the indent that goes
 with it — and nothing else: the note still registers, still carries its tags and
-its anchor, still renders its hat and its body. `show-id: false` drops the
+its anchor, still renders its hat and its body. `display-id: false` drops the
 `[idea:<name>]` permalink from the hat. See "Dropping a note's frame" below for
-both.
+both, and "The `display:` dictionary" for how `display-frame`/`display-id` relate
+to the `display: (..)` dictionary these two also read from.
+
+## The `display:` dictionary
+
+`#idea` and `#window` each take a `display:` dictionary alongside their
+individual `display-*` arguments — `display-date`, `display-tags`,
+`display-frame`, `display-id`, and (on `#idea` only) `display-context`,
+`display-backlinks`, `display-title`, or (on `#window` only) `display-label`,
+`display-background`. Both name the same nine possible keys with the prefix
+dropped: `display: (frame: false, tags: true)` sets the same thing as
+`display-frame: false, display-tags: true`, and a call site can mix the two —
+the dictionary for several keys at once, an individual argument for the one
+that needs to differ.
+
+**Precedence, lowest to highest:** core's built-in default, then the
+document-wide `rookery(display: (..), ..)` setting (for the three keys that
+have one — `context`, `backlinks`, `title`), then the call's own `display:
+(..)` dictionary, then an individual `display-*` argument on that same call.
+Each tier only ever fills in what the tier above it left unset: every
+`display-*` argument on `#idea` and `#window` defaults to `auto`, meaning "no
+opinion", which is what lets a lower tier show through. `#ideate` is the one
+exception — its `display-frame`/`display-id` keep their inverted `false`
+defaults, because `#ideate` is a caller with a real opinion (see "Its inverted
+defaults" below), not the bottom of the stack.
+
+```typst
+#idea(display: (frame: false, tags: true), display-frame: true)[..]
+// frame: true wins — the explicit argument beats the dictionary
+```
 
 ## 0.1.0
 
@@ -103,6 +132,28 @@ reaching for an array method has to be rewritten: `t.map(..)`, `t.any(..)`,
 there, note that tag ORDER is unspecified — `#ideas().tags` and `#tags-of()`
 still hand back an array of names, but nothing guarantees the sequence, so sort
 it yourself if you were depending on it.
+
+### Migrating from `show-*` arguments
+
+**This rename is breaking.** `#idea`, `#window`, `#ideate` and `rookery(..)`
+no longer take `show-*` arguments — each now takes a `display:` dictionary
+plus individual `display-*` overrides, described above in "The `display:`
+dictionary". The mapping is a straight prefix swap, one argument at a time:
+
+| old | new |
+| --- | --- |
+| `show-date` | `display-date` |
+| `show-tags` | `display-tags` |
+| `show-frame` | `display-frame` |
+| `show-id` | `display-id` |
+| `show-label` | `display-label` |
+| `show-background` | `display-background` |
+| `show-context` | `display-context` |
+| `show-backlinks` | `display-backlinks` |
+| `show-title` | `display-title` |
+
+`foldable:` and `reserve-title:` on `#window` are NOT renamed — they were
+never part of the `show-*` family and keep their names.
 
 ## Setup, and the `idea:` prefix
 
@@ -338,14 +389,14 @@ was set to pin it there deliberately.
 ## Dropping a note's frame
 
 ```typst
-#idea("bare", show-frame: false)[A note with no left rule and no indent.]
-#window("bare", show-frame: false)
+#idea("bare", display-frame: false)[A note with no left rule and no indent.]
+#window("bare", display-frame: false)
 
-#idea("quiet", show-id: false)[A note with no permalink, and so no hat at all.]
-#window("quiet", show-id: false)
+#idea("quiet", display-id: false)[A note with no permalink, and so no hat at all.]
+#window("quiet", display-id: false)
 ```
 
-`show-frame:` is on both `#idea` and `#window`, `true` by default, and it governs
+`display-frame:` is on both `#idea` and `#window`, `true` by default, and it governs
 exactly one thing: the box a note wears — its `border-left` and the
 `padding-left` that goes with it. Everything else is untouched. The note still
 registers, still carries its tags and its classes, still renders its hat, its
@@ -376,44 +427,44 @@ asked not to wear its frame" and applies to a card as well.
 A project styling on it should select on the attribute
 (`[data-rookery-bare]`), which is stable, rather than on any class.
 
-### `show-id:` — and the whole hat with it
+### `display-id:` — and the whole hat with it
 
-`show-id:` is on `#idea` and `#window` too, `true` by default, and it drops the
+`display-id:` is on `#idea` and `#window` too, `true` by default, and it drops the
 `[idea:<name>]` permalink — the chip that leads a card's hat and a window's
 summary.
 
 **On an ordinary note that also takes the whole hat away, and that is the point.**
 A tab holds three things and all three are optional: the permalink, the tag pills
-(`show-tags:`, off by default) and the date (`show-date:`, off by default). Turn
+(`display-tags:`, off by default) and the date (`display-date:`, off by default). Turn
 the permalink off on a note that has neither of the others and the tab has nothing
 in it, and `[data-rookery="tab"]:empty { display: none }` in `src/core.css`
 collapses it — the same trick `h*.idea:empty` plays for a titleless note's
 heading. The `<span>` is still emitted: it is the element every other tab rule is
 written against, and it comes straight back the moment a pill or a date is turned
-on. So `#idea("x", show-id: false, show-tags: true, ..)` still shows its pills, in
+on. So `#idea("x", display-id: false, display-tags: true, ..)` still shows its pills, in
 a tab, exactly where they were.
 
 **The cost, and it is a real one for an UNTITLED note: a permalink is the ONLY
 way to discover its auto-generated id.** There is no `show heading` rule and
 no template hook — the chip is it. A note written `#idea[..]` and rendered
-with `show-id: false` therefore has an id nothing on the page reveals, so
+with `display-id: false` therefore has an id nothing on the page reveals, so
 nobody can write a `#window` for it. Give a note a name (`#idea("x")[..]`) if
-it should stay linkable, or leave `show-id` on.
+it should stay linkable, or leave `display-id` on.
 
-A TITLED note is cheaper to turn `show-id` off on: its id is a slug of the
+A TITLED note is cheaper to turn `display-id` off on: its id is a slug of the
 title (see "Unnamed notes: ids derived from title"), so anyone who can read
 the title on the page can reconstruct `idea:<slug>` without the chip — right
 up to a collision suffix (`-1`, `-2`, ...), which the title alone cannot
 predict.
 
-### `show-label:` — an authored title, or nothing
+### `display-label:` — an authored title, or nothing
 
-`show-label:` is on `#window` alone, `true` by default, and it chooses which of a
+`display-label:` is on `#window` alone, `true` by default, and it chooses which of a
 record's TWO name fields the summary shows:
 
 - **`label`** (the default) — the derived name: the authored title where there is
   one, else the first sixty characters of the note's own body.
-- **`title`** (`show-label: false`) — the AUTHORED title only, and nothing at all
+- **`title`** (`display-label: false`) — the AUTHORED title only, and nothing at all
   for a note nobody titled.
 
 The default is right for what a window usually is: a REFERENCE to another note,
@@ -427,7 +478,7 @@ untitled note prints its own first line twice — once as the summary and once a
 the first line of the prose beneath it. That is the case
 [`@rookery/slipshow`](../../slipshow/0.1.0) hits on every slide.
 
-**The trap: `show-label: false` with `folded: true`.** A titleless note then has an
+**The trap: `display-label: false` with `folded: true`.** A titleless note then has an
 empty summary, which is a disclosure control with nothing in it — nobody can
 recognise it or click it with intent. Use the pair only where the notes are known
 to be titled, or leave the window unfolded.
@@ -468,9 +519,9 @@ ever applied to a summary with no title span, so a titled window keeps its
 ordinary spacing whichever way this is set — including when it is also
 `foldable: false`.
 
-Reaching for it means you are already passing `show-label: false`: with the
-default `show-label: true` a summary is essentially never titleless, because the
-derived label stands in (see above). The pair `show-label: false` +
+Reaching for it means you are already passing `display-label: false`: with the
+default `display-label: true` a summary is essentially never titleless, because the
+derived label stands in (see above). The pair `display-label: false` +
 `reserve-title: false` is a slide — a titleless note renders as its body with a
 bare id above it and no dead space between them, and a titled one renders with
 its title and the normal spacing.
@@ -480,14 +531,14 @@ side by side, one titled and one not, measured 26.02px against 8.02px, and the
 short one read as cramped rather than as a smaller variant of its neighbour.
 Keep it wherever windows sit in a row.
 
-### `show-background:` — the hover tint, on its own switch
+### `display-background:` — the hover tint, on its own switch
 
-`show-background:` is on `#window` alone, `true` by default, and `false` drops
+`display-background:` is on `#window` alone, `true` by default, and `false` drops
 the window's hover tint.
 
-It is independent of [`show-frame:`](#dropping-a-notes-frame), which takes the
+It is independent of [`display-frame:`](#dropping-a-notes-frame), which takes the
 left rule and the indent and leaves the tint alone. Both directions are wanted:
-a slipshow slide asks for `show-frame: false` and KEEPS the tint, because the
+a slipshow slide asks for `display-frame: false` and KEEPS the tint, because the
 frame is decoration and the tint is the slide answering a pointer. Nothing
 implies anything else here — three switches, three decisions.
 
@@ -535,10 +586,11 @@ page would inherit every link inside every note it shows.
 
 **Both switches ride the nested-note payload.** A note written inside another
 note's body is rebuilt from a `#metadata` record when its parent is transcluded or
-minted, never from the original call site, so `show-frame` and `show-id` are stored
-on that record and read back with a default of `true`. A nested `#idea(show-id:
-false)` therefore stays bare when its parent is windowed, and a record written
-before these keys existed reads as an ordinary framed, permalinked note.
+minted, never from the original call site, so the resolved `display` dictionary's
+`frame` and `id` keys are stored on that record and read back with a default of
+`true`. A nested `#idea(display-id: false)` therefore stays bare when its parent
+is windowed, and a record written before these keys existed reads as an ordinary
+framed, permalinked note.
 
 ## `#ideate` — every paragraph a note
 
@@ -863,14 +915,14 @@ ids, and why" below for cross-document id collisions in general.
 
 ### Its inverted defaults
 
-`ideate(body, separator: none, title: none, name: auto, tags: (), show-frame: false, show-id: false, ..args)`.
+`ideate(body, separator: none, title: none, name: auto, tags: (), display: (:), display-frame: false, display-id: false, ..args)`.
 
 `separator: none` mints the WHOLE body as one note — the common case is a
 document-level `#show: ideate` on a page that is one idea, and a caller who
 wants the old paragraph-per-note behaviour asks for it explicitly with
 `separator: par`.
 
-`show-frame` and `show-id` both invert `#idea`'s own defaults, and that
+`display-frame` and `display-id` both invert `#idea`'s own defaults, and that
 inversion is most of the reason the function is worth having: an inferred note
 is not one anybody named, so a frame and a permalink around every paragraph is
 chrome nobody asked for — and with no name, that permalink points at a sequence
@@ -886,7 +938,7 @@ tags a whole block at once:
 #ideate(tags: "slip")[..]     // every paragraph becomes a note tagged `slip`
 ```
 
-**Every note minted this way has an AUTO-GENERATED id**, and with `show-id: false`
+**Every note minted this way has an AUTO-GENERATED id**, and with `display-id: false`
 no visible permalink, so none of them is addressable by name. That is fine for a
 block a tag query will pick up and wrong for anything anyone needs to link to; a
 note that must be linkable is written by hand as `#idea("name")[..]`.
@@ -1004,21 +1056,21 @@ Three ways, pick by how much ceremony you want:
   either and the two are orthogonal. Under a paged target, where there is
   nothing to click, `folded` is ignored and the body always shows.
 
-  `show-date: true` shows the note's `created` date at the right-hand end of the
+  `display-date: true` shows the note's `created` date at the right-hand end of the
   hat, opposite the permalink — off by default. See "Dates" below.
 
-  `show-tags: true` shows the note's tags as a row of pills in the hat, between
-  the permalink and the date — off by default, same mechanism as `show-date`.
+  `display-tags: true` shows the note's tags as a row of pills in the hat, between
+  the permalink and the date — off by default, same mechanism as `display-date`.
   See "Tags" below.
 
-  `show-frame: false` drops the window's left rule and indent, the same switch
+  `display-frame: false` drops the window's left rule and indent, the same switch
   `#idea` takes for a card, and leaves the summary, the disclosure and the body
-  exactly as they were. `show-id: false` drops the permalink from the summary,
+  exactly as they were. `display-id: false` drops the permalink from the summary,
   the same switch again. See "Dropping a note's frame" above for both.
 
-  `show-label: false` names this window only if its note carries an AUTHORED
+  `display-label: false` names this window only if its note carries an AUTHORED
   title, instead of falling back to the label derived from the note's first
-  line — see "`show-label:` — an authored title, or nothing" above. It is a
+  line — see "`display-label:` — an authored title, or nothing" above. It is a
   `#window` argument only: a card already prints the authored title alone.
 
   `backlink: false` renders the note without COUNTING as a link to it, so this
@@ -1027,7 +1079,7 @@ Three ways, pick by how much ceremony you want:
 
   The window's own wrapper wears the note's visible tags too, unconditionally
   — the same `.idea-tag-<key>` classes and the same `data-rookery-tags`
-  attribute its card carries, whether or not `show-tags:` is set. A note
+  attribute its card carries, whether or not `display-tags:` is set. A note
   transcluded by a `#window` is the note shown in place, so it styles the same
   way there as it does on its own page; an invisible tag (see "Tags" below)
   leaves no trace here either.
@@ -1724,17 +1776,17 @@ style them in your own stylesheet. A `#window` transcluding the note wears the
 same classes on its own wrapper, alongside the base `idea-window` class — one
 element per note, the same way the card carries them once.
 
-**`show-tags: true`** on `#idea`/`#window` ALSO renders a note's tags as a row
+**`display-tags: true`** on `#idea`/`#window` ALSO renders a note's tags as a row
 of visible pills in the hat — the same `.idea-tab` the id and (with
-`show-date: true`) the date sit on, in that fixed order: id, then tags, then
-date. Off by default, the same mechanism as `show-date`:
+`display-date: true`) the date sit on, in that fixed order: id, then tags, then
+date. Off by default, the same mechanism as `display-date`:
 
 ```typst
-#idea("meeting-notes", tags: ("draft", "review"), show-tags: true)[...]
-#window("meeting-notes", show-tags: true) // pills again here, independently
+#idea("meeting-notes", tags: ("draft", "review"), display-tags: true)[...]
+#window("meeting-notes", display-tags: true) // pills again here, independently
 ```
 
-An untagged note has no tags either way, so `show-tags: true` renders no pill
+An untagged note has no tags either way, so `display-tags: true` renders no pill
 for it.
 
 **Pills are FLAT TAGS ONLY** — those whose value is `none`. A valued tag keeps
@@ -1785,7 +1837,7 @@ A `tags-color` KEY has to be usable as a CSS class — a letter or an underscore
 
 **Delivered as generated CSS rules, not as a style on the pill.** Each themed tag becomes one `.idea-tag-<tag>` rule setting `--idea-tag-bg`, `--idea-tag-color` and `--idea-tag-line`, wrapped in `@layer rookery-tags` and emitted once per page — by `#show: rookery` on every vertebra, and again on every page the package mints. So the colours reach every surface already wearing that class:
 
-- the **hat pill** (`show-tags: true`);
+- the **hat pill** (`display-tags: true`);
 - an **outline row's marker**, the hairline tick off the outline's own rule, through `--idea-tag-line`;
 - **`@rookery/search`'s modal chips**, built in the browser and therefore beyond the reach of anything Typst could write inline.
 
@@ -2037,7 +2089,7 @@ It removes, everywhere:
 
 - the PILL in a note's hat — on a card, in a `#window` summary, and on a minted
   note page (which shows its tags unconditionally, since nothing writes a
-  `show-tags:` argument for a page the package mints);
+  `display-tags:` argument for a page the package mints);
 - the `idea-tag-<tag>` CSS CLASS — on the heading, the card, a transcluded
   card, a `#window`'s own wrapper, and an `ideas/index.html` or
   `#ideas-outline` row;
@@ -2157,12 +2209,12 @@ Resolution order, most specific first:
 ```
 
 A date is always RESOLVED and stored on the note's registry record, but
-rendering it is opt-in — `show-date: false` by default, on both `#idea` and
+rendering it is opt-in — `display-date: false` by default, on both `#idea` and
 `#window`, so an unconfigured note's header is just the title and its id:
 
 ```typst
-#idea("a", show-date: true)[Shows its date at the right-hand end of the hat.]
-#window("a", show-date: true) // shows it again here, independently
+#idea("a", display-date: true)[Shows its date at the right-hand end of the hat.]
+#window("a", display-date: true) // shows it again here, independently
 ```
 
 **Where it renders is the hat** — the `.idea-tab` rule across the top of a card
@@ -2190,13 +2242,13 @@ date it can resolve without being told anything, and a note's LIFECYCLE belongs 
 ```
 
 A note's own minted page is the exception: there the date shows **always**, with
-no `show-date:` to gate it — and its tags render as pills too, same hat, same
-"always", no `show-tags:` to gate that either. Nobody writes an `#idea` call for
+no `display-date:` to gate it — and its tags render as pills too, same hat, same
+"always", no `display-tags:` to gate that either. Nobody writes an `#idea` call for
 that page — `.marrow.typ` mints it from the registry — and a note's own page is
 the one place its date and its tags are metadata rather than a decoration on
 someone else's prose.
 
-The two call-site settings are independent: passing `show-date: true` to a
+The two call-site settings are independent: passing `display-date: true` to a
 `#window` surfaces the date even when the note's own `#idea` left it hidden, and
 vice versa — nothing links them beyond both defaulting off.
 
@@ -2364,7 +2416,7 @@ Leaving `note-dir` unset moves every page in such a project to `note/`
 instead. A project that never touched `prefix` is unaffected either way —
 rule 2 above keeps it at `ideas/`.
 
-### Turning the footer off: `show-context`, `show-backlinks`
+### Turning the footer off: `display-context`, `display-backlinks`
 
 Both default to `true`, so a page's footer is exactly what it always was
 unless you say otherwise. Context is the link back to the vertebra a note was
@@ -2373,7 +2425,7 @@ document-wide, independently of the other — nothing else about the page
 changes:
 
 ```typst
-#show: rookery.with(show-context: false, show-backlinks: false)
+#show: rookery.with(display-context: false, display-backlinks: false)
 ```
 
 `#idea` (and `#note`/`#todo`/anything built with `idea.with(..)`) takes the same
@@ -2382,13 +2434,13 @@ so a single note can override either without changing it for the rest of the
 rookery:
 
 ```typst
-#idea("etal", show-context: false)[A note with no Context section, whatever
-`rookery.with(show-context: ..)` says.]
+#idea("etal", display-context: false)[A note with no Context section, whatever
+`rookery.with(display-context: ..)` says.]
 ```
 
-### Hiding the minted page's heading: `show-title`
+### Hiding the minted page's heading: `display-title`
 
-`show-title` governs a note's OWN MINTED PAGE ONLY. Defaults to `true`, so the
+`display-title` governs a note's OWN MINTED PAGE ONLY. Defaults to `true`, so the
 `<h1>` is exactly what it always was unless you say otherwise. It does not
 touch anywhere else a note's title appears — a `#window` summary, an `@ref`,
 and an `ideas/index.html` row all still call the note by its title (or
@@ -2398,7 +2450,7 @@ page chrome already names the note (a reading list entry, a session title in
 a metadata table) and printing it again as a heading is redundant:
 
 ```typst
-#show: rookery.with(show-title: false)
+#show: rookery.with(display-title: false)
 ```
 
 `#idea` takes the same argument, defaulting to `auto` — "use the
@@ -2406,11 +2458,11 @@ document-wide setting above" — so a single note can override it without
 changing the rest of the rookery:
 
 ```typst
-#idea("etal", show-title: false)[This note's own page has no `<h1>`, but a
+#idea("etal", display-title: false)[This note's own page has no `<h1>`, but a
 `#window(<etal>)` elsewhere still shows its title.]
 ```
 
-With `show-title: false` resolved, the minted page omits the `<h1>` entirely
+With `display-title: false` resolved, the minted page omits the `<h1>` entirely
 rather than leaving an empty one — the id that would have been the heading's
 anchor moves onto its `.idea-head` container instead, so a Context link from
 another page's footer still lands on the note.

@@ -30,19 +30,19 @@
 #window(tags: ("todo", "phd"), match: "all")
 #window(tags: ("todo", "phd"))
 
-// show-tags: true, alongside show-date: true — both a row of tag pills AND
+// display-tags: true, alongside display-date: true — both a row of tag pills AND
 // the date render in the same hat. Under rheo, the minted page for this note
 // also renders its tags UNCONDITIONALLY, which no `demo/pure` root can show.
 #note(
   "tag-hat",
   tags: ("draft", "phd", "review"),
-  show-tags: true,
-  show-date: true,
+  display-tags: true,
+  display-date: true,
   created: datetime(year: 2025, month: 2, day: 1),
 )[A note with tag pills AND a date in the same hat.]
 
 // The pill row renders in a window's summary too, not just #idea's own card.
-#window("tag-hat", show-tags: true)
+#window("tag-hat", display-tags: true)
 
 // A VALUED tag in each of the three shapes a real rookery reaches for: a
 // date, a URL, and an opaque id. All three become `idea-tag-*` classes on
@@ -57,7 +57,7 @@
     source: "https://example.org/paper",
     ticket: "PROJ-142",
   ),
-  show-tags: true,
+  display-tags: true,
 )[Carries a date, a URL and an id as tag values; only `draft` shows as a pill.]
 
 #context [
@@ -67,7 +67,7 @@
   its ticket: #repr(tag-value("tag-valued", "ticket"))
 ]
 
-// A tagged note with `show-tags: true` NESTED inside another idea. The outer
+// A tagged note with `display-tags: true` NESTED inside another idea. The outer
 // note's minted page rebuilds this card from its beacon, which is the only
 // path on which the pill can go missing.
 #idea("tag-nest-outer", title: [A note containing a tagged note])[
@@ -75,7 +75,7 @@
     "tag-nest-inner",
     title: [The nested tagged note],
     tags: ("draft",),
-    show-tags: true,
+    display-tags: true,
   )[Its pill must survive being replayed on the outer note's minted page.]
 ]
 

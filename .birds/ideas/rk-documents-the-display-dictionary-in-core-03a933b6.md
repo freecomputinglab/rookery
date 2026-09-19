@@ -10,7 +10,7 @@ deps:
 - blocked-by:rk-renames-rookery-s-document-wide-display-5a8874b1
 - blocked-by:rk-renames-ideate-s-display-pass-throughs-3629782f
 - blocked-by:rk-documents-title-derived-ids-and-the-url-579ccbdc
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/readme.md, core/0.1.0/src/core.css, core/0.1.0/.marrow.typ, core/0.1.0/src/idea.typ, core/0.1.0/demo/pure/theme.typ, core/0.1.0/demo/rheo/content/index.typ, core/0.1.0/demo/rheo/content/tags.typ, core/0.1.0/demo/rheo/content/sub/deeper/page.typ, core/0.1.0/demo/rheo/check.sh
 

@@ -76,7 +76,7 @@ the only thing that produces a page backlink:
 // difference between two tags on one note rather than the absence of all of them.
 // It survives the build; only the tag's name disappears. The minted page is the
 // place that matters most: it renders its note's tags UNCONDITIONALLY, with no
-// `show-tags:` argument to gate them, because nothing writes an `#idea` call for
+// `display-tags:` argument to gate them, because nothing writes an `#idea` call for
 // a page `.marrow.typ` mints.
 // Same rule about its body as above: no tag name, no class name, no backticked
 // example — only the marker `check.sh` greps for.

@@ -235,7 +235,7 @@
       // project that themed `border-color` got the package default on every note
       // page's tab, since a sibling inherits nothing.
       // THE DATE IS ALWAYS SHOWN HERE, unlike on a card or in a window, where it
-      // is opt-in behind `show-date:`. A minted page has no call site to carry
+      // is opt-in behind `display-date:`. A minted page has no call site to carry
       // that argument — nobody writes `#idea` for this page, `.marrow.typ` mints
       // it from the registry — and a note's OWN page is the one place the date is
       // not clutter: it is the page's metadata, not a decoration on someone
@@ -251,7 +251,7 @@
           href: "#" + id,
           // ALWAYS SHOWN, for the same reason the date is always shown here
           // (see above): a minted page has no call site to carry a
-          // `show-tags:` argument, and a note's OWN page is the one place
+          // `display-tags:` argument, and a note's OWN page is the one place
           // its tags are not clutter. An untagged note's `rec.tags` is `(:)`,
           // which `_permalink-tab` already renders as nothing.
           //

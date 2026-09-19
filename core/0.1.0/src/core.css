@@ -336,7 +336,7 @@
    line up as the same object.
 
    `:has` rather than a class, because whether the heading is empty is decided by
-   the author's arguments (`title:`, `show-date:`) at every call site, not by
+   the author's arguments (`title:`, `display-date:`) at every call site, not by
    anything the package could put in the markup once. `[data-rookery="page-refs"]:has(li)`
    already relies on the same selector. */
 [data-rookery="head"]:has(> :empty) + * {
@@ -366,8 +366,8 @@
 
 /* THE SAME TRICK ONE ELEMENT UP, for a tab rather than a heading. A tab holds
    three things and every one of them is optional: the permalink
-   (`show-id: false` drops it), the tag pills (`show-tags:`, off by default) and
-   the date (`show-date:`, off by default). Turn the permalink off on an ordinary
+   (`display-id: false` drops it), the tag pills (`display-tags:`, off by default) and
+   the date (`display-date:`, off by default). Turn the permalink off on an ordinary
    note and nothing is left, so the tab has to collapse or a note asked for no
    hat still wears an empty band in its place. `#idea`/`#window` keep
    emitting the `<span>` in that state deliberately — it is the element every
@@ -777,9 +777,9 @@ h6[data-rookery="idea"] {
   padding-bottom: 2px;
 }
 
-/* `:not([data-rookery-no-bg])` is `#window`'s `show-background: false`. It is a
+/* `:not([data-rookery-no-bg])` is `#window`'s `display-background: false`. It is a
    switch of its own rather than part of the frame: a slipshow slide asks for
-   `show-frame: false` and keeps this tint, because the frame is decoration and
+   `display-frame: false` and keeps this tint, because the frame is decoration and
    the tint is the slide answering a pointer. */
 [data-rookery="window"]:not([data-rookery-no-bg]):hover {
   background-color: var(--idea-fold-color, rgba(0, 100, 255, 0.05));
@@ -811,7 +811,7 @@ h6[data-rookery="idea"] {
   background-color: transparent;
 }
 
-/* `#idea(show-frame: false)` / `#window(show-frame: false)`: a note that keeps
+/* `#idea(display-frame: false)` / `#window(display-frame: false)`: a note that keeps
    everything it has — its hat, its title, its body, its tags — and gives up only
    the BOX, the left rule and the indent that go with it. A presentation is the
    case this exists for: `@rookery/slipshow` puts each slip in a `<section>` of
@@ -1088,10 +1088,10 @@ h6[data-rookery="idea"] {
 }
 
 /* THE HAT PILL — a tag rendered as a visible chip in the hat, opt-in per call
-   site (`show-tags: true` on `#idea`/`#window`, off by default, the same
-   mechanism as `show-date`), directly after the id and before the date (see
+   site (`display-tags: true` on `#idea`/`#window`, off by default, the same
+   mechanism as `display-date`), directly after the id and before the date (see
    `_permalink-tab` in lib.typ). An untagged note's tag list is empty either
-   way, so it renders no pill regardless of `show-tags`.
+   way, so it renders no pill regardless of `display-tags`.
 
    `[data-rookery="tag"]` is this rule's own hook. Each pill also names its tag with
    the same `idea-tag-<tag>` class rookery already puts on the card and
