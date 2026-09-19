@@ -149,17 +149,13 @@
     ),
     "#window's",
   )
-  // `#window`'s own built-in defaults, applied once every key has had its
-  // chance to come from a flag or the dictionary — matches the six defaults
-  // the replaced `show-*` parameters carried.
-  let display = display + (
-    date: if display.date == auto { false } else { display.date },
-    tags: if display.tags == auto { false } else { display.tags },
-    frame: if display.frame == auto { true } else { display.frame },
-    id: if display.id == auto { true } else { display.id },
-    label: if display.label == auto { true } else { display.label },
-    background: if display.background == auto { true } else { display.background },
-  )
+  // These six keys stay `auto` when unset, same as `context`/`backlinks`/
+  // `title` — `#window` no longer substitutes a built-in default itself.
+  // `auto` means "use the document-wide `rookery(..)` setting", resolved
+  // against state (`_display-final`, state.typ) at the point this window
+  // actually renders: `_window-content` (transclusion.typ), which every
+  // rendering path below reaches, whether directly or via `_flatten`'s WK
+  // rule expanding a nested window later.
   // Variadic, not a plain positional: a positional parameter cannot carry a
   // default in typst, and `#window(tags: "todo")` has to be callable with no
   // name at all. `#hyperlink` takes the same shape for the same reason.

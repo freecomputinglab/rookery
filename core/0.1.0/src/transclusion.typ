@@ -92,22 +92,21 @@
 // call left it hidden; the two are independent per call site, not one shared
 // setting.
 //
-// `display` is the resolved dictionary `#window` (or `_flatten`'s WK rule)
-// already produced — this function reads its six keys (`date`, `tags`,
-// `frame`, `id`, `label`, `background`) and ignores the other three, which
-// ride along unused.
+// `display` is the dictionary `#window` (or `_flatten`'s WK rule) already
+// produced — this function reads its six keys (`date`, `tags`, `frame`,
+// `id`, `label`, `background`) and ignores the other three, which ride along
+// unused.
 //
 // Must be called from inside a `context` block: `_permalink` reads the page
-// handle and the prefix state. Both callers already are.
+// handle and the prefix state, and `_display-final` reads document-wide
+// state. Both callers already are.
 #let _window-content(id, rec, shown, folded, display, foldable: true, reserve-title: true, windows-claim: false) = {
-  // Fills any key `display` leaves out with `#window`'s own defaults —
-  // covers a WK marker from an older rookery version, which carries no
-  // `display` key at all (`_flatten`'s WK rule passes `(:)` for one).
-  // Dictionary `+` favours the right operand per key, so this only ever
-  // fills gaps rather than overriding a value `display` already set.
-  let display = (
-    date: false, tags: false, frame: true, id: true, label: true, background: true,
-  ) + display
+  // Resolves `auto` against document-wide state — covers both `#window`
+  // leaving a key unset and a WK marker from an older rookery version,
+  // which carries no `display` key at all (`_flatten`'s WK rule passes
+  // `(:)` for one): `_display-final` treats a missing key the same as
+  // `auto`.
+  let display = _display-final(display, ("date", "tags", "frame", "id", "label", "background"))
   // `created`, matching `#idea`'s own hat. A hand-maintained `updated:` field
   // would be a second date that can contradict the note's actual history, so
   // core carries none: `@rookery/timeline` stores a dated log and derives
@@ -338,25 +337,25 @@
     let visible = _visible-tags(v.tags.keys())
     let cls = (_c(""),) + visible.map(l => _c("tag-" + l))
     // `.at(.., default: (:))`: a payload minted before `display` existed
-    // carries no such key, and each read below supplies its own default.
+    // carries no such key, and `_display-final` resolves each read below
+    // against document-wide state — the same treatment a missing key gets
+    // as an explicit `auto`.
     let d = v.at("display", default: (:))
+    let rd = _display-final(d, ("tags", "id", "frame"))
     if _target() == "html" or _target() == "epub" {
       let attrs = (class: cls.join(" "), data-rookery: "idea") + _tags-attr(visible)
       if id != none { attrs = attrs + (id: id) }
       // Tab before the heading, and the `id == none` guard travels with it: a
       // payload minted before `id` existed carries no such key, so that note
       // gets no tab either and its card simply has no top rule.
-      //
-      // `.at(.., default: true)`, not a bare field access: an IK payload minted
-      // before `display.id` existed carries no such key, and core's default is on.
       let header = _head(
         if id == none { [] } else {
           _permalink-tab(
             id,
-            tags: if d.at("tags", default: false) {
+            tags: if rd.tags {
               v.tags.pairs().filter(((_, val)) => val == none).map(((k, _)) => k)
             } else { () },
-            display-id: d.at("id", default: true),
+            display-id: rd.id,
           )
         },
         html.elem(
@@ -382,12 +381,13 @@
       _bracket(
         html.elem(
           "div",
-          // `display.frame` off the payload too, same `.at` default as
-          // `display.id` above: a nested note rebuilt here must wear the
-          // frame its own call site asked for, not the package default.
+          // `rd.frame`, resolved the same way as `rd.id`/`rd.tags` above: a
+          // nested note rebuilt here must wear the frame its own call site
+          // asked for, resolved against the document's setting if it asked
+          // for none.
           attrs: _themed(
             (class: box-cls.join(" "), data-rookery: "box")
-              + (if d.at("frame", default: true) { (:) } else { ("data-rookery-bare": "bare") })
+              + (if rd.frame { (:) } else { ("data-rookery-bare": "bare") })
               + _tags-attr(visible),
           ),
           header + _footnoted(v.body) + _refs-block(_own-cited-keys(v.body, windows-claim: depth > 1)),

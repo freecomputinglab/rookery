@@ -222,6 +222,56 @@
 // heading.
 #let _display-title = state("rheo-idea-show-title", true)
 
+// Whether `#idea`'s card and `#window`'s summary render a note's stored
+// date, its tag pills, its box frame, and its permalink id — plus, on
+// `#window` only, its derived label and its hover background. Same
+// binding/key naming split as `_display-context` above. `#idea`/`#window`
+// used to fall back to a built-in default the moment `display-*` came back
+// `auto`; that default now lives here, so `rookery(..)` can set it once for
+// the whole document instead of at every call site. The values match what
+// `#idea`/`#window` always applied: only `date` and `tags` start off.
+#let _display-background = state("rheo-idea-show-background", true)
+#let _display-date = state("rheo-idea-show-date", false)
+#let _display-frame = state("rheo-idea-show-frame", true)
+#let _display-id = state("rheo-idea-show-id", true)
+#let _display-label = state("rheo-idea-show-label", true)
+#let _display-tags = state("rheo-idea-show-tags", false)
+
+// Every display key mapped to its own document-wide state, for
+// `_display-final` below — one table instead of a chain of per-key
+// comparisons at each call site.
+#let _DISPLAY-STATES = (
+  "context": _display-context,
+  backlinks: _display-backlinks,
+  background: _display-background,
+  date: _display-date,
+  frame: _display-frame,
+  id: _display-id,
+  label: _display-label,
+  tags: _display-tags,
+  title: _display-title,
+)
+
+// Resolves `auto` in an already-merged `display` dictionary (`_resolve-display`,
+// pure.typ) against document-wide state, for exactly the keys named. Used at
+// the point `#idea`'s card, `#window`'s summary, or a transcluded/minted
+// card actually renders — rather than at registration — so what shows
+// depends on the document's setting AT RENDER TIME, not on whatever it was
+// when the note was written. A key `display` does not carry at all (a
+// payload minted before that key existed) resolves the same way `auto`
+// does, which is what lets an old payload fall back to today's document-wide
+// setting rather than a value frozen at some earlier built-in default.
+//
+// Must be called inside a `context` block: every state read is `.final()`.
+#let _display-final(display, keys) = {
+  let r = (:)
+  for k in keys {
+    let v = display.at(k, default: auto)
+    r.insert(k, if v == auto { _DISPLAY-STATES.at(k).final() } else { v })
+  }
+  r
+}
+
 // How `.marrow.typ` should NAME a vertebra in the Context and Backlinks
 // sections of a minted note page.
 //

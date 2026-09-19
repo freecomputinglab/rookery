@@ -48,9 +48,9 @@ the dictionary for several keys at once, an individual argument for the one
 that needs to differ.
 
 **Precedence, lowest to highest:** core's built-in default, then the
-document-wide `rookery(display: (..), ..)` setting (for the three keys that
-have one — `context`, `backlinks`, `title`), then the call's own `display:
-(..)` dictionary, then an individual `display-*` argument on that same call.
+document-wide `rookery(display: (..), ..)` setting — all nine keys have one —
+then the call's own `display: (..)` dictionary, then an individual
+`display-*` argument on that same call.
 Each tier only ever fills in what the tier above it left unset: every
 `display-*` argument on `#idea` and `#window` defaults to `auto`, meaning "no
 opinion", which is what lets a lower tier show through. `#ideate` is the one

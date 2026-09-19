@@ -7,7 +7,7 @@ labels:
 - feat-display-document-wide
 deps:
 - blocked-by:rk-documents-the-derived-id-ordering-caveat-2b3c62b2
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/template.typ, core/0.1.0/src/state.typ, core/0.1.0/.marrow.typ, core/0.1.0/src/idea.typ, core/0.1.0/src/window.typ, core/0.1.0/readme.md
 

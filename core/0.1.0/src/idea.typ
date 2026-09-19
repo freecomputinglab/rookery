@@ -46,13 +46,14 @@
 //
 // `display:` and the seven `display-*` flags are resolved together by
 // `_resolve-display` (pure.typ) into one dictionary: an explicit flag wins
-// over the dictionary's own value for that key, which wins over `auto`.
-// Every flag defaults to `auto`, including the four below that also carry a
-// built-in default (`date`, `tags`, `frame`, `id`) — that default is applied
-// just below the resolve, once `auto` has had its chance to mean "unset".
-// `context`, `backlinks` and `title` are left `auto` when unset: that means
-// "use the document-wide setting", resolved later on the minted page, not a
-// built-in boolean.
+// over the dictionary's own value for that key, which wins over `auto`. Every
+// flag defaults to `auto`, and every one of the seven STAYS `auto` here when
+// unset — none of them gets a built-in default substituted in this function
+// any more. `context`, `backlinks` and `title` mean "use the document-wide
+// setting", resolved later on the minted page; `date`, `tags`, `frame` and
+// `id` mean the same thing one step earlier, resolved against document-wide
+// state (`_display-final`, state.typ) at the point this note's own card
+// renders, further down.
 #let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-id: auto, display-context: auto, display-backlinks: auto, display-title: auto, ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
@@ -94,17 +95,6 @@
       frame: display-frame, id: display-id, tags: display-tags, title: display-title,
     ),
     "#idea's",
-  )
-  // The four RENDER-TIME keys get their built-in default here, once `auto`
-  // has had its chance to mean "unset" above. `context`, `backlinks` and
-  // `title` stay `auto` when unset — that means "use the document-wide
-  // setting", resolved later on the minted page, not a built-in boolean —
-  // so they are deliberately absent from this list.
-  let display = display + (
-    date: if display.date == auto { false } else { display.date },
-    tags: if display.tags == auto { false } else { display.tags },
-    frame: if display.frame == auto { true } else { display.frame },
-    id: if display.id == auto { true } else { display.id },
   )
   let tags = _merge-base-tags(tag, _merge-base-tags(base-tags, tags))
   let pos = args.pos()
@@ -288,6 +278,13 @@
     // auto-numbered nested note a correct permalink.
     #metadata((body: body, title: title, label: note-label, named: named, base: base, id: id, level: level, tags: tags, display: display))
     #context {
+      // The four RENDER-TIME keys, resolved HERE against document-wide state
+      // rather than a built-in default — this is the note's own card
+      // rendering, so it is the point of use `_display-final`'s banner
+      // describes. `context`/`backlinks`/`title` are not resolved here: this
+      // card never reads them, only `.marrow.typ`'s minted page does.
+      let rdisplay = _display-final(display, ("date", "tags", "frame", "id"))
+
       // Resolution order, most specific first: the explicit created:
       // argument, then the containing document's own
       // `#set document(date:)`, else no date. MEASURED: a document with no
@@ -301,7 +298,7 @@
       }
       let resolved-created = if created != none { created } else { doc-date }
 
-      // `display.date` gates display only — the date is always RESOLVED and
+      // `rdisplay.date` gates display only — the date is always RESOLVED and
       // stored on the registry record above, so a #window of this note can
       // still show it even when the note's own hat (here) does not.
       //
@@ -309,7 +306,7 @@
       // else the containing document's own `#set document(date:)`. A note's
       // LIFECYCLE is `@rookery/timeline`'s subject, not core's — it stores a
       // dated log and derives last-touched from it.
-      let date = if display.date and resolved-created != none {
+      let date = if rdisplay.date and resolved-created != none {
         resolved-created.display("[year]-[month]-[day]")
       } else { none }
 
@@ -445,7 +442,7 @@
       let visible = _visible-tags(tags.keys())
       let cls = (_c(""),) + visible.map(l => _c("tag-" + l))
       // The flat tags — those whose value is `none`. This is what
-      // `display.tags` renders as pills: a valued tag's name alone says nothing useful in a
+      // `rdisplay.tags` renders as pills: a valued tag's name alone says nothing useful in a
       // pill (`depends-on` with no dependencies shown), so a package carrying
       // metadata in tags renders it it own way instead of polluting the hat.
       let flat-tags = tags.pairs().filter(((_, v)) => v == none).map(((k, _)) => k)
@@ -474,7 +471,7 @@
         // `@idea:etal` fragment link, so dropping the element would break them;
         // `h*.idea:empty` in the stylesheet is what keeps it from taking any space.
         let header = _head(
-          _permalink-tab(id, tags: if display.tags { flat-tags } else { () }, date: date, display-id: display.id),
+          _permalink-tab(id, tags: if rdisplay.tags { flat-tags } else { () }, date: date, display-id: rdisplay.id),
           html.elem(
             "h" + str(level + 1),
             attrs: (id: id, class: cls.join(" "), data-rookery: "idea")
@@ -511,7 +508,7 @@
             // entirely rather than set it false.
             attrs: _themed(
               (class: box-cls.join(" "), data-rookery: "box")
-                + (if display.frame { (:) } else { ("data-rookery-bare": "bare") })
+                + (if rdisplay.frame { (:) } else { ("data-rookery-bare": "bare") })
                 + _tags-attr(visible),
             ),
             header + _footnoted(body) + _refs-block(_own-cited-keys(body)),

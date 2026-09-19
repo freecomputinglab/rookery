@@ -33,6 +33,12 @@
   index-page,
   display-context,
   display-backlinks,
+  display-background,
+  display-date,
+  display-frame,
+  display-id,
+  display-label,
+  display-tags,
   display-title,
   page-titles,
   invisible-tags,
@@ -133,6 +139,30 @@
   assert(
     type(display-backlinks) == bool,
     message: "@rookery/core: `display-backlinks` must be a boolean — got " + repr(display-backlinks),
+  )
+  assert(
+    type(display-background) == bool,
+    message: "@rookery/core: `display-background` must be a boolean — got " + repr(display-background),
+  )
+  assert(
+    type(display-date) == bool,
+    message: "@rookery/core: `display-date` must be a boolean — got " + repr(display-date),
+  )
+  assert(
+    type(display-frame) == bool,
+    message: "@rookery/core: `display-frame` must be a boolean — got " + repr(display-frame),
+  )
+  assert(
+    type(display-id) == bool,
+    message: "@rookery/core: `display-id` must be a boolean — got " + repr(display-id),
+  )
+  assert(
+    type(display-label) == bool,
+    message: "@rookery/core: `display-label` must be a boolean — got " + repr(display-label),
+  )
+  assert(
+    type(display-tags) == bool,
+    message: "@rookery/core: `display-tags` must be a boolean — got " + repr(display-tags),
   )
   assert(
     type(display-title) == bool,
@@ -428,34 +458,52 @@
   display: (:),
   display-context: auto,
   display-backlinks: auto,
+  display-background: auto,
+  display-date: auto,
+  display-frame: auto,
+  display-id: auto,
+  display-label: auto,
+  display-tags: auto,
   display-title: auto,
   page-titles: "title",
   invisible-tags: (),
   doc,
 ) = {
-  // `rookery(..)` accepts only these three document-wide `display-*` keys —
-  // the other six `_DISPLAY-KEYS` have no document-wide tier, only a
-  // per-note one on `#idea`/`#window`, so a caller passing one of them here
-  // is almost certainly reaching for the wrong function.
+  // `rookery(..)` accepts all nine `_DISPLAY-KEYS` now — every one of them
+  // has a document-wide tier, resolved below and published to its own state
+  // (state.typ), and read back at the point a card, a window or a minted
+  // page renders.
   for key in display.keys() {
-    if key not in ("context", "backlinks", "title") {
+    if key not in _DISPLAY-KEYS {
       panic(
         "@rookery/core: #rookery's `display` dictionary has an unknown key "
-          + repr(key) + " — valid keys are (\"context\", \"backlinks\", \"title\")",
+          + repr(key) + " — valid keys are " + repr(_DISPLAY-KEYS),
       )
     }
   }
   let display = _resolve-display(
     display,
-    ("context": display-context, backlinks: display-backlinks, title: display-title),
+    (
+      "context": display-context, backlinks: display-backlinks, background: display-background,
+      date: display-date, frame: display-frame, id: display-id, label: display-label,
+      tags: display-tags, title: display-title,
+    ),
     "#rookery's",
   )
   // The document-wide tier is the bottom of the stack, so here `auto` IS
-  // resolved to a boolean — unlike in `#idea`, nothing further down reads
-  // `auto` as "defer to something else".
+  // resolved to a boolean — unlike in `#idea`/`#window`, nothing further
+  // down reads `auto` as "defer to something else". Each default matches the
+  // built-in `#idea`/`#window` always applied — see `_display-background`
+  // and its siblings, state.typ, for why only `date` and `tags` start off.
   let display = display + (
     "context": if display.context == auto { true } else { display.context },
     backlinks: if display.backlinks == auto { true } else { display.backlinks },
+    background: if display.background == auto { true } else { display.background },
+    date: if display.date == auto { false } else { display.date },
+    frame: if display.frame == auto { true } else { display.frame },
+    id: if display.id == auto { true } else { display.id },
+    label: if display.label == auto { true } else { display.label },
+    tags: if display.tags == auto { false } else { display.tags },
     title: if display.title == auto { true } else { display.title },
   )
   _validate-config(
@@ -471,6 +519,12 @@
     index-page,
     display.context,
     display.backlinks,
+    display.background,
+    display.date,
+    display.frame,
+    display.id,
+    display.label,
+    display.tags,
     display.title,
     page-titles,
     invisible-tags,
@@ -520,6 +574,12 @@
   _index-page.update(index-page)
   _display-context.update(display.context)
   _display-backlinks.update(display.backlinks)
+  _display-background.update(display.background)
+  _display-date.update(display.date)
+  _display-frame.update(display.frame)
+  _display-id.update(display.id)
+  _display-label.update(display.label)
+  _display-tags.update(display.tags)
   _display-title.update(display.title)
   _page-titles.update(page-titles)
   // Normalized to a flat array of NAMES here, once, so `_visible-tags` can do a
