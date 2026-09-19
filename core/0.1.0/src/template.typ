@@ -31,9 +31,9 @@
   ref-target,
   syndicate,
   index-page,
-  show-context,
-  show-backlinks,
-  show-title,
+  display-context,
+  display-backlinks,
+  display-title,
   page-titles,
   invisible-tags,
 ) = {
@@ -127,16 +127,16 @@
     message: "@rookery/core: `index-page` must be a boolean — got " + repr(index-page),
   )
   assert(
-    type(show-context) == bool,
-    message: "@rookery/core: `show-context` must be a boolean — got " + repr(show-context),
+    type(display-context) == bool,
+    message: "@rookery/core: `display-context` must be a boolean — got " + repr(display-context),
   )
   assert(
-    type(show-backlinks) == bool,
-    message: "@rookery/core: `show-backlinks` must be a boolean — got " + repr(show-backlinks),
+    type(display-backlinks) == bool,
+    message: "@rookery/core: `display-backlinks` must be a boolean — got " + repr(display-backlinks),
   )
   assert(
-    type(show-title) == bool,
-    message: "@rookery/core: `show-title` must be a boolean — got " + repr(show-title),
+    type(display-title) == bool,
+    message: "@rookery/core: `display-title` must be a boolean — got " + repr(display-title),
   )
   assert(
     page-titles == "title" or page-titles == "path",
@@ -425,13 +425,39 @@
   ref-target: "page",
   syndicate: false,
   index-page: true,
-  show-context: true,
-  show-backlinks: true,
-  show-title: true,
+  display: (:),
+  display-context: auto,
+  display-backlinks: auto,
+  display-title: auto,
   page-titles: "title",
   invisible-tags: (),
   doc,
 ) = {
+  // `rookery(..)` accepts only these three document-wide `display-*` keys —
+  // the other six `_DISPLAY-KEYS` have no document-wide tier, only a
+  // per-note one on `#idea`/`#window`, so a caller passing one of them here
+  // is almost certainly reaching for the wrong function.
+  for key in display.keys() {
+    if key not in ("context", "backlinks", "title") {
+      panic(
+        "@rookery/core: #rookery's `display` dictionary has an unknown key "
+          + repr(key) + " — valid keys are (\"context\", \"backlinks\", \"title\")",
+      )
+    }
+  }
+  let display = _resolve-display(
+    display,
+    ("context": display-context, backlinks: display-backlinks, title: display-title),
+    "#rookery's",
+  )
+  // The document-wide tier is the bottom of the stack, so here `auto` IS
+  // resolved to a boolean — unlike in `#idea`, nothing further down reads
+  // `auto` as "defer to something else".
+  let display = display + (
+    "context": if display.context == auto { true } else { display.context },
+    backlinks: if display.backlinks == auto { true } else { display.backlinks },
+    title: if display.title == auto { true } else { display.title },
+  )
   _validate-config(
     prefix,
     note-dir,
@@ -443,9 +469,9 @@
     ref-target,
     syndicate,
     index-page,
-    show-context,
-    show-backlinks,
-    show-title,
+    display.context,
+    display.backlinks,
+    display.title,
     page-titles,
     invisible-tags,
   )
@@ -492,9 +518,9 @@
   _idea-page-template.update(_ => idea-page-template)
   _syndicate.update(syndicate)
   _index-page.update(index-page)
-  _show-context.update(show-context)
-  _show-backlinks.update(show-backlinks)
-  _show-title.update(show-title)
+  _display-context.update(display.context)
+  _display-backlinks.update(display.backlinks)
+  _display-title.update(display.title)
   _page-titles.update(page-titles)
   // Normalized to a flat array of NAMES here, once, so `_visible-tags` can do a
   // plain `t not in hidden` on every call rather than re-deriving the shape.

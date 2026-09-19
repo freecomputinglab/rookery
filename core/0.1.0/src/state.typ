@@ -196,24 +196,31 @@
 // DEFAULT ON, unlike `_index-page`: Context is how a reader who landed on a
 // note's standalone page finds their way back to where it was written, and
 // most projects want that by default.
-#let _show-context = state("rheo-idea-show-context", true)
+//
+// The binding is `_display-context` but the state key stays
+// `rheo-idea-show-context`: the key is a runtime identifier shared across a
+// compile, not a name a reader sees, so renaming it alongside the binding
+// would be pure churn with a real chance of a silent mismatch.
+#let _display-context = state("rheo-idea-show-context", true)
 
 // Whether `.marrow.typ` should render the Backlinks section (every note and
 // page that links here) on each minted note page. Same DEFAULT ON reasoning
-// as `_show-context` above — this is the OTHER half of a minted page's
-// navigational footer, not a separate feature with different defaults.
-#let _show-backlinks = state("rheo-idea-show-backlinks", true)
+// as `_display-context` above — this is the OTHER half of a minted page's
+// navigational footer, not a separate feature with different defaults. Same
+// binding/key naming split as `_display-context`, for the same reason.
+#let _display-backlinks = state("rheo-idea-show-backlinks", true)
 
 // Whether `.marrow.typ` should print the authored title as the `<h1>` on a
 // note's own minted page. Same DEFAULT ON reasoning as
-// `_show-context`/`_show-backlinks` above.
+// `_display-context`/`_display-backlinks` above. Same binding/key naming
+// split, for the same reason.
 //
 // MINTED PAGE ONLY. A `#window` summary, an `@ref` and an outline row all
 // still call the note by its title (or derived label) regardless of this
 // setting — this exists for a page whose own metadata already names the
 // note (a reading, a session title) and does not want it repeated as a
 // heading.
-#let _show-title = state("rheo-idea-show-title", true)
+#let _display-title = state("rheo-idea-show-title", true)
 
 // How `.marrow.typ` should NAME a vertebra in the Context and Backlinks
 // sections of a minted note page.

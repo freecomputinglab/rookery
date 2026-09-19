@@ -89,15 +89,15 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _show-context, _show-backlinks, _show-title, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label
+#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label
 
 #context {
   let registry = _registry.final()
   let tpl = _idea-page-template.final()
   let syndicate = _syndicate.final()
-  let show-context = _show-context.final()
-  let show-backlinks = _show-backlinks.final()
-  let show-title = _show-title.final()
+  let display-context = _display-context.final()
+  let display-backlinks = _display-backlinks.final()
+  let display-title = _display-title.final()
   // Resolved HERE, in the one context that already resolves every other
   // document-wide key, and handed to `_handle-title` as a plain string — that
   // function is package scope with no context of its own (see its banner).
@@ -205,10 +205,10 @@
     // PER-NOTE OVERRIDE, same shape as `use-context`/`use-backlinks` further
     // down: `rec.display.title` is `auto` unless `#idea(display: (title: ..))`
     // or `#idea(display-title: ..)` set one, and `auto` falls back to the
-    // document-wide `rookery.with(show-title:)` setting.
+    // document-wide `rookery.with(display-title:)` setting.
     let use-title = {
       let v = rec.at("display", default: (:)).at("title", default: auto)
-      if v == auto { show-title } else { v }
+      if v == auto { display-title } else { v }
     }
     // Built as a value rather than passed straight to `rheo-document`, so the
     // project's template can wrap the WHOLE page — heading, body and footer —
@@ -269,7 +269,7 @@
         ),
         // The <h1> carries this page's anchor — the destination of
         // `#link(label(id))` from a Context footer — and the `idea` class
-        // every heading rule matches on. `show-title:` resolving false omits
+        // every heading rule matches on. `use-title` resolving false omits
         // the element entirely rather than leaving it empty: an empty
         // heading still keeps its margins and leaves a hole where the title
         // was. The anchor then moves onto `.idea-head` itself (`attrs:`
@@ -384,15 +384,15 @@
         // `auto` unless `#idea(display: (context: .., backlinks: ..))` (or the
         // matching `display-*` flags) set one — see the banner beside `rec` in
         // idea.typ. `auto` falls back to the document-wide
-        // `rookery.with(show-context:, show-backlinks:)` setting; `true`/`false`
-        // overrides it for this note's page alone.
+        // `rookery.with(display-context:, display-backlinks:)` setting;
+        // `true`/`false` overrides it for this note's page alone.
         let use-context = {
           let v = rec.at("display", default: (:)).at("context", default: auto)
-          if v == auto { show-context } else { v }
+          if v == auto { display-context } else { v }
         }
         let use-backlinks = {
           let v = rec.at("display", default: (:)).at("backlinks", default: auto)
-          if v == auto { show-backlinks } else { v }
+          if v == auto { display-backlinks } else { v }
         }
 
         // Both parts are the SAME shape — a titled section, heading first —
