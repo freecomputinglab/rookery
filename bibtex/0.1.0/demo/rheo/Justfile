@@ -1,0 +1,10 @@
+# rheo is NOT in this repo's devShell — locally it is the sibling `rheo/`
+# crate, same as `@rookery/core`'s own demo (see that Justfile's header).
+build:
+    rheo compile .
+
+watch:
+    rheo watch . --html --open
+
+clean:
+    rm -rf build

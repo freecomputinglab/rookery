@@ -1,0 +1,357 @@
+/* @rookery/cfps — the rounds table `#panel` draws, and the two-column metadata
+   block `#venue`/`#cfp` open with (`_opportunity-table` in `cfp.typ`).
+
+   Structural only, like `@rookery/timeline`'s and `@rookery/todos`' own
+   stylesheets: every colour and every site-shaped size is a custom property
+   with a generic fallback, never a literal borrowed from a particular site's
+   palette — a consuming project sets `--cfps-*` once and this whole panel
+   follows.
+
+   THE LAYER, for the same reason `@rookery/timeline`'s `timeline.css` states
+   it: rheo links a package's stylesheet after the project's own in package
+   RESOLUTION order, not necessarily last, so this file cannot assume it wins a
+   specificity tie. Wrapping it in `@layer cfps` inverts that — any unlayered
+   rule in a project's own CSS beats anything here regardless of specificity.
+
+   THE PROPERTIES:
+
+     --cfps-gutter     width of the date column, shared with `.opportunity-meta`
+     --cfps-edge       hairline borders (row dividers, the metadata block, the
+                       countdown tooltip)
+     --cfps-muted      a soft/watch date, the school column, the match line
+     --cfps-fg         emphasised text — a firm date, a title link, banded ink
+     --cfps-link       a title/school link
+     --cfps-mark       the open group's first-row tidemark
+     --cfps-focus      the countdown tooltip's focus outline
+     --cfps-band-*     the seven countdown wash colours (`overdue` solid, the
+                       other six washes), falling back to the family-wide
+                       `--rookery-heat-urgent/soon/later` ramp `@rookery/todos`'
+                       own bands already read, then to a literal
+     --cfps-rung-*     the five priority-only washes, same fallback chain
+
+   `.round-badge`'s own ink and radius fall back to `@rookery/core`'s published
+   `--idea-tag-*` properties instead of a `--cfps-*` one of their own — a badge
+   here is a rookery tag chip, the same object a pill on a note's hat is, so it
+   takes that object's colour rather than inventing a second one. */
+@layer cfps {
+  .round-list {
+    list-style: none;
+    margin: 1rem 0;
+    padding: 0;
+  }
+
+  /* Four tracks — date, title, school, verdict — align down the page: a column
+     of dates that does not line up is a column read one row at a time. */
+  .round-row {
+    display: grid;
+    grid-template-columns: var(--cfps-gutter, 7.5em) 1fr auto auto;
+    gap: 0 0.9rem;
+    align-items: baseline;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--cfps-edge, GrayText);
+  }
+
+  .round-row:last-child {
+    border-bottom: none;
+  }
+
+  /* A row carried over from a past cycle's call rather than read off this
+     round's own dims as a whole, rather than any single column of it — the
+     uncertainty is about the entry, not about one field. */
+  .round-row.idea-tag-submission-estimated {
+    opacity: 0.6;
+  }
+
+  .round-when {
+    font-family: ui-monospace, monospace;
+    font-size: 0.8em;
+    font-variant-numeric: tabular-nums;
+    color: var(--cfps-fg, inherit);
+    white-space: nowrap;
+  }
+
+  /* A watch-date, not a deadline — it shares the date column because it
+     answers the same question ("when does this need me"), so it reads as the
+     softer of the two rather than a date of equal standing. */
+  .round-when.soft {
+    color: var(--cfps-muted, GrayText);
+    font-style: italic;
+  }
+
+  .round-title a {
+    color: var(--cfps-fg, inherit);
+  }
+
+  .round-title a:hover {
+    color: var(--cfps-link, LinkText);
+  }
+
+  /* Between the title and the verdict: left-aligned prose-adjacent text, since
+     a school is part of naming the row rather than a badge on it. */
+  .round-school {
+    font-size: 0.8em;
+    color: var(--cfps-muted, GrayText);
+    white-space: nowrap;
+  }
+
+  .round-school a {
+    color: var(--cfps-muted, GrayText);
+  }
+
+  .round-school a:hover {
+    color: var(--cfps-link, LinkText);
+  }
+
+  /* ONE CHIP, EVERYWHERE: a badge here is a rookery tag chip (`idea-tag` +
+     `idea-tag-<name>`), the same two classes a pill on a note's hat wears —
+     see `@rookery/core`'s own generated `idea-tag-*` rules for the colour a
+     themed name publishes onto them. Outline only: a solid chip in the tag's
+     own hue would put the label on a background of the same colour, unreadable
+     by construction. */
+  .round-badge {
+    font-size: 0.8em;
+    line-height: 1;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 0.1em 0.5em;
+    border-radius: var(--idea-tag-radius, 999px);
+    white-space: nowrap;
+    color: var(--idea-tag-color, var(--idea-id-color, GrayText));
+    background-color: transparent;
+    border: 1px solid var(--idea-tag-line, var(--cfps-edge, GrayText));
+  }
+
+  /* A transit stage is the qualifier, a terminal one the answer — so a stage's
+     chip loses its outline and reads as a word beside the verdict rather than
+     as a second verdict. */
+  .round-badge-stage {
+    border-color: transparent;
+    padding-left: 0.1em;
+    padding-right: 0.1em;
+  }
+
+  /* THE TIDEMARK lands on the date of the first open row. Open rounds sort
+     oldest first, so that row is either the next thing due or the one already
+     overdue — the one thing on the page worth marking. `:not([data-countdown])`
+     keeps a banded date and a marked one off the same cell: a banded date
+     already carries a stronger signal than "first" does. `Mark`/the system
+     highlight colour, since this is exactly what `<mark>` means. */
+  .round-list-open .round-row:first-child .round-when:not([data-countdown]) {
+    color: var(--cfps-fg, inherit);
+    background-color: var(--cfps-mark, Mark);
+    border-radius: 3px;
+    padding: 0 0.3em;
+    margin-left: -0.3em;
+  }
+
+  /* The verdict cell: how far a call got, then what came back. Two spans
+     rather than one string, so a stage can stand alone — reached but not yet
+     answered is a real state this record has to be able to say. */
+  .round-verdict {
+    display: flex;
+    gap: 0.35rem;
+    align-items: baseline;
+  }
+
+  /* The matched application's own path, under the title on its own line — a
+     filename, not prose, so it does not compete with the title for the grid's
+     date-aligned column. */
+  .round-match {
+    grid-column: 2 / -1;
+    font-size: 0.8em;
+    color: var(--cfps-muted, GrayText);
+  }
+
+  /* THE COUNTDOWN IS THE DATE CELL'S OWN BACKGROUND, not a fifth span: the row
+     is a four-track grid with no track to auto-place a fifth thing into, and a
+     dropped span silently doubled the row's height. The colour is the reading
+     at a glance; the phrase below is a tooltip for whoever wants the number. */
+  .round-when[data-countdown] {
+    position: relative;
+    color: var(--cfps-fg, inherit);
+    border-radius: 3px;
+    padding: 0 0.3em;
+    margin-left: -0.3em;
+    cursor: help;
+  }
+
+  /* THREE WEEKS, seven steps, two per hue past the overdue one — a deadline is
+     felt in weeks, so this week reads red, next week orange, the one after
+     yellow, each darkening toward its front. `--cfps-band-<name>` is the
+     per-band override; under it, the family-wide `--rookery-heat-*` ramp
+     `@rookery/todos` already reads, so a site setting that ramp once themes
+     every heat chip in the family, this one included. */
+  .round-when-overdue {
+    background-color: var(--cfps-band-overdue, var(--rookery-heat-urgent, #b3261e));
+    color: var(--cfps-band-overdue-fg, #fff);
+  }
+
+  .round-when-imminent {
+    background-color: var(
+      --cfps-band-imminent,
+      color-mix(in oklab, var(--rookery-heat-urgent, #b3261e) 40%, transparent)
+    );
+  }
+
+  .round-when-urgent {
+    background-color: var(
+      --cfps-band-urgent,
+      color-mix(in oklab, var(--rookery-heat-urgent, #b3261e) 26%, transparent)
+    );
+  }
+
+  .round-when-soon {
+    background-color: var(
+      --cfps-band-soon,
+      color-mix(in oklab, var(--rookery-heat-soon, #b3611e) 32%, transparent)
+    );
+  }
+
+  .round-when-near {
+    background-color: var(
+      --cfps-band-near,
+      color-mix(in oklab, var(--rookery-heat-soon, #b3611e) 18%, transparent)
+    );
+  }
+
+  .round-when-approaching {
+    background-color: var(
+      --cfps-band-approaching,
+      color-mix(in oklab, var(--rookery-heat-later, #b38f1e) 28%, transparent)
+    );
+  }
+
+  .round-when-distant {
+    background-color: var(
+      --cfps-band-distant,
+      color-mix(in oklab, var(--rookery-heat-later, #b38f1e) 15%, transparent)
+    );
+  }
+
+  /* THE PRIORITY RAMP, only where the countdown has nothing to say — a call
+     three weeks or more out never earns a band above, so a high-priority one
+     sitting far out would otherwise read exactly like a low-priority one
+     beside it. Five rungs, the two coolest falling back to a neutral wash
+     rather than a fourth hue, since nothing above claims one. */
+  .round-when-rung-0 {
+    background-color: var(
+      --cfps-rung-0,
+      color-mix(in oklab, var(--rookery-heat-urgent, #b3261e) 24%, transparent)
+    );
+  }
+
+  .round-when-rung-1 {
+    background-color: var(
+      --cfps-rung-1,
+      color-mix(in oklab, var(--rookery-heat-soon, #b3611e) 20%, transparent)
+    );
+  }
+
+  .round-when-rung-2 {
+    background-color: var(
+      --cfps-rung-2,
+      color-mix(in oklab, var(--rookery-heat-later, #b38f1e) 18%, transparent)
+    );
+  }
+
+  .round-when-rung-3 {
+    background-color: var(--cfps-rung-3, color-mix(in oklab, currentColor 12%, transparent));
+  }
+
+  .round-when-rung-4 {
+    background-color: var(--cfps-rung-4, color-mix(in oklab, currentColor 6%, transparent));
+  }
+
+  /* A banded date is not soft-grey: sitting on a wash it has to hold its own
+     ink against it, so the colour comes back. The italic stays — that half of
+     the distinction still reads. */
+  .round-when.soft[data-countdown] {
+    color: var(--cfps-fg, inherit);
+  }
+
+  /* THE PHRASE, on demand — drawn rather than handed to `title:`, since a
+     native tooltip cannot be styled, opens on a delay, and would appear beside
+     this one rather than instead of it. `:focus` (not `:focus-visible`) is
+     what makes it reachable on a touch screen, where a tap is the only hover
+     there is. Above the cell, so it never covers the row beneath. */
+  .round-when[data-countdown]:hover::after,
+  .round-when[data-countdown]:focus::after {
+    content: attr(data-countdown);
+    position: absolute;
+    bottom: calc(100% + 0.35rem);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    padding: 0.15em 0.5em;
+    border: 1px solid var(--cfps-edge, GrayText);
+    border-radius: 3px;
+    background-color: var(--cfps-tooltip-bg, Canvas);
+    color: var(--cfps-fg, CanvasText);
+    font-size: 0.8em;
+    font-style: normal;
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .round-when[data-countdown]:focus {
+    outline: 1px solid var(--cfps-focus, Highlight);
+    outline-offset: 1px;
+  }
+
+  .round-empty {
+    color: var(--cfps-muted, GrayText);
+    font-style: italic;
+  }
+
+  /* `#cfp`'s own two-column metadata table (`_opportunity-table` in
+     `cfp.typ`) — this class is not published by any rookery package, `#cfp`
+     being the one thing minting it, so the grid itself lives here. Shares
+     `--cfps-gutter` with `.round-row` above, so a reader who has just read a
+     rounds table sees the same column line up on the note it links to. */
+  .opportunity-meta {
+    display: grid;
+    grid-template-columns: var(--cfps-gutter, 7.5em) 1fr;
+    column-gap: 0.9rem;
+    margin: 0 0 1.2rem;
+    border-top: 1px solid var(--cfps-edge, GrayText);
+  }
+
+  .opportunity-meta dt,
+  .opportunity-meta dd {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--cfps-edge, GrayText);
+  }
+
+  .opportunity-meta dt {
+    color: var(--cfps-muted, GrayText);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.85em;
+  }
+
+  /* `margin: 0` is load-bearing, not tidy: a browser's default `<dd>` carries
+     `margin-inline-start: 40px`, which in a grid cell indents the value away
+     from its own column. */
+  .opportunity-meta dd {
+    margin: 0;
+  }
+
+  /* The date column stops being a column below 768px: a fixed gutter beside a
+     title leaves the title wrapping at two words. */
+  @media (max-width: 768px) {
+    .round-row {
+      grid-template-columns: 1fr auto;
+    }
+
+    .round-when,
+    .round-school,
+    .round-match {
+      grid-column: 1 / -1;
+    }
+
+    .round-when {
+      justify-self: start;
+    }
+  }
+}
