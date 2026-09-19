@@ -180,8 +180,8 @@ minted-page directory (`note-dir`, see "Standalone note pages" for how it
 resolves), the CSS class stem (`css-prefix`, see just below), the
 nested-window depth, the minted-page template
 (`idea-page-template`, see "Standalone note pages"), the bibliography (see
-"Bibliographies") and the theme, and it installs `link-to-page` (see below and
-"Referencing a note") so `@note:etal` renders the note rather than a bare
+"Bibliographies") and the theme, and it installs `show ref: hyperlink` (see
+below and "Referencing a note") so `@note:etal` renders the note rather than a bare
 figure number. It sets no other styles and wraps `doc` in nothing. It emits
 nothing of its own either, with one exception: a page that cites something
 outside every idea gets a references block after its content, because a
@@ -190,12 +190,13 @@ in it, it is a no-op, and even the `ref` rule passes every non-rookery
 reference straight through. Pass `refs: false` to keep the rest and skip that
 rule.
 
-`ref-target: "page"` (the default) picks `link-to-page`, so `@note:etal` links
-to the note's own minted page. Pass `ref-target: "anchor"` to pick
-`link-to-anchor` instead, making every `@note:etal` in the document link to
-the note's in-context anchor, the same destination `#link(label("note:etal"))`
-always uses. Ignored when `refs: false`, since there is then no installed rule
-for it to configure.
+`hyperlink-target-minted: true` (the default) sends `@note:etal` to the note's
+own minted page. Pass `hyperlink-target-minted: false` to make every
+`@note:etal` in the document link to the note's in-context anchor instead, the
+same destination `#link(label("note:etal"))` always uses. It is `#hyperlink`'s
+own parameter of that name, handed straight to the installed rule, and is
+ignored when `refs: false`, since there is then no installed rule for it to
+configure.
 
 `prefix` must be a non-empty string with no `:` in it (the separator is added
 for you). `note-dir` must be `none` (the default) or a non-empty string with
@@ -965,8 +966,8 @@ a page.
 filename prefix. That means a note KEEPS ITS ID WHEN IT MOVES BETWEEN FILES:
 nothing about `<idea:etal>` depends on which file it's written in. Names are
 therefore globally unique by design; giving two notes the same id is a build
-error naming the id, as soon as anything (`#window`, `link-to-page`/
-`link-to-anchor`) looks the id up.
+error naming the id, as soon as anything (`#window`, `#hyperlink`) looks the
+id up.
 
 ## Unnamed notes: ids derived from title
 
@@ -1045,7 +1046,7 @@ which a plain Typst compile doesn't), and the stylesheet auto-injected via
 this package's `[tool.rheo.html]` — no manual `<link>` needed.
 
 `demo/pure/` in this repo is the pure-Typst side: no template at all, default
-prefix, `link-to-page` wired up by hand. The rheo side lives in the sibling repo
+prefix, `show ref: hyperlink` wired up by hand. The rheo side lives in the sibling repo
 **`rookery.ohrg.org`** — this package's documentation site, written with the
 package it documents. It is the worked multi-vertebra example, including a
 nested vertebra to exercise cross-page hrefs, a custom prefix and theme, and
@@ -1143,11 +1144,11 @@ Three ways, pick by how much ceremony you want:
   NUMBER (Typst's stock `@` rendering for a labeled figure — a note's id
   lives on a hidden anchor figure). `#show: rookery` installs the rule that
   fixes this, so if you already applied the template there is nothing to do.
-  Without it, apply the exported `link-to-page` by hand:
+  Without it, apply the exported `hyperlink` by hand:
 
   ```typst
-  #import "@rookery/core:0.1.0": idea, window, link-to-page
-  #show ref: link-to-page
+  #import "@rookery/core:0.1.0": idea, window, hyperlink
+  #show ref: hyperlink
   ```
 
   With the rule applied, `@idea:etal` renders the note's title (linked)
@@ -1165,20 +1166,22 @@ Three ways, pick by how much ceremony you want:
   @idea:etal[click here]
   ```
 
-  **Where it links:** `link-to-page` (above) goes to the note's own minted
-  page — same as the permalink, falling back to the in-context anchor where
-  no page is minted (plain `typst compile`, or the combined PDF). Use
-  `link-to-anchor` instead to make `@idea:etal` link to the in-context anchor
-  unconditionally, like `#link(label("idea:etal"))` does:
+  **Where it links:** the rule goes to the note's own minted page — same as
+  the permalink, falling back to the in-context anchor where no page is
+  minted (plain `typst compile`, or the combined PDF). Pass
+  `hyperlink-target-minted: false` to make `@idea:etal` link to the in-context
+  anchor unconditionally, like `#link(label("idea:etal"))` does:
 
   ```typst
-  #import "@rookery/core:0.1.0": idea, window, link-to-anchor
-  #show ref: link-to-anchor
+  #import "@rookery/core:0.1.0": idea, window, hyperlink
+  #show ref: hyperlink.with(hyperlink-target-minted: false)
   ```
 
-  `#show: rookery.with(ref-target: "anchor")` does the same thing document-wide
-  when you're using the template rather than importing `link-to-anchor`
-  directly.
+  It is the same parameter an explicit call takes —
+  `#hyperlink("etal", hyperlink-target-minted: false)[see this]` — and
+  `#show: rookery.with(hyperlink-target-minted: false)` does the same thing
+  document-wide when you're using the template rather than installing the rule
+  yourself.
 
 ## Outlining notes
 
@@ -2633,7 +2636,7 @@ What does NOT redirect is anything addressing the note's Typst label:
 `#link(label("idea:etal"))` and `@idea:etal` still resolve to wherever `#idea`
 was actually called. A minted page does NOT reuse the `idea:<id>` label (two
 elements can't share one label without breaking `#link`/`#window`/
-`link-to-page`/`link-to-anchor` resolution), so the label keeps its original
+`#hyperlink` resolution), so the label keeps its original
 home by construction.
 
 Set `[html] auto_detect_packages = false` in `rheo.toml` to turn this off (it

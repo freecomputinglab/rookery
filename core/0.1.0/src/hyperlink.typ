@@ -16,9 +16,10 @@
 // `#hyperlink("etal")[see this]` links to note "etal"'s own minted page when
 // one exists, falling back to its in-context anchor otherwise (same
 // preference the permalink and `#window` already carry, via
-// `_resolve-dest`). `link-to: "anchor"` forces the anchor unconditionally —
-// pass it per call, or `.with()` it for a whole-document default (see
-// below). Name resolution is `_norm`'s: bare or full, string or label —
+// `_resolve-dest`). `hyperlink-target-minted: false` forces the anchor
+// unconditionally, landing on the note where it was hatched — pass it per
+// call, or `.with()` it for a whole-document default (see below). Name
+// resolution is `_norm`'s: bare or full, string or label —
 // `"etal"`, `"idea:etal"`, `<etal>`, `<idea:etal>` all reach the same note.
 // Existence is checked eagerly, so a typo'd name fails at the call site
 // rather than producing a dangling link.
@@ -32,8 +33,8 @@
 // into:
 //
 //   #import "@rookery/core:0.1.0": idea, window, hyperlink
-//   #show ref: hyperlink                          // the default: the note's own minted page
-//   #show ref: hyperlink.with(link-to: "anchor")   // in-context anchor, like #hyperlink(..., link-to: "anchor")
+//   #show ref: hyperlink        // the default: the note's own minted page
+//   #show ref: hyperlink.with(hyperlink-target-minted: false)   // its anchor
 //
 // ONE function serves both call shapes via an argument sink, the same way
 // `#idea[body]`/`#idea("name")[body]` do: Typst's `show ref:` always calls
@@ -41,9 +42,9 @@
 // `content` positional whose `.func()` is `ref` means "installed as a show
 // rule" — an author can never construct that value by hand (`@label` is
 // markup-only syntax, not a callable `ref(...)` constructor), so the two
-// shapes cannot collide. That also lets `link-to:` double as the one knob
-// for both an explicit `#hyperlink(...)` call and the `show ref:` rule,
-// instead of a separate export per mode.
+// shapes cannot collide. That also lets `hyperlink-target-minted:` double as
+// the one knob for both an explicit `#hyperlink(...)` call and the `show ref:`
+// rule, instead of a separate export per mode.
 //
 // References to anything else (an ordinary figure, a heading, ...) pass
 // through untouched via the `else { it }` branch below — checking
@@ -66,15 +67,26 @@
 // whatever the caller wrote, always.
 #let hyperlink(..args) = {
   let pos = args.pos()
-  let link-to = args.named().at("link-to", default: "page")
+  let minted = args.named().at("hyperlink-target-minted", default: true)
+  // An argument sink accepts every named argument silently, so a misspelled
+  // one would link somewhere the caller did not ask for and report nothing.
+  // The sink is what lets one function serve both call shapes (see above), so
+  // the check a named parameter list would give for free is done by hand.
+  let unknown = args.named().keys().filter(k => k != "hyperlink-target-minted")
   assert(
-    link-to == "page" or link-to == "anchor",
-    message: "@rookery/core: #hyperlink's link-to must be \"page\" or "
-      + "\"anchor\" — got " + repr(link-to),
+    unknown.len() == 0,
+    message: "@rookery/core: #hyperlink's only named argument is "
+      + "hyperlink-target-minted — got " + repr(unknown),
+  )
+  assert(
+    type(minted) == bool,
+    message: "@rookery/core: #hyperlink's hyperlink-target-minted must be a "
+      + "boolean — `true` for the note's minted page, `false` for its "
+      + "in-context anchor. Got " + repr(minted),
   )
 
   if pos.len() == 1 and type(pos.at(0)) == content and pos.at(0).func() == ref {
-    // Installed as `show ref: hyperlink` (or `.with(link-to: "anchor")`):
+    // Installed as `show ref: hyperlink`, or with the flag `.with()`-bound:
     // Typst hands us the resolved `ref` element itself.
     let it = pos.at(0)
     context {
@@ -100,7 +112,7 @@
         } else {
           raw(id)
         }
-        let linked = link(_resolve-dest(id, link-to), shown)
+        let linked = link(_resolve-dest(id, minted), shown)
         // Wrapped so `@idea:other` is reachable from CSS and carries the
         // theme. A SPAN around Typst's own `link()`, not a hand-rolled
         // `<a>`: the label-fallback branch has no href to hand-roll WITH,
@@ -150,7 +162,7 @@
         if id in _excluded-ids.final() { return body }
         panic("@rookery/core: #hyperlink unknown note '" + id + "'")
       }
-      link(_resolve-dest(id, link-to), body)
+      link(_resolve-dest(id, minted), body)
     }
   }
 }

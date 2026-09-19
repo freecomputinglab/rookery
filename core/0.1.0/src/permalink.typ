@@ -164,7 +164,7 @@
 // Paged counterpart: no `html.elem`, and the fallback is the Typst label
 // rather than an HTML fragment.
 #let _permalink-paged(id) = {
-  link(_resolve-dest(id, "page"), text(gray, raw("[" + id + "]")))
+  link(_resolve-dest(id, true), text(gray, raw("[" + id + "]")))
 }
 
 // THE ONE BOTTOM-OUT RENDERING. A `#window` that has no recursion budget left emits
@@ -193,7 +193,7 @@
   // yet when it is computed. `none` only for a note with no name at all — an
   // empty body and no title — which the `id` branch below still covers.
   let name = _rec-label(rec, _ref-text(_registry.final()))
-  let row = link(_resolve-dest(id, "page"), if name == none { id } else { name })
+  let row = link(_resolve-dest(id, true), if name == none { id } else { name })
   if _target() == "html" or _target() == "epub" {
     html.elem(
       "ul",

@@ -24,7 +24,7 @@
 //   #link(label("idea:etal"))[...]   an explicit jump
 //   @idea:etal                        a reference
 //   #window("etal")                   a transclusion
-//   #hyperlink("etal")[...]           an explicit call, `link-to:` page or anchor
+//   #hyperlink("etal")[...]           an explicit call, minted page or anchor
 //
 // A link to something that is not a note (a URL, an author's own label, a
 // heading) is ignored, by testing the target against the current prefix.
@@ -62,7 +62,7 @@
 
   // A nested `#hyperlink(...)` explicit call — same reason as `#window`
   // above: at registration its `link()` is still hidden inside an
-  // unevaluated `context` block (needed to resolve `link-to: "page"`'s
+  // unevaluated `context` block (needed to resolve the minted page's
   // href), so it announces its target the same way. `@idea:etal`/`#window`
   // don't need this: a `ref` is already a concrete element here, and
   // `#hyperlink` used AS the `show ref:` rule never runs at registration

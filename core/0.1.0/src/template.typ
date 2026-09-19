@@ -28,7 +28,7 @@
   idea-page-template,
   theme,
   bibliography,
-  ref-target,
+  hyperlink-target-minted,
   syndicate,
   index-page,
   display-context,
@@ -120,9 +120,10 @@
     }
   }
   assert(
-    ref-target == "page" or ref-target == "anchor",
-    message: "@rookery/core: `ref-target` must be \"page\" or \"anchor\" — got "
-      + repr(ref-target),
+    type(hyperlink-target-minted) == bool,
+    message: "@rookery/core: `hyperlink-target-minted` must be a boolean — "
+      + "`true` for the note's minted page, `false` for its in-context "
+      + "anchor. Got " + repr(hyperlink-target-minted),
   )
   assert(
     type(syndicate) == bool,
@@ -378,9 +379,9 @@
 //      standalone pages `.marrow.typ` mints (see `_idea-page-template`;
 //      `none`, the default, mints them bare as before);
 //   4. publishes the theme — every colour the package will set for you;
-//   5. installs `show ref: hyperlink` (or `hyperlink.with(link-to:
-//      "anchor")`, see `ref-target:` below), so `@note:etal` renders the
-//      note rather than a bare figure number.
+//   5. installs `show ref: hyperlink` (carrying `hyperlink-target-minted:`
+//      through to it, see below), so `@note:etal` renders the note rather
+//      than a bare figure number.
 //
 // It does NOT transform the document. It sets no page/text/heading style,
 // wraps `doc` in no container, and emits nothing of its own — `#show:
@@ -423,14 +424,14 @@
 // wrapping `doc` there: a `show` in an `if` block's body scopes to that block,
 // so hoisting it out of the branch would scope it to nothing at all.
 //
-// `ref-target: "page"` (the default) installs plain `hyperlink`; `"anchor"`
-// installs `hyperlink.with(link-to: "anchor")` instead, making every
-// `@idea:etal` in the document behave like `#hyperlink("idea:etal", ...,
-// link-to: "anchor")` rather than jumping to the note's minted page. Only
-// meaningful alongside `refs: true`; ignored (with no error) when `refs:
-// false`, since there is then no installed rule for it to configure — an
-// author who set `refs: false` already opted into supplying their own
-// `show ref` rule, anchor-targeted or not.
+// `hyperlink-target-minted` is `#hyperlink`'s own parameter of that name,
+// handed straight to the installed rule: `true` (the default) sends every
+// `@idea:etal` in the document to the note's minted page, `false` to its
+// in-context anchor, where the note was hatched. Only meaningful alongside
+// `refs: true`; ignored (with no error) when `refs: false`, since there is
+// then no installed rule for it to configure — an author who set `refs:
+// false` already opted into supplying their own `show ref` rule, whichever
+// target it picks.
 //
 // Defined last in this file because a `#let` closure captures the scope
 // visible AT DEFINITION time — `hyperlink` must already exist.
@@ -452,7 +453,7 @@
   label-font: none,
   label-size: none,
   refs: true,
-  ref-target: "page",
+  hyperlink-target-minted: true,
   syndicate: false,
   index-page: true,
   display: (:),
@@ -514,7 +515,7 @@
     idea-page-template,
     theme,
     bibliography,
-    ref-target,
+    hyperlink-target-minted,
     syndicate,
     index-page,
     display.context,
@@ -672,7 +673,7 @@
   // opted out of footnotes.
   show FNK: it => std.footnote(it.value.rookery-fn)
   if refs {
-    show ref: if ref-target == "anchor" { hyperlink.with(link-to: "anchor") } else { hyperlink }
+    show ref: hyperlink.with(hyperlink-target-minted: hyperlink-target-minted)
     doc
   } else {
     doc

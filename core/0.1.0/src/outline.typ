@@ -45,14 +45,15 @@
 //   #window("etal")               the `rookery-window` marker `#window` emits
 //   #hyperlink("etal")[...]       the `rookery-link` marker `#hyperlink` emits
 //
-// `#hyperlink` needs its own marker, like `#window`, because its `link-to:
-// "page"` default resolves to a plain href STRING (not a label) whenever a
-// page is minted — invisible to the `f == link and type(el.dest) == label`
-// check below. `link-to: "anchor"` would have stayed a label link and been
-// caught by that check anyway, but the marker covers both modes uniformly
-// rather than depending on which one was passed. `#hyperlink` used AS the
-// `show ref:` rule needs no marker of its own: it renders a `ref` element,
-// already the second shape above.
+// `#hyperlink` needs its own marker, like `#window`, because its
+// `hyperlink-target-minted: true` default resolves to a plain href STRING
+// (not a label) whenever a page is minted — invisible to the `f == link and
+// type(el.dest) == label` check below. `hyperlink-target-minted: false` would
+// have stayed a label link and been caught by that check anyway, but the
+// marker covers both modes uniformly rather than depending on which one was
+// passed.
+// `#hyperlink` used AS the `show ref:` rule needs no marker of its own: it
+// renders a `ref` element, already the second shape above.
 //
 // A `ref` also renders INTO a link, so it can be seen twice; the result is a
 // set per page, so seeing it twice costs nothing.

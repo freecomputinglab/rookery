@@ -61,13 +61,14 @@
   _rel-prefix(handle) + _note-file(id)
 }
 
-// Shared href resolution for a "page" vs "anchor" link-to mode: `"page"`
-// prefers the note's own minted page, falling back to the in-context Typst
-// label when none is minted (plain `typst compile`, the combined-PDF
-// target) or when `link-to` is `"anchor"`, which forces that fallback
-// unconditionally. Used by `_permalink-paged` (always `"page"`) and by
-// `#hyperlink` (both its explicit-call and `show ref:` forms), so the two
-// cannot drift on what either mode means.
+// Shared href resolution for the two destinations a note link has:
+// `hyperlink-target-minted: true` prefers the note's own minted page, falling
+// back to the in-context Typst label when none is minted (plain `typst
+// compile`, the combined-PDF target); `false` forces that fallback
+// unconditionally, landing on the note where it was hatched. Used by
+// `_permalink-paged` (always `true`) and by `#hyperlink` (both its
+// explicit-call and `show ref:` forms), so the two cannot drift on what
+// either mode means.
 // HANDED TO RHEO UNRESOLVED, as `rheo-page:<handle>`, rather than resolved here —
 // and the split from `_note-href` above is the whole point of the shape.
 //
@@ -97,10 +98,10 @@
 //
 // REQUIRES the rheo that rewrites the scheme. An older rheo passes it straight
 // through and the href ships as a literal `rheo-page:…`, so this is a hard floor,
-// not a graceful degradation. `link-to: "anchor"` and every non-rheo target still
-// fall back to the label as before.
-#let _resolve-dest(id, link-to) = {
-  if link-to == "anchor" { return label(id) }
+// not a graceful degradation. `hyperlink-target-minted: false` and every
+// non-rheo target still fall back to the label.
+#let _resolve-dest(id, hyperlink-target-minted) = {
+  if not hyperlink-target-minted { return label(id) }
   let c = _rheo-ctx()
   if c == none or c.at("ext", default: none) == none { return label(id) }
   "rheo-page:" + _dir() + ":" + id.trim(_pfx(), at: start)
