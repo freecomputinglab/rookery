@@ -28,6 +28,18 @@ this package knows about a meeting that `#idea`'s own untitled-note fallback
 cannot reach, which otherwise names a meeting by the first sixty characters of
 whatever happened to be typed first in its body.
 
+A meeting given no `<label>` of its own also needs an ID, not just a title —
+and for the DATELESS `with:`-only case, the title cannot supply one. Core
+slugs an id from the title's plain-text projection, and that projection
+renders a `ref` as empty text; a dateless meeting's title is nothing but
+`_refs(who)`, so every such meeting would slug to the same `meeting-with` and
+collide the moment a second one existed anywhere in the project. `#meeting`
+names this one case itself instead: an unlabeled, dateless meeting with
+`with:` mints its id from the participants directly —
+`#meeting(with: <hagen-blix>)[..]` becomes `idea:meeting-with-hagen-blix`, and
+a different `with:` mints a different id. A meeting that also gives `on:`
+keeps today's title-derived id, unchanged by this.
+
 ## What it owns
 
 Three keys, and nothing that could grow into a fourth:

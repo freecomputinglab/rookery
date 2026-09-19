@@ -240,10 +240,23 @@
     // The log entry is what makes the date a timeline event; the row field is what
     // makes it a date. One value, two channels, and no way for them to disagree.
     let resolved-created = if created != none { created } else { on }
+    // A dateless meeting's derived title is refs and nothing else, and a ref
+    // contributes no text to the pure plain-text projection core slugs an id
+    // from — so every such meeting would mint `idea:meeting-with` and the
+    // second one would collide. The participants are the note's own content,
+    // so they name it: stable wherever the meeting sits in the spine, unlike a
+    // counter.
+    let auto-name = if name == none and who.len() > 0 and stamp == none {
+      core._id-slug("meeting-with-" + who.join("-"))
+    } else {
+      none
+    }
     // Two branches because a name is positional and Typst has no way to pass "no
     // positional argument here": an unnamed meeting must be called with the body
     // alone, not with `none` in front of it, which `#idea` would read as the name.
-    if name == none {
+    if name == none and auto-name != none {
+      mint(auto-name, tags: all-tags, created: resolved-created, ..derived, ..args.named(), full)
+    } else if name == none {
       mint(tags: all-tags, created: resolved-created, ..derived, ..args.named(), full)
     } else {
       mint(name, tags: all-tags, created: resolved-created, ..derived, ..args.named(), full)

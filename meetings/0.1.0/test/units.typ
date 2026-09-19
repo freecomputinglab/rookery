@@ -13,11 +13,20 @@
 #let meeting = meetings("lab", today: TODAY)
 
 #idea("doshi-velez-finale", title: [Finale Doshi-Velez])[A person.]
+#idea("hagen-blix", title: [Hagen Blix])[Another person.]
 
 #meeting("dv", with: <doshi-velez-finale>, on: ON)[What was said.]
 #meeting("plain")[Nothing declared.]
 #meeting("titled", with: <doshi-velez-finale>, on: ON, title: [Own title])[Titled.]
 #meeting("dated", on: ON)[Nobody named.]
+
+// Dateless, untitled, unnamed: the case that used to collide on
+// `idea:meeting-with` whatever the participants were.
+#meeting(with: <doshi-velez-finale>)[No name, no date, one participant.]
+#meeting(with: <hagen-blix>)[No name, no date, a different participant.]
+// Dated and unnamed, WITH participants: the dated branch keeps today's
+// title-derived id, untouched by the dateless auto-name above.
+#meeting(with: <doshi-velez-finale>, on: ON)[Dated, unnamed, same participant.]
 
 #context {
   let rows = ideas().map(r => (r.name, r)).to-dict()
@@ -50,4 +59,21 @@
   assert.eq(timeline-of(plain).len(), 0)
   assert.eq(occurred-of(plain), none)
   assert.eq(meeting-with-of(plain), ())
+
+  // A dateless, untitled, unnamed meeting mints an id from its participants —
+  // not the fixed `idea:meeting-with` every such meeting used to collide on.
+  // Reaching each by its derived id (rather than erroring at compile time on
+  // a duplicate) is itself proof the two below did not collide.
+  let dv-auto = tag-data().at("idea:meeting-with-doshi-velez-finale")
+  assert.eq(meeting-with-of(dv-auto), ("doshi-velez-finale",))
+  let blix-auto = tag-data().at("idea:meeting-with-hagen-blix")
+  assert.eq(meeting-with-of(blix-auto), ("hagen-blix",))
+
+  // The DATED branch (`on:` given) keeps today's title-derived id, unchanged
+  // by this fix — core's id-slug renders a `ref` as empty text, so the id
+  // carries only the date, not the participant (`meeting-with-of` below is
+  // what actually distinguishes participants for the dated case).
+  let dated-auto = tag-data().at("idea:meeting-with-on-10-9-26")
+  assert.eq(meeting-with-of(dated-auto), ("doshi-velez-finale",))
+  assert.eq(occurred-of(dated-auto), ON)
 }
