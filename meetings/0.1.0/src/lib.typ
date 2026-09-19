@@ -129,7 +129,7 @@
   // Captured under its own name so the closure's `today:` parameter can default to
   // the factory's without shadowing the value it falls back to.
   let factory-today = today
-  let mint = core.tagged-idea(MEETING-KEY)
+  let mint = core.idea
   (
     tags: none,
     tag: none,
@@ -181,8 +181,12 @@
     // Caller's tags first, the page's own on the right — the order that lets a
     // meeting say something the page did not. The two derived keys land on top of
     // both: neither is the caller's free tags nor the page's subject, and nothing
-    // else can be writing them.
-    let all-tags = core._norm-tags(tags) + core._norm-tags(tag) + own
+    // else can be writing them. `MEETING-KEY` merges in UNDER all of them, so a
+    // call site naming it keeps its own value.
+    let all-tags = core._merge-base-tags(
+      MEETING-KEY,
+      core._norm-tags(tags) + core._norm-tags(tag) + own,
+    )
     if who.len() > 0 { all-tags.insert(MEETING-WITH-KEY, who) }
     all-tags += tl.timeline-tags(scheduled: scheduled, deadline: deadline, timeline: log)
     // The name an untitled meeting gets: `with:`/`on:` are the whole reason it can
