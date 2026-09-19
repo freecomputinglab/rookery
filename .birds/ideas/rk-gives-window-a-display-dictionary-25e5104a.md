@@ -160,7 +160,7 @@ From `core/0.1.0`:
 2. `(cd demo/pure && just build)` exits 0 and ends with `demo/pure OK`. That
    recipe compiles `root.typ`, `root-prefix.typ` and `excluded.typ` and runs its own
    `check` — it is the pure-Typst demo's real entrypoint.
-   the entrypoint with `ls demo/pure` and report what you used.
+   Core must be GREEN at the end of this bird.
 3. `rg -n 'show-(date|tags|frame|id|label|background)' src/window.typ src/transclusion.typ src/permalink.typ`
    returns no hits.
 4. `rg -n -F 'display-background: auto' src/window.typ` returns exactly one hit, in the

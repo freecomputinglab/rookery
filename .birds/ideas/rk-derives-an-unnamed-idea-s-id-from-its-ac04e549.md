@@ -138,4 +138,3 @@ From `core/0.1.0`:
 5. `(cd demo/pure && just build)` exits 0 and ends with `demo/pure OK`. That
    recipe compiles `root.typ`, `root-prefix.typ` and `excluded.typ` and runs its own
    `check` — it is the pure-Typst demo's real entrypoint.
-   report the command you used.
