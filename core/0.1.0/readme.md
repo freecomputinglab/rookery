@@ -705,6 +705,15 @@ removed elsewhere in the bundle. A `title:` passed to `#ideate` wins over this,
 and `#ideate-id` still wins the id outright. With no document title set, this
 changes nothing: the note mints titleless, under the counter, as always.
 
+Under rheo, "no document title set" is the uncommon case. Rheo wraps every
+page in its own `document(..)` and, for a page whose own content never calls
+`#set document(title: ..)`, supplies a title derived from the page's path
+instead of leaving it `none`. So a rheo site gets a stable, path-derived id
+for every page's note without writing `#set document(..)` anywhere — the
+titleless/counter fallback above is reached only by a page that somehow has
+no title at all, not by the ordinary case of a page that simply never set
+one.
+
 In heading mode, the matching heading **starts** the group that follows it
 rather than being discarded — the opposite of par mode's rule. `== rookery`
 plus the bullets under it is one note, with the heading as its first line, not

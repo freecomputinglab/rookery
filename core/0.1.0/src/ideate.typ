@@ -45,7 +45,10 @@
 // `document.title`, and the id is `slug(document.title)`. A `title:` passed to
 // `#ideate` itself still wins, and `#ideate-id` still wins the id outright.
 // With no document title set (`document.title` is `none`), nothing changes —
-// the note mints titleless, under the package's auto counter, as before.
+// the note mints titleless, under the package's auto counter, as before. Under
+// rheo this fallback is rare: rheo derives a title from the page's path for any
+// page that sets none, so `document.title` is only `none` for a page rheo
+// itself has no path for.
 //
 // also as a show rule, which is the case that motivated the argument at all — a
 // weeknotes-style document where every `==` section, not every paragraph, is the
