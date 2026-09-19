@@ -1,8 +1,8 @@
 #import "lib.typ": demo
-#import "@rookery/core:0.1.0": footnote, idea, ideas-outline, tagged-idea, window
+#import "@rookery/core:0.1.0": footnote, idea, ideas-outline, window
 
 // `#note` is a project-local two-liner as of 0.5.0, not a package export.
-#let note = tagged-idea("note")
+#let note = idea.with(base-tags: "note")
 #show: demo
 
 = Rookery under rheo
