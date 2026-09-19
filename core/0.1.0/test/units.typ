@@ -18,7 +18,7 @@
 
 #import "/src/lib.typ": (
   _bib, _bib-keys, _blocks, _body-plain, _body-plain-with, _body-text, _cite-scan, _dedup-tag,
-  _is-inline, _join, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
+  _is-inline, _join, _merge-base-tags, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _derived-title-with, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
   _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _ideate-tag-value, _ideate-id-value,
   footnote, idea, note-href, note-path, slug,
@@ -65,6 +65,41 @@
 // A bare string `tags:` is normalized, so `tag in tags` is a KEY test and never
 // a substring test — `_dedup-tag("raft", "draft")` must not think it is present.
 #assert.eq(_dedup-tag("raft", "draft"), (raft: none, draft: none))
+
+// ---- _merge-base-tags — a constructor's tags, under the caller's ------
+// The trap this pins: `idea.with(tags: ("note",))` lets a caller's own
+// `tags:` REPLACE the constructor's tag outright, so `#note("c", tags:
+// ("draft",))` loses "note". `tag:`/`base-tags:` merge instead.
+#assert.eq(_merge-base-tags("note", none), (note: none))
+#assert.eq(_merge-base-tags("note", ("draft",)), (note: none, draft: none))
+// Several tags keep the order the constructor named them in.
+#assert.eq(
+  _merge-base-tags(("person", "participant"), none),
+  (person: none, participant: none),
+)
+// A dictionary base binds a VALUE per tag, which is what makes a
+// one-tag `value:` restriction unnecessary.
+#assert.eq(
+  _merge-base-tags((todo: (state: "open"), draft: none), none),
+  (todo: (state: "open"), draft: none),
+)
+// THE CALLER'S OWN VALUE FOR THE SAME TAG WINS OUTRIGHT — no deep merge.
+#assert.eq(
+  _merge-base-tags((todo: (state: "open")), (todo: (state: "done"))),
+  (todo: (state: "done")),
+)
+// An absent base is the caller's tags, normalized and nothing else.
+#assert.eq(_merge-base-tags(none, ("draft",)), (draft: none))
+// NESTED, which is how `#idea` gets its three-way precedence:
+// `tag:` under `base-tags:` under the caller's `tags:`.
+#assert.eq(
+  _merge-base-tags("low", _merge-base-tags(("mid",), ("high",))),
+  (low: none, mid: none, high: none),
+)
+#assert.eq(
+  _merge-base-tags((k: "low"), _merge-base-tags((k: "mid"), (k: "high"))),
+  (k: "high"),
+)
 
 // ---- _join — `array.join()` returns none on an empty array -----------------
 // The crash this pins: an empty-bodied note (`#idea("x")[]`) walked to a

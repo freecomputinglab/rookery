@@ -42,7 +42,7 @@
 // disappears entirely — see `_permalink-tab` (permalink.typ) for how, and the
 // readme for the cost: a permalink is the ONLY way to discover an
 // AUTO-GENERATED id, so a note that wants to be linkable wants a name too.
-#let idea(level: 1, title: none, tags: (), exclude-tags: (), created: none, show-date: false, show-tags: false, show-frame: true, show-id: true, show-context: auto, show-backlinks: auto, show-title: auto, ..args) = {
+#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, show-date: false, show-tags: false, show-frame: true, show-id: true, show-context: auto, show-backlinks: auto, show-title: auto, ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
   // below and further down at render time — str has no `.map`, so the error
@@ -52,8 +52,19 @@
   // arbitrary Typst values, and a plain tag's value is `none`. `_norm-tags`
   // maps all four accepted forms onto it, so everything below reads `.keys()`
   // for the names and touches values only where it means to.
+  // THREE WAYS TO PUT TAGS ON A NOTE, lowest to highest precedence: `tag:`
+  // and `base-tags:` are a CONSTRUCTOR's, merged rather than replaced, so
+  // `idea.with(tag: "note")` keeps its tag when a call site names `tags:` of
+  // its own — `tags:` is the CALL SITE's, and it replaces outright.
   _assert-tags(tags, "#idea's")
-  let tags = _norm-tags(tags)
+  _assert-tags(base-tags, "#idea's", what: "base-tags")
+  assert(
+    tag == none or type(tag) == str,
+    message: "@rookery/core: #idea's `tag` must be a single tag name as a "
+      + "string — pass several as `base-tags: (\"a\", \"b\")` — got "
+      + repr(tag),
+  )
+  let tags = _merge-base-tags(tag, _merge-base-tags(base-tags, tags))
   let pos = args.pos()
   // Variadic, not a plain positional: a positional parameter cannot carry a
   // default in Typst, and `#idea[body]` has to be callable with no name at
@@ -471,15 +482,17 @@
 // `_dedup-tag`'s "already a key" guard is what implements that. IT TAKES ONE
 // TAG: a per-tag mapping would collide with the values that are themselves
 // dictionaries (`(todo: (state: "open"))`) — there would be no way to read
-// `value: (a: 1)` as either. A multi-tag family that needs a value for one of
-// its tags composes: build the plain factory, and let the call site or a thin
-// wrapper name the value in `tags:`.
+// `value: (a: 1)` as either. `#idea`'s `base-tags:` in its dictionary form
+// expresses the same thing without the one-tag restriction, since there the
+// dictionary IS the tag record — `idea.with(base-tags: (todo: (state:
+// "open")))` needs no factory at all.
 //
-// THE TRAP, do not reintroduce: `#let note = idea.with(tags: (note: none))`.
-// An explicit `tags:` argument at the call site OVERRIDES a value bound by
-// `.with()`, so `#note("x", tags: ("draft",))` would silently drop "note" —
-// the tag the caller chose `#note` for in the first place. The closure below
-// exists precisely because `.with()` cannot express "merge, don't replace".
+// `tags:` at a call site REPLACES whatever a constructor bound; `tag:` and
+// `base-tags:` MERGE under it instead, which is what makes `idea.with(tag:
+// "note")` a safe `.with()` spelling — `#note("x", tags: ("draft",))` comes
+// out `("note", "draft")` rather than silently dropping "note". This factory
+// is a thin wrapper over `idea.with(base-tags: ..)`, kept for the positional,
+// several-tags-at-once spelling.
 // `exclude-tags:` IS TAKEN HERE TOO, AND IT IS REQUIRED, not a nicety. This
 // factory's returned closure calls the `idea` captured in PACKAGE scope, so a
 // project writing `#let idea = idea.with(exclude-tags: E)` does NOT thereby
@@ -519,14 +532,13 @@
   // `_dedup-tag` prepends, so the last one folded ends up first. Tag key order
   // carries no meaning to anything downstream, but a `#repr(tags-of(..))` in a
   // demo or a test reads better when it matches the factory.
-  (
-    tags: none,
+  idea.with(
+    base-tags: if value == none {
+      own-tags
+    } else {
+      ((own-tags.at(0)): value)
+    },
     exclude-tags: exclude-tags,
-    ..args,
-  ) => idea(
-    tags: own-tags.rev().fold(tags, (acc, t) => _dedup-tag(t, acc, value: value)),
-    exclude-tags: exclude-tags,
-    ..args,
   )
 }
 

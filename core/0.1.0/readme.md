@@ -17,8 +17,8 @@ is how you discover a generated id in order to paste it into a `#window`.
 #idea("etal")[A pinned note — its id is always `idea:etal`.]
 ```
 
-Full signature: `idea(level: 1, title: none, tags: (), exclude-tags: (),
-created: none, show-date: false, show-tags: false, show-frame: true, show-id: true,
+Full signature: `idea(level: 1, title: none, tags: (), tag: none, base-tags: none,
+exclude-tags: (), created: none, show-date: false, show-tags: false, show-frame: true, show-id: true,
 ..args)`, where
 the sink accepts the body alone, `(name, body)`, or `(<name>, body)` — the name
 may be a string or a Typst label, identically. All positionals may also be
@@ -1753,11 +1753,47 @@ Like the rest of `theme:`, this is **one value for the whole document** — appl
 
 `@rookery/search`'s own result-row chips DO pick up `tags-color`. That package renders them client-side from JavaScript, so no style Typst writes can reach them — but each chip carries `idea-tag-<tag>`, and `tags-color` arrives as a rule on that class, which applies whenever the chip enters the DOM. A chip reads `--idea-tag-bg`/`--idea-tag-color` behind its own `--rookery-search-tag-bg`/`--rookery-search-tag-color`, so a project styling every chip in the modal still wins over a themed tag.
 
-### `tagged-idea` — build your own constructors
+### `tag:` and `base-tags:` — build your own constructors
 
-`tagged-idea(tag, value: none)` returns an `#idea` variant that prepends one
-tag to whatever the caller passes. Define whatever vocabulary your project
-wants:
+`#idea` takes three tag arguments, and they differ in who writes them and
+what they accept:
+
+```typst
+#idea(
+  tag: "onlystring",                    // a string, or none
+  base-tags: ("string", "or", "array"), // none, string, array or dictionary
+  tags: "string-or-array",              // none, string, array or dictionary
+)
+```
+
+`tags:` is the CALL SITE's. It REPLACES whatever a constructor bound, which
+is why it is safe to name at a call site and unsafe to bind with `.with()`.
+`base-tags:` and `tag:` are a CONSTRUCTOR's, and they MERGE under the call
+site's `tags:` instead — this is what makes `idea.with(tag: ..)` a safe
+`.with()` spelling:
+
+```typst
+#let note = idea.with(tag: "note")
+#note("c", tags: ("draft",))[body]      // -> ("note", "draft")
+```
+
+Do NOT write `#let note = idea.with(tags: (note: none))`. An explicit `tags:`
+at the call site OVERRIDES a default bound by `.with()`, so `#note("x", tags:
+("draft",))` would silently drop `note` — the tag you reached for `#note` to
+get. `tag:` and `base-tags:` are what express "merge, don't replace":
+
+```typst
+#let participant = idea.with(base-tags: ("person", "participant"))
+#let todo = idea.with(base-tags: (todo: (state: "open")))
+```
+
+PRECEDENCE, lowest to highest: `tag:`, then `base-tags:`, then `tags:`. Where
+two of them name the same tag, the higher one's value wins outright — there
+is no deep merge.
+
+`tagged-idea(tag, value: none)` remains as a factory spelling of the same
+thing, for the positional, several-tags-at-once case — it is a thin wrapper
+over `idea.with(base-tags: ..)`:
 
 ```typst
 #let note = tagged-idea("note")
@@ -1782,11 +1818,6 @@ no deep merge:
 #flagged("a")[...]                       // flag: "yes"
 #flagged("b", tags: (flag: "no"))[...]   // flag: "no"
 ```
-
-Do NOT write `#let note = idea.with(tags: (note: none))`. An explicit `tags:` at
-the call site OVERRIDES a value bound by `.with()`, so `#note("x", tags:
-("draft",))` would silently drop `note` — the tag you reached for `#note` to get.
-`tagged-idea` exists because `.with()` cannot express "merge, don't replace".
 
 `@rookery/todos` builds its whole `#todo`/`#epic` surface on this.
 

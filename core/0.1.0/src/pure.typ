@@ -228,6 +228,26 @@
   if tag in tags { tags } else { ((tag): value) + tags }
 }
 
+// ---- _merge-base-tags — a constructor's tags, under the caller's ----------
+//
+// The merge behind `#idea`'s `tag:` and `base-tags:`: `base` folds UNDER
+// `tags`, so a key both sides name keeps the caller's value — `_dedup-tag`'s
+// "already a key" guard is what decides that, which is why the higher side
+// wins outright rather than deep-merging. The `.rev()` is there so keys come
+// out in the order the constructor named them: `_dedup-tag` prepends, so the
+// last one folded ends up first.
+//
+// It NESTS rather than taking a third argument, which is how `#idea` gets
+// its three-way `tags:`/`base-tags:`/`tag:` precedence: the result of one
+// call is the `tags` a second call folds under.
+#let _merge-base-tags(base, tags) = {
+  let base = _norm-tags(base)
+  base.keys().rev().fold(
+    _norm-tags(tags),
+    (acc, t) => _dedup-tag(t, acc, value: base.at(t)),
+  )
+}
+
 // ---- _sort-ids — a total order over a window's selected ids ---------------
 //
 // "lexicographic" is by full id, the same order `ideas()` publishes. "date" is
@@ -757,13 +777,13 @@
 // explaining what each depth renders. Three different checks that happen to
 // share a parameter name are not one check, and folding them would either lose
 // that explanation or attach it to functions it does not describe.
-#let _assert-tags(v, where) = assert(
+#let _assert-tags(v, where, what: "tags") = assert(
   v == none
     or type(v) == str
     or type(v) == dictionary
     or (type(v) == array and v.all(t => type(t) == str)),
-  message: "@rookery/core: " + where + " `tags` must be none, a string, an "
-    + "array of strings, or a dictionary — got " + repr(v),
+  message: "@rookery/core: " + where + " `" + what + "` must be none, a "
+    + "string, an array of strings, or a dictionary — got " + repr(v),
 )
 
 #let _assert-match(v, where) = assert(

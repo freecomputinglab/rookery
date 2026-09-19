@@ -6,7 +6,7 @@ priority: 3
 labels:
 - feat-idea-base-tags
 deps: []
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/pure.typ, core/0.1.0/src/idea.typ, core/0.1.0/test/units.typ, core/0.1.0/readme.md
 
