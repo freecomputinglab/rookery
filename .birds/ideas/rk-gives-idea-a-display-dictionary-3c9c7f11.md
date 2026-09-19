@@ -8,7 +8,7 @@ labels:
 deps:
 - blocked-by:rk-adds-resolve-display-for-the-display-5a057095
 - blocked-by:rk-names-a-derived-vs-pinned-id-clash-in-351726a8
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/idea.typ, core/0.1.0/src/transclusion.typ, core/0.1.0/.marrow.typ
 

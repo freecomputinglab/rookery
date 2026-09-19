@@ -324,6 +324,9 @@
     // a transcluded card must not name a tag its own card would hide.
     let visible = _visible-tags(v.tags.keys())
     let cls = (_c(""),) + visible.map(l => _c("tag-" + l))
+    // `.at(.., default: (:))`: a payload minted before `display` existed
+    // carries no such key, and each read below supplies its own default.
+    let d = v.at("display", default: (:))
     if _target() == "html" or _target() == "epub" {
       let attrs = (class: cls.join(" "), data-rookery: "idea") + _tags-attr(visible)
       if id != none { attrs = attrs + (id: id) }
@@ -332,15 +335,15 @@
       // gets no tab either and its card simply has no top rule.
       //
       // `.at(.., default: true)`, not a bare field access: an IK payload minted
-      // before `show-id` existed carries no such key, and core's default is on.
+      // before `display.id` existed carries no such key, and core's default is on.
       let header = _head(
         if id == none { [] } else {
           _permalink-tab(
             id,
-            tags: if v.at("show-tags", default: false) {
+            tags: if d.at("tags", default: false) {
               v.tags.pairs().filter(((_, val)) => val == none).map(((k, _)) => k)
             } else { () },
-            show-id: v.at("show-id", default: true),
+            show-id: d.at("id", default: true),
           )
         },
         html.elem(
@@ -366,12 +369,12 @@
       _bracket(
         html.elem(
           "div",
-          // `show-frame` off the payload too, same `.at` default as `show-id`
-          // above: a nested note rebuilt here must wear the frame its own call
-          // site asked for, not the package default.
+          // `display.frame` off the payload too, same `.at` default as
+          // `display.id` above: a nested note rebuilt here must wear the
+          // frame its own call site asked for, not the package default.
           attrs: _themed(
             (class: box-cls.join(" "), data-rookery: "box")
-              + (if v.at("show-frame", default: true) { (:) } else { ("data-rookery-bare": "bare") })
+              + (if d.at("frame", default: true) { (:) } else { ("data-rookery-bare": "bare") })
               + _tags-attr(visible),
           ),
           header + _footnoted(v.body) + _refs-block(_own-cited-keys(v.body, windows-claim: depth > 1)),

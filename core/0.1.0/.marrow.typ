@@ -203,11 +203,11 @@
     // impossible for the walks to disagree with what is on the page.
     let flat = _body-at(rec, depth: minted-depth)
     // PER-NOTE OVERRIDE, same shape as `use-context`/`use-backlinks` further
-    // down: `rec.show-title` is `auto` unless `#idea(show-title: ..)` set one,
-    // and `auto` falls back to the document-wide `rookery.with(show-title:)`
-    // setting.
+    // down: `rec.display.title` is `auto` unless `#idea(display: (title: ..))`
+    // or `#idea(display-title: ..)` set one, and `auto` falls back to the
+    // document-wide `rookery.with(show-title:)` setting.
     let use-title = {
-      let v = rec.at("show-title", default: auto)
+      let v = rec.at("display", default: (:)).at("title", default: auto)
       if v == auto { show-title } else { v }
     }
     // Built as a value rather than passed straight to `rheo-document`, so the
@@ -380,17 +380,18 @@
         // anchor there, where a backlink row links to the top of the page.
         let back-pages = page-backlinks.at(id, default: ()).filter(h => h != origin)
 
-        // PER-NOTE OVERRIDE. `rec.show-context`/`rec.show-backlinks` are `auto`
-        // unless `#idea(show-context: .., show-backlinks: ..)` set one — see the
-        // banner beside `rec` in idea.typ. `auto` falls back to the document-wide
+        // PER-NOTE OVERRIDE. `rec.display.context`/`rec.display.backlinks` are
+        // `auto` unless `#idea(display: (context: .., backlinks: ..))` (or the
+        // matching `display-*` flags) set one — see the banner beside `rec` in
+        // idea.typ. `auto` falls back to the document-wide
         // `rookery.with(show-context:, show-backlinks:)` setting; `true`/`false`
         // overrides it for this note's page alone.
         let use-context = {
-          let v = rec.at("show-context", default: auto)
+          let v = rec.at("display", default: (:)).at("context", default: auto)
           if v == auto { show-context } else { v }
         }
         let use-backlinks = {
-          let v = rec.at("show-backlinks", default: auto)
+          let v = rec.at("display", default: (:)).at("backlinks", default: auto)
           if v == auto { show-backlinks } else { v }
         }
 

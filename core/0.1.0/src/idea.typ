@@ -28,22 +28,32 @@
 // Defined after `_outbound` above because it calls it at registration time, and
 // a `#let` closure captures the scope visible AT DEFINITION time.
 
-// `show-frame: false` DROPS THE CARD'S BOX — its left rule and the indent that
-// goes with it — and nothing else: the note still registers, still carries its
-// tags and its anchor, still renders its hat and its body. It is a per-note
-// switch, where `rule-width`/`border-color`/`pad` in the theme move the frame
-// for the whole document. The mechanism is a second attribute,
+// `display-frame: false` DROPS THE CARD'S BOX — its left rule and the indent
+// that goes with it — and nothing else: the note still registers, still
+// carries its tags and its anchor, still renders its hat and its body. It is
+// a per-note switch, where `rule-width`/`border-color`/`pad` in the theme move
+// the frame for the whole document. The mechanism is a second attribute,
 // `data-rookery-bare`, and a more-specific rule in `core.css`; see the comment
 // on `data-rookery-plain` there for why a downstream stylesheet cannot do this
 // from outside the package.
 //
-// `show-id: false` DROPS THE PERMALINK from the hat. With `show-tags` and
-// `show-date` both already off by default, that leaves the tab empty and the hat
-// disappears entirely — see `_permalink-tab` (permalink.typ) for how. The cost
-// falls on an UNTITLED note, whose id is a bare counter value a permalink is the
-// only way to discover; a titled note's id is the slug of its own title, so it
-// stays guessable without one.
-#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, show-date: false, show-tags: false, show-frame: true, show-id: true, show-context: auto, show-backlinks: auto, show-title: auto, ..args) = {
+// `display-id: false` DROPS THE PERMALINK from the hat. With `display-tags`
+// and `display-date` both already off by default, that leaves the tab empty
+// and the hat disappears entirely — see `_permalink-tab` (permalink.typ) for
+// how. The cost falls on an UNTITLED note, whose id is a bare counter value a
+// permalink is the only way to discover; a titled note's id is the slug of
+// its own title, so it stays guessable without one.
+//
+// `display:` and the seven `display-*` flags are resolved together by
+// `_resolve-display` (pure.typ) into one dictionary: an explicit flag wins
+// over the dictionary's own value for that key, which wins over `auto`.
+// Every flag defaults to `auto`, including the four below that also carry a
+// built-in default (`date`, `tags`, `frame`, `id`) — that default is applied
+// just below the resolve, once `auto` has had its chance to mean "unset".
+// `context`, `backlinks` and `title` are left `auto` when unset: that means
+// "use the document-wide setting", resolved later on the minted page, not a
+// built-in boolean.
+#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-id: auto, display-context: auto, display-backlinks: auto, display-title: auto, ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
   // below and further down at render time — str has no `.map`, so the error
@@ -76,6 +86,25 @@
     message: "@rookery/core: #idea's `tag` must be a single tag name as a "
       + "string — pass several as `base-tags: (\"a\", \"b\")` — got "
       + repr(tag),
+  )
+  let display = _resolve-display(
+    display,
+    (
+      "context": display-context, backlinks: display-backlinks, date: display-date,
+      frame: display-frame, id: display-id, tags: display-tags, title: display-title,
+    ),
+    "#idea's",
+  )
+  // The four RENDER-TIME keys get their built-in default here, once `auto`
+  // has had its chance to mean "unset" above. `context`, `backlinks` and
+  // `title` stay `auto` when unset — that means "use the document-wide
+  // setting", resolved later on the minted page, not a built-in boolean —
+  // so they are deliberately absent from this list.
+  let display = display + (
+    date: if display.date == auto { false } else { display.date },
+    tags: if display.tags == auto { false } else { display.tags },
+    frame: if display.frame == auto { true } else { display.frame },
+    id: if display.id == auto { true } else { display.id },
   )
   let tags = _merge-base-tags(tag, _merge-base-tags(base-tags, tags))
   let pos = args.pos()
@@ -243,15 +272,15 @@
     // `title` is the AUTHORED one — `_flatten`'s IK rule PRINTS it as a heading, so
     // it must never be the derived label (see the banner above). `label` rides
     // along for `#ideas-outline`, which NAMES rather than renders.
-    // `show-frame`/`show-id` ride along for the same reason every other field
-    // here does: `_flatten`'s IK rule rebuilds this note's card from THIS
-    // payload, never from the call site, so a presentation switch missing from
-    // it is silently lost the moment the note is shown nested inside a
-    // transcluded or minted parent — the card would come back framed and
-    // permalinked when its author asked for neither. `id` was resolved at
-    // this note's ORIGINAL site, above, so `_flatten`'s IK rule can give even
-    // an auto-numbered nested note a correct permalink.
-    #metadata((body: body, title: title, label: note-label, named: named, base: base, id: id, level: level, tags: tags, show-frame: show-frame, show-id: show-id, show-tags: show-tags))
+    // `display` rides along for the same reason every other field here does:
+    // `_flatten`'s IK rule rebuilds this note's card from THIS payload, never
+    // from the call site, so a presentation switch missing from it is
+    // silently lost the moment the note is shown nested inside a transcluded
+    // or minted parent — the card would come back framed and permalinked
+    // when its author asked for neither. `id` was resolved at this note's
+    // ORIGINAL site, above, so `_flatten`'s IK rule can give even an
+    // auto-numbered nested note a correct permalink.
+    #metadata((body: body, title: title, label: note-label, named: named, base: base, id: id, level: level, tags: tags, display: display))
     #context {
       // Resolution order, most specific first: the explicit created:
       // argument, then the containing document's own
@@ -266,7 +295,7 @@
       }
       let resolved-created = if created != none { created } else { doc-date }
 
-      // `show-date` gates display only — the date is always RESOLVED and
+      // `display.date` gates display only — the date is always RESOLVED and
       // stored on the registry record above, so a #window of this note can
       // still show it even when the note's own hat (here) does not.
       //
@@ -274,7 +303,7 @@
       // else the containing document's own `#set document(date:)`. A note's
       // LIFECYCLE is `@rookery/timeline`'s subject, not core's — it stores a
       // dated log and derives last-touched from it.
-      let date = if show-date and resolved-created != none {
+      let date = if display.date and resolved-created != none {
         resolved-created.display("[year]-[month]-[day]")
       } else { none }
 
@@ -354,15 +383,15 @@
         origin: origin,
         links: links,
         tags: tags,
-        // `auto` (the default) means "use the document-wide
-        // `rookery.with(show-context:, show-backlinks:, show-title:)` setting" —
-        // `.marrow.typ` reads these off the record ONLY for the minted page
-        // (the footer for the first two, the `<h1>` for the third) and falls
-        // back to the document default when the value is `auto`. `true`/`false`
-        // here overrides that default for THIS note alone.
-        show-context: show-context,
-        show-backlinks: show-backlinks,
-        show-title: show-title,
+        // `display` carries `context`/`backlinks`/`title` as `auto` (the
+        // default) when unset, meaning "use the document-wide
+        // `rookery.with(show-context:, show-backlinks:, show-title:)"
+        // setting" — `.marrow.typ` reads these off the record ONLY for the
+        // minted page (the footer for the first two, the `<h1>` for the
+        // third) and falls back to the document default when the value is
+        // `auto`. `true`/`false` here overrides that default for THIS note
+        // alone.
+        display: display,
       )
       // A titled note still steps `_seq` above, for the same reason the
       // exclusion gate does higher up in this function: skipping the step
@@ -409,8 +438,8 @@
       // See `_invisible-tags`/`_visible-tags` (state.typ).
       let visible = _visible-tags(tags.keys())
       let cls = (_c(""),) + visible.map(l => _c("tag-" + l))
-      // The flat tags — those whose value is `none`. This is what `show-tags:`
-      // renders as pills: a valued tag's name alone says nothing useful in a
+      // The flat tags — those whose value is `none`. This is what
+      // `display.tags` renders as pills: a valued tag's name alone says nothing useful in a
       // pill (`depends-on` with no dependencies shown), so a package carrying
       // metadata in tags renders it it own way instead of polluting the hat.
       let flat-tags = tags.pairs().filter(((_, v)) => v == none).map(((k, _)) => k)
@@ -439,7 +468,7 @@
         // `@idea:etal` fragment link, so dropping the element would break them;
         // `h*.idea:empty` in the stylesheet is what keeps it from taking any space.
         let header = _head(
-          _permalink-tab(id, tags: if show-tags { flat-tags } else { () }, date: date, show-id: show-id),
+          _permalink-tab(id, tags: if display.tags { flat-tags } else { () }, date: date, show-id: display.id),
           html.elem(
             "h" + str(level + 1),
             attrs: (id: id, class: cls.join(" "), data-rookery: "idea")
@@ -476,7 +505,7 @@
             // entirely rather than set it false.
             attrs: _themed(
               (class: box-cls.join(" "), data-rookery: "box")
-                + (if show-frame { (:) } else { ("data-rookery-bare": "bare") })
+                + (if display.frame { (:) } else { ("data-rookery-bare": "bare") })
                 + _tags-attr(visible),
             ),
             header + _footnoted(body) + _refs-block(_own-cited-keys(body)),
