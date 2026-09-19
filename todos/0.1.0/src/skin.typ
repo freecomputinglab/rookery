@@ -13,7 +13,7 @@
 // arguments as well as the todo ones. Importing rookery here instead would silently
 // bypass the timeline skin and lose them.
 //
-// WHAT IS OVERRIDDEN HERE: `window` alone. `idea` and `tagged-idea` pass through
+// WHAT IS OVERRIDDEN HERE: `window` alone. `idea` passes through
 // already-decorated from the timeline skin, and everything else is rookery's,
 // untouched.
 #import "@rookery/timeline:0.1.0": *

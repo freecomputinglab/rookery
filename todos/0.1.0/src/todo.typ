@@ -1,6 +1,6 @@
 // `#todo` — the package's primitive, an `#idea` variant carrying todo tags.
 
-#import "@rookery/core:0.1.0": tagged-idea, _norm
+#import "@rookery/core:0.1.0": idea, _merge-base-tags, _norm
 #import "@rookery/timeline:0.1.0": CLOSED-STAGE, dated
 #import "tags.typ": *
 #import "fields.typ": todo-blocked-by
@@ -10,13 +10,12 @@
 //   #todo("build", priority: 1, type: "bug", deps: ("fetch",))[Fix the parser.]
 //   #todo[A frictionless todo — takes an auto id, same as `#idea`.]
 //
-// Built on rookery's `tagged-idea` factory rather than on `#idea` directly, so
-// the `todo` tag is PREPENDED and merged rather than replacing a caller's own
-// `tags:`. `..args` is forwarded untouched, which is what keeps all three
-// `#idea` call forms working — `#todo[body]`, `#todo("name")[body]` and
-// `#todo(<name>)[body]` — along with every `#idea` named argument this wrapper
-// does not itself consume: `title`, `level`, `created`, `show-date`,
-// `show-tags`.
+// Composes `#idea` directly, merging the `todo` tag UNDER whatever tags the
+// caller and `todo-tags` produce rather than replacing them. `..args` is
+// forwarded untouched, which is what keeps all three `#idea` call forms
+// working — `#todo[body]`, `#todo("name")[body]` and `#todo(<name>)[body]` —
+// along with every `#idea` named argument this wrapper does not itself
+// consume: `title`, `level`, `created`, `show-date`, `show-tags`.
 //
 // EVERY DATE A TODO CARRIES BELONGS TO @rookery/timeline, in its entirety.
 // `#todo` is built on that package's `dated(..)` decorator, so `scheduled:`,
@@ -165,6 +164,9 @@
     // set of forms `#window` and `#hyperlink` accept.
     norm: _norm,
   )
+  // Merged UNDER the caller's tags, so a call site naming `todo` itself keeps
+  // its own value rather than losing it to whatever `todo-tags` produced.
+  let all-tags = _merge-base-tags(TODO-KEY, all-tags)
   let pos = args.pos()
   assert(
     pos.len() == 1 or pos.len() == 2,
@@ -188,7 +190,7 @@
     todo-blocked-by(deps.map(_norm))
     body
   }
-  let mint = dated(tagged-idea(TODO-KEY))
+  let mint = dated(idea)
   // Two branches because a name is positional and Typst has no way to pass "no
   // positional argument here": an unnamed todo must be called with the body
   // alone, not with `none` in front of it, which `#idea` would read as the name.
@@ -240,9 +242,10 @@
 // membership in an epic is one more tag on the note and nothing else.
 //
 // A FACTORY, not a function taking a list of todo specifications. The factory
-// is one more application of rookery's `tagged-idea` composition, so it keeps
-// `#todo`'s entire call surface — content bodies, all three id forms, every
-// named argument — with no argument forwarding to reimplement. The rejected
+// is one more application of `#todo`'s own composition of core's `idea`, so
+// it keeps `#todo`'s entire call surface — content bodies, all three id
+// forms, every named argument — with no argument forwarding to reimplement.
+// The rejected
 // alternative, `#epic("launch", (name: "a", body: [..]), ..)`, forces note
 // bodies into dictionary values and reads worse for it.
 //
