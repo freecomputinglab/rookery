@@ -104,14 +104,20 @@ repository root (`/home/lox/code/_fcl/rookery`).
 
    - `core/0.1.0/demo/rheo/content/` holds one `.typ` file per page; every file
      there becomes a page, with no registration step.
-   - `core/0.1.0/demo/rheo/check.sh` greps the built output. Its first block
-     loops over note slugs asserting `build/html/ideas/<slug>.html` exists:
+   - `core/0.1.0/demo/rheo/check.sh` greps the built output. It is a long
+     script of NUMBERED sections, `# 1.` through `# 27.` as of filing, each a
+     comment header followed by its greps, using a `note "..."` helper to
+     record a failure and a `$H` variable holding `build/html`. Find its last
+     section, which is where the new one goes:
 
      ```
-     rg -n 'no minted page at ideas' core/0.1.0/demo/rheo/check.sh
+     rg -n 'NAMES A NOTE EXPLICITLY UNDER ANY SEPARATOR' core/0.1.0/demo/rheo/check.sh
      ```
 
-     One hit, around `check.sh:18` as of filing.
+     One hit, `check.sh:641` as of filing — the header of section 27, covering
+     `#ideate-id`. Do NOT anchor on `no minted page at ideas`: that phrase
+     appears ten times in this file, in ten different sections, and is not a
+     locator.
    - `core/0.1.0/demo/rheo/native.typ` compiles the same `content/` the other
      way, as ONE plain-Typst document, by `#include`-ing each page. Its header
      comment ends with a sentence claiming every vertebra under `content/`
@@ -168,10 +174,15 @@ repository root (`/home/lox/code/_fcl/rookery`).
    `#show: demo` must come before `#show: ideate`, so the template wraps
    `ideate`'s output rather than the other way round.
 
-8. Add assertions to `core/0.1.0/demo/rheo/check.sh`: a minted page exists at
-   `build/html/ideas/doc-title-note.html`, and it contains `DOCTITLEBODY`. Add
-   the slug to the existing loop if that is the natural place, and the body
-   grep beside the other content greps. Keep the script's `note`/`fail` idiom.
+8. Add a new numbered section to the END of
+   `core/0.1.0/demo/rheo/check.sh`, after its current last section and before
+   the closing `if [ "$fail" -ne 0 ]` block, following the same shape as the
+   sections around it: a `# 28. ...` comment header saying in one or two lines
+   what the section proves, then the greps, using the script's existing `$H`
+   variable and `note "..."` helper. Assert two things — a minted page exists
+   at `$H/ideas/doc-title-note.html`, and it contains `DOCTITLEBODY`. If the
+   file's last section number is not 27 by the time you get there, continue
+   from whatever it actually is.
 
 9. Add ONE sentence to `core/0.1.0/demo/rheo/native.typ`'s header comment
    recording that `content/ideated-doctitle.typ` is deliberately NOT in its
