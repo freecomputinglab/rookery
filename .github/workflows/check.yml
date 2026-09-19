@@ -141,6 +141,33 @@ jobs:
           # Fail HERE with something legible rather than inside a typst error later.
           test -f "$cache/rookery/search/0.1.0/typst.toml"
 
+      # `search`, `todos`, `slipshow` and `pinboard` each import
+      # `@rheo/rehydrate:0.1.0` from their entrypoint, for the `RheoRehydrate`
+      # global their own scripts re-wire widgets through after a `rheo watch`
+      # morph. `rheo` resolves the `@rheo` namespace itself, so every rheo demo
+      # below would fetch this on its own — but the fixtures and parity
+      # harnesses run under BARE `typst eval`/`typst compile`, which knows only
+      # the package cache, and `just parity` dies there with
+      # `package not found (searched for @rheo/rehydrate:0.1.0)`.
+      #
+      # Pinned URL AND pinned digest, like the rheo step below: read the digest
+      # back with `gh release view rehydrate-0.1.0 --repo
+      # freecomputinglab/rheo-packages --json assets --jq '.assets[0].digest'`
+      # (it comes back "sha256:"-prefixed, which `sha256sum -c` will not
+      # accept). The archive unpacks as `typst.toml`, `src/` and `dist/` with no
+      # wrapping directory, so it extracts straight into the version dir.
+      - name: Install @rheo/rehydrate 0.1.0 into the package cache
+        run: |
+          set -euo pipefail
+          sha256="87ef8e8a673aee4f24d49cddb59275083293d2f2305c746e60de8b557a18aa38"
+          curl -fsSL -o rehydrate.tar.gz \
+            https://github.com/freecomputinglab/rheo-packages/releases/download/rehydrate-0.1.0/rehydrate-0.1.0.tar.gz
+          echo "$sha256  rehydrate.tar.gz" | sha256sum -c -
+          dest="${XDG_CACHE_HOME:-$HOME/.cache}/typst/packages/rheo/rehydrate/0.1.0"
+          mkdir -p "$dest"
+          tar -xzf rehydrate.tar.gz -C "$dest"
+          test -f "$dest/typst.toml"
+
       # AFTER the namespace-symlink step: @rookery/timeline binds `#dated-idea`
       # from `@rookery/core:0.1.0` — one line, and enough to need the cache.
       # Still buildless, like core itself, so no vite step.
