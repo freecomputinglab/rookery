@@ -384,11 +384,29 @@ if not re.search(
 # no longer thrown away behind an ellipsis but sits, collapsed, behind the
 # window-more disclosure, and that tail still contains the second block's
 # `#window("w-inner")`.
+#
+# RAISED FROM 6 TO 8, and the two that appeared were always being rendered —
+# they were being rendered WRONG, so this string did not match them. w-inner's
+# body contains an apostrophe, `smartquote` was missing from `_INLINE-FUNCS`
+# (src/pure.typ), and unknown element names default to BLOCK, so every path
+# through `_blocks` cut that one sentence into three paragraphs and flipped the
+# apostrophe to an opening `‘`. The two renderings that go through `_blocks` —
+# the truncating ones — therefore spelled the sentence differently from the six
+# that do not. Whole again, all eight match. `<p>‘</p>` appears nowhere in this
+# demo's output now, which is the other half of the same assertion.
 n = h.count("The innermost note, unfurled only when a window’s depth budget reaches it.")
-if n != 6:
-    print(f"FAIL: sub/deeper/page.html renders w-inner's body {n} times, expected exactly 6 — "
+if n != 8:
+    print(f"FAIL: sub/deeper/page.html renders w-inner's body {n} times, expected exactly 8 — "
           f"the unfurl: 2 window, or the limit: 2 window's expandable tail, may no longer be "
           f"unfurling the window nested inside it")
+    bad = 1
+# The same defect, stated as the symptom a reader sees rather than as a count:
+# a `smartquote` treated as a block ends up alone in a paragraph of its own.
+# Cheap, and it fails on any body with an apostrophe rather than only on this
+# one sentence.
+if re.search(r'<p>[‘’]</p>', h):
+    print("FAIL: sub/deeper/page.html has a paragraph that is nothing but a quote mark — "
+          "_blocks is treating a smartquote as a block and cutting a sentence around it")
     bad = 1
 if not bad:
     print("  window unfurl: unfurl 0 is a bare link row, unfurl 2 unfurls the window nested inside it")

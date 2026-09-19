@@ -284,6 +284,23 @@
 // `#idea`'s own marker is `metadata`: invisible, and it used to take a whole
 // block — and therefore a whole `limit` slot — to itself.
 #assert.eq(_blocks([A#metadata((k: 1))B]).len(), 1)
+// A SMARTQUOTE IS INLINE, and nothing in a paragraph looks less like a block.
+// MEASURED DEFECT, on `rookery.ohrg.org`'s packages shelf: a `#window(..,
+// limit: 1)` whose body said "the reader's own browser" rendered it as THREE
+// paragraphs — `the reader`, `‘`, `s own browser`. `repr(smartquote().func())`
+// is `"smartquote"`, that name was in neither list, and unknown names default
+// to BLOCK. The split also flipped the glyph: alone in a block of its own the
+// quote has no preceding word, so Typst resolved it as an OPENING `‘` rather
+// than the apostrophe it was written as.
+#assert.eq(_blocks([the reader's own browser]).len(), 1)
+// The same gap, on four more things written mid-sentence. `ref` is the one that
+// matters most after the apostrophe: `@idea:etal` is a `ref`, so a transcluded
+// sentence pointing at another note was cut in three wherever a `limit:` sent
+// it through `_blocks`. Each of these MEASURED at 3 before the names went in.
+#assert.eq(_blocks([see #ref(<lbl>) here]).len(), 1)
+#assert.eq(_blocks([as #cite(<key>) says]).len(), 1)
+#assert.eq(_blocks([a #smallcaps[b] c]).len(), 1)
+#assert.eq(_blocks([a #sym.dash.em b]).len(), 1)
 
 // ---- _blocks — an inert node never costs a block -------------------------
 // MEASURED DEFECT, on `rookery.ohrg.org`'s packages shelf: every `#window(..,

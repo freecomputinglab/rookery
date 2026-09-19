@@ -696,10 +696,34 @@
 // the body resolve — so they are HELD and ride on the next block instead,
 // which is the one place they can sit without either being lost or counting
 // for one.
+// FIVE NAMES ADDED AT ONCE, all of them things an author writes in the middle
+// of a sentence without thinking of them as elements at all: `smartquote`,
+// `ref`, `cite`, `smallcaps` and `symbol`.
+//
+// `smartquote` is the one a reader sees first, because every apostrophe typed
+// is one of these. Left to the block default it cut a paragraph in three at
+// each `'`, and the quote — alone in a block with no word in front of it —
+// then resolved as an OPENING `‘` rather than the apostrophe it was written
+// as. MEASURED on `rookery.ohrg.org`'s packages shelf: "the reader's own
+// browser" came out as three paragraphs reading `the reader`, `‘`,
+// `s own browser`.
+//
+// `ref` is the same defect on this family's own syntax: `@idea:etal` is a
+// `ref`, so any transcluded sentence that pointed at another note was cut in
+// three the moment a `limit:` sent it through here. `cite`, `smallcaps` and
+// `symbol` complete the sweep — each was MEASURED at 3 blocks for
+// `[a #smallcaps[b] c]` and its two siblings.
+//
+// `context` IS DELIBERATELY NOT HERE, though it splits the same way. A context
+// block can hold block-level content, so calling it inline would merge two real
+// blocks into one — and that is the failure this list's own default is written
+// to avoid (see above: a missing name costs a dropped space, a wrong name costs
+// a merge). An author writing `#context` mid-sentence pays one spurious split;
+// that is the cheaper error of the two.
 #let _INLINE-FUNCS = (
   "text", "emph", "strong", "link", "footnote", "super", "sub", "strike",
   "underline", "overline", "highlight", "box", "h", "linebreak", "metadata",
-  "sequence", "styled",
+  "sequence", "styled", "smartquote", "ref", "cite", "smallcaps", "symbol",
 )
 #let _INERT-FUNCS = ("state-update", "counter-update")
 #let _is-inline(c) = {
