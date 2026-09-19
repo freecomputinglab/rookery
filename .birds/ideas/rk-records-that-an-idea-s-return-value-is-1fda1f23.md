@@ -6,7 +6,7 @@ priority: 2
 labels:
 - docs-idea-introspection
 deps: []
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/readme.md, core/0.1.0/src/idea.typ
 

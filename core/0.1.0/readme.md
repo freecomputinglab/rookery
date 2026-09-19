@@ -2649,6 +2649,22 @@ at all.
 - A window's citations resolve to the window's own reference block rather than
   to the note's page — see "Bibliographies" for why linking them across is not
   available.
+- **`#idea`'s return value cannot be introspected.** It resolves a note's id
+  and registers it from inside a `context` block, so what `#idea(..)[..]`
+  returns is itself a deferred `context` node — and a Typst `context` node's
+  body is opaque to `.fields()` until Typst actually realizes it, which
+  reading an unplaced content value never does. Walking the return value for
+  its `figure(kind: IK)` marker (the one `#idea` uses to register itself)
+  therefore finds nothing, silently — no error, just an empty result. The
+  note still renders and registers correctly once PLACED; only introspection
+  of the unplaced value fails. `#window` has the same property, for the same
+  reason (it also wraps its body in `context`). A package that needs to read
+  a note's own options back off a content value cannot sniff it out of an
+  `#idea`/`#window` call this way — it must instead emit its own PLAIN
+  `#metadata` marker as a sibling of the call, or read the registry by name.
+  `@rookery/slipshow`'s `src/marker.typ` is a worked example: `#slip` emits a
+  second, plain marker beside the deferred `#idea` call specifically so
+  `slip-meta` can read it back unplaced.
 
 ## Requirements
 

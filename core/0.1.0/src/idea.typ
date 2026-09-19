@@ -224,6 +224,12 @@
   // re-registering or re-counting it. The figure sits inside a `context`
   // block so the id can be resolved ONCE, above the metadata payload, and
   // reused by the registry update further down rather than recomputed.
+  //
+  // A consequence for callers: this makes `#idea`'s own return value a
+  // deferred `context` node, opaque to `.fields()` until Typst realizes it —
+  // so a caller cannot walk an unplaced `#idea` value for the IK marker (see
+  // `slipshow/0.1.0/src/marker.typ` for a package that hit this and worked
+  // around it with a sibling marker).
   context {
     // Resolution order: a NAMED note keeps its pinned id unconditionally —
     // a pin is a promise about the id and must never be silently moved. An
