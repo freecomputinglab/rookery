@@ -327,7 +327,7 @@
 // arithmetic — no state, no query, no layout — so the block introduces no
 // convergence risk of its own; `#idea` does its own registration inside a
 // context of its own already, and nesting one more changes nothing about that.
-#let ideate(body, separator: none, title: none, name: auto, tags: (), show-frame: false, show-id: false, ..args) = context {
+#let ideate(body, separator: none, title: none, name: auto, tags: (), display: (:), display-frame: false, display-id: false, ..args) = context {
   // A PAGED TARGET GETS THE MARKUP IT WAS GIVEN. No note is minted, nothing is
   // wrapped, and `#ideas()` in that build sees nothing from here — a PDF of a
   // block of prose should be that block of prose. The same shape
@@ -414,12 +414,15 @@
   // alone below.
   let doc-title = if none-mode and title == none { document.title } else { none }
 
-  // `show-frame`/`show-id` default to FALSE here, inverting `#idea`'s own
-  // defaults. That inversion is most of the reason this function is worth
+  // `display-frame`/`display-id` default to FALSE here, inverting `#idea`'s
+  // own defaults. That inversion is most of the reason this function is worth
   // having: an inferred note is not one anybody named, so a frame and a
   // permalink around every paragraph is chrome nobody asked for — and with no
   // name, the permalink points at a sequence number that means nothing to a
   // reader. Both are ordinary `#idea` arguments; pass `true` to get them back.
+  // `display: (:)` forwards straight to `#idea`'s own `_resolve-display`,
+  // which lets an explicit `display-frame:`/`display-id:` at THIS call site
+  // still win over anything the dictionary sets for those two keys.
   //
   // `title:` is forwarded only when it is NOT a function — a function
   // computes a PER-SECTION title, so it must not be forwarded as a fixed
@@ -434,8 +437,9 @@
   // function that reads its heading) mint with tags of its own while every
   // other group still gets exactly this one.
   let mint = idea.with(
-    show-frame: show-frame,
-    show-id: show-id,
+    display: display,
+    display-frame: display-frame,
+    display-id: display-id,
     tags: base-tags,
     ..(if title-fn { (:) } else { (title: title) }),
     ..args,
