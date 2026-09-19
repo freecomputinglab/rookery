@@ -160,8 +160,9 @@ every figure, and counter values resolve to the same numbers as before the wrap.
 From `core/0.1.0`:
 
 1. `just test` exits 0 and prints `units OK`.
-2. `typst compile --features html --root ../.. --format pdf demo/pure/main.typ /dev/null`
-   exits 0. If that path or root is wrong, find the demo entrypoint with
+2. `(cd demo/pure && just build)` exits 0 and ends with `demo/pure OK`. That
+   recipe compiles `root.typ`, `root-prefix.typ` and `excluded.typ` and runs its own
+   `check` — it is the pure-Typst demo's real entrypoint.
    `ls demo/pure demo/rheo` and compile whichever `.typ` is the entrypoint; report the
    command you used.
 3. `rg -n -F 'id: id,' src/idea.typ` returns at least one hit, inside the metadata

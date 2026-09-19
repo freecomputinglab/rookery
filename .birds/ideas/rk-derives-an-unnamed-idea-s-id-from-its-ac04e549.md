@@ -135,6 +135,7 @@ From `core/0.1.0`:
 3. `rg -n -F '_taken-ids' src/state.typ` returns exactly one hit (the declaration), and
    `rg -c '_taken-ids' src/idea.typ` reports at least 2 (a read and an update).
 4. `rg -c '_seq.step()' src/idea.typ` still reports 2 — both existing step sites intact.
-5. `typst compile --features html --root ../.. --format pdf demo/pure/main.typ /dev/null`
-   exits 0. If that path is wrong, find the demo entrypoint with `ls demo/pure` and
+5. `(cd demo/pure && just build)` exits 0 and ends with `demo/pure OK`. That
+   recipe compiles `root.typ`, `root-prefix.typ` and `excluded.typ` and runs its own
+   `check` — it is the pure-Typst demo's real entrypoint.
    report the command you used.

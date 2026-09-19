@@ -131,9 +131,9 @@ key outside `("context", "backlinks", "title")` before calling it.
 From `core/0.1.0`:
 
 1. `just test` exits 0 and prints `units OK`.
-2. `typst compile --features html --root ../.. --format pdf demo/pure/main.typ /dev/null`
-   exits 0 — core must be GREEN at the end. If that path is wrong, find the entrypoint
-   with `ls demo/pure` and report what you used.
+2. `(cd demo/pure && just build)` exits 0 and ends with `demo/pure OK`. That
+   recipe compiles `root.typ`, `root-prefix.typ` and `excluded.typ` and runs its own
+   `check` — it is the pure-Typst demo's real entrypoint.
 3. `rg -n 'show-(context|backlinks|title)' src/template.typ src/state.typ` returns hits
    ONLY inside `state("rheo-idea-show-...")` string literals and the comment explaining
    them.

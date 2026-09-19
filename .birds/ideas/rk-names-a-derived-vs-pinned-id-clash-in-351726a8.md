@@ -79,6 +79,7 @@ From `core/0.1.0`:
 3. `rg -i -F 'title' src/idea.typ | rg -i 'duplicate|collide'` shows the new message
    mentions a title-derived id. (Grep a short fragment; do not assert on a whole
    sentence, which may be correctly re-wrapped.)
-4. `typst compile --features html --root ../.. --format pdf demo/pure/main.typ /dev/null`
-   exits 0. If that path is wrong, find the entrypoint with `ls demo/pure` and report
+4. `(cd demo/pure && just build)` exits 0 and ends with `demo/pure OK`. That
+   recipe compiles `root.typ`, `root-prefix.typ` and `excluded.typ` and runs its own
+   `check` — it is the pure-Typst demo's real entrypoint.
    the command you used.
