@@ -77,15 +77,19 @@ key outside `("context", "backlinks", "title")` before calling it.
    ```typ
    let display = _resolve-display(
      display,
-     (context: display-context, backlinks: display-backlinks, title: display-title),
+     ("context": display-context, backlinks: display-backlinks, title: display-title),
      "#rookery's",
    )
    let display = display + (
-     context: if display.context == auto { true } else { display.context },
+     "context": if display.context == auto { true } else { display.context },
      backlinks: if display.backlinks == auto { true } else { display.backlinks },
      title: if display.title == auto { true } else { display.title },
    )
    ```
+
+   Note `"context"` is QUOTED in both dictionary literals: `context` is a Typst
+   keyword and a bare `context:` key is a parse error (`expected expression`).
+   Measured — it breaks the compile outright.
 
    `true` is the existing default for all three — confirm against the signature you
    replaced and report if any differs. The document-wide tier is the bottom of the
