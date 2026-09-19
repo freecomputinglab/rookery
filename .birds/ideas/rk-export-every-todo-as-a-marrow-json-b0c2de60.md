@@ -6,7 +6,7 @@ priority: 3
 labels:
 - feat-todos-export
 deps: []
-closed: false
+closed: true
 ---
 Touches: todos/0.1.0/.marrow.typ, todos/0.1.0/src/target.typ, todos/0.1.0/readme.md
 

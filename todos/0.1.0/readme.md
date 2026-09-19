@@ -948,6 +948,38 @@ only, never a raw tag value. A value can be a `datetime` or content, and
 `json.encode` of content does **not** error — it silently emits a structural
 blob and bloats the page.
 
+## The JSON export: `rookery/todos/index.json`
+
+A project importing this package gets one more thing written on every
+build, including every `rheo watch` rebuild: the whole todo corpus, decoded,
+at `rookery/todos/index.json` in the built output — beside this package's
+own copied scripts. It exists so a program outside Typst (a dashboard, a CI
+check, a second static site) can read a rookery's todos without parsing or
+evaluating Typst at all.
+
+Each row:
+
+| key | value |
+| --- | --- |
+| `id` | rookery's full id, e.g. `idea:65` |
+| `name` | the short name `deps:` refers to |
+| `title` | flattened plain text (never the authored content) |
+| `closed` | boolean, always present |
+| `priority` | integer, omitted when unprioritised |
+| `type` | omitted when none |
+| `status` | `"open"`, `"in-progress"`, `"deferred"`, `"draft"` or `"closed"` |
+| `closed-on` | ISO `YYYY-MM-DD`, omitted when open |
+| `deps` | array of names, omitted when empty |
+| `tags` | array of tag names, omitted when untagged |
+| `metadata` | scalar (`str`/`int`/`float`/`bool`) entries only, omitted when empty |
+| `created` | ISO `YYYY-MM-DD`, omitted when undated |
+| `href` | site-root output path, omitted when the note mints no page |
+
+A todo's body is never included — its prose is not what an external reader
+of the corpus needs — and a `metadata` value that is not a plain scalar is
+dropped rather than forced into JSON, so a corrupt row is never silently
+produced.
+
 ## Requirements
 
 - `@rookery/core` 0.6.0 and `@rookery/timeline` 0.6.0. Both are hard imports.

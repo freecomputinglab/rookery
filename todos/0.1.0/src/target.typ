@@ -27,3 +27,10 @@
 // warning, just an empty view under its heading. That silence is the defect
 // this module exists to end.
 #let _is-markup() = _target() == "html" or _target() == "epub"
+
+// Where `.marrow.typ` writes the decoded todo corpus, from the SITE ROOT. It
+// sits beside this package's own copied scripts, which rheo copies to
+// `rookery/todos/` from the manifest's `[tool.rheo.source.html]` list, so the
+// data and the code that ships alongside it land in one directory — the same
+// reasoning `@rookery/search`'s `_index-asset-path` gives.
+#let _todos-asset-path = "rookery/todos/index.json"
