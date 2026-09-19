@@ -7,7 +7,7 @@ labels:
 - feat-title-derived-ids
 deps:
 - blocked-by:rk-derives-an-unnamed-idea-s-id-from-its-ac04e549
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/idea.typ
 

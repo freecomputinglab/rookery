@@ -363,6 +363,11 @@
         show-backlinks: show-backlinks,
         show-title: show-title,
       )
+      // A titled note still steps `_seq` above, for the same reason the
+      // exclusion gate does higher up in this function: skipping the step
+      // would renumber every later untitled note. Recorded here because
+      // the panic below is what surfaces the fallout when a minted slug
+      // collides with a pinned id.
       _registry.update(r => {
         let existing = r.at(id, default: none)
         if id in r and existing != rec {
@@ -370,7 +375,10 @@
             "@rookery/core: duplicate note id " + id + " — already registered"
               + (if existing.origin != none { " in " + existing.origin } else { "" })
               + ", registered again" + (if origin != none { " in " + origin } else { "" })
-              + ". A pinned id must be unique across the whole rookery.",
+              + ". An id must be unique whether it was pinned by name or derived"
+              + " from a title — a pinned id and a title-derived id collide just"
+              + " like two pinned ids would. Retitle or rename one of the two"
+              + " notes, or pin the derived one explicitly with #idea(<some-name>, title: [..]).",
           )
         }
         r.insert(id, rec)
