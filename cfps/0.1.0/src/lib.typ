@@ -10,5 +10,5 @@
 // via the aliased import, since the shadow below cannot see itself) and merges
 // in `panel:` — the same "a later top-level `#let` shadows a star-imported
 // name" device `@rookery/timeline`'s own `lib.typ` uses to decorate
-// `idea`/`tagged-idea`.
+// `idea`.
 #let cfps(kinds: (:)) = (.._cfp.cfps(kinds: kinds), panel: _make-panel(kinds))

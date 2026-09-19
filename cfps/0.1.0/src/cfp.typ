@@ -28,7 +28,7 @@
 // its flat marker FROM the same log entry `done:` writes, so the two can never
 // disagree.
 
-#import "@rookery/core:0.1.0": tagged-idea, _norm
+#import "@rookery/core:0.1.0": idea, _merge-base-tags, _norm
 #import "@rookery/todos:0.1.0": todo
 #import "@rookery/timeline:0.1.0": (
   CLOSED-STAGE, DEADLINE-STAGE, SCHEDULED-STAGE, assert-ladder, timeline-tags, is-settled, normalize-tags, stage-matches,
@@ -149,10 +149,12 @@
     _opportunity-table((("Call", call, "url"),))
     body
   }
-  (tagged-idea(VENUE-KEY))(
+  idea(
     name,
     title: title,
-    tags: own + normalize-tags(tags),
+    // Merges VENUE-KEY under the built tags, so a caller naming its own
+    // `tags:` cannot displace the package's key.
+    tags: _merge-base-tags(VENUE-KEY, own + normalize-tags(tags)),
     show-tags: show-tags,
     ..args.named(),
     full,
@@ -216,7 +218,7 @@
 
   // ---- `cfp` — one call, and what became of it -------------------------------
   //
-  // Built on @rookery/todos' `todo(..)` rather than on bare `tagged-idea`: that
+  // Built on @rookery/todos' `todo(..)` rather than on bare `idea(..)`: that
   // package already forwards `deadline:`/`scheduled:`/`timeline:` to the shared
   // log exactly as this needs, and adds `done:` — a real closing date, folded
   // into the log as a `CLOSED-STAGE` entry — and `priority:`, which this
@@ -267,8 +269,8 @@
       )
     }
 
-    // `CFP-KEY` is stamped here rather than arriving from a
-    // `tagged-idea(CFP-KEY)` call: this `cfp` mints through @rookery/todos'
+    // `CFP-KEY` is stamped here rather than arriving from an
+    // `idea(CFP-KEY)` call: this `cfp` mints through @rookery/todos'
     // `todo(..)`, which tags the note `todo`, so the bare "this is a cfp"
     // marker every consumer filters on has to be part of `own` itself.
     let own = ((VENUE-KEY + "-" + kind): none, (CFP-KEY): none)

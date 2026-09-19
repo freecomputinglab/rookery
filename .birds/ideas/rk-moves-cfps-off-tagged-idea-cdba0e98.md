@@ -7,7 +7,7 @@ labels:
 - migrate-tagged-idea
 deps:
 - blocked-by:rk-adds-tag-and-base-tags-to-idea-9960f68e
-closed: false
+closed: true
 ---
 Touches: cfps/0.1.0/src/cfp.typ, cfps/0.1.0/src/lib.typ, cfps/0.1.0/src/panel.typ, cfps/0.1.0/readme.md
 

@@ -8,9 +8,9 @@
 // belongs to `@rookery/todos`' `#window`, a different package).
 //
 // `CFP-KEY` IS THE ROW FILTER — the bare marker `#cfp` stamps on every note it
-// mints (`cfp.typ`'s `own`). It cannot come from a `tagged-idea(CFP-KEY)` call
-// any more, since a cfp mints through @rookery/todos' `todo(..)`, so the two
-// halves of this package meet on that one key.
+// mints (`cfp.typ`'s `own`). It cannot come from an `idea(CFP-KEY)` call, since
+// a cfp mints through @rookery/todos' `todo(..)`, so the two halves of this
+// package meet on that one key.
 
 #import "cfp.typ": *
 #import "@rookery/core:0.1.0": ideas

@@ -206,7 +206,7 @@ site this package was ported from:
 - `venue-call` (a venue's own standing submissions page) and `venue-school`
   (an array of host-institution names, for a joint programme).
 - `cfp`, the flat marker `panel:` filters rows on — stamped directly in
-  `#cfp`'s own tags rather than through a `tagged-idea(..)` call, since
+  `#cfp`'s own tags rather than through an `idea(..)` call, since
   `#cfp` mints through `@rookery/todos`' `todo(..)`, which already claims the
   `todo` tag for itself.
 - `cfp-venue` (the venue's name, valued, optional), `cfp-id` (the call's own
