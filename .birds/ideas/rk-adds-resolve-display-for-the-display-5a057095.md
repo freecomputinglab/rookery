@@ -7,7 +7,7 @@ labels:
 - feat-display-dict
 deps:
 - blocked-by:rk-adds-id-slug-for-title-derived-note-ids-d9206148
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/pure.typ, core/0.1.0/test/units.typ
 

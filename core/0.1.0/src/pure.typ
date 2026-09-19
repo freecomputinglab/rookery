@@ -801,6 +801,57 @@
     + "integer (the number of leading blocks to show) — got " + repr(v),
 )
 
+// The nine keys a `display:` dictionary and its matching `display-*`
+// arguments may set. `#idea` and `#window` each use a different subset of
+// these — the union lives here once so the validation and the panic message
+// below share one list instead of drifting apart.
+#let _DISPLAY-KEYS = (
+  "context", "backlinks", "background", "date", "frame",
+  "id", "label", "tags", "title",
+)
+
+// Merges a `display:` dictionary with a set of individual `display-*`
+// override flags into one dictionary carrying all nine `_DISPLAY-KEYS`,
+// always. For each key, an override in `flags` that is not `auto` wins;
+// otherwise `dict`'s own value for that key is used, if present; otherwise
+// the result is `auto`.
+//
+// `auto` survives in the result rather than being resolved to a boolean:
+// it means the caller expressed no preference, and what that implies differs
+// by key — `context`, `backlinks` and `title` fall back to a document-wide
+// setting read much later on the minted page, while the rest fall back to a
+// built-in default chosen by the caller. Resolving `auto` here would erase
+// that distinction, so this function must not do it.
+//
+// `where` is the caller's own name as it already appears in other messages
+// in this file — `"#idea's"`, `"#window's"`.
+#let _resolve-display(dict, flags, where) = {
+  for key in dict.keys() {
+    if key not in _DISPLAY-KEYS {
+      panic(
+        "@rookery/core: " + where + " `display` dictionary has an unknown key "
+          + repr(key) + " — valid keys are " + repr(_DISPLAY-KEYS),
+      )
+    }
+    let v = dict.at(key)
+    if v != true and v != false and v != auto {
+      panic(
+        "@rookery/core: " + where + " `display` dictionary's " + repr(key)
+          + " must be true, false or auto — got " + repr(v),
+      )
+    }
+  }
+  let result = (:)
+  for key in _DISPLAY-KEYS {
+    let flag = flags.at(key, default: auto)
+    result.insert(
+      key,
+      if flag != auto { flag } else if key in dict { dict.at(key) } else { auto },
+    )
+  }
+  result
+}
+
 // A URL-safe slug from a heading's plain text: lowercased, every run of
 // characters outside `[a-z0-9]` collapsed to one `-`, with no leading or
 // trailing `-`. `#ideate` callers pass this to a `name:` function to name a

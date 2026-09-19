@@ -21,6 +21,7 @@
   _is-inline, _join, _merge-base-tags, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _derived-title-with, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
   _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _id-slug, _ideate-tag-value, _ideate-id-value,
+  _resolve-display, _DISPLAY-KEYS,
   footnote, idea, note-href, note-path, slug,
   tag-index, window,
 )
@@ -745,3 +746,24 @@
 #assert.eq(_ideate-id-value([#metadata((rookery-ideate-tags: "rookery"))]), none)
 // Non-metadata content: not a beacon.
 #assert.eq(_ideate-id-value([text]), none)
+
+// ---- _resolve-display — merges a `display:` dict with `display-*` flags ---
+//
+// All nine keys are always present, `auto` where nobody had an opinion.
+#assert.eq(_resolve-display((:), (:), "#t").len(), 9)
+#assert.eq(_resolve-display((:), (:), "#t").frame, auto)
+// The dictionary supplies a value.
+#assert.eq(_resolve-display((frame: false), (:), "#t").frame, false)
+// An individual flag WINS over the dictionary.
+#assert.eq(_resolve-display((frame: false), (frame: true), "#t").frame, true)
+// A flag left `auto` does NOT override the dictionary.
+#assert.eq(_resolve-display((frame: false), (frame: auto), "#t").frame, false)
+// `auto` is a legal dictionary value and stays `auto`.
+#assert.eq(_resolve-display((title: auto), (:), "#t").title, auto)
+// Keys nobody mentioned are still present and still `auto`.
+#assert.eq(_resolve-display((frame: false), (:), "#t").backlinks, auto)
+// An unknown key in `dict` panics rather than passing through silently — not
+// asserted here: a panic aborts the compile, so this file's `assert.eq`
+// harness cannot observe one (see this file's own header).
+// A dictionary value that is neither `true`, `false` nor `auto` panics the
+// same way, for the same reason.
