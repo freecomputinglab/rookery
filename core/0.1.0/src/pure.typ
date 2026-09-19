@@ -827,6 +827,28 @@
 // slugged form suitable for use as an id component.
 #let slug(content) = _slug(_plain(content))
 
+// A title-derived note id, or `none` if the title cannot supply one — the
+// caller's cue to fall back to the counter instead. Duplicates `_slug`'s
+// one-line regex rather than calling it: `_slug` panics on the empty case,
+// and that is the one case this function exists to handle gracefully.
+//
+// `none` on three inputs, each for a different reason: an empty result (the
+// title is pure punctuation — the same case `_slug` panics on, but an id
+// has a safe fallback where a heading name does not); a purely-numeric
+// result (it would collide with the unnamed-note counter's own namespace,
+// `1`, `2`, `3`, …); and a result still empty after the length cap strips a
+// trailing `-` left by cutting mid-word.
+//
+// The cap exists because an id becomes a filename (`ideas/<id>.html`) — a
+// 200-character title must not become a 200-character path segment.
+#let _id-slug(s, limit: 60) = {
+  let out = lower(s).replace(regex("[^a-z0-9]+"), "-").trim("-")
+  if out == "" { return none }
+  if out.match(regex("^[0-9]+$")) != none { return none }
+  if out.len() > limit { out = out.slice(0, limit).trim("-", at: end) }
+  if out == "" { none } else { out }
+}
+
 // Public metadata beacon for ideate tags: wrap tag(s) to emit from a section's own
 // content. `tags` accepts the same four forms as `#idea`'s own `tags:` — `none`,
 // a string, an array of strings, or a dictionary — and is normalized by `_norm-tags`

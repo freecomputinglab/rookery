@@ -20,7 +20,7 @@
   _bib, _bib-keys, _blocks, _body-plain, _body-plain-with, _body-text, _cite-scan, _dedup-tag,
   _is-inline, _join, _merge-base-tags, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _derived-title-with, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
-  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _ideate-tag-value, _ideate-id-value,
+  _project, _split-tag-list, _tag-pred, _truncate, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _id-slug, _ideate-tag-value, _ideate-id-value,
   footnote, idea, note-href, note-path, slug,
   tag-index, window,
 )
@@ -695,6 +695,30 @@
 #assert.eq(slug([Waterline]), "waterline")
 #assert.eq(slug([Week 37: Intro]), "week-37-intro")
 #assert.eq(slug("already a string"), "already-a-string")
+
+// ---- _id-slug — pins the title-derived note id contract --------------------
+//
+// Unlike the section above, these pin a new contract rather than guard a
+// regression: `_id-slug` returns `none` (not a panic) wherever a title cannot
+// safely name a note, so callers fall back to the counter.
+//
+// Ordinary words slug the same way `_slug` does.
+#assert.eq(_id-slug("My Title"), "my-title")
+// A run of punctuation still collapses to one hyphen.
+#assert.eq(_id-slug("Fuzzy search: ranking & scoring"), "fuzzy-search-ranking-scoring")
+// Pure punctuation slugs to nothing — `none`, not a panic.
+#assert.eq(_id-slug("!!!"), none)
+// The empty string is the same case.
+#assert.eq(_id-slug(""), none)
+// A purely-numeric slug is refused: it would collide with the unnamed-note
+// counter's own namespace (`1`, `2`, `3`, …).
+#assert.eq(_id-slug("42"), none)
+// Numeric text mixed with words is not purely numeric, so it is kept.
+#assert.eq(_id-slug("Chapter 42"), "chapter-42")
+// A slug longer than the cap is truncated to exactly `limit` characters.
+#assert.eq(_id-slug("a" * 80).len(), 60)
+// The cap is configurable per call.
+#assert.eq(_id-slug("abc", limit: 2), "ab")
 
 // ---- _ideate-tag-value — extract tag value from `#ideate-tag` beacon -------
 //
