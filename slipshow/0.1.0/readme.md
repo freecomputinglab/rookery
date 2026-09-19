@@ -156,13 +156,11 @@ notes built with `#slip`.
 
 A project excluding tags from a build (`@rookery/core`'s readme, "Excluding
 notes from a build") has to bind BOTH constructors to the same
-`exclude-tags:` list, for the reason core's own `tagged-idea` banner gives:
-`tagged-idea` (which `#slip` is built on) returns a closure that calls the
-`idea` captured in package scope, so binding a project's own `idea` alone
-does not reach a wrapper built with `tagged-idea` — a project's `#slip` would
-go on hatching notes the project meant to exclude. `#slip` takes
-`exclude-tags:` for exactly this reason, and needs the same list `idea`
-itself gets:
+`exclude-tags:` list: `#slip` calls the `idea` it binds from core's package
+scope, so binding a project's own `idea` alone does not reach `#slip` — a
+project's `#slip` would go on hatching notes the project meant to exclude.
+`#slip` names `exclude-tags:` in its own signature for exactly this reason,
+and needs the same list `idea` itself gets:
 
 ```typst
 #import "@rookery/core:0.1.0": idea as _idea

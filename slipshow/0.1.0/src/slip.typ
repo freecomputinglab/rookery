@@ -7,15 +7,16 @@
 //   #slip(background: blue)[A slip with an auto id.]
 //   #slip(<intro>)[..]
 //
-// Built on `tagged-idea` rather than `idea.with(tags: (slip: none))`: an
-// explicit `tags:` at the call site OVERRIDES a value bound by `.with()`, so
-// `#slip("x", tags: ("draft",))` would silently drop the `slip` tag — exactly
-// the tag `#slip` exists to add. `tagged-idea`'s returned closure merges
-// instead. `exclude-tags:` is threaded through for the same reason: that
-// closure calls the `idea` captured in core's package scope, so a project's
-// own `#let idea = idea.with(exclude-tags: E)` would not otherwise reach
-// `#slip` at all.
-#import "@rookery/core:0.1.0": tagged-idea
+// `#slip` names `tags:` in its own signature, so it captures a caller's tags
+// rather than letting them pass straight through to `#idea`, and merges
+// `SLIP-KEY` UNDER whatever the caller passed before calling `#idea` itself.
+// That order is why `#slip("x", tags: ("draft",))` keeps the `slip` tag
+// instead of losing it: the caller's tags win per key, but the package's own
+// key is always present to begin with. `exclude-tags:` is likewise named on
+// `#slip`'s own signature rather than left to `..args`, because `#slip` binds
+// core's `idea` from package scope — a project's own
+// `#let idea = idea.with(exclude-tags: E)` would not otherwise reach it.
+#import "@rookery/core:0.1.0": idea, _merge-base-tags
 #import "tags.typ": *
 
 #let slip(
@@ -52,10 +53,14 @@
   show-frame: false,
   show-id: false,
   ..args,
-) = (tagged-idea(SLIP-KEY, exclude-tags: exclude-tags))(
+) = idea(
+  exclude-tags: exclude-tags,
   show-frame: show-frame,
   show-id: show-id,
-  tags: slip-tags(
+  // `SLIP-KEY` merges UNDER everything `slip-tags` built, so a call site
+  // naming `slip` itself (as an explicit tag or through `base-tags:`) keeps
+  // its own value rather than losing it to the package's key.
+  tags: _merge-base-tags(SLIP-KEY, slip-tags(
     tags: tags,
     fullscreen: fullscreen,
     background: background,
@@ -64,6 +69,6 @@
     class: class,
     row: row,
     max-width: max-width,
-  ),
+  )),
   ..args,
 )

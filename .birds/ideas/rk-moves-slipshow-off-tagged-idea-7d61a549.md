@@ -7,7 +7,7 @@ labels:
 - migrate-tagged-idea
 deps:
 - blocked-by:rk-adds-tag-and-base-tags-to-idea-9960f68e
-closed: false
+closed: true
 ---
 Touches: slipshow/0.1.0/src/slip.typ, slipshow/0.1.0/test/units.typ, slipshow/0.1.0/readme.md
 

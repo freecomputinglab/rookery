@@ -70,8 +70,8 @@
 
   // THE REGRESSION THE `.with()` TRAP WOULD CAUSE: a caller's own `tags:`
   // must MERGE with the `slip` tag, not replace it. If `slip` were missing
-  // here, `#slip` was built on `idea.with(tags: (slip: none))` instead of
-  // `tagged-idea`.
+  // here, `#slip` had stopped merging `SLIP-KEY` under its own composed call
+  // to core's `idea`.
   let x = by-name("x")
   assert("slip" in x.tags-dict)
   assert("draft" in x.tags-dict)
