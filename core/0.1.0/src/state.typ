@@ -307,6 +307,13 @@
 #let _seq = counter("rheo-ideas-seq")
 #let _registry = state("rheo-ideas", (:))
 
+// Every full id already minted, as a set (dictionary of `id: true`) rather
+// than a counter per slug — a counter keyed by slug cannot see a PINNED id,
+// so `#idea(<my-title>)` and `#idea(title: [My Title])` would both mint
+// `idea:my-title` and collide. One shared set sees both a pin and a derived
+// slug, so a derived note can probe past whichever pin came before it.
+#let _taken-ids = state("rheo-ideas-taken", (:))
+
 // ---- The excluded ids — "deliberately absent", not "never existed" ---------
 //
 // Every NAMED note `#idea`'s exclusion gate dropped from this build, as a plain

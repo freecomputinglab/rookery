@@ -181,6 +181,13 @@
 
   // counter.step() RETURNS CONTENT: emit it here, never inside a code block
   // whose value is used, or it silently turns the id into content.
+  // THE COUNTER STILL STEPS for every unnamed note, titled or not, even
+  // though a titled note goes on to mint a slug instead of using the
+  // stepped value: if it only stepped for untitled notes, adding a title to
+  // one note would renumber every later untitled note, changing their
+  // permalinks and their minted-page filenames. A titled note steps the
+  // counter and discards the value, so untitled ids carry gaps (1, 4, 7,
+  // …) — that is correct and intended.
   if not named { _seq.step() }
   // The marker wraps the whole idea. Its body carries the RAW body as
   // metadata so a later _flatten can render a nested idea's content without
@@ -188,7 +195,42 @@
   // block so the id can be resolved ONCE, above the metadata payload, and
   // reused by the registry update further down rather than recomputed.
   context {
-    let id = if named { _pfx() + base } else { _pfx() + str(_seq.get().first()) }
+    // Resolution order: a NAMED note keeps its pinned id unconditionally —
+    // a pin is a promise about the id and must never be silently moved. An
+    // unnamed note with a title mints a slug of that title instead of
+    // taking the counter's value; probed against `_taken-ids` and
+    // disambiguated with a `-<n>` suffix so two notes titled the same way
+    // still get distinct ids. An unnamed note with no title, or one whose
+    // title cannot name a note (`_id-slug` returns `none`), falls back to
+    // the counter as before. Either way the taken id is claimed below, so
+    // a later derived slug probes past a pin or an earlier slug that came
+    // first.
+    //
+    // Two known gaps in the probe, both accepted rather than fixed: a PIN
+    // that appears LATER in the document than a derived note with the same
+    // slug still collides, since `_taken-ids.get()` only sees what has been
+    // claimed so far and there is no second pass — it surfaces as the
+    // duplicate-note-id panic below, which names both origins. And `-<n>`
+    // is not a reserved namespace: a second "My Title" mints
+    // `idea:my-title-1`, and so would a first "My Title 1" — the probe
+    // keeps ids unique either way, but which note gets which id depends on
+    // document order.
+    let slug = if not named and title != none { _id-slug(_plain(title)) } else { none }
+    let id = if named {
+      _pfx() + base
+    } else if slug != none {
+      let taken = _taken-ids.get()
+      let candidate = _pfx() + slug
+      let n = 1
+      while candidate in taken {
+        candidate = _pfx() + slug + "-" + str(n)
+        n = n + 1
+      }
+      candidate
+    } else {
+      _pfx() + str(_seq.get().first())
+    }
+    _taken-ids.update(t => t + ((id): true))
     figure(kind: IK, supplement: none, [
     // `title`/`named`/`base`/`level`/`tags`/`id` let `_flatten`'s IK rule
     // rebuild this note's own heading+box when it is shown nested inside a

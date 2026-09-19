@@ -8,7 +8,7 @@ labels:
 deps:
 - blocked-by:rk-adds-id-slug-for-title-derived-note-ids-d9206148
 - blocked-by:rk-carries-a-note-s-resolved-id-on-its-ik-0525b40f
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/idea.typ, core/0.1.0/src/state.typ
 
