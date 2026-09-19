@@ -36,6 +36,9 @@ happened when it was answered.
 #panel(state: "settled", today: TODAY) // -> lists only "acme-postdoc-25"
 ```
 
+`#venue`'s `title:` defaults to `auto`, which titles the venue by its own
+id — an authored `title:`, as in the example above, overrides it.
+
 ## A call and its answer are one note
 
 A CFP is one round of a venue — a call for papers or applications, together

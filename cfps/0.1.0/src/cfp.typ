@@ -138,6 +138,10 @@
 // It carries no dates and is not a todo — the one constructor here `#cfp`'s
 // closing mechanism does not touch.
 #let venue(name, title: auto, call: none, school: none, tags: none, display-tags: true, ..args) = {
+  // `auto` titles a venue by its own id, the same resolution `#cfp` makes
+  // for the venue it names. `#idea` takes content or `none` and has no
+  // `auto`, so this cannot be left for it to sort out.
+  let title = if title != auto { title } else { raw(_norm(name)) }
   let own = (:)
   if call != none { own.insert(VENUE-CALL-KEY, call) }
   if school != none {

@@ -6,7 +6,7 @@ priority: 3
 labels:
 - fix-venue-auto-title
 deps: []
-closed: false
+closed: true
 ---
 Touches: cfps/0.1.0/src/cfp.typ, cfps/0.1.0/test/units.typ
 

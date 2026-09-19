@@ -12,7 +12,7 @@
 // `test/check.sh` covers it instead, as a second `typst compile` invocation this
 // package EXPECTS to fail, with its stderr checked for the valid-kinds message.
 #import "/src/lib.typ": *
-#import "@rookery/core:0.1.0": rookery, tag-data
+#import "@rookery/core:0.1.0": rookery, tag-data, tags-of
 #import "@rookery/timeline:0.1.0": CLOSED-STAGE, timeline-tags, has-stage
 
 #show: rookery
@@ -118,4 +118,11 @@
       message: name + " did not close through the shared timeline log",
     )
   }
+}
+
+// 7. `#venue`'s own default must not reach `#idea` unresolved — `auto` is
+//    not a title `#idea` accepts, and reaching it there fails the compile.
+#venue("units-venue-auto")[A venue with no authored title.]
+#context {
+  assert.eq(tags-of("units-venue-auto"), ("venue",))
 }
