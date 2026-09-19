@@ -39,9 +39,10 @@
 //
 // `show-id: false` DROPS THE PERMALINK from the hat. With `show-tags` and
 // `show-date` both already off by default, that leaves the tab empty and the hat
-// disappears entirely — see `_permalink-tab` (permalink.typ) for how, and the
-// readme for the cost: a permalink is the ONLY way to discover an
-// AUTO-GENERATED id, so a note that wants to be linkable wants a name too.
+// disappears entirely — see `_permalink-tab` (permalink.typ) for how. The cost
+// falls on an UNTITLED note, whose id is a bare counter value a permalink is the
+// only way to discover; a titled note's id is the slug of its own title, so it
+// stays guessable without one.
 #let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, show-date: false, show-tags: false, show-frame: true, show-id: true, show-context: auto, show-backlinks: auto, show-title: auto, ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
@@ -414,7 +415,8 @@
       // metadata in tags renders it it own way instead of polluting the hat.
       let flat-tags = tags.pairs().filter(((_, v)) => v == none).map(((k, _)) => k)
       if _target() == "html" or _target() == "epub" {
-        // The permalink is the ONLY way to discover an auto-generated id —
+        // The permalink is the only way to discover an UNTITLED note's
+        // auto-generated id —
         // there is no `show heading` rule and no template to hook into, so
         // `#idea` emits it directly, always (even with no title), showing
         // the FULL `idea:name` id so it is copy-pasteable straight into
