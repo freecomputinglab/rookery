@@ -313,12 +313,13 @@
   show figure.where(kind: IK): it => context {
     let m = it.body.children.find(c => c.func() == metadata)
     let v = m.value
-    // NAMED only: the id needs `_pfx()`, safe to read here (state, no
-    // stepping). An auto-numbered nested idea's id lives on a counter value
-    // frozen at its ORIGINAL site — recomputing it here would read the
-    // counter's value at THIS (later, transcluded) position instead, so it
-    // is left without an id/permalink rather than shown wrong.
-    let id = if v.named { _pfx() + v.base } else { none }
+    // The id was resolved at the note's ORIGINAL site and rides on the
+    // payload, rather than being recomputed here — an auto-numbered note's
+    // id is a counter value frozen at that site, and recomputing it here
+    // would read the counter's value at THIS (later, transcluded) position
+    // instead. `.at(.., default: ..)`: a payload minted before `id` existed
+    // carries no such key.
+    let id = v.at("id", default: if v.named { _pfx() + v.base } else { none })
     // Invisible tags drop out here as they do on a note hatched in place —
     // a transcluded card must not name a tag its own card would hide.
     let visible = _visible-tags(v.tags.keys())
@@ -326,9 +327,9 @@
     if _target() == "html" or _target() == "epub" {
       let attrs = (class: cls.join(" "), data-rookery: "idea") + _tags-attr(visible)
       if id != none { attrs = attrs + (id: id) }
-      // Tab before the heading, and the `id == none` guard travels with it: an
-      // auto-numbered nested note has no id to show, so it gets no tab either
-      // and its card simply has no top rule.
+      // Tab before the heading, and the `id == none` guard travels with it: a
+      // payload minted before `id` existed carries no such key, so that note
+      // gets no tab either and its card simply has no top rule.
       //
       // `.at(.., default: true)`, not a bare field access: an IK payload minted
       // before `show-id` existed carries no such key, and core's default is on.

@@ -179,12 +179,19 @@
   // FIELD is still called `label` — that is the public name — but the local is not.
   let note-label = if title != none { _plain(title) } else { _derived-title(body) }
 
+  // counter.step() RETURNS CONTENT: emit it here, never inside a code block
+  // whose value is used, or it silently turns the id into content.
+  if not named { _seq.step() }
   // The marker wraps the whole idea. Its body carries the RAW body as
   // metadata so a later _flatten can render a nested idea's content without
-  // re-registering or re-counting it.
-  figure(kind: IK, supplement: none, [
-    // `title`/`named`/`base`/`level`/`tags` let `_flatten`'s IK rule rebuild
-    // this note's own heading+box when it is shown nested inside a
+  // re-registering or re-counting it. The figure sits inside a `context`
+  // block so the id can be resolved ONCE, above the metadata payload, and
+  // reused by the registry update further down rather than recomputed.
+  context {
+    let id = if named { _pfx() + base } else { _pfx() + str(_seq.get().first()) }
+    figure(kind: IK, supplement: none, [
+    // `title`/`named`/`base`/`level`/`tags`/`id` let `_flatten`'s IK rule
+    // rebuild this note's own heading+box when it is shown nested inside a
     // transcluded/minted parent, without re-running the context block below
     // (which would re-register and, for an auto id, re-step the counter).
     //
@@ -198,19 +205,11 @@
     // payload, never from the call site, so a presentation switch missing from
     // it is silently lost the moment the note is shown nested inside a
     // transcluded or minted parent — the card would come back framed and
-    // permalinked when its author asked for neither.
-    #metadata((body: body, title: title, label: note-label, named: named, base: base, level: level, tags: tags, show-frame: show-frame, show-id: show-id, show-tags: show-tags))
-    // counter.step() RETURNS CONTENT: emit it here, never inside a code block
-    // whose value is used, or it silently turns the id into content.
-    #if not named { _seq.step() }
+    // permalinked when its author asked for neither. `id` was resolved at
+    // this note's ORIGINAL site, above, so `_flatten`'s IK rule can give even
+    // an auto-numbered nested note a correct permalink.
+    #metadata((body: body, title: title, label: note-label, named: named, base: base, id: id, level: level, tags: tags, show-frame: show-frame, show-id: show-id, show-tags: show-tags))
     #context {
-      let id = if named {
-        _pfx() + base
-      } else {
-        let n = _seq.get().first()
-        _pfx() + str(n)
-      }
-
       // Resolution order, most specific first: the explicit created:
       // argument, then the containing document's own
       // `#set document(date:)`, else no date. MEASURED: a document with no
@@ -456,7 +455,8 @@
         }) + _refs-block(_own-cited-keys(body)), IK)
       }
     }
-  ])
+    ])
+  }
 }
 
 // ---- #tags-of / #tag-value — reading an idea's tags ------------------------

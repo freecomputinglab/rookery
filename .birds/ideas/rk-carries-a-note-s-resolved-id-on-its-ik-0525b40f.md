@@ -6,7 +6,7 @@ priority: 3
 labels:
 - feat-title-derived-ids
 deps: []
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/idea.typ, core/0.1.0/src/transclusion.typ
 
