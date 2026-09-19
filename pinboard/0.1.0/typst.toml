@@ -1,0 +1,41 @@
+[package]
+name = "pinboard"
+version = "0.1.0"
+compiler = "0.15.0"
+entrypoint = "src/lib.typ"
+authors = ["The Free Computing Lab <https://freecomputinglab.ohrg.org>"]
+license = "MIT"
+description = "A board of draggable cards for arranging @rookery/core notes by hand"
+repository = "https://github.com/freecomputinglab/rookery"
+
+[tool.rheo]
+min_version = "0.6.2"
+
+[tool.rheo.html]
+js_scripts = "dist/lib.js"
+css_stylesheet = "src/pinboard.css"
+# DECLARES THAT THIS BUNDLE CAN REBUILD ITS OWN STATE ON DEMAND: `pinboard.js`
+# pushes `init` onto `window.__rheoRehydrate`, so rheo's dev server calls it
+# instead of reloading when it morphs a content edit into the live DOM.
+# `init` re-runs `layOutBoard` for every `[data-pinboard]` board it finds,
+# which restores each card's position and collapsed state from
+# `src/store.js` — there is nothing else to restore, a board's arrangement
+# lives in `localStorage`, not in memory — and re-wires the drag, collapse
+# and marquee-selection listeners through a fresh `AbortController` per
+# board, so a morph's surviving nodes end up with one live set of listeners
+# rather than two. Renders the script tag with `data-rheo-rehydrate`, which
+# is what admits the page to the morph path at all — the survey runs over
+# EVERY `script[src]` on the page, and one undeclared script disqualifies
+# the lot. Leaving this unset is not a defect; it is only the safe reading,
+# where a morph falls back to a full reload rather than leave a board
+# half-wired.
+js_rehydrate = true
+
+[tool.rheo.source.html]
+js_scripts = ["src/store.js", "src/layout.js", "src/select.js", "src/drag.js", "src/collapse.js", "src/pinboard.js"]
+js_module = true
+# Same declaration as `[tool.rheo.html]` above, needed a second time because
+# rheo merges source over release rather than falling one back to the other —
+# a git-ref build reading only this table would otherwise take the
+# full-reload path a bundled release build does not.
+js_rehydrate = true

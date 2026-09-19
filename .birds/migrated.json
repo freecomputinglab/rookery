@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "entries": [
+    {
+      "kind": "id",
+      "id": "rookery-priority-css-7v3",
+      "migrated_to": "rookery-priority-css-7v3"
+    },
+    {
+      "kind": "id",
+      "id": "rookery-priority-docs-dnu",
+      "migrated_to": "rookery-priority-docs-dnu"
+    },
+    {
+      "kind": "id",
+      "id": "rookery-priority-rung-47g",
+      "migrated_to": "rookery-priority-rung-47g"
+    },
+    {
+      "kind": "id",
+      "id": "rookery-priority-scale-48n",
+      "migrated_to": "rookery-priority-scale-48n"
+    },
+    {
+      "kind": "id",
+      "id": "rookery-priority-sort-3ta",
+      "migrated_to": "rookery-priority-sort-3ta"
+    },
+    {
+      "kind": "id",
+      "id": "rookery-priority-stats-iqm",
+      "migrated_to": "rookery-priority-stats-iqm"
+    },
+    {
+      "kind": "id",
+      "id": "rookery-priority-tests-hax",
+      "migrated_to": "rookery-priority-tests-hax"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+# @rookery/bibtex's in-repo demo: a small rookery whose notes come from
+# `references.bib` rather than hand-authored prose — `content/index.typ`
+# sweeps the whole bibliography with `all()`, `content/entry.typ` claims one
+# entry by hand with `#citation` to show the override `all()` respects.
+version = "0.6.2"
+content_dir = "content"
+formats = ["html"]
+
+# `lib.typ` is a library, not a page: it holds the shared `#show: rookery`
+# wrapper both vertebrae apply. Without this it would compile to its own
+# `lib.html`.
+[spine]
+exclude = ["lib.typ"]
+
+# The Typst cache's `rookery` namespace is a per-machine symlink that can
+# point at a different checkout of this repo, so this reads `@rookery/*` out
+# of this tree instead. See `slipshow/0.1.0/demo/rheo/rheo.toml` for the full
+# argument.
+[packages.rookery]
+path = "../../../.."

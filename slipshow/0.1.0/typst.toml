@@ -1,0 +1,47 @@
+[package]
+name = "slipshow"
+version = "0.1.0"
+compiler = "0.15.0"
+entrypoint = "src/lib.typ"
+authors = ["The Free Computing Lab <https://freecomputinglab.ohrg.org>"]
+license = "MIT"
+description = "An endlessly scrolling presentation over @rookery/core ideas"
+repository = "https://github.com/freecomputinglab/rookery"
+
+[tool.rheo]
+# Inherited from @rookery/core:0.1.0, which this package imports — see the
+# floor's own comment in core/0.1.0/typst.toml for why it is 0.6.2.
+min_version = "0.6.2"
+
+[tool.rheo.html]
+js_scripts = "dist/lib.js"
+css_stylesheet = "src/slipshow.css"
+# THIS PACKAGE REBUILDS ITS OWN STATE AFTER A MORPH, so it does not need the
+# reload rheo's dev server would otherwise fall back to. rheo's `watch` build
+# can now patch a content edit straight into the live page (Idiomorph)
+# instead of reloading it — a pass that re-runs no script, and after which a
+# deck wired against the OLD DOM is reading markup that has moved under it.
+# `src/slipshow.js`'s `boot()` (TEARDOWN, then WIRE, then RESTORE) is this
+# package's half of the fix: it re-wires against the morphed markup while
+# carrying `currentIndex`/`currentScale`/`focusStack` forward in memory,
+# rather than re-deriving them and jumping the reader back to slide 0 at zoom
+# 1. Declaring `js_rehydrate = true` is what tells rheo it has done that
+# work. OMITTING THE FLAG BREAKS NOTHING — an older rheo, or a project that
+# never opts in, reads straight past a key it does not know and falls back
+# to the full-page reload it already does today.
+js_rehydrate = true
+
+[tool.rheo.source.html]
+# Dependency-first: `slipshow.js` imports both of the others, so a git-ref
+# build that serves this list unbundled must load them ahead of it.
+js_scripts = ["src/camera.js", "src/edges.js", "src/slipshow.js"]
+js_module = true
+# THE SAME DECLARATION AS ABOVE, REPEATED RATHER THAN INHERITED: rheo merges
+# `[tool.rheo.source.*]` OVER `[tool.rheo.html]` for a project built against
+# `src/` rather than the `dist/lib.js` release, and a key stated only in the
+# release table does not carry across that merge into the source one. Skip
+# it here and a source build would silently lose the rehydrate fix and fall
+# back to a full reload, while the very same package built as a release kept
+# rehydrating — the one asymmetry between the two build shapes that must
+# never show up as a behaviour difference.
+js_rehydrate = true
