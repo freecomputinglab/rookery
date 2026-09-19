@@ -643,6 +643,7 @@
 // its level can only be read out of `repr()`. These assertions are what make
 // that parse safe: a Typst release that changes `repr`'s format fails here,
 // rather than silently mis-splitting somebody's document.
+#assert.eq(_sel-level(heading.where(level: 1)), 1)
 #assert.eq(_sel-level(heading.where(level: 2)), 2)
 #assert.eq(_sel-level(heading.where(depth: 3)), 3)
 #assert.eq(_sel-level(heading.where(level: 10)), 10)

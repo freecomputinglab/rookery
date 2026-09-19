@@ -6,7 +6,7 @@ priority: 3
 labels:
 - ideate-separator
 deps: []
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/ideate.typ, core/0.1.0/readme.md, core/0.1.0/test/units.typ
 

@@ -586,15 +586,14 @@ not descend into them.
 
 ### Choosing what starts a note
 
-`separator:` says where one note ends and the next begins. Five spellings are
+`separator:` says where one note ends and the next begins. Four spellings are
 accepted:
 
 | `separator:` | what starts a note |
 | --- | --- |
 | `par` | every paragraph — the default |
 | `parbreak` | the same thing; the previous default, still accepted |
-| `heading.where(level: 2)` | every `==` — the bracket-free spelling |
-| `heading(level: 2)[]` | the same, as an element; nothing to parse |
+| `heading.where(level: 2)` | every `==` — any level |
 | `none` | nothing splits — the whole body is ONE note |
 
 ```typst
@@ -618,25 +617,16 @@ asking for, `parbreak` the mechanism underneath.
 
 **`heading(level: 2)` on its own is illegal Typst** — `error: missing argument:
 body`, since `heading` takes its body positionally. It is the first thing anyone
-tries, and `heading.where(level: 2)` is what it exists to give you. Two things
-follow, and both look like oversights until you know why:
-
-- Typst's own compiler rejects it before `#ideate` is reached, so no error
-  message of ours can catch this particular mistake however well worded.
-- It cannot be fixed on our side either. The only route would be exporting a
-  `heading` of our own with an optional body, which shadows the element for
-  everyone star-importing this package — and that breaks every consumer's show
-  rule: `#show heading: ..` over a plain function is `error: only element
-  functions can be used as selectors`.
-
-The element form `heading(level: 2)[]` stays supported and needs no string
-parsing, so reach for it if you would rather not depend on `repr()`'s format: a
-selector has no accessors at all, so reading a level back out of
-`heading.where(level: 2)` means parsing its `repr`. That parse is asserted in the
-test suite, so a Typst release that changes the format fails the suite rather
-than silently mis-splitting a document. A selector over another element, one
-carrying extra fields, or one built with `.or(..)` is refused with a panic rather
-than guessed at.
+tries. Typst's own compiler rejects it before `#ideate` is reached, so no error
+message of ours can catch this particular mistake however well worded, and
+`heading(level: 2)[]` — the bracketed version someone reaches for next — is
+refused too, by `#ideate`'s own panic. `heading.where(level: 2)` is the
+spelling to use instead: a selector has no accessors at all, so reading a level
+back out of it means parsing its `repr()`. That parse is asserted in the test
+suite, so a Typst release that changes the format fails the suite rather than
+silently mis-splitting a document. A selector over another element, one
+carrying extra fields, or one built with `.or(..)` is refused with a panic
+rather than guessed at.
 
 **`separator: none`** wraps everything in one note — it is `#idea` with
 `#ideate`'s inverted defaults and its `tags:`, which is what turns a whole page
@@ -654,8 +644,8 @@ separator and stays put, and `parbreak` itself is ordinary content in heading
 mode too — a section with three paragraphs in it is still exactly one note.
 
 Anything else passed as `separator:` — `heading` with no level, `pagebreak`,
-`line`, `raw`, `heading.with(level: 2)`, `heading.where(level: 2)` — fails
-`#ideate`'s own check with a panic naming both accepted forms.
+`line`, `raw`, `heading.with(level: 2)`, `heading(level: 2)[]` — fails
+`#ideate`'s own check with a panic naming the accepted forms.
 
 ### Titling and naming notes from their own heading
 

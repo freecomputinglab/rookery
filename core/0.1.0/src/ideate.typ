@@ -28,13 +28,12 @@
 //
 // ---- Choosing what starts a note: `separator:` ---------------------------
 //
-// `separator:` decides where one note ends and the next begins. Five spellings
+// `separator:` decides where one note ends and the next begins. Four spellings
 // are accepted, and nothing else:
 //
 //   par                       every paragraph is a note (the default)
 //   parbreak                  the same thing; the previous default, kept working
-//   heading.where(level: 2)   every `==` starts a note — the bracket-free form
-//   heading(level: 2)[]       the same, as an element; nothing to parse
+//   heading.where(level: 2)   every `==` starts a note — any level
 //   none                      nothing splits: the whole body is ONE note
 //
 //   #ideate[..]                                         // default: by paragraph
@@ -96,18 +95,11 @@
 // `parbreak` is the mechanism underneath; they are distinct values, so both are
 // accepted by identity.
 //
-// `heading(level: 2)` BARE IS ILLEGAL TYPST — `error: missing argument: body`,
-// since `heading` takes its body positionally. It is the first thing anyone
-// tries, and it is exactly what `heading.where(level: 2)` exists to give them.
-// Two consequences worth stating, because both look like oversights:
-//
-//   - Typst's own compiler reports that failure, not this file, so the panic
-//     below cannot fire for this particular mistake however well it is worded.
-//   - It cannot be fixed here either. The only route would be exporting a
-//     `heading` of our own with an optional body, shadowing the element for
-//     everyone who star-imports this package — and MEASURED, that breaks every
-//     consumer's show rule outright: `#show heading: ..` over a plain function
-//     is `error: only element functions can be used as selectors`.
+// `heading(level: 2)` and `heading(level: 2)[]` ARE BOTH REFUSED. The bare
+// form is illegal Typst (`error: missing argument: body`) and never reaches
+// this file at all — Typst's own compiler rejects it at the call site. The
+// bracketed form reaches the panic above. `heading.where(level: 2)` is the
+// spelling to use for either.
 //
 // PAR MODE DISCARDS ITS SEPARATOR; HEADING KEEPS IT. In par mode the
 // `parbreak()` between two paragraphs belongs to neither and is thrown away.
@@ -354,23 +346,21 @@
   // bound arguments cannot be read back, so it is refused too rather than
   // guessed at.
   let none-mode = separator == none
-  let heading-elem = type(separator) == content and separator.func() == heading
   let heading-sel = type(separator) == selector
-  let heading-mode = heading-elem or heading-sel
+  let heading-mode = heading-sel
   let par-mode = type(separator) == function and (separator == par or separator == parbreak)
   if not (none-mode or heading-mode or par-mode) {
     panic(
-      "ideate: `separator:` must be one of `par` (the default — every paragraph "
-        + "becomes a note), `parbreak` (the same thing), `heading.where(level: 2)` "
-        + "or `heading(level: 2)[]` (every heading of that level starts a note), or "
-        + "`none` (nothing splits — the whole body is one note). Note the empty "
-        + "body on that fourth form: `heading(level: 2)` on its own is illegal "
-        + "Typst (`missing argument: body`), since `heading` takes its body "
-        + "positionally — which is what `heading.where(level: 2)` is for. Got: "
+      "ideate: `separator:` must be one of `par` (every paragraph becomes a "
+        + "note), `parbreak` (the same thing), `heading.where(level: 2)` (every "
+        + "heading of that level starts a note — any level, and `depth:` works "
+        + "in place of `level:`), or `none` (nothing splits — the whole body is "
+        + "one note). `heading(level: 2)[]` is written `heading.where(level: 2)` "
+        + "instead. Got: "
         + repr(separator),
     )
   }
-  let want = if heading-elem { _level-of(separator) } else if heading-sel { _sel-level(separator) }
+  let want = if heading-mode { _sel-level(separator) }
 
   let title-fn = type(title) == function
   let name-fn = type(name) == function
