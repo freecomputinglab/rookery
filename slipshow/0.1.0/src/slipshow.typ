@@ -28,7 +28,7 @@
 //   `src/slipshow.css`'s reveal section for the pair of rules, and
 //   `src/slipshow.js`'s `syncReveal`.
 // - A QUERIED SLIP IS TRANSCLUDED WITH CORE'S CHROME OFF. `#slipshow`'s
-//   `show-frame:`, `show-id:` and `show-label:` all default to `false` here,
+//   `display-frame:`, `display-id:` and `display-label:` all default to `false` here,
 //   inverting `@rookery/core`'s own defaults, and are passed straight to the
 //   `#window` each queried slip is rendered by. So the markup inside a
 //   `<section class="slip">` is a `[data-rookery="window"]` carrying
@@ -149,9 +149,9 @@
 // nothing left here to configure — see the readme's note under `slips:`.
 #let _render-slip(
   e,
-  show-frame: true,
-  show-id: true,
-  show-label: true,
+  display-frame: true,
+  display-id: true,
+  display-label: true,
   foldable: true,
   reserve-title: true,
   backlink: true,
@@ -161,9 +161,9 @@
   } else {
     window(
       e.row.id,
-      show-frame: show-frame,
-      show-id: show-id,
-      show-label: show-label,
+      display-frame: display-frame,
+      display-id: display-id,
+      display-label: display-label,
       foldable: foldable,
       reserve-title: reserve-title,
       backlink: backlink,
@@ -381,21 +381,21 @@
   edges: none,
   enter: "scroll",
   reveal: true,
-  show-frame: false,
-  show-id: false,
-  show-label: false,
+  display-frame: false,
+  display-id: false,
+  display-label: false,
   // A slide is READ, not scanned, and both of these invert core's default for
   // that reason. `foldable: false` because a stray click that folded a slide
   // shut would be a bug and never an intention; `reserve-title: false` because
-  // this deck also sets `show-label: false`, so a TITLELESS note's summary
+  // this deck also sets `display-label: false`, so a TITLELESS note's summary
   // genuinely has no title and the line core reserves for one is dead space
   // above the body. A note that HAS a title still shows it, with the ordinary
   // spacing, and is still not foldable.
   foldable: false,
   reserve-title: false,
-  // NO `show-background` HERE, deliberately. Core's default is `true` and a
+  // NO `display-background` HERE, deliberately. Core's default is `true` and a
   // slide wants the tint — it is how the slide answers a pointer, and it is
-  // independent of `show-frame`, which this deck does turn off. A pass-through
+  // independent of `display-frame`, which this deck does turn off. A pass-through
   // whose only value is the default would be a knob with nothing behind it.
   backlink: false,
 ) = context {
@@ -423,19 +423,19 @@
   // own first line derived into a label and printed directly above that same
   // first line; a slide that folds shut under a stray click is never what the
   // click meant; and the line core reserves for a missing title is dead space
-  // once `show-label: false` has left the summary genuinely titleless. A deck
+  // once `display-label: false` has left the summary genuinely titleless. A deck
   // that wants any of them back passes `true`.
   assert(
-    type(show-frame) == bool,
-    message: "@rookery/slipshow: `show-frame` must be a bool — got " + repr(show-frame),
+    type(display-frame) == bool,
+    message: "@rookery/slipshow: `display-frame` must be a bool — got " + repr(display-frame),
   )
   assert(
-    type(show-id) == bool,
-    message: "@rookery/slipshow: `show-id` must be a bool — got " + repr(show-id),
+    type(display-id) == bool,
+    message: "@rookery/slipshow: `display-id` must be a bool — got " + repr(display-id),
   )
   assert(
-    type(show-label) == bool,
-    message: "@rookery/slipshow: `show-label` must be a bool — got " + repr(show-label),
+    type(display-label) == bool,
+    message: "@rookery/slipshow: `display-label` must be a bool — got " + repr(display-label),
   )
   assert(
     type(foldable) == bool,
@@ -483,9 +483,9 @@
     for e in entries {
       _render-slip(
         e,
-        show-frame: show-frame,
-        show-id: show-id,
-        show-label: show-label,
+        display-frame: display-frame,
+        display-id: display-id,
+        display-label: display-label,
         foldable: foldable,
         reserve-title: reserve-title,
         backlink: backlink,
@@ -516,9 +516,9 @@
         if bg != none { bg }
         _render-slip(
           pair.e,
-          show-frame: show-frame,
-          show-id: show-id,
-          show-label: show-label,
+          display-frame: display-frame,
+          display-id: display-id,
+          display-label: display-label,
           foldable: foldable,
           reserve-title: reserve-title,
           backlink: backlink,

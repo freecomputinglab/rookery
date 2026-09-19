@@ -7,7 +7,7 @@ labels:
 - feat-display-dict
 deps:
 - blocked-by:rk-gives-window-a-display-dictionary-25e5104a
-closed: false
+closed: true
 ---
 Touches: slipshow/0.1.0/src/slip.typ, slipshow/0.1.0/src/slipshow.typ, slipshow/0.1.0/src/slipshow.css, slipshow/0.1.0/readme.md
 

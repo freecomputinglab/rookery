@@ -78,8 +78,8 @@ the build succeeds either way.
   max-width: none,
   tags: none,
   exclude-tags: (),
-  show-frame: false,
-  show-id: false,
+  display-frame: false,
+  display-id: false,
   ..args,
 )
 ```
@@ -100,9 +100,9 @@ deck, which never sees the call site itself, only the registry row.
 | `max-width` | `length`, `ratio`, or a raw-CSS `str` | `none` | a `max-width` declaration on the slip's own `<section>` — never `width`, so a narrower slip stays narrow rather than being stretched to fill the cap |
 | `tags` | any of core's four tag forms | `none` | the caller's own tags, merged in LAST — a caller naming one of `#slip`'s own keys wins outright |
 | `exclude-tags` | array of tag names | `()` | forwarded through to the underlying `#idea` — see below |
-| `show-frame` | `bool` | `false` | `@rookery/core`'s own switch with its default INVERTED — no card left rule, no indent |
-| `show-id` | `bool` | `false` | core's again, inverted — no `[idea:<name>]` permalink, and so no hat |
-| `..args` | — | — | every other `#idea` argument (`title`, `level`, `created`, `show-date`, `show-tags`, …), forwarded untouched |
+| `display-frame` | `bool` | `false` | `@rookery/core`'s own switch with its default INVERTED — no card left rule, no indent |
+| `display-id` | `bool` | `false` | core's again, inverted — no `[idea:<name>]` permalink, and so no hat |
+| `..args` | — | — | every other `#idea` argument (`title`, `level`, `created`, `display-date`, `display-tags`, …), forwarded untouched |
 
 `fullscreen`, `enter`, `order`, `class` and `row` are each type-checked at the
 `#slip()` call site and panic naming the bad value. `background` is the one
@@ -114,7 +114,7 @@ deck renders that slip.
 
 ### A slip is bare by default, wherever it renders
 
-`show-frame` and `show-id` are `@rookery/core` arguments, and `#slip` only
+`display-frame` and `display-id` are `@rookery/core` arguments, and `#slip` only
 changes their defaults — the same inversion `#slipshow` makes for a queried slip
 (see "A slip wears no card chrome" below), and it has to be made in both places
 because the two routes render at different times. `#slipshow` renders a QUERIED
@@ -126,10 +126,10 @@ makes the array route agree with the query route.
 **A `#slip` is therefore bare where it is AUTHORED too**, not only inside a deck.
 That is intended rather than a side effect: a `#slip` written on a page usually
 renders twice — once inline where it sits, once inside the deck that queries it
-back — and the two copies should look the same. Pass `show-frame: true` /
-`show-id: true` to get core's ordinary card back for one slip.
+back — and the two copies should look the same. Pass `display-frame: true` /
+`display-id: true` to get core's ordinary card back for one slip.
 
-`show-label` is deliberately absent: it is a `#window` argument, and a card
+`display-label` is deliberately absent: it is a `#window` argument, and a card
 already prints the authored title alone, so there is no derived label for a
 `#slip` to suppress.
 
@@ -184,9 +184,9 @@ and needs the same list `idea` itself gets:
   row: none,
   enter: "scroll",
   reveal: true,
-  show-frame: false,
-  show-id: false,
-  show-label: false,
+  display-frame: false,
+  display-id: false,
+  display-label: false,
   foldable: false,
   reserve-title: false,
   backlink: false,
@@ -206,7 +206,7 @@ panics naming the valid set.
 `reveal:` is the progressive reveal, `true` by default — see its own section
 below.
 
-`show-frame:`, `show-id:`, `show-label:`, `foldable:` and `reserve-title:` are
+`display-frame:`, `display-id:`, `display-label:`, `foldable:` and `reserve-title:` are
 `@rookery/core`'s own chrome switches with their defaults inverted — see "A slip
 wears no card chrome" below.
 
@@ -219,16 +219,16 @@ as a slide rather than as a reference to a note:
   inside it is still a link and still navigates. Pass `foldable: true` for a
   deck you want to collapse.
 - **`reserve-title: false`** — no blank line above a titleless slide. Because
-  this deck also sets `show-label: false`, a note with no AUTHORED title has a
+  this deck also sets `display-label: false`, a note with no AUTHORED title has a
   genuinely empty summary, and the line core reserves for a title there is dead
   space above the body. **A slide whose note DOES have a title still shows it,
   with core's ordinary spacing** — the reservation only ever applied to a
   summary with no title at all. Either way the slide is not foldable; the two
   switches are independent.
 
-The hover tint is deliberately LEFT ALONE, at core's `show-background: true`. It
-is how a slide answers a pointer, and it is independent of `show-frame`, which
-this deck does turn off — so there is no `show-background` argument here, since
+The hover tint is deliberately LEFT ALONE, at core's `display-background: true`. It
+is how a slide answers a pointer, and it is independent of `display-frame`, which
+this deck does turn off — so there is no `display-background` argument here, since
 its only value would be core's default.
 
 `backlink:` is core's own too, also inverted: a deck does not count as a link to
@@ -238,7 +238,7 @@ the notes it shows — see "A deck is not a reference" below.
 
 ```typst
 #slipshow(tags: "slip")                      // bare slips, the default
-#slipshow(tags: "slip", show-frame: true)    // put the card's rule back
+#slipshow(tags: "slip", display-frame: true)    // put the card's rule back
 ```
 
 A queried slip is transcluded through `#window`, so it arrives as a full
@@ -248,9 +248,9 @@ their defaults **inverted**:
 
 | argument | here | in core | what `false` drops |
 | --- | --- | --- | --- |
-| `show-frame` | `false` | `true` | the card's left rule and its indent |
-| `show-id` | `false` | `true` | the `[idea:<name>]` permalink, and with it the whole hat |
-| `show-label` | `false` | `true` | the title derived from a note's first line; an AUTHORED title still shows |
+| `display-frame` | `false` | `true` | the card's left rule and its indent |
+| `display-id` | `false` | `true` | the `[idea:<name>]` permalink, and with it the whole hat |
+| `display-label` | `false` | `true` | the title derived from a note's first line; an AUTHORED title still shows |
 
 The reasoning, one line each: a slip's `<section>` is already the visual unit, so
 a card frame inside it reads as a frame around a frame; the `[idea:47]` chip above
@@ -264,7 +264,7 @@ does the hiding. `#slipshow` only chooses different defaults and forwards them.
 
 **One cost, inherited from core and worth repeating:** the permalink is the ONLY
 way to discover an AUTO-GENERATED id. A deck of unnamed notes rendered with
-`show-id: false` therefore has no ids a reader can copy into a `#window` or a
+`display-id: false` therefore has no ids a reader can copy into a `#window` or a
 `#slip-<id>` fragment. Give the slips explicit names if they should be linkable.
 
 ### A deck is not a reference
@@ -568,7 +568,7 @@ Every `#slip` option lives in the note's own tag dictionary
 special-casing beyond tags a project already knows how to work with.
 
 **Flat keys** — present or absent, value `none`, render as a pill wherever
-`show-tags: true` is set, and each emits an `.idea-tag-<key>` CSS class on
+`display-tags: true` is set, and each emits an `.idea-tag-<key>` CSS class on
 whatever renders the slip. That is BOTH routes, not only the inline one:
 `_render-slip` (`src/slipshow.typ`) renders an already-rendered `slips:`
 array entry as its own inline `#idea`/`#slip` card, and renders every entry

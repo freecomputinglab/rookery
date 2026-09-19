@@ -17,6 +17,7 @@
 // core's `idea` from package scope — a project's own
 // `#let idea = idea.with(exclude-tags: E)` would not otherwise reach it.
 #import "@rookery/core:0.1.0": idea, _merge-base-tags
+#import "marker.typ": _slip-marker
 #import "tags.typ": *
 
 #let slip(
@@ -44,23 +45,20 @@
   //
   // NO DUPLICATE-ARGUMENT HAZARD from passing these alongside `..args`: Typst
   // binds a named argument to a matching named PARAMETER first, and only what
-  // matches nothing reaches the sink. So `#slip("x", show-frame: true)` binds
+  // matches nothing reaches the sink. So `#slip("x", display-frame: true)` binds
   // the parameter and wins over the default, exactly as it should.
   //
-  // TWO, NOT THREE. `show-label` is a `#window` argument and has nothing to do
+  // TWO, NOT THREE. `display-label` is a `#window` argument and has nothing to do
   // here: a card already prints the authored title alone (`@rookery/core`'s
   // `idea.typ`), so there is no derived label for a `#slip` to suppress.
-  show-frame: false,
-  show-id: false,
+  display-frame: false,
+  display-id: false,
   ..args,
-) = idea(
-  exclude-tags: exclude-tags,
-  show-frame: show-frame,
-  show-id: show-id,
+) = {
   // `SLIP-KEY` merges UNDER everything `slip-tags` built, so a call site
   // naming `slip` itself (as an explicit tag or through `base-tags:`) keeps
   // its own value rather than losing it to the package's key.
-  tags: _merge-base-tags(SLIP-KEY, slip-tags(
+  let resolved-tags = _merge-base-tags(SLIP-KEY, slip-tags(
     tags: tags,
     fullscreen: fullscreen,
     background: background,
@@ -69,6 +67,22 @@
     class: class,
     row: row,
     max-width: max-width,
-  )),
-  ..args,
-)
+  ))
+  // A PLAIN sibling marker, not nested inside `#idea`'s own — see
+  // `marker.typ` for why a caller reading this note's options back from an
+  // unplaced content value has to find them here rather than inside the
+  // deferred `#idea` call below. `title`/`level` come off `..args` since
+  // `#slip` does not name either on its own signature.
+  _slip-marker((
+    title: args.named().at("title", default: none),
+    level: args.named().at("level", default: 1),
+    tags: resolved-tags,
+  ))
+  idea(
+    exclude-tags: exclude-tags,
+    display-frame: display-frame,
+    display-id: display-id,
+    tags: resolved-tags,
+    ..args,
+  )
+}
