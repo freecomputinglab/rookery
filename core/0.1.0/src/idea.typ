@@ -57,16 +57,20 @@
   let pos = args.pos()
   // Variadic, not a plain positional: a positional parameter cannot carry a
   // default in Typst, and `#idea[body]` has to be callable with no name at
-  // all. `#window` and `#hyperlink` take the same shape for the same reason.
+  // all. The same sink is also what lets the body itself be absent —
+  // `#idea(title: [T])` arrives here with zero positionals. `#window` and
+  // `#hyperlink` take the same shape for the same reason.
   assert(
-    pos.len() >= 1 and pos.len() <= 2,
-    message: "@rookery/core: #idea takes a body, optionally preceded by a "
-      + "name — #idea(<x>, title: [T])[body], not #idea(<x>, [T])[body]. "
+    pos.len() <= 2,
+    message: "@rookery/core: #idea takes an optional name and an optional "
+      + "body — #idea(<x>, title: [T])[body], not #idea(<x>, [T])[body]. "
       + "A title is a named argument; a third positional is silently the "
       + "one that gets dropped — got "
       + str(pos.len()) + " positional arguments.",
   )
-  let (name, body) = if pos.len() == 1 {
+  let (name, body) = if pos.len() == 0 {
+    (none, [])
+  } else if pos.len() == 1 {
     (none, pos.at(0))
   } else {
     (pos.at(0), pos.at(1))

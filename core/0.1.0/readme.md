@@ -21,7 +21,9 @@ Full signature: `idea(level: 1, title: none, tags: (), exclude-tags: (),
 created: none, show-date: false, show-tags: false, show-frame: true, show-id: true,
 ..args)`, where
 the sink accepts the body alone, `(name, body)`, or `(<name>, body)` — the name
-may be a string or a Typst label, identically.
+may be a string or a Typst label, identically. All positionals may also be
+omitted, giving an unnamed note with an empty body — this is how a
+title-only note is written: `#idea(title: [hello])`.
 
 `show-frame: false` drops the card's BOX — its left rule and the indent that goes
 with it — and nothing else: the note still registers, still carries its tags and
