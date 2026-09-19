@@ -213,8 +213,30 @@ Run from `core/0.1.0/`:
 1. `just test` exits 0 and prints `units OK`.
 2. `cd demo/rheo && just check` exits 0 and prints its own OK line, with the
    new `ideas/doc-title-note.html` assertions passing.
-3. `cd demo/rheo && just check-typst` exits 0 — the plain-Typst build of the
-   same content still compiles.
+3. `cd demo/rheo && just check-typst` exits 0 — but ONLY with the package
+   override below, and the difference matters. `just check` runs `rheo
+   compile`, which reads `demo/rheo/rheo.toml`'s `[packages.rookery] path =
+   "../../../.."` and so always compiles the code sitting beside it, inside the
+   flight. `just check-typst` runs plain `typst`, which has no such override
+   and resolves `@rookery/core:0.1.0` through the machine-global package cache
+   at `~/.cache/typst/packages/rookery/core/0.1.0` — a symlink pointing at a
+   DIFFERENT checkout. Run bare, it silently compiles code this flight never
+   touched and passes for the wrong reason. MEASURED: a probe that must panic
+   compiled clean that way. Point typst at the flight for that one invocation,
+   and do NOT alter the global symlink, which is shared with every other
+   flight:
+
+   ```sh
+   # from core/0.1.0/demo/rheo
+   rm -rf /tmp/fl-pkgs/rookery/core/0.1.0
+   mkdir -p /tmp/fl-pkgs/rookery/core
+   ln -s "$PWD/../.." /tmp/fl-pkgs/rookery/core/0.1.0
+   TYPST_PACKAGE_PATH=/tmp/fl-pkgs just check-typst
+   ```
+
+   The same `TYPST_PACKAGE_PATH=/tmp/fl-pkgs` prefix applies to every scratch
+   `typst compile` in the steps below — without it they read the other
+   checkout too.
 4. The behaviour holds under plain Typst too. Write a scratch file OUTSIDE the
    repository, `/tmp/doctitle.typ`:
 
@@ -227,11 +249,9 @@ Run from `core/0.1.0/`:
    SCRATCHBODY, the whole page as one note.
    ```
 
-   Compile with
-   `typst compile --features html --format html /tmp/doctitle.typ /tmp/doctitle.html`,
-   then confirm the output mentions both `Scratch Title` and the id
-   `idea:scratch-title`. This scratch compile resolves `@rookery/core` through
-   the machine's package cache rather than the flight; if it picks up different
-   code, say so in the landing message instead of treating it as a failure.
+   Compile with `TYPST_PACKAGE_PATH=/tmp/fl-pkgs typst compile --features html
+   --format html /tmp/doctitle.typ /tmp/doctitle.html` — the prefix is what
+   makes it read the flight — then confirm the output mentions both `Scratch Title` and the id
+   `idea:scratch-title`.
 5. `rg -n 'DOCTITLEBODY' core/0.1.0/demo/rheo` hits in both the new content file
    and `check.sh`.

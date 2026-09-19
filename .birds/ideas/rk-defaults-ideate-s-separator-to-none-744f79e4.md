@@ -143,6 +143,39 @@ still gone, report the miss rather than guessing.
    convergence failure, in the group-splitting region of `#ideate`), and correct
    the number. If the reference is already correct, leave it.
 
+## Two corrections to fold in, both in files you are already editing
+
+These are small and unrelated to the default change, but they sit in the exact
+regions steps 1 and 2 touch, so fixing them here costs nothing and a separate
+flight over the same lines would conflict.
+
+A. A comment in `src/ideate.typ`'s header block points the wrong way.
+
+   ```
+   rg -n 'reaches the panic above' core/0.1.0
+   ```
+
+   One hit as of filing, in `src/ideate.typ`'s header, in the paragraph
+   beginning `` `heading(level: 2)` and `heading(level: 2)[]` ARE BOTH
+   REFUSED ``. It says the bracketed form "reaches the panic above" — there is
+   no panic above it. The panic is roughly 250 lines BELOW, in the
+   `separator:` classification block inside `#let ideate(..)`. Reword so it
+   names where the panic actually is. Keep it to the one clause; do not expand
+   the paragraph.
+
+B. A redundant alias in the classification block.
+
+   ```
+   rg -n 'let heading-mode = heading-sel' core/0.1.0
+   ```
+
+   One hit as of filing, inside `#let ideate(..)`. `heading-sel` and
+   `heading-mode` are now two names for one value. Collapse them to a single
+   binding, `let heading-mode = type(separator) == selector`, and delete
+   `heading-sel`. Check first with
+   `rg -n 'heading-sel' core/0.1.0/src/ideate.typ` that nothing else reads the
+   name; if something does, leave both and say so in the bank message.
+
 ## What NOT to do
 
 - Do NOT remove or deprecate `par` or `parbreak`. Both stay accepted, with
@@ -164,7 +197,29 @@ Run from `core/0.1.0/`:
 
 1. `just test` exits 0 and prints `units OK`.
 2. `cd demo/rheo && just check` exits 0 and prints its own OK line.
-3. `cd demo/rheo && just check-typst` exits 0.
+3. `cd demo/rheo && just check-typst` exits 0 — but ONLY with the package
+   override below, and the difference matters. `just check` runs `rheo
+   compile`, which reads `demo/rheo/rheo.toml`'s `[packages.rookery] path =
+   "../../../.."` and so always compiles the code sitting beside it, inside the
+   flight. `just check-typst` runs plain `typst`, which has no such override
+   and resolves `@rookery/core:0.1.0` through the machine-global package cache
+   at `~/.cache/typst/packages/rookery/core/0.1.0` — a symlink pointing at a
+   DIFFERENT checkout. Run bare, it silently compiles code this flight never
+   touched and passes for the wrong reason. MEASURED: a probe that must panic
+   compiled clean that way. Point typst at the flight for that one invocation,
+   and do NOT alter the global symlink, which is shared with every other
+   flight:
+
+   ```sh
+   # from core/0.1.0/demo/rheo
+   rm -rf /tmp/fl-pkgs/rookery/core/0.1.0
+   mkdir -p /tmp/fl-pkgs/rookery/core
+   ln -s "$PWD/../.." /tmp/fl-pkgs/rookery/core/0.1.0
+   TYPST_PACKAGE_PATH=/tmp/fl-pkgs just check-typst
+   ```
+
+   The same `TYPST_PACKAGE_PATH=/tmp/fl-pkgs` prefix applies to every scratch
+   `typst compile` in the steps below — without it they read the other
 4. A bare `#ideate` now mints one note, not one per paragraph. Write a scratch
    file OUTSIDE the repository, `/tmp/defsep.typ`:
 
@@ -178,13 +233,11 @@ Run from `core/0.1.0/`:
    SECONDPARA, another paragraph.
    ```
 
-   Compile it with
-   `typst compile --features html --format html /tmp/defsep.typ /tmp/defsep.html`
-   and confirm the output contains exactly ONE note card: `grep -c 'idea-box'
-   /tmp/defsep.html` should report 1, with both `FIRSTPARA` and `SECONDPARA`
-   inside it. Note that this scratch compile resolves `@rookery/core` through
-   the machine's package cache rather than the flight; if it picks up different
-   code, say so in the landing message instead of treating it as a failure. If
+   Compile it with `TYPST_PACKAGE_PATH=/tmp/fl-pkgs typst compile --features
+   html --format html /tmp/defsep.typ /tmp/defsep.html` — the prefix is what
+   makes it read the flight — and confirm the output contains exactly ONE note
+   card: `grep -c 'idea-box' /tmp/defsep.html` should report 1, with both
+   `FIRSTPARA` and `SECONDPARA` inside it. If
    `idea-box` is not the class the card actually carries, grep the class that is
    there — read it off `src/core.css` or the demo output rather than guessing.
 5. `rg -n 'separator: none, title: none' core/0.1.0/src/ideate.typ` hits,
