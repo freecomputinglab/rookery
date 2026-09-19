@@ -635,6 +635,14 @@ document-level `#show: ideate`, one page being one idea. In this mode a trailing
 `context` or `metadata` node ends up inside the note rather than beside it, there
 being only one group; it renders nothing.
 
+The one note this mode mints has no heading of its own to title or id itself
+by, so both default off `document.title`: the title IS `document.title`, and
+the id is `slug(document.title)` — stable and readable, unlike the auto
+counter it would otherwise fall to, which shifts whenever a page is added or
+removed elsewhere in the bundle. A `title:` passed to `#ideate` wins over this,
+and `#ideate-id` still wins the id outright. With no document title set, this
+changes nothing: the note mints titleless, under the counter, as always.
+
 In heading mode, the matching heading **starts** the group that follows it
 rather than being discarded — the opposite of par mode's rule. `== rookery`
 plus the bullets under it is one note, with the heading as its first line, not

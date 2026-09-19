@@ -7,7 +7,10 @@
 // rookery-tags` block and the bibliography each appear once, because the
 // configuration and the registry both live on document-wide state that a
 // later `show: rookery` re-reads rather than re-emits. Every vertebra under
-// `content/` belongs here.
+// `content/` belongs here, EXCEPT `content/ideated-doctitle.typ`: its own
+// `#set document(title: ..)` would apply to this whole single compiled
+// document rather than to just that page, fighting the other vertebrae's
+// titles (or the lack of one) instead of naming only its own note.
 #include "content/index.typ"
 #include "content/sub/page.typ"
 #include "content/relations.typ"

@@ -7,7 +7,7 @@ labels:
 - ideate-separator
 deps:
 - blocked-by:rk-defaults-ideate-s-separator-to-none-744f79e4
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/ideate.typ, core/0.1.0/readme.md, core/0.1.0/demo/rheo/content/ideated-doctitle.typ, core/0.1.0/demo/rheo/check.sh, core/0.1.0/demo/rheo/native.typ
 

@@ -40,6 +40,13 @@
 //   #ideate(separator: heading.where(level: 2))[..]     // each `==` starts one
 //   #ideate(separator: par)[..]                         // one note per paragraph
 //
+// In `none` mode the single note has no heading of its own to take a title or
+// an id from, so both default off `document.title`: the title IS
+// `document.title`, and the id is `slug(document.title)`. A `title:` passed to
+// `#ideate` itself still wins, and `#ideate-id` still wins the id outright.
+// With no document title set (`document.title` is `none`), nothing changes —
+// the note mints titleless, under the package's auto counter, as before.
+//
 // also as a show rule, which is the case that motivated the argument at all — a
 // weeknotes-style document where every `==` section, not every paragraph, is the
 // unit worth minting as a note:
@@ -398,6 +405,15 @@
     )
   }
 
+  // In `none` mode only, and only when the caller has not already passed a
+  // `title:`, the note's title and id come from `document.title` rather than
+  // minting titleless under the counter — the note has no heading of its own
+  // to take either from. `title` cannot be a function here: a `title:`
+  // function already panics outside heading mode, in the guard just above.
+  // `document.title` is `none` when nothing set one, and that case is left
+  // alone below.
+  let doc-title = if none-mode and title == none { document.title } else { none }
+
   // `show-frame`/`show-id` default to FALSE here, inverting `#idea`'s own
   // defaults. That inversion is most of the reason this function is worth
   // having: an inferred note is not one anybody named, so a frame and a
@@ -581,9 +597,9 @@
         // this is the branch `par` and `none` mode always take, having no
         // heading to feed a `name:` function at all.
         let content = _strip-beacons(group).join()
-        if beacon-id == none {
-          mint(content, tags: group-tags)
-        } else {
+        if beacon-id != none {
+          // A beacon is a fixed value the caller wrote — it wins the id
+          // outright, over both the counter and a derived `doc-title` slug.
           if beacon-id in seen-slugs {
             panic(
               "ideate: two sections in this body slug to the same name, \""
@@ -593,6 +609,19 @@
           }
           seen-slugs.push(beacon-id)
           mint(beacon-id, content, tags: group-tags)
+        } else if doc-title != none {
+          let doc-id = slug(doc-title)
+          if doc-id in seen-slugs {
+            panic(
+              "ideate: two sections in this body slug to the same name, \""
+                + doc-id + "\" — retitle the section, or its earlier "
+                + "namesake so each mints under its own id.",
+            )
+          }
+          seen-slugs.push(doc-id)
+          mint(doc-id, content, title: doc-title, tags: group-tags)
+        } else {
+          mint(content, tags: group-tags)
         }
       } else {
         let rest = _strip-beacons(group.slice(0, lead-i) + group.slice(lead-i + 1)).join()

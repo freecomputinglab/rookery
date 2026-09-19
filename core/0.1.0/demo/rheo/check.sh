@@ -147,8 +147,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">47 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 47 ideas"
+  grep -q 'idea-index-count">48 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 48 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -668,6 +668,16 @@ fi
 #     both ids), which a passing HTML build cannot exercise — verified
 #     manually instead, the same way `#idea`'s own third-positional-argument
 #     rejection is (see `core/0.1.0/test/units.typ`).
+
+# 28. `separator: none` TITLES AND IDS ITS ONE NOTE FROM `document.title`
+#     (`content/ideated-doctitle.typ`). No lead heading exists to take either
+#     from, so the page's own `#set document(title: [Doc Title Note])` supplies
+#     both: the title, and `slug(..)` of it as the id.
+p="$H/ideas/doc-title-note.html"
+[ -f "$p" ] || note "no minted page at ideas/doc-title-note.html — separator: none did not title/id its note from document.title"
+if [ -f "$p" ]; then
+  grep -q 'DOCTITLEBODY' "$p" || note "ideas/doc-title-note.html does not render its own body"
+fi
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"
