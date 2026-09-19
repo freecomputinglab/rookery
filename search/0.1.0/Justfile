@@ -13,5 +13,16 @@ parity:
 # `require` "test" as a module rather than scan the directory — and the glob
 # form also keeps it from picking up test/parity.mjs and test/internal.mjs,
 # neither of which is a `*.test.mjs` file.
+#
+# Assumes an already-installed tree, kept fast for the inner loop — `check`
+# is the recipe that guarantees the install first.
 test:
     node --test test/*.test.mjs
+
+# Guarantees `pnpm install` before verification runs, unlike `test` above,
+# so this cannot fail with an opaque module-not-found error on a fresh
+# checkout. Runs the unit suite and parity together, since both are
+# verification rather than a build step.
+check: build
+    node --test test/*.test.mjs
+    node test/parity.mjs

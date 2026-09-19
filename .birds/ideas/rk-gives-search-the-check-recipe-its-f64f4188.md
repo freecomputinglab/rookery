@@ -6,7 +6,7 @@ priority: 2
 labels:
 - fix-search-check-recipe
 deps: []
-closed: false
+closed: true
 ---
 Touches: search/0.1.0/Justfile
 
