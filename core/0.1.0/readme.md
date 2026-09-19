@@ -994,6 +994,22 @@ The rules:
 - A PINNED name always wins over both: `#idea(<x>, title: [My Title])` mints
   `idea:x`.
 
+Which note gets the bare slug and which gets `-<n>` depends on document order,
+not on any property of the notes themselves — and the suffix is ordinary
+slug text, not a reserved namespace, so a title that already ends in a
+number can occupy a slot a collision would otherwise take:
+
+```typst
+#idea(title: [My Title])[a]    // idea:my-title
+#idea(title: [My Title 1])[b]  // idea:my-title-1
+#idea(title: [My Title])[c]    // idea:my-title-2, not my-title-1
+```
+
+Reverse the last two calls and the third note takes `my-title-1` while "My
+Title 1" takes `my-title-1-1` instead. Ids stay unique either way, but not
+predictable across a reorder — pin a name (`#idea(<x>, title: [..])`) when a
+stable id matters. `#ideate`'s heading-derived ids follow the same rule.
+
 **This changes existing URLs.** A titled, unnamed note that used to mint at
 `ideas/3.html` now mints at `ideas/my-title.html`. An in-repo `@idea:3`
 reference to it fails to compile — loud, and caught at build time — but an

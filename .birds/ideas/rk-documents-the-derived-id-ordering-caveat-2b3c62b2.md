@@ -7,7 +7,7 @@ labels:
 - docs-derived-id-order
 deps:
 - blocked-by:rk-records-that-an-idea-s-return-value-is-1fda1f23
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/readme.md
 
