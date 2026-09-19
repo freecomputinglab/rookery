@@ -137,7 +137,7 @@
 // A venue is what durably exists: a programme, a conference series, a journal.
 // It carries no dates and is not a todo — the one constructor here `#cfp`'s
 // closing mechanism does not touch.
-#let venue(name, title: auto, call: none, school: none, tags: none, show-tags: true, ..args) = {
+#let venue(name, title: auto, call: none, school: none, tags: none, display-tags: true, ..args) = {
   let own = (:)
   if call != none { own.insert(VENUE-CALL-KEY, call) }
   if school != none {
@@ -155,7 +155,7 @@
     // Merges VENUE-KEY under the built tags, so a caller naming its own
     // `tags:` cannot displace the package's key.
     tags: _merge-base-tags(VENUE-KEY, own + normalize-tags(tags)),
-    show-tags: show-tags,
+    display-tags: display-tags,
     ..args.named(),
     full,
   )
@@ -242,7 +242,7 @@
     estimated: false,
     today: none,
     tags: none,
-    show-tags: true,
+    display-tags: true,
     ..args,
   ) = {
     assert(
@@ -353,7 +353,7 @@
         done: close-on,
         priority: priority,
         tags: own + normalize-tags(tags),
-        show-tags: show-tags,
+        display-tags: display-tags,
         ..args.named(),
         full,
       )
