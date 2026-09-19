@@ -52,7 +52,7 @@ parsed bibliography:
 | `bib` | the parsed dictionary itself, `key -> (field: value, ..)`, every value a plain string |
 | `entry(key)` | that entry, asserting the key exists rather than handing back `none` |
 | `fields(key, show-fields: auto)` | that entry's fields, as the `<dl class="citation-fields">` `fields-block` builds; `show-fields` falls back to the factory's own `show-fields:` when omitted |
-| `citation(key, title: auto, tags: none, show-tags: true, ..)` | a note titled from the entry (`title:` overrides it) and tagged `tag:` (`"citation"` by default) alongside whatever `tags:` you pass |
+| `citation(key, title: auto, tags: none, display-tags: true, ..)` | a note titled from the entry (`title:` overrides it) and tagged `tag:` (`"citation"` by default) alongside whatever `tags:` you pass |
 | `all()` | mints a note for every entry not already claimed by a hand-written `citation` call |
 
 `citation`'s `key` accepts the form you actually write: `@badiou2002` (a

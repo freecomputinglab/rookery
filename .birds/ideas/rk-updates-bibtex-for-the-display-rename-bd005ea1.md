@@ -7,7 +7,7 @@ labels:
 - feat-display-dict
 deps:
 - blocked-by:rk-gives-idea-a-display-dictionary-3c9c7f11
-closed: false
+closed: true
 ---
 Touches: bibtex/0.1.0/src/lib.typ, bibtex/0.1.0/readme.md
 

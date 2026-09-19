@@ -9,7 +9,7 @@
 //   fields:   (key, show-fields: auto) -> its fields, as the HTML `<dl>`
 //             `fields-block` builds; `show-fields` falls back to the
 //             factory's own when omitted
-//   citation: (key, title: auto, tags: none, show-tags: true, ..) -> a note,
+//   citation: (key, title: auto, tags: none, display-tags: true, ..) -> a note,
 //             titled from the entry unless `title:` overrides it
 //   all:      () -> mints every entry NOT already claimed by a hand-written
 //             `citation` call, once per document (see `claim.typ`)
@@ -128,11 +128,11 @@
   // one derived from `keywords`. The package's own `tag` then merges under
   // BOTH of those, through `_merge-base-tags`, so neither the keyword tags nor
   // a caller's own `tags:` can displace it.
-  let note = (key, title: auto, tags: none, show-tags: true, known: none, ..args) => mint(
+  let note = (key, title: auto, tags: none, display-tags: true, known: none, ..args) => mint(
     key,
     title: if title == auto { bib-title(entry(key)) } else { title },
     tags: _merge-base-tags(tag, kw-tags-for(key, known: known) + _norm-tags(tags)),
-    show-tags: show-tags,
+    display-tags: display-tags,
     ..args,
   )
   (
@@ -145,13 +145,13 @@
     // The authoring form: claims its key — so `all()` skips it — then mints.
     // The claim is idempotent, so writing `citation` for one key twice still
     // reads as one claimed key, not a collision.
-    citation: (key, title: auto, tags: none, show-tags: true, ..args) => {
+    citation: (key, title: auto, tags: none, display-tags: true, ..args) => {
       let key = cite-key(key)
       _claimed.update(c => { c.insert(key, none); c })
       if keywords == "existing" {
-        context note(key, title: title, tags: tags, show-tags: show-tags, ..args)
+        context note(key, title: title, tags: tags, display-tags: display-tags, ..args)
       } else {
-        note(key, title: title, tags: tags, show-tags: show-tags, ..args)
+        note(key, title: title, tags: tags, display-tags: display-tags, ..args)
       }
     },
     // Mints a note for every bibliography key not already claimed by a
