@@ -6,7 +6,7 @@ priority: 3
 labels:
 - fix-ideate-slug-clash
 deps: []
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/ideate.typ
 

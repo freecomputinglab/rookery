@@ -506,11 +506,29 @@
   // heading names the run of notes under it and is emitted bare rather than
   // becoming a card whose entire body is a title.
   //
-  // Slugs minted so far BY THIS CALL, so two sections here that read the same
-  // name panic instead of silently sharing an id. A second `#ideate` call, or
-  // another chapter elsewhere in the document, is not this call's problem —
-  // see the readme for why that collision is left for a caller to notice.
-  let seen-slugs = ()
+  // Probes `_taken-ids` (state.typ) for a free slug, appending `-<n>` until one
+  // is unclaimed — the same disambiguation `#idea` already does for a
+  // title-derived id. `_taken-ids` is DOCUMENT-WIDE, so this also catches a
+  // collision `#ideate` could not see on its own: two separate `#ideate`
+  // calls minting the same slug, or an `#ideate` section landing on an id a
+  // hand-written `#idea(<name>)` elsewhere already claimed. `#idea` claims
+  // each id as it mints, so nothing here needs its own record of what it has
+  // used. Which of two same-slug sections gets the bare name and which gets
+  // `-1` depends on document order, exactly as it does for `#idea`'s own
+  // title-derived ids.
+  //
+  // Returns a BARE name: `mint(..)` takes one positionally and `#idea` adds
+  // the prefix itself, so returning a full id here would double it.
+  let _free-id(bare) = {
+    let taken = _taken-ids.get()
+    let candidate = _pfx() + bare
+    let n = 1
+    while candidate in taken {
+      candidate = _pfx() + bare + "-" + str(n)
+      n = n + 1
+    }
+    candidate.trim(_pfx(), at: start)
+  }
   for group in groups {
     if group.all(_blank) { continue }
     if _no-content(group) {
@@ -604,26 +622,20 @@
         if beacon-id != none {
           // A beacon is a fixed value the caller wrote — it wins the id
           // outright, over both the counter and a derived `doc-title` slug.
-          if beacon-id in seen-slugs {
-            panic(
-              "ideate: two sections in this body slug to the same name, \""
-                + beacon-id + "\" — retitle the section, or its earlier "
-                + "namesake so each mints under its own id.",
-            )
-          }
-          seen-slugs.push(beacon-id)
-          mint(beacon-id, content, tags: group-tags)
+          //
+          // Probe and mint inside ONE `context` of their own, not inline in
+          // this function's enclosing context: a plain `.get()` here would
+          // read `_taken-ids` as of THIS call's own position, which is
+          // BEFORE every sibling group's mint (all of them are this
+          // function's return value, so they only occupy their sequenced
+          // positions once that value is placed) — every group would probe
+          // an empty set no matter how many came before it. A context of its
+          // own gets its own position in that same sequence, so it sees
+          // exactly the siblings minted ahead of it, the same way sequential
+          // top-level `#idea` calls already do.
+          context mint(_free-id(beacon-id), content, tags: group-tags)
         } else if doc-title != none {
-          let doc-id = slug(doc-title)
-          if doc-id in seen-slugs {
-            panic(
-              "ideate: two sections in this body slug to the same name, \""
-                + doc-id + "\" — retitle the section, or its earlier "
-                + "namesake so each mints under its own id.",
-            )
-          }
-          seen-slugs.push(doc-id)
-          mint(doc-id, content, title: doc-title, tags: group-tags)
+          context mint(_free-id(slug(doc-title)), content, title: doc-title, tags: group-tags)
         } else {
           mint(content, tags: group-tags)
         }
@@ -649,15 +661,9 @@
         if name-value == none {
           mint(rest, ..title-arg, tags: group-tags)
         } else {
-          if name-value in seen-slugs {
-            panic(
-              "ideate: two sections in this body slug to the same name, \""
-                + name-value + "\" — retitle the section, or its earlier "
-                + "namesake so each mints under its own id.",
-            )
-          }
-          seen-slugs.push(name-value)
-          mint(name-value, rest, ..title-arg, tags: group-tags)
+          // Its own `context`, for the same reason as the beacon/doc-title
+          // branch above.
+          context mint(_free-id(name-value), rest, ..title-arg, tags: group-tags)
         }
       }
     }
