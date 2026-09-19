@@ -5,10 +5,13 @@ rheo-aware where rheo is present.
 
 A note exists ONLY where you write `#idea("name")[...]`. There is no document
 show rule and no "every heading is a note" behaviour — a labeled heading is
-just a labeled heading. `#idea[body]` (no name, no title) works too: it takes a
-sequential id, names itself by its own opening words wherever it is referred to
-(see "Derived labels"), and wears that id as a `[idea:1]`-style permalink — which
-is how you discover a generated id in order to paste it into a `#window`.
+just a labeled heading. `#idea[body]` (no name, no title) works too: an untitled
+one takes a sequential id, and a TITLED one takes a slug of its title instead
+(see "Unnamed notes: ids derived from title"). Either way it names itself by
+its own opening words wherever it is referred to (see "Derived labels"), and
+wears its id as a permalink — `[idea:1]`-style for the untitled case,
+`[idea:my-title]`-style for the titled one — which is how you discover a
+generated id in order to paste it into a `#window`.
 
 ```typst
 #import "@rookery/core:0.1.0": idea
@@ -390,11 +393,18 @@ written against, and it comes straight back the moment a pill or a date is turne
 on. So `#idea("x", show-id: false, show-tags: true, ..)` still shows its pills, in
 a tab, exactly where they were.
 
-**The cost, and it is a real one: a permalink is the ONLY way to discover an
-AUTO-GENERATED id.** There is no `show heading` rule and no template hook — the
-chip is it. A note written `#idea[..]` and rendered with `show-id: false` therefore
-has an id nothing on the page reveals, so nobody can write a `#window` for it. Give
-a note a name (`#idea("x")[..]`) if it should stay linkable, or leave `show-id` on.
+**The cost, and it is a real one for an UNTITLED note: a permalink is the ONLY
+way to discover its auto-generated id.** There is no `show heading` rule and
+no template hook — the chip is it. A note written `#idea[..]` and rendered
+with `show-id: false` therefore has an id nothing on the page reveals, so
+nobody can write a `#window` for it. Give a note a name (`#idea("x")[..]`) if
+it should stay linkable, or leave `show-id` on.
+
+A TITLED note is cheaper to turn `show-id` off on: its id is a slug of the
+title (see "Unnamed notes: ids derived from title"), so anyone who can read
+the title on the page can reconstruct `idea:<slug>` without the chip — right
+up to a collision suffix (`-1`, `-2`, ...), which the title alone cannot
+predict.
 
 ### `show-label:` — an authored title, or nothing
 
@@ -897,6 +907,39 @@ nothing about `<idea:etal>` depends on which file it's written in. Names are
 therefore globally unique by design; giving two notes the same id is a build
 error naming the id, as soon as anything (`#window`, `link-to-page`/
 `link-to-anchor`) looks the id up.
+
+## Unnamed notes: ids derived from title
+
+An unnamed `#idea` with no `title:` takes a sequential id. A note that
+carries a `title:` and no explicit name takes a slug of that title instead:
+
+```typst
+#idea(title: [My Title])[..]   // mints idea:my-title, page ideas/my-title.html
+#idea[..]                      // no title either: mints idea:1, as before
+```
+
+The rules:
+
+- The slug is the title lowercased, every run of non-alphanumeric characters
+  collapsed to a single `-`, trimmed, and capped at 60 characters.
+- A colliding slug gets a `-<n>` suffix counting from 1: a second note titled
+  "My Title" mints `idea:my-title-1`.
+- A title that slugs to nothing (pure punctuation) or to digits only falls
+  back to the counter instead. Digits are refused as a slug because they
+  would collide with the counter's own namespace.
+- A note with no title at all still takes a counter id, exactly as before.
+  Titled notes still step that counter and discard the value, so an untitled
+  note's ids can have gaps (`1`, `4`, `7`, ...) — this keeps an untitled
+  note's id stable when a title is added to some earlier note.
+- A PINNED name always wins over both: `#idea(<x>, title: [My Title])` mints
+  `idea:x`.
+
+**This changes existing URLs.** A titled, unnamed note that used to mint at
+`ideas/3.html` now mints at `ideas/my-title.html`. An in-repo `@idea:3`
+reference to it fails to compile — loud, and caught at build time — but an
+external link or a bookmark to the old page breaks silently. Pin a name
+(`#idea(<3>, title: [My Title])[..]`) on a note if some old id needs to keep
+resolving.
 
 ## Two modes
 
