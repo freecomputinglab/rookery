@@ -9,7 +9,7 @@ description = "A BibTeX reader and a #citation note constructor for @rookery/cor
 repository = "https://github.com/freecomputinglab/rookery"
 
 # The floor @rookery/core declares, matched rather than guessed: this package mints
-# notes through core's `tagged-idea` and is only ever built inside a project already
+# notes through core's `idea` and is only ever built inside a project already
 # on a rheo that can resolve the `@rookery` namespace and a ref-fetched package by
 # its resolved commit — both of which need 0.6.2.
 #

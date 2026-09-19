@@ -1,7 +1,7 @@
 // @rookery/bibtex — a BibTeX reader and a `#citation` note constructor for
 // @rookery/core notes.
 //
-// `bibtex(src, tagged-idea:, tag:, keywords:, show-fields:, only:)` parses one
+// `bibtex(src, mint:, tag:, keywords:, show-fields:, only:)` parses one
 // or more `.bib` sources once and closes over the result, returning:
 //
 //   bib:      the parsed dictionary, `key -> (field: value, ..)`
@@ -27,7 +27,7 @@
 // string, an array or a dictionary. Core has no public equivalent, and a local copy of
 // its normalisation would drift silently the day core accepts a fifth shape — where
 // this import breaks loudly, at compile time, if the name ever moves.
-#import "@rookery/core:0.1.0": tagged-idea as _core-tagged-idea, tag-data, _norm-tags
+#import "@rookery/core:0.1.0": idea as _core-idea, tag-data, _merge-base-tags, _norm-tags
 #import "parse.typ": *
 #import "format.typ": *
 #import "view.typ": *
@@ -36,9 +36,9 @@
 
 #let _KEYWORDS-MODES = (none, "all", "existing")
 
-// `tagged-idea:` defaults to core's own, which covers a project on plain
+// `mint:` defaults to core's own `idea`, which covers a project on plain
 // rookery. IT STAYS A PARAMETER because a project on `@rookery/timeline` or
-// `@rookery/todos` mints its notes through THAT package's own `tagged-idea` —
+// `@rookery/todos` mints its notes through THAT package's own constructor —
 // the one decorated with its date or todo arguments — and a citation minted
 // through core's undecorated version would not take them.
 //
@@ -65,7 +65,7 @@
 // factory construction.
 #let bibtex(
   src,
-  tagged-idea: _core-tagged-idea,
+  mint: _core-idea,
   tag: "citation",
   keywords: none,
   show-fields: (:),
@@ -125,12 +125,13 @@
   //
   // Keyword tags merge UNDER the caller's own `tags:` — dictionary `+` lets
   // the right side win a key collision, so an explicit tag always wins over
-  // one derived from `keywords`. The package's own `tag` is then dedup'd on
-  // top by `tagged-idea` exactly as it was before this merge existed.
-  let note = (key, title: auto, tags: none, show-tags: true, known: none, ..args) => (tagged-idea(tag))(
+  // one derived from `keywords`. The package's own `tag` then merges under
+  // BOTH of those, through `_merge-base-tags`, so neither the keyword tags nor
+  // a caller's own `tags:` can displace it.
+  let note = (key, title: auto, tags: none, show-tags: true, known: none, ..args) => mint(
     key,
     title: if title == auto { bib-title(entry(key)) } else { title },
-    tags: kw-tags-for(key, known: known) + _norm-tags(tags),
+    tags: _merge-base-tags(tag, kw-tags-for(key, known: known) + _norm-tags(tags)),
     show-tags: show-tags,
     ..args,
   )

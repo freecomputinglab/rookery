@@ -21,7 +21,7 @@ one note per reference, titled and keyed from the entry itself.
 carries as an HTML definition list, for a body that just wants the record
 laid out.
 
-## `bibtex(src, tagged-idea:, tag:, keywords:, show-fields:, only:)`
+## `bibtex(src, mint:, tag:, keywords:, show-fields:, only:)`
 
 `src` is a `.bib` file's contents, or an array of them — several exports read
 as one bibliography, joined with a newline between members so a file ending
@@ -93,15 +93,15 @@ other.
 library into a small number of notes: sweep a four-key `bib` with `all()`
 and four notes mint, not fourteen hundred.
 
-`tagged-idea:` defaults to `@rookery/core`'s own, which is what you want on
+`mint:` defaults to `@rookery/core`'s own `idea`, which is what you want on
 plain rookery. **A project on `@rookery/timeline` or `@rookery/todos` should
-pass THAT package's own `tagged-idea` instead** — the version decorated with
+pass THAT package's own constructor instead** — the version decorated with
 its date or todo arguments — because a citation minted through core's
 undecorated one would not carry them:
 
 ```typst
-#import "@rookery/timeline:0.1.0": tagged-idea
-#let refs = bibtex(read("refs.bib"), tagged-idea: tagged-idea)
+#import "@rookery/timeline:0.1.0": idea
+#let refs = bibtex(read("refs.bib"), mint: idea)
 ```
 
 `parse-bib`, `bib-chunks`, `parse-entry`, `bib-title`, `cite-key`,
@@ -215,7 +215,7 @@ sees exactly what you'd expect.
 
 No build step and no JavaScript: `typst.toml`'s `entrypoint` points straight
 at `src/`, so an edit takes effect immediately. `citation(..)` calls into
-`@rookery/core` 0.1.0 for `tagged-idea`; nothing else here imports it.
+`@rookery/core` 0.1.0 for `idea`; nothing else here imports it.
 
 ## Development
 

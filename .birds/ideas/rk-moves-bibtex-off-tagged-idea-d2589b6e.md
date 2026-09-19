@@ -8,7 +8,7 @@ labels:
 deps:
 - blocked-by:rk-adds-tag-and-base-tags-to-idea-9960f68e
 - blocked-by:rk-moves-timeline-off-tagged-idea-0bec4286
-closed: false
+closed: true
 ---
 Touches: bibtex/0.1.0/src/lib.typ, bibtex/0.1.0/typst.toml, bibtex/0.1.0/readme.md
 
