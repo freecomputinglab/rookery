@@ -82,14 +82,14 @@ document(date:)`, then nothing), and the same date-descending sort behind
 `#ideas-outline(sort: "date")`. The word `minted` still means a minted PAGE
 throughout this package, which is most of its uses, and none of those changed.
 
-**`note` and `todo` are not exported.** `tagged-idea(tag, value: none)` is the
-factory you build your own constructors from, and two lines restore the old
-pair verbatim, after which every existing call site works unchanged:
+**`note` and `todo` are not exported.** `idea.with(tag: "note")` builds your
+own constructors, and two lines restore the old pair verbatim, after which
+every existing call site works unchanged:
 
 ```typst
-#import "@rookery/core:0.1.0": tagged-idea
-#let note = tagged-idea("note")
-#let todo = tagged-idea("todo")
+#import "@rookery/core:0.1.0": idea
+#let note = idea.with(tag: "note")
+#let todo = idea.with(tag: "todo")
 ```
 
 **`#ideas-outline(filter:)` receives the tag DICTIONARY**, not an array of
@@ -1791,30 +1791,23 @@ PRECEDENCE, lowest to highest: `tag:`, then `base-tags:`, then `tags:`. Where
 two of them name the same tag, the higher one's value wins outright — there
 is no deep merge.
 
-`tagged-idea(tag, value: none)` remains as a factory spelling of the same
-thing, for the positional, several-tags-at-once case — it is a thin wrapper
-over `idea.with(base-tags: ..)`:
+`.with()` COMPOSES, which is what makes it safe to chain a project's own
+exclusion binding underneath a constructor:
 
 ```typst
-#let note = tagged-idea("note")
-#let todo = tagged-idea("todo")
-#let claim = tagged-idea("claim")
-
-#note("x")[...]                    // == #idea("x", tags: (note: none))[...]
-#todo("y", tags: ("draft",))[...]  // == #idea("y", tags: (todo: none, draft: none))[...]
+#let idea = idea.with(exclude-tags: EX)
+#let note = idea.with(tag: "note")
 ```
 
-The returned function forwards everything untouched, so all three `#idea` call
-forms still work — `#note[body]`, `#note("name")[body]`, `#note(<name>)[body]` —
-along with every named argument (`title`, `level`, `minted`, `updated`,
-`show-date`, `show-tags`).
+`note` chains off the already-bound `idea`, so it inherits `EX` with nothing
+named twice — see "Excluding notes from a build" below for why that matters.
 
-`value:` binds a DEFAULT VALUE for the tag, for a wrapper whose tag means more
-than its own presence. A caller naming that tag themselves wins outright, with
-no deep merge:
+A dictionary `base-tags:` binds a DEFAULT VALUE for a tag, for a constructor
+whose tag means more than its own presence. A caller naming that tag
+themselves still wins outright, with no deep merge:
 
 ```typst
-#let flagged = tagged-idea("flag", value: "yes")
+#let flagged = idea.with(base-tags: (flag: "yes"))
 #flagged("a")[...]                       // flag: "yes"
 #flagged("b", tags: (flag: "no"))[...]   // flag: "no"
 ```
@@ -1908,11 +1901,11 @@ of tag names separated by commas, whitespace, or both.
 
 ```typst
 // content/lib.typ — the one place a project configures the package
-#import "@rookery/core:0.1.0": idea as _idea, tagged-idea as _tagged-idea
+#import "@rookery/core:0.1.0": idea as _idea
 
 #let EX = ("protected", "private")
 #let idea = _idea.with(exclude-tags: EX)
-#let note = _tagged-idea("note", exclude-tags: EX)
+#let note = idea.with(tag: "note")
 ```
 
 ```sh
@@ -1923,14 +1916,21 @@ typst compile content/index.typ site/index.html
 typst compile --input rookery-include=protected,private content/index.typ site/index.html
 ```
 
-### Why it takes TWO bindings
+### Why one binding is enough
 
-`tagged-idea` returns a closure that calls the `idea` captured in PACKAGE scope,
-so binding `idea` alone does NOT reach a wrapper you built with `tagged-idea` —
-`#note` would go on hatching the very notes you asked to exclude. That is a
-silently incomplete exclusion in a published build, which is the worst failure
-this feature can have, so `tagged-idea` takes `exclude-tags:` too and both get
-the same list.
+`.with()` chains off whatever it is applied to, so a constructor built on the
+project's OWN bound `idea` — `idea.with(tag: "note")`, applied to the `idea`
+already carrying `exclude-tags: EX` — inherits that exclusion with nothing
+named twice. There is no second binding to forget, and so no way for `#note`
+to go on hatching the very notes the project asked to exclude.
+
+A constructor built from CORE's own package-scope `idea`, rather than a
+project's rebound one, still does not see a project's `exclude-tags:` — the
+hazard has not disappeared, it has moved to whoever builds the constructor. A
+project always builds its own off its own bound `idea` now, so the hazard
+only remains for a constructor a PACKAGE exports for others to call, which is
+why `@rookery/slipshow`'s `#slip` still asks callers for `exclude-tags:`
+explicitly rather than assuming it is covered.
 
 ### Why it is not `rookery.with(exclude-tags: ..)`
 
@@ -2021,7 +2021,7 @@ protected ones anywhere — so it goes on `invisible-tags` as well.
 // content/lib.typ
 #let EX = ("protected", "private")
 #let idea = _idea.with(exclude-tags: EX)
-#let note = _tagged-idea("note", exclude-tags: EX)
+#let note = idea.with(tag: "note")
 ```
 
 `protected` and `private` are both gone from the published build; in the dev
@@ -2329,7 +2329,7 @@ changes:
 #show: rookery.with(show-context: false, show-backlinks: false)
 ```
 
-`#idea` (and `#note`/`#todo`/anything built on `tagged-idea`) takes the same
+`#idea` (and `#note`/`#todo`/anything built with `idea.with(..)`) takes the same
 two arguments, defaulting to `auto` — "use the document-wide setting above" —
 so a single note can override either without changing it for the rest of the
 rookery:

@@ -56,6 +56,18 @@
   // and `base-tags:` are a CONSTRUCTOR's, merged rather than replaced, so
   // `idea.with(tag: "note")` keeps its tag when a call site names `tags:` of
   // its own — `tags:` is the CALL SITE's, and it replaces outright.
+  //
+  // `base-tags:` takes several tags at once, for a family that is a narrowing
+  // of a broader one rather than a thing of its own —
+  // `idea.with(base-tags: ("person", "participant"))` — so every note the
+  // constructor mints is reachable as `person` too, which is what a
+  // `#window(tags: "person")` or a `tag-index("person")` has to see for the
+  // narrower family to belong to the wider one at all.
+  //
+  // A caller's own value for a tag WINS OUTRIGHT over a constructor's default —
+  // `#todo("x", tags: (todo: (state: "open")))` keeps `(state: "open")` even
+  // though the `todo` constructor bound its own default for that key — and
+  // there is no deep merge between the two.
   _assert-tags(tags, "#idea's")
   _assert-tags(base-tags, "#idea's", what: "base-tags")
   assert(
@@ -278,9 +290,10 @@
       // depth-0 rule baked into it, so there would be nothing left to expand.
       //
       // `tags` is the normalized DICTIONARY, stored as `#idea` received it —
-      // already deduped, because a `tagged-idea` wrapper prepends its own tag
-      // via `_dedup-tag` before calling in. TAGS ARE UNORDERED: key order is
-      // unspecified and nothing may depend on it.
+      // already deduped, because `tag:` and `base-tags:` fold under a caller's
+      // own `tags:` via `_merge-base-tags`/`_dedup-tag` before this point.
+      // TAGS ARE UNORDERED: key order is unspecified and nothing may depend
+      // on it.
       //
       // It takes part in the identity comparison below: typst dictionary `==`
       // is ORDER-INSENSITIVE, so two pins of one id whose tags differ only in
@@ -446,102 +459,8 @@
   ])
 }
 
-// ---- #tagged-idea / #tags-of / #tag-value — an idea's tags ----------------
+// ---- #tags-of / #tag-value — reading an idea's tags ------------------------
 //
-// `tagged-idea` is a FACTORY: it returns an `#idea` variant that prepends its
-// own tags to whatever the caller passed. Define your own vocabulary with it —
-//
-//   #let note = tagged-idea("note")
-//   #let todo = tagged-idea("todo")
-//   #let claim = tagged-idea("claim")
-//
-// — and `#note("x")[...]` is exactly `#idea("x", tags: (note: none))[...]`.
-// No new parameter on `#idea`, no recognised set of tags, no subclassing.
-// `@rookery/todos` builds its whole `#todo`/`#epic` surface on this.
-//
-// SEVERAL TAGS ARE POSITIONAL, for a family that is a narrowing of a broader
-// one rather than a thing of its own:
-//
-//   #let participant = tagged-idea("person", "participant")
-//
-// Every `#participant` is then reachable as a `person` too, which is what a
-// `#window(tags: "person")` or a `tag-index("person")` has to see for the
-// narrower family to belong to the wider one at all. The alternative is asking
-// each call site to write `tags: ("person",)` and finding the one that forgot.
-// One tag is the common case and needs no array: the sink takes them bare.
-//
-// The returned function forwards every other argument (level, title, created,
-// show-date, show-tags) and the POSITIONAL SINK untouched, so
-// `#note[body]`, `#note("name")[body]` and `#note(<name>)[body]` all work
-// exactly as the `#idea` forms do.
-//
-// `value:` is the default this factory binds for its own tag, for a wrapper
-// whose tag means something richer than its own presence. A CALLER'S OWN VALUE
-// FOR THAT TAG WINS OUTRIGHT — `#todo("x", tags: (todo: (state: "open")))`
-// keeps `(state: "open")` — and there is no deep merge between the two.
-// `_dedup-tag`'s "already a key" guard is what implements that. IT TAKES ONE
-// TAG: a per-tag mapping would collide with the values that are themselves
-// dictionaries (`(todo: (state: "open"))`) — there would be no way to read
-// `value: (a: 1)` as either. `#idea`'s `base-tags:` in its dictionary form
-// expresses the same thing without the one-tag restriction, since there the
-// dictionary IS the tag record — `idea.with(base-tags: (todo: (state:
-// "open")))` needs no factory at all.
-//
-// `tags:` at a call site REPLACES whatever a constructor bound; `tag:` and
-// `base-tags:` MERGE under it instead, which is what makes `idea.with(tag:
-// "note")` a safe `.with()` spelling — `#note("x", tags: ("draft",))` comes
-// out `("note", "draft")` rather than silently dropping "note". This factory
-// is a thin wrapper over `idea.with(base-tags: ..)`, kept for the positional,
-// several-tags-at-once spelling.
-// `exclude-tags:` IS TAKEN HERE TOO, AND IT IS REQUIRED, not a nicety. This
-// factory's returned closure calls the `idea` captured in PACKAGE scope, so a
-// project writing `#let idea = idea.with(exclude-tags: E)` does NOT thereby
-// reach `#let note = tagged-idea("note")` — that wrapper would keep hatching
-// the very notes the project asked to have excluded. Hence the documented
-// project pattern is two bindings sharing one list:
-//
-//   #let EX = ("protected", "private")
-//   #let idea = idea.with(exclude-tags: EX)
-//   #let note = tagged-idea("note", exclude-tags: EX)
-//
-// It is named on the RETURNED CLOSURE as well, defaulting to the factory's own
-// value, so a caller writing `#note("x", exclude-tags: (..))` overrides it
-// rather than landing the argument in `..args` as a duplicate named argument.
-#let tagged-idea(..own, value: none, exclude-tags: ()) = {
-  // The sink has to be policed: `value:` and `exclude-tags:` are matched first
-  // and `..own` takes whatever is left, so a misspelt `values:` would land in
-  // `own.named()` and be dropped in silence.
-  assert(
-    own.named().len() == 0,
-    message: "tagged-idea: unknown argument(s) "
-      + own.named().keys().join(", ")
-      + " — takes value: and exclude-tags:",
-  )
-  // `own-tags`, not `tags`: the returned closure's own `tags:` parameter is the
-  // CALLER's, and naming both the same shadows this list inside the closure
-  // body — where the fold below needs both at once.
-  let own-tags = own.pos()
-  assert(own-tags.len() > 0, message: "tagged-idea: name at least one tag")
-  assert(
-    value == none or own-tags.len() == 1,
-    message: "tagged-idea: value: binds a value for ONE tag, got "
-      + str(own-tags.len())
-      + " — name the value in the call's own tags: instead",
-  )
-  // FOLDED IN REVERSE so the keys come out in the order they were named:
-  // `_dedup-tag` prepends, so the last one folded ends up first. Tag key order
-  // carries no meaning to anything downstream, but a `#repr(tags-of(..))` in a
-  // demo or a test reads better when it matches the factory.
-  idea.with(
-    base-tags: if value == none {
-      own-tags
-    } else {
-      ((own-tags.at(0)): value)
-    },
-    exclude-tags: exclude-tags,
-  )
-}
-
 //
 //   #context tags-of("etal")   // -> ("note", "draft")
 //

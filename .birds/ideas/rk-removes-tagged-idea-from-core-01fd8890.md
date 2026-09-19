@@ -13,7 +13,7 @@ deps:
 - blocked-by:rk-moves-meetings-off-tagged-idea-590c09ca
 - blocked-by:rk-moves-cfps-off-tagged-idea-cdba0e98
 - blocked-by:rk-moves-search-demo-off-tagged-idea-eb41beb8
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/idea.typ, core/0.1.0/src/pure.typ, core/0.1.0/src/base.typ, core/0.1.0/readme.md, core/0.1.0/demo/pure/excluded.typ, core/0.1.0/demo/pure/Justfile, core/0.1.0/demo/rheo/content/lib.typ, core/0.1.0/demo/rheo/content/tags.typ, core/0.1.0/demo/rheo/check.sh
 

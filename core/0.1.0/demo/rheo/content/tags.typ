@@ -1,13 +1,14 @@
-#import "lib.typ": demo, idea, note, tagged-idea
+#import "lib.typ": demo, idea, note
 #import "@rookery/core:0.1.0": ideas, ideas-outline, tag-index, tag-value, tags-of, window
 
 #show: demo
 
 = Tag surfaces
 
-// `#todo` is not a package export — `tagged-idea` is the factory, bound to
-// this project's exclusion the same way `content/lib.typ` binds `note`.
-#let todo = tagged-idea("todo")
+// `#todo` is not a package export — it's an `idea.with(tag: ..)` constructor
+// bound here, off the project's own exclusion-bound `idea`, the same way
+// `content/lib.typ` binds `note`.
+#let todo = idea.with(tag: "todo")
 
 #note("tag-n-plain")[A plain sugar note — `#note` prepends the "note" tag.]
 #todo("tag-t-plain")[A plain sugar todo — `#todo` prepends the "todo" tag.]
@@ -95,21 +96,21 @@
   list(..rows.map(r => [#r.label — deadline #raw(repr(r.deadline))]))
 }
 
-== A family that narrows another: several tags from one factory
+== A family that narrows another: several tags from one constructor
 
 // `#participant` prepends BOTH tags, so every participant answers a `person`
-// selection too without any call site restating it. This is what a factory
-// taking several positional tags is for; the `#window` below is the assertion
+// selection too without any call site restating it. This is what `base-tags:`
+// taking several tags at once is for; the `#window` below is the assertion
 // that matters — it selects on the WIDER tag and has to find the narrower
 // family's notes.
-#let person = tagged-idea("person")
-#let participant = tagged-idea("person", "participant")
+#let person = idea.with(tag: "person")
+#let participant = idea.with(base-tags: ("person", "participant"))
 
 #person("tag-p-person")[A plain person.]
 #participant("tag-p-participant")[A participant, which is also a person.]
 #participant("tag-p-both", tags: ("phd",))[
   A participant ALSO tagged phd — the caller's tags survive alongside both of
-  the factory's own.
+  the constructor's own.
 ]
 
 #context [
@@ -126,9 +127,10 @@
 // a DEFAULT, and a call naming its own `tags:` replaces it outright rather than
 // merging. MEASURED: `#recommender("x", tags: ("phd",))` reads
 // `("person", "phd")`, having silently dropped the very tag the wrapper exists
-// to add. Same failure as the `idea.with(tags: ..)` trap in the factory's own
-// banner, one level out. A narrowing that must survive a call site's tags is a
-// factory naming both: `tagged-idea("person", "recommender")`.
+// to add. Same failure as the `idea.with(tags: ..)` trap `#idea`'s own
+// comment warns about, one level out. A narrowing that must survive a call
+// site's tags names both in `base-tags:` instead:
+// `idea.with(base-tags: ("person", "recommender"))`.
 #let recommender = person.with(tags: ("recommender",))
 
 #recommender("tag-p-with")[

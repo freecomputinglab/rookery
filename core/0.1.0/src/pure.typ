@@ -205,9 +205,9 @@
 
 // Prepends `tag`, unless the caller already passed it — `#todo("x", tags:
 // ("todo",))` must yield `(todo: none)`, not the tag twice, or the heading gets
-// a duplicated CSS class. Defined before the `tagged-idea` factory that calls
-// it: a `#let` closure captures the scope visible AT DEFINITION time, so a
-// forward reference to a not-yet-defined name fails at call time.
+// a duplicated CSS class. Defined before `_merge-base-tags` that calls it: a
+// `#let` closure captures the scope visible AT DEFINITION time, so a forward
+// reference to a not-yet-defined name fails at call time.
 //
 // `tags` is normalized here, not left to `#idea`'s own coercion: a wrapper
 // calls this BEFORE `tags` ever reaches `#idea`, so a bare `tags: "draft"`
@@ -221,8 +221,9 @@
 // own tag: `#todo("x", tags: (todo: (state: "open")))` keeps `(state: "open")`.
 // A caller's value wins OUTRIGHT — there is no deep merge.
 //
-// `value:` is the default a factory binds for the tag it prepends (see
-// `tagged-idea`). It only applies when the caller did not name the tag at all.
+// `value:` is the default `_merge-base-tags` passes for a key bound in a
+// dictionary `base-tags:`. It only applies when the caller did not name the
+// tag at all.
 #let _dedup-tag(tag, tags, value: none) = {
   let tags = _norm-tags(tags)
   if tag in tags { tags } else { ((tag): value) + tags }

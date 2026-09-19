@@ -1,6 +1,6 @@
-// excluded.typ — `exclude-tags:` on `#idea` and `#tagged-idea`
-// (src/idea.typ's exclusion gate), the `_resolve-excluded` composition
-// (src/base.typ), and `_excluded-ids` (src/state.typ).
+// excluded.typ — `exclude-tags:` on `#idea` and on constructors built with
+// `idea.with(..)` (src/idea.typ's exclusion gate), the `_resolve-excluded`
+// composition (src/base.typ), and `_excluded-ids` (src/state.typ).
 //
 // WHAT THIS ROOT ASSERTS, and it is asserted by grep from
 // `demo/pure/Justfile`'s own recipe rather than by an `assert` in here: an
@@ -17,17 +17,16 @@
 // That pair is the whole feature in one place, and this demo is the only test in
 // the repo that can make it: `rheo compile` forwards no `--input` today (see
 // `_resolve-excluded`'s banner), so `demo/rheo` cannot vary the env half at all.
-#import "../../src/lib.typ": hyperlink, idea, idea-body, ideas, rookery, tagged-idea, window
+#import "../../src/lib.typ": hyperlink, idea, idea-body, ideas, rookery, window
 
 #show: rookery
 
-// THE PROJECT PATTERN, verbatim as the readme documents it — two bindings
-// sharing one list. Binding only `idea` would leave `#note` hatching the very
-// notes this asks to exclude, because `tagged-idea` calls the `idea` captured in
-// PACKAGE scope. That is the trap the second line exists to close.
+// THE PROJECT PATTERN, verbatim as the readme documents it — one binding.
+// `note` is built with `.with()` off the bound `idea` below, not off the
+// package's own, so it inherits `exclude-tags` with nothing named twice.
 #let EX = ("private",)
 #let idea = idea.with(exclude-tags: EX)
-#let note = tagged-idea("note", exclude-tags: EX)
+#let note = idea.with(tag: "note")
 
 = Excluded notes
 
@@ -36,8 +35,9 @@
 // Dropped by the default build, restored by `--input rookery-include=private`.
 #idea("gone", tags: ("private",))[DROPBODY]
 
-// The same through a `tagged-idea` wrapper, which is the case a project gets
-// wrong if `exclude-tags:` is bound on `idea` alone.
+// The same through the `note` constructor, which is the case a project gets
+// wrong if `exclude-tags:` is bound on `idea` alone and `note` is built off
+// the package's own `idea` instead of the project's bound one.
 #note("gone2", tags: ("private",))[DROPBODY2]
 
 // A VALUED tag excludes exactly as a plain one does — the names are the keys.

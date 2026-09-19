@@ -4,9 +4,9 @@
 // so a project that wants one configuration wraps it once here and every
 // vertebra applies the wrapper. Same reason `rookery.ohrg.org` does it.
 #import "@rookery/core:0.1.0": rookery
-#import "@rookery/core:0.1.0": idea as _idea, tagged-idea as _tagged-idea
+#import "@rookery/core:0.1.0": idea as _idea
 
-// ---- THE PROJECT-SIDE EXCLUSION PATTERN, and why it is TWO bindings --------
+// ---- THE PROJECT-SIDE EXCLUSION PATTERN, and why ONE binding is enough -----
 //
 // `exclude-tags` is an argument on `#idea`, not a `rookery.with()` knob, because
 // its gate has to run with no `#context` — see `_resolve-excluded` in the
@@ -14,16 +14,15 @@
 // once here, in the same file that already owns the configuration, and every
 // vertebra imports the bound versions from here rather than from the package.
 //
-// BOTH LINES ARE REQUIRED. `tagged-idea` returns a closure calling the `idea`
-// captured in PACKAGE scope, so binding `idea` alone would leave `#note` hatching
-// the very notes this asks to exclude — a silently incomplete exclusion in a
-// published build, which is the worst failure shape the feature has. The `as
-// _idea` / `as _tagged-idea` aliasing is what lets the bound names take the
-// obvious spelling without shadowing their own right-hand side.
+// A constructor built with `.with()` off the project's OWN bound `idea`
+// inherits its `exclude-tags` automatically, because `.with()` chains off
+// whatever it is applied to — `note` below is built off the bound `idea`, not
+// off the package's own, so the exclusion list is named exactly once. The `as
+// _idea` aliasing is what lets the bound name take the obvious spelling
+// without shadowing its own right-hand side.
 #let EX = ("private",)
 #let idea = _idea.with(exclude-tags: EX)
-#let tagged-idea = _tagged-idea.with(exclude-tags: EX)
-#let note = _tagged-idea("note", exclude-tags: EX)
+#let note = idea.with(tag: "note")
 
 // The template rookery hands to `.marrow.typ` for each minted note page.
 //

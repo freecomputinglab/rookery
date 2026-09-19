@@ -235,7 +235,8 @@ grep -q 'idea-tag-line: #3366ff' "$H/ideas/root-note.html" ||
 #    proves an excluded note is absent from one page's HTML; only here can it be
 #    shown to mint no page, take no index row, emit no beacon and appear nowhere
 #    in the whole output tree. `content/lib.typ` binds
-#    `exclude-tags: ("private",)` on both `idea` and `tagged-idea`.
+#    `exclude-tags: ("private",)` on `idea`, and every constructor built off
+#    it with `.with()` inherits that binding.
 [ -f "$H/ideas/private-note.html" ] &&
   note "ideas/private-note.html was minted for an EXCLUDED note"
 #    The strongest form of the assertion, and the one worth keeping: the note's
@@ -501,11 +502,12 @@ fi
 grep -q 'data-rookery="window" data-rookery-tags="note"' "$H/sub/page.html" ||
   note "sub/page.html's window of plain-note carries no data-rookery-tags — a window should wear its note's visible tags"
 
-# 21. A FACTORY NAMING SEVERAL TAGS prepends all of them, so a family that
-#     narrows another belongs to the wider one. `content/tags.typ` builds
-#     `#participant = tagged-idea("person", "participant")`; the narrower
-#     family's note must carry BOTH, and the caller's own tags must survive
-#     alongside them.
+# 21. A CONSTRUCTOR NAMING SEVERAL TAGS in `base-tags:` prepends all of them,
+#     so a family that narrows another belongs to the wider one.
+#     `content/tags.typ` builds
+#     `#participant = idea.with(base-tags: ("person", "participant"))`; the
+#     narrower family's note must carry BOTH, and the caller's own tags must
+#     survive alongside them.
 #
 #     Keyed on `data-rookery-tags` rather than the `idea-tag-*` classes, for
 #     the reason check 20 gives: the class stem is a project's to rename, the

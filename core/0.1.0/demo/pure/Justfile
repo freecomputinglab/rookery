@@ -53,8 +53,8 @@ check:
     note() { echo "FAIL: $*"; fail=1; }
 
     # 1. An excluded note is ABSENT, not hidden: neither its body nor its id
-    #    appears anywhere. Covers the plain form, a `tagged-idea` wrapper, and a
-    #    VALUED tag — three ways in, one gate.
+    #    appears anywhere. Covers the plain form, an `idea.with(..)`
+    #    constructor, and a VALUED tag — three ways in, one gate.
     if grep -qE 'DROPBODY|idea:gone' build/excluded.html; then
       note "excluded note leaked into build/excluded.html"
     fi

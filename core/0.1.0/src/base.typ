@@ -180,8 +180,7 @@
 // `#show: rookery.with(exclude-tags: ..)` cannot do this job: a template
 // argument becomes STATE, state is read with `.final()`, and `.final()` needs
 // `#context` — which is precisely what the gate cannot have. Hence the
-// declared half of the list is a plain ARGUMENT on `#idea` and `#tagged-idea`
-// instead. (`invisible-tags` IS a `rookery.with` argument, and the asymmetry
+// declared half of the list is a plain ARGUMENT on `#idea` instead. (`invisible-tags` IS a `rookery.with` argument, and the asymmetry
 // is deliberate: that one is pure presentation, and every site it touches
 // already runs inside a `#context`.)
 //
