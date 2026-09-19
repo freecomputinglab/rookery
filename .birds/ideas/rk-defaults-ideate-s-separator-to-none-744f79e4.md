@@ -7,7 +7,7 @@ labels:
 - ideate-separator
 deps:
 - blocked-by:rk-accepts-only-heading-where-as-ideate-dc9435ee
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/ideate.typ, core/0.1.0/readme.md, core/0.1.0/demo/rheo/content/ideated-id.typ
 

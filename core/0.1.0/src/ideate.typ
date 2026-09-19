@@ -7,15 +7,15 @@
 // document, and an author who does not call it never meets it.
 //
 //   #ideate[
-//     First paragraph — one note.
+//     First paragraph.
 //
-//     Second paragraph — another.
+//     Second paragraph — both together are ONE note.
 //   ]
 //
 //   #show: rookery
-//   #show: ideate
+//   #show: ideate.with(separator: par)
 //
-//   Every paragraph below is a note.
+//   Every paragraph below is its own note.
 //
 // ONE FUNCTION COVERS BOTH FORMS, and there is no second entry point to add.
 // `#show: f` at the top level means `f(rest-of-the-document)`, so a plain
@@ -31,14 +31,14 @@
 // `separator:` decides where one note ends and the next begins. Four spellings
 // are accepted, and nothing else:
 //
-//   par                       every paragraph is a note (the default)
-//   parbreak                  the same thing; the previous default, kept working
+//   par                       every paragraph is a note
+//   parbreak                  the same thing
 //   heading.where(level: 2)   every `==` starts a note — any level
-//   none                      nothing splits: the whole body is ONE note
+//   none                      nothing splits: the whole body is ONE note (the default)
 //
-//   #ideate[..]                                         // default: by paragraph
+//   #ideate[..]                                         // default: the block is one note
 //   #ideate(separator: heading.where(level: 2))[..]     // each `==` starts one
-//   #ideate(separator: none)[..]                        // the block is one note
+//   #ideate(separator: par)[..]                         // one note per paragraph
 //
 // also as a show rule, which is the case that motivated the argument at all — a
 // weeknotes-style document where every `==` section, not every paragraph, is the
@@ -98,8 +98,9 @@
 // `heading(level: 2)` and `heading(level: 2)[]` ARE BOTH REFUSED. The bare
 // form is illegal Typst (`error: missing argument: body`) and never reaches
 // this file at all — Typst's own compiler rejects it at the call site. The
-// bracketed form reaches the panic above. `heading.where(level: 2)` is the
-// spelling to use for either.
+// bracketed form reaches the `separator:` classification panic further down,
+// inside `#let ideate(..)`. `heading.where(level: 2)` is the spelling to use
+// for either.
 //
 // PAR MODE DISCARDS ITS SEPARATOR; HEADING KEEPS IT. In par mode the
 // `parbreak()` between two paragraphs belongs to neither and is thrown away.
@@ -319,7 +320,7 @@
 // arithmetic — no state, no query, no layout — so the block introduces no
 // convergence risk of its own; `#idea` does its own registration inside a
 // context of its own already, and nesting one more changes nothing about that.
-#let ideate(body, separator: par, title: none, name: auto, tags: (), show-frame: false, show-id: false, ..args) = context {
+#let ideate(body, separator: none, title: none, name: auto, tags: (), show-frame: false, show-id: false, ..args) = context {
   // A PAGED TARGET GETS THE MARKUP IT WAS GIVEN. No note is minted, nothing is
   // wrapped, and `#ideas()` in that build sees nothing from here — a PDF of a
   // block of prose should be that block of prose. The same shape
@@ -346,8 +347,7 @@
   // bound arguments cannot be read back, so it is refused too rather than
   // guessed at.
   let none-mode = separator == none
-  let heading-sel = type(separator) == selector
-  let heading-mode = heading-sel
+  let heading-mode = type(separator) == selector
   let par-mode = type(separator) == function and (separator == par or separator == parbreak)
   if not (none-mode or heading-mode or par-mode) {
     panic(

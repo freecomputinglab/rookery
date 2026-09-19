@@ -14,9 +14,10 @@
   #ideate-id("fixed-id-note") beacon rather than the package counter.
 ]
 
-// `separator: par` splits this into two notes; only the second carries a
-// beacon, proving the mechanism is per-section rather than document-wide
-// and that its unbeaconed sibling still mints under the counter as before.
+// Asking explicitly for `separator: par` splits this into two notes; only
+// the second carries a beacon, proving the mechanism is per-section rather
+// than document-wide and that its unbeaconed sibling still mints under the
+// counter as before.
 #ideate(separator: par)[
   AUTOCOUNTBODY, a paragraph with no beacon, minted under the package's own
   auto-incrementing counter.

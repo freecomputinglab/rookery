@@ -591,15 +591,15 @@ accepted:
 
 | `separator:` | what starts a note |
 | --- | --- |
-| `par` | every paragraph — the default |
-| `parbreak` | the same thing; the previous default, still accepted |
+| `par` | every paragraph |
+| `parbreak` | the same thing |
 | `heading.where(level: 2)` | every `==` — any level |
-| `none` | nothing splits — the whole body is ONE note |
+| `none` | nothing splits — the whole body is ONE note — the default |
 
 ```typst
-#ideate[..]                                      // default: by paragraph
+#ideate[..]                                      // default: the whole block is one note
 #ideate(separator: heading.where(level: 2))[..]  // every `==` starts a note
-#ideate(separator: none)[..]                     // the whole block is one note
+#ideate(separator: par)[..]                      // one note per paragraph
 ```
 
 The heading form is most useful as a show rule, the case that motivated the
@@ -628,9 +628,10 @@ silently mis-splitting a document. A selector over another element, one
 carrying extra fields, or one built with `.or(..)` is refused with a panic
 rather than guessed at.
 
-**`separator: none`** wraps everything in one note — it is `#idea` with
-`#ideate`'s inverted defaults and its `tags:`, which is what turns a whole page
-into a single note without writing `#idea` by hand. In this mode a trailing
+**`separator: none`**, the default, wraps everything in one note — it is `#idea`
+with `#ideate`'s inverted defaults and its `tags:`, which is what turns a whole
+page into a single note without writing `#idea` by hand — the common case for a
+document-level `#show: ideate`, one page being one idea. In this mode a trailing
 `context` or `metadata` node ends up inside the note rather than beside it, there
 being only one group; it renders nothing.
 
@@ -842,16 +843,21 @@ naming both. A second `#ideate` call, or another
 chapter elsewhere in the document, is not covered by this check — see "Flat
 ids, and why" below for cross-document id collisions in general.
 
-### Its two inverted defaults
+### Its inverted defaults
 
-`ideate(body, separator: par, title: none, name: auto, tags: (), show-frame: false, show-id: false, ..args)`.
+`ideate(body, separator: none, title: none, name: auto, tags: (), show-frame: false, show-id: false, ..args)`.
 
-Both invert `#idea`'s own defaults, and that inversion is most of the reason the
-function is worth having: an inferred note is not one anybody named, so a frame
-and a permalink around every paragraph is chrome nobody asked for — and with no
-name, that permalink points at a sequence number which means nothing to a reader.
-Pass `true` to either to get it back. See "Dropping a note's frame" above for what
-each one governs.
+`separator: none` mints the WHOLE body as one note — the common case is a
+document-level `#show: ideate` on a page that is one idea, and a caller who
+wants the old paragraph-per-note behaviour asks for it explicitly with
+`separator: par`.
+
+`show-frame` and `show-id` both invert `#idea`'s own defaults, and that
+inversion is most of the reason the function is worth having: an inferred note
+is not one anybody named, so a frame and a permalink around every paragraph is
+chrome nobody asked for — and with no name, that permalink points at a sequence
+number which means nothing to a reader. Pass `true` to either to get it back.
+See "Dropping a note's frame" above for what each one governs.
 
 `..args` forwards every other `#idea` argument to every note minted. `tags:` is
 its own parameter rather than riding that sink — see "Tagging one section from
