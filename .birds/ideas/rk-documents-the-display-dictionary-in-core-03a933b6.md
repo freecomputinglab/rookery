@@ -12,7 +12,7 @@ deps:
 - blocked-by:rk-documents-title-derived-ids-and-the-url-579ccbdc
 closed: false
 ---
-Touches: core/0.1.0/readme.md, core/0.1.0/demo/pure/theme.typ, core/0.1.0/demo/rheo/content/index.typ, core/0.1.0/demo/rheo/content/tags.typ, core/0.1.0/demo/rheo/content/sub/deeper/page.typ, core/0.1.0/demo/rheo/check.sh
+Touches: core/0.1.0/readme.md, core/0.1.0/src/core.css, core/0.1.0/.marrow.typ, core/0.1.0/src/idea.typ, core/0.1.0/demo/pure/theme.typ, core/0.1.0/demo/rheo/content/index.typ, core/0.1.0/demo/rheo/content/tags.typ, core/0.1.0/demo/rheo/content/sub/deeper/page.typ, core/0.1.0/demo/rheo/check.sh
 
 Update `@rookery/core`'s readme and demos for the `display` dictionary rename.
 
@@ -88,10 +88,29 @@ it is a caller with a real opinion rather than the bottom of the stack.
    change) or Typst argument names (which it does), and change only the latter. Report
    which you found.
 
+6. Three source files still carry STALE COMMENTS naming the old argument names. No
+   other bird covers them. Fix the comment text only — no code, no CSS rules, no
+   selectors:
+
+   ```
+   rg -n 'show-(date|tags|frame|id|context|backlinks|title|label|background)' src/core.css
+   rg -n --hidden 'show-(date|tags)' .marrow.typ
+   rg -n -F 'rookery.with(show-context:' src/idea.typ
+   ```
+
+   As of filing: eight comment hits in `src/core.css`, two in `.marrow.typ`
+   (lines 238 and 254), and one in `src/idea.typ` (line 388, which should name
+   `rookery.with(display-context:, display-backlinks:, display-title:)`). Note
+   `--hidden` for `.marrow.typ`, a dotfile ripgrep skips by default.
+
+   Leave every `state("rheo-idea-show-*")` string literal and the comment explaining
+   that deliberate binding/key split exactly as they are.
+
 ## Non-goals
 
 - Do NOT change any behaviour. This bird edits prose, demo content and a check script.
-- Do NOT touch `core/0.1.0/src/` or `.marrow.typ`.
+- Do NOT change behaviour in `core/0.1.0/src/` or `.marrow.typ` — step 6 permits
+  COMMENT text edits in `core.css`, `.marrow.typ` and `idea.typ` and nothing else.
 - Do NOT rename any CSS class, `data-rookery-*` attribute, or `state("rheo-idea-show-*")`
   string key. None of them changed.
 - Do NOT touch another package's readme.

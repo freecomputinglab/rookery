@@ -105,10 +105,9 @@ From `slipshow/0.1.0`:
 3. `rg -n -F 'display-frame: false' src/slip.typ` returns exactly one hit — the
    inverted default survived.
 4. `rg -n -F 'foldable' src/slipshow.typ` still returns hits under that name.
-5. This package resolves `@rookery/core` through the Typst package cache, so whether
-   your changes compile against the NEW core depends on what
-   `~/.cache/typst/packages/rookery/core/0.1.0` points at. Check it with
-   `ls -la ~/.cache/typst/packages/rookery/core/` and report what you found: a symlink
-   into this checkout means you are testing the new core, a real directory means you
-   are testing a published release and the compile result is NOT evidence about this
-   rename. Say which case you were in.
+5. `@rookery/core` resolves through `~/.cache/typst/packages/rookery/core/0.1.0`,
+   which is a SYMLINK into this checkout — so this package compiles against the live,
+   already-renamed core. That makes step 1 a real signal, not a formality:
+   **slipshow's suite currently FAILS** against the renamed core, and this bird is what
+   makes it pass. A green `just test` is the proof the bird worked; if it is still red,
+   report the failing assertion rather than declaring success.
