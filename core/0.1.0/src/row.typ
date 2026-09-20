@@ -160,6 +160,16 @@
   cells: (),
   attrs: (:),
 ) = context {
+  // BARE `target()`, DELIBERATELY NOT `_target()` (base.typ) — and this file
+  // imports no `base.typ` for exactly that reason. `std.target()`, which the
+  // unqualified builtin resolves to here since nothing in this file shadows
+  // the name, reports EPUB as `"html"`; `_target()` reads
+  // `_rheo-ctx().target` instead and reports `"epub"` distinctly under rheo.
+  // This guard accepts BOTH html and epub and rejects only the paged target,
+  // and the builtin's EPUB-folds-to-html behaviour is what gives it that in
+  // one comparison. Importing `base.typ` here to match the rest of the
+  // package would make this assert reject EPUB outright — and no suite in
+  // this repo would catch it, none of them compiling to EPUB.
   assert(target() == "html", message: _paged-panic)
 
   // `soft` SAYS SOMETHING ABOUT A DATE, so a row with no date does not wear it: the

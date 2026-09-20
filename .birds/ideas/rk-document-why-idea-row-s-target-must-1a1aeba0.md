@@ -6,7 +6,7 @@ priority: 4
 labels:
 - chore-core-review
 deps: []
-closed: false
+closed: true
 ---
 `#idea-row`'s paged-target guard calls the bare Typst builtin `target()`
 rather than this package's own `_target()` helper (`src/base.typ`) — and,
