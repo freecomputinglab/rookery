@@ -282,9 +282,9 @@ grep -q 'SECRETBODY' "$H/ideas/secret-note.html" ||
 #     forwards no `--input` at all today — `build_inputs` in rheo core inserts
 #     only `rheo-context` — so there is no way to vary it from here.
 #     `demo/pure` covers that half (it compiles `excluded.typ` twice, one
-#     `--input` apart), and rheo beads `rheo-cli-input-flag-q12` /
-#     `rheo-toml-inputs-table-rih` are what will make it reachable from a rheo
-#     build. Nothing in this package changes when they land.
+#     `--input` apart). It becomes reachable from a rheo build once `rheo
+#     compile` forwards `--input` to the compile it runs; nothing in this
+#     package changes when that happens.
 
 # 12. A DERIVED TITLE ON A MINTED PAGE. `demo/pure` asserts the derivation on a
 #     card; only here is there a minted page, whose `<title>` and `<h1>` come

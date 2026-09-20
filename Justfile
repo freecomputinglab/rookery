@@ -15,7 +15,7 @@ build:
 # resolves to the old code where that is installed and fails outright where it
 # is not.
 #
-# Three rules, all of them things that have gone wrong at least once:
+# Three rules:
 #   - a spec naming its OWN package must name the version its manifest declares;
 #   - a spec naming ANOTHER package THAT IS HERE must name a version that exists;
 #   - `<name>/<version>/` is the layout (CLAUDE.md), so the directory must match.
@@ -31,22 +31,9 @@ build:
 # output at all. `grep -r` reads dotfiles by default, so this needs no flag for
 # them — unlike the `rg` this recipe used to be written with.
 #
-# GREP AND SED, NOT RIPGREP, and that is the whole reason this recipe reads the way
-# it does. MEASURED: every run of the `check` workflow failed with
-# `line 32: rg: command not found` (runs 32126839338 and 32127008271) — `rg` is not
-# on GitHub's `ubuntu-latest` image, while it is in this repo's devShell, so the
-# recipe passed for everyone locally and had never once run in CI. A lint that only
-# works on the author's machine is not a lint. Installing ripgrep on the runner
-# would have fixed the symptom and left the recipe needing a tool the check does
-# not otherwise want; `grep -rEon` plus one `sed` needs nothing that is not on
-# every POSIX box.
-#
-# THE THREE rg FEATURES THAT HAD TO BE REPLACED, so nobody reintroduces them:
-#   - `-r '$1'` capture replacement -> `sed -n 's/.../\1/p'`;
-#   - `--hidden` -> unnecessary, `grep -r` already reads dotfiles;
-#   - `--no-ignore-vcs` + `-g '!dist'` -> `--exclude-dir`. rg skips gitignored
-#     paths by default and had to be told not to; grep never skipped them and has
-#     to be told to. Same list, opposite default.
+# This recipe uses `grep` and `sed` rather than `rg` because `rg` is not on
+# the CI runner image, and a lint that only runs on the author's machine is
+# not a lint.
 check-versions:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -115,14 +102,13 @@ browser:
 
 # Cuts `<pkg>/<new>/` from `<pkg>/<old>/` and rewrites every version this repo
 # writes out by hand, so a release is one command rather than dozens of edits
-# that `check-versions` can only catch AFTERWARDS. MEASURED before this existed:
-# cutting rookery and rookery-search 0.3.0 -> 0.4.0 is 84 literal specs, 42 of
-# them doc comments in one file.
+# that `check-versions` can only catch AFTERWARDS. A version cut rewrites on
+# the order of 84 literal specs by hand, 42 of them doc comments in one file.
 #
 # `.github/workflows/check.yml` is rewritten too, and that is the whole reason
 # this recipe cannot be a one-line `sed`. `check-versions` walks `*/*/` only, so
 # the CI file is invisible to it while hardcoding the version PATHS it tests
-# (`cd core/0.3.0 && just test`, the package-cache assertion, `demo/pure`).
+# (`cd <pkg>/<version> && just test`, the package-cache assertion, `demo/pure`).
 # A cut that misses it leaves CI exercising the PREVIOUS version and reporting
 # green for code nobody ran.
 #
@@ -155,15 +141,15 @@ bump PKG OLD NEW:
     grep -rl --binary-files=without-match "@rookery/$pkg:$old" "$pkg/$new" \
         | xargs -r sed -i "s|@rookery/$pkg:$old|@rookery/$pkg:$new|g"
 
-    # Path-form self-references: `rookery/0.3.0/src/pure.typ` in a comment, `cd
-    # rookery-search/0.3.0` in a readme, "run it from rookery/0.3.0" in a test
+    # Path-form self-references: `rookery/<old>/src/pure.typ` in a comment, `cd
+    # rookery-search/<old>` in a readme, "run it from rookery/<old>" in a test
     # fixture's header. `check-versions` reads the `@rookery/pkg:ver` spec form only,
     # so these go stale silently and are found by a reader following one into the
-    # PREVIOUS version's file. MEASURED on the 0.3.0 -> 0.4.0 cut: 9 such
+    # PREVIOUS version's file. A version cut leaves on the order of 9 such
     # references across both rookery packages, none of them caught.
     #
-    # Directory form ONLY. Prose about what a version DID — "since 0.3.0",
-    # "0.3.0's breaking change", a `## 0.3.0` release-notes heading — says the old
+    # Directory form ONLY. Prose about what a version DID — "since <old>",
+    # "<old>'s breaking change", a `## <old>` release-notes heading — says the old
     # number on purpose and has to survive the bump.
     grep -rl --binary-files=without-match "$pkg/$old" "$pkg/$new" \
         | xargs -r sed -i "s|$pkg/$old|$pkg/$new|g"

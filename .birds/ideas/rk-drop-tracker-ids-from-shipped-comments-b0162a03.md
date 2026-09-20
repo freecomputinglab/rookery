@@ -6,7 +6,7 @@ priority: 2
 labels:
 - drop-tracker-ids
 deps: []
-closed: false
+closed: true
 ---
 This project's `CLAUDE.md` gives two rules this bird enforces: "**No issue ids.**
 Never name a bird, a bookmark or a branch. The argument for a line has to stand

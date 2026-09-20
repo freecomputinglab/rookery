@@ -30,10 +30,9 @@
 // each URL's own last segment, landing this one on `2024-hope` instead.
 #idea[https://anil.recoil.org/papers/2024-hope-bastion]
 
-// A titleless note NESTED inside another note's body. Under the ordinal-
-// based scheme this took its parent's own id with a counter appended
-// (`nn-parent-1`); it now derives an id from its own body like any other
-// titleless note, and carries none of its parent's name.
+// A titleless note NESTED inside another note's body. It derives its name
+// from its own body like any other titleless note, and carries none of its
+// parent's name.
 #idea("nn-parent", title: [A note with a nested note inside it])[
   #idea[Filed here with no name of its own, sitting inside its parent
     instead of borrowing the parent's id and a number.]

@@ -1,7 +1,7 @@
 default:
     @echo "demo/pure: run 'just watch' to live-rebuild root.typ as HTML, or 'just build' to compile every root"
 
-# --features html is required always (epic decision 8) — see root.typ. `mkdir`
+# --features html is required always — see root.typ. `mkdir`
 # first: unlike `rheo watch`, `typst watch` does not create its output
 # directory and fails with "No such file or directory" on a fresh checkout
 # (build/ is gitignored, never committed).
