@@ -338,8 +338,8 @@
 // another note — [Meeting with #ref(<idea:x>)] — has nothing here to walk
 // into: what a reference is worth in plain text is the NAME OF ITS TARGET,
 // and only a caller holding the registry knows that. `_plain` below passes
-// the pure answer, `_ => ""`, which is what a title's plain text was before
-// the hook existed; `ideas()` passes one that reads the target's own label.
+// the pure answer, `_ => ""`, for a caller with no registry to resolve
+// against; `ideas()` passes one that reads the target's own label.
 #let _plain-with(c, resolve) = {
   if c == none { "" } else if type(c) == str { c } else if type(c) != content {
     ""
@@ -432,8 +432,8 @@
 // its body (`_derived-title` below), so `#todo[Write @idea:nz-man post]` is
 // called "Write  post" on every worklist, index row and search hit unless
 // whoever holds the registry can say what that reference is worth. MEASURED on
-// exactly that todo. `_body-text` below passes the pure answer, `_ => ""`, which
-// is what a body's plain text was before the hook existed; `_rec-label` and
+// exactly that todo. `_body-text` below passes the pure answer, `_ => ""`,
+// for a caller with no registry to resolve against; `_rec-label` and
 // `ideas()` pass `_ref-text(reg)`.
 #let _body-text-with(c, resolve) = {
   if c == none { "" } else if type(c) == str { c } else if type(c) != content {

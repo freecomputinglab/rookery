@@ -225,11 +225,11 @@
 // Whether `#idea`'s card and `#window`'s summary render a note's stored
 // date, its tag pills, its box frame, and its permalink id — plus, on
 // `#window` only, its derived label and its hover background. Same
-// binding/key naming split as `_display-context` above. `#idea`/`#window`
-// used to fall back to a built-in default the moment `display-*` came back
-// `auto`; that default now lives here, so `rookery(..)` can set it once for
-// the whole document instead of at every call site. The values match what
-// `#idea`/`#window` always applied: only `date` and `tags` start off.
+// binding/key naming split as `_display-context` above. Centralising the
+// built-in default here, rather than in `#idea`/`#window` themselves, is
+// what lets `rookery(..)` set it once for the whole document instead of at
+// every call site. The values match what `#idea`/`#window` always applied:
+// only `date` and `tags` start off.
 #let _display-background = state("rheo-idea-show-background", true)
 #let _display-date = state("rheo-idea-show-date", false)
 #let _display-frame = state("rheo-idea-show-frame", true)
@@ -365,9 +365,9 @@
 
 // ---- The slug-occurrence counter — numbering a duplicate title -----------
 //
-// A title-derived slug that collides with an earlier one used to panic
-// outright; it now gets a numeric `-<n>` suffix instead, counted in document
-// order, and this dict is what counts it: slug string to the OCCUPANTS that
+// A title-derived slug that collides with an earlier one gets a numeric
+// `-<n>` suffix, counted in document order, and this dict is what counts it:
+// slug string to the OCCUPANTS that
 // have taken it so far, each an `occupant` value describing the note that
 // took a slot (see `idea.typ`'s main mint for what one holds). A PINNED id
 // (`#idea(<name>, ..)`) never touches this state at all — see `idea.typ`'s

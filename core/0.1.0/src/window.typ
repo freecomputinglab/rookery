@@ -159,8 +159,9 @@
       + "\"lexicographic\" — got " + repr(sort),
   )
   // `_resolve-display` already rejects a non-boolean dictionary value with
-  // its own message, so the per-argument asserts these six replaced are
-  // redundant for the dictionary path.
+  // its own message, so a per-argument assert on any of the six flags it
+  // also validates (`date`, `tags`, `frame`, `name`, `label`, `background`)
+  // would be redundant for the dictionary path.
   let display = _resolve-display(
     display,
     (
@@ -171,8 +172,8 @@
     "#window's",
   )
   // These six keys stay `auto` when unset, same as `context`/`backlinks`/
-  // `title` — `#window` no longer substitutes a built-in default itself.
-  // `auto` means "use the document-wide `rookery(..)` setting", resolved
+  // `title`: `#window` itself substitutes no built-in default for any of the
+  // nine. `auto` means "use the document-wide `rookery(..)` setting", resolved
   // against state (`_display-final`, state.typ) at the point this window
   // actually renders: `_window-content` (transclusion.typ), which every
   // rendering path below reaches, whether directly or via `_flatten`'s WK

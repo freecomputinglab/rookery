@@ -316,8 +316,9 @@
     // branch, which this shares the defect and the fix with.
     //
     // `rest` is never rendered here — there is nothing to click it open with
-    // — so `shown` grows the same grey ellipsis `_truncate` used to bake in,
-    // and a paged window looks exactly as it did before the split.
+    // — so `shown` grows the same grey ellipsis `_truncate` bakes in on its
+    // own, and a paged window's rendering matches a window with no `rest` to
+    // speak of.
     let ellipsis = if rest == none { [] } else { [#text(gray)[ ... ]] }
     align(start, block[#head#parbreak()#_footnoted(shown)#ellipsis#_refs-block(_own-cited-keys(shown, windows-claim: windows-claim))])
   }

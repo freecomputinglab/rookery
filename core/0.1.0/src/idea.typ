@@ -249,16 +249,14 @@
     // readable text panics outright — there is nothing left to derive an id
     // from.
     //
-    // A collision has two shapes now, told apart by whether either side is
-    // PINNED. Two titles slugging the same no longer panics: the second,
-    // third, ... note to derive one slug gets a numeric `-<n>` suffix,
-    // counted in document order, from `_slug-peek`/`_slug-record`
-    // (state.typ) just below. That suffix IS position-dependent — inserting
-    // a new colliding note earlier shifts every later `-<n>` down by one —
-    // which is exactly what this comment used to say made a suffix
-    // unusable. It is used anyway now: a build that panics is worse than a
-    // URL that occasionally moves, and `#idea(<name>, ..)` is how an author
-    // opts a note out of ever moving.
+    // A collision has two shapes, told apart by whether either side is PINNED.
+    // Two titles slugging the same do not panic: the second, third, ... note
+    // to derive one slug gets a numeric `-<n>` suffix, counted in document
+    // order, from `_slug-peek`/`_slug-record` (state.typ) just below. That
+    // suffix IS position-dependent — inserting a new colliding note earlier
+    // shifts every later `-<n>` down by one — and that trade is accepted: a
+    // build that panics is worse than a URL that occasionally moves, and
+    // `#idea(<name>, ..)` is how an author opts a note out of ever moving.
     //
     // Everything else still panics below, unchanged: two notes pinned to the
     // same name, or a derived id — a title slug (suffixed or not), or a body
@@ -289,8 +287,9 @@
       _name-slug(if plain-body == none { "" } else { plain-body })
     } else { none }
     // `none` unless this note actually needs a slug suffix — same reason:
-    // computed here as plain data, recorded below only once `id` no longer
-    // needs to share a value with that write.
+    // computed here as plain data, ahead of the write below, so the peek and
+    // the record read the same value without threading it back out of `id`'s
+    // own resolution.
     let slug-n = if slug != none { _slug-peek(slug, occupant) } else { none }
     let id = if named {
       _pfx() + base

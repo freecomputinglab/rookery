@@ -166,17 +166,13 @@
 // a line break or a run of spaces in markup; a `text` element can also be blank.
 // Both have to count, or fact 3's stray children survive the filter.
 //
-// `parbreak` COUNTS TOO, and it is heading mode that needs it. In parbreak mode
-// a `parbreak` is the separator and so never lands inside a group at all, which
-// is why this went unnoticed for as long as parbreak was the only mode. In
-// heading mode a parbreak is ordinary content, and the blank line that precedes
-// the FIRST `==` of a body therefore becomes a group of exactly one parbreak —
-// non-blank by the old test, not heading-only either, so it minted a note whose
-// entire content was a paragraph break. MEASURED as a spurious third `.idea-box`
-// on a two-section document, and it is the normal case rather than an edge one:
-// almost every body has a blank line before its first heading. Nothing is lost
-// by dropping such a group — a parbreak between two notes is spacing, and the
-// boxes bring their own.
+// `parbreak` COUNTS TOO, and it is heading mode that needs it: a parbreak is
+// the separator in parbreak mode, so it never lands inside a group there, but
+// in heading mode it is ordinary content — and the blank line before a body's
+// FIRST `==` becomes a group of exactly one parbreak, which is common rather
+// than an edge case (almost every body has a blank line before its first
+// heading). Nothing is lost dropping such a group: a parbreak between two
+// notes is spacing, and the boxes bring their own.
 #let _blank(c) = {
   let f = c.func()
   if f == [ ].func() { return true }
@@ -219,7 +215,8 @@
 //
 // A heading of any OTHER level alone stays structure (`= Part One` over a run of
 // `==` sections; a stray `===` in the preamble group), and `want: none` — par
-// mode, `none` mode, and the unit tests' own default — keeps the old rule whole.
+// mode, `none` mode, and the unit tests' own default — leaves that rule
+// unconditional.
 #let _heading-only(group, want: none) = {
   let real = group.filter(c => not _blank(c))
   if real.len() != 1 { return false }
@@ -533,9 +530,9 @@
       let lead = if lead-i == none { none } else { group.at(lead-i) }
       let lead-heading = if lead != none and lead.func() == heading and _level-of(lead) == want { lead } else { none }
 
-      // HOISTED OUT of the titling branch below, where it used to live: a
-      // `tags:` function reads the same two arguments and is called for groups
-      // that branch never reaches.
+      // Computed HERE, ABOVE the titling branch below, because a `tags:`
+      // function reads the same two arguments and is called for groups that
+      // branch never reaches.
       let labels = if lead-heading == none { () } else {
         (lead-heading.at("label", default: none),).filter(l => l != none)
       }

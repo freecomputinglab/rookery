@@ -7,7 +7,7 @@ labels:
 - chore-core-review
 deps:
 - blocked-by:rk-hoist-regex-state-reads-out-of-core-s-a04eea8f
-closed: false
+closed: true
 ---
 A follow-up comment diet: seven `src/` files carry comments that narrate what
 the code USED TO do — a removed panic, a substituted default, a prior

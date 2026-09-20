@@ -32,24 +32,24 @@
 // Carries no theme properties of its own: it is always emitted inside a
 // container that does (`.idea-box`, `.idea-window`, a minted page's `<h1>`), and
 // custom properties inherit.
-// `href: auto` used to resolve via `_note-href(id)` — a `#context` read of
-// `state("rheo-handle")` taken wherever THIS call happens to run. Fine at a
-// note's own render, wrong at a REPLAY of it (a `#window`, a minted page, a
-// nested transclusion re-placing this note's stored body elsewhere):
-// Typst collapses every copy of a replayed context read to ONE shared value,
-// so a permalink minted this way came out right on at most one of the pages
-// it appeared on. `_resolve-dest(id, true)` hands the destination to rheo's
-// own per-`#document` link rule instead — unresolved, as a plain `link()` —
-// which applies afresh at each realization and so gets every copy right (see
-// `_resolve-dest`'s own banner, urls.typ). An explicit `href:` still bypasses
-// this entirely, as before: a caller passing one already knows its own
-// destination and needs no help resolving it.
+// `href: auto` resolves through `_resolve-dest(id, true)` rather than a
+// direct `_note-href(id)` call, and that indirection matters: a REPLAY of
+// this note (a `#window`, a minted page, a nested transclusion re-placing
+// its stored body elsewhere) shares one Typst context read across every
+// copy, so a `#context` read of `state("rheo-handle")` taken here would come
+// out right on at most one of the pages the note appears on.
+// `_resolve-dest(id, true)` instead hands the destination to rheo's own
+// per-`#document` link rule, unresolved, as a plain `link()` — that rule
+// applies afresh at each realization, so every copy gets the right
+// destination (see `_resolve-dest`'s own banner, urls.typ). An explicit
+// `href:` still bypasses this entirely: a caller passing one already knows
+// its own destination and needs no help resolving it.
 //
 // `link()` renders as a bare `<a href="..">`, with none of this element's own
 // attributes — VERIFIED empirically, not assumed. They move onto a wrapping
 // `<span>` instead of the anchor itself; core.css's `[data-rookery="label"]`
-// rule carries a matching `> a` rule so the bare anchor inherits the look the
-// class used to set directly.
+// rule carries a matching `> a` rule, so the bare anchor inherits the look
+// through that selector rather than carrying the class itself.
 #let _permalink(id, href: auto) = {
   let dest = if href != auto { href } else { _resolve-dest(id, true) }
   // An explicit `href:` is always a plain string (a same-page fragment or an
