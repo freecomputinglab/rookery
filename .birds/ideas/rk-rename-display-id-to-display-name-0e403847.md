@@ -7,7 +7,7 @@ labels:
 - fix-idea-name-terminology
 deps:
 - blocked-by:rk-rename-ideate-id-to-ideate-name-7aed87f3
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/idea.typ, core/0.1.0/src/window.typ, core/0.1.0/src/ideate.typ, core/0.1.0/src/template.typ, core/0.1.0/src/state.typ, core/0.1.0/src/permalink.typ, core/0.1.0/src/transclusion.typ, core/0.1.0/src/core.css, core/0.1.0/demo/pure/display-parity.typ, core/0.1.0/readme.md, slipshow/0.1.0/src/slipshow.typ, slipshow/0.1.0/src/slip.typ, slipshow/0.1.0/src/slipshow.css, slipshow/0.1.0/readme.md
 

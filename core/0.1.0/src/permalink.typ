@@ -130,14 +130,14 @@
 // `_visible-tags` needs `#context`, and this function is always called from
 // inside one (every caller reads the registry or the prefix to get here).
 //
-// `display-id: false` DROPS THE PERMALINK and leaves the `<span>` standing. The
+// `display-name: false` DROPS THE PERMALINK and leaves the `<span>` standing. The
 // span has to survive: it is still what holds the pills and the date when
 // either of those is on, and it is the element every tab rule in `core.css` is
 // written against. When the permalink was the only thing in it the tab comes
 // out EMPTY, and `[data-rookery="tab"]:empty` in that stylesheet is what stops
 // an empty one taking up a line — the same trick `h*.idea:empty` plays for a
 // titleless note's heading.
-#let _permalink-tab(id, href: auto, tags: (), date: none, display-id: true) = html.elem(
+#let _permalink-tab(id, href: auto, tags: (), date: none, display-name: true) = html.elem(
   "span",
   attrs: (class: _c("tab"), data-rookery: "tab"),
   {
@@ -147,7 +147,7 @@
     // whole thing one expression.
     let shown = _visible-tags(tags)
     (
-      (if display-id { _permalink(id, href: href) } else { [] })
+      (if display-name { _permalink(id, href: href) } else { [] })
         + (if shown.len() == 0 { [] } else {
           shown.map(t => html.elem(
             "span",

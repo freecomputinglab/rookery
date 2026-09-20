@@ -984,7 +984,7 @@
 // below share one list instead of drifting apart.
 #let _DISPLAY-KEYS = (
   "context", "backlinks", "background", "date", "frame",
-  "id", "label", "tags", "title",
+  "name", "label", "tags", "title",
 )
 
 // Merges a `display:` dictionary with a set of individual `display-*`

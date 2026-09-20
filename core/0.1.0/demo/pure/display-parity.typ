@@ -15,13 +15,13 @@
 #idea(
   <parity>,
   display-date: false, display-tags: false, display-frame: false,
-  display-id: false, display-label: false, display-background: false,
+  display-name: false, display-label: false, display-background: false,
   display-context: false, display-backlinks: false, display-title: false,
 )[PARITYBODY]
 
 #window(
   "parity",
   display-date: false, display-tags: false, display-frame: false,
-  display-id: false, display-label: false, display-background: false,
+  display-name: false, display-label: false, display-background: false,
   display-context: false, display-backlinks: false, display-title: false,
 )

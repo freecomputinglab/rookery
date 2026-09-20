@@ -24,7 +24,7 @@ discover a generated id in order to paste it into a `#window`.
 
 Full signature: `idea(level: 1, title: none, tags: (), tag: none, base-tags: none,
 exclude-tags: (), created: none, display: (:), display-date: auto, display-tags: auto,
-display-frame: auto, display-id: auto, display-label: auto, display-background: auto,
+display-frame: auto, display-name: auto, display-label: auto, display-background: auto,
 display-context: auto, display-backlinks: auto, display-title: auto, ..args)`, where
 the sink accepts the body alone, `(name, body)`, or `(<name>, body)` — the name
 may be a string or a Typst label, identically. All positionals may also be
@@ -33,16 +33,16 @@ title-only note is written: `#idea(title: [hello])`.
 
 `display-frame: false` drops the card's BOX — its left rule and the indent that goes
 with it — and nothing else: the note still registers, still carries its tags and
-its anchor, still renders its hat and its body. `display-id: false` drops the
+its anchor, still renders its hat and its body. `display-name: false` drops the
 `[idea:<name>]` permalink from the hat. See "Dropping a note's frame" below for
-both, and "The `display:` dictionary" for how `display-frame`/`display-id` relate
+both, and "The `display:` dictionary" for how `display-frame`/`display-name` relate
 to the `display: (..)` dictionary these two also read from.
 
 ## The `display:` dictionary
 
 `#idea` and `#window` each take a `display:` dictionary alongside all nine
 individual `display-*` arguments — `display-date`, `display-tags`,
-`display-frame`, `display-id`, `display-label`, `display-background`,
+`display-frame`, `display-name`, `display-label`, `display-background`,
 `display-context`, `display-backlinks` and `display-title`. Both name the
 same nine possible keys with the prefix dropped: `display: (frame: false,
 tags: true)` sets the same thing as `display-frame: false, display-tags:
@@ -61,7 +61,7 @@ then the call's own `display: (..)` dictionary, then an individual
 Each tier only ever fills in what the tier above it left unset: every
 `display-*` argument on `#idea` and `#window` defaults to `auto`, meaning "no
 opinion", which is what lets a lower tier show through. `#ideate` is the one
-exception — its `display-frame`/`display-id` keep their inverted `false`
+exception — its `display-frame`/`display-name` keep their inverted `false`
 defaults, because `#ideate` is a caller with a real opinion (see "Its inverted
 defaults" below), not the bottom of the stack.
 
@@ -203,7 +203,7 @@ dictionary". The mapping is a straight prefix swap, one argument at a time:
 | `show-date` | `display-date` |
 | `show-tags` | `display-tags` |
 | `show-frame` | `display-frame` |
-| `show-id` | `display-id` |
+| `show-id` | `display-name` |
 | `show-label` | `display-label` |
 | `show-background` | `display-background` |
 | `show-context` | `display-context` |
@@ -219,6 +219,15 @@ never part of the `show-*` family and keep their names.
 `name:` vocabulary the rest of the package uses. There is no alias: a stale
 call to `#ideate-id` fails the compile with an unknown-variable error rather
 than silently doing nothing.
+
+### Migrating from `display-id:`
+
+**This rename is breaking.** `display-id:` is now `display-name:`, and the
+`display: (id: ..)` dictionary key is now `display: (name: ..)`, for the same
+reason as the `#ideate-id` rename above: the permalink the flag governs IS the
+note's name. There is no alias: a stale `display-id:` fails the compile with
+`#idea`'s (or `#window`'s) unknown-named-argument panic rather than silently
+doing nothing.
 
 ## Setup, and the `idea:` prefix
 
@@ -464,7 +473,7 @@ was set to pin it there deliberately.
 ## Dropping a note's frame
 
 Full signature: `window(..args, limit: none, folded: false, display: (:), display-date: auto,
-display-tags: auto, display-frame: auto, display-id: auto, display-label: auto,
+display-tags: auto, display-frame: auto, display-name: auto, display-label: auto,
 foldable: true, reserve-title: true, display-background: auto, display-context: auto,
 display-backlinks: auto, display-title: auto, backlink: true, unfurl: auto, tagged: none,
 match: "any", filter: none, sort: auto)`. `display-context`, `display-backlinks` and `display-title` are
@@ -475,8 +484,8 @@ describe a minted page, and a window is not one.
 #idea("bare", display-frame: false)[A note with no left rule and no indent.]
 #window("bare", display-frame: false)
 
-#idea("quiet", display-id: false)[A note with no permalink, and so no hat at all.]
-#window("quiet", display-id: false)
+#idea("quiet", display-name: false)[A note with no permalink, and so no hat at all.]
+#window("quiet", display-name: false)
 ```
 
 `display-frame:` is on both `#idea` and `#window`, `true` by default, and it governs
@@ -510,9 +519,9 @@ asked not to wear its frame" and applies to a card as well.
 A project styling on it should select on the attribute
 (`[data-rookery-bare]`), which is stable, rather than on any class.
 
-### `display-id:` — and the whole hat with it
+### `display-name:` — and the whole hat with it
 
-`display-id:` is on `#idea` and `#window` too, `true` by default, and it drops the
+`display-name:` is on `#idea` and `#window` too, `true` by default, and it drops the
 `[idea:<name>]` permalink — the chip that leads a card's hat and a window's
 summary.
 
@@ -524,17 +533,17 @@ in it, and `[data-rookery="tab"]:empty { display: none }` in `src/core.css`
 collapses it — the same trick `h*.idea:empty` plays for a titleless note's
 heading. The `<span>` is still emitted: it is the element every other tab rule is
 written against, and it comes straight back the moment a pill or a date is turned
-on. So `#idea("x", display-id: false, display-tags: true, ..)` still shows its pills, in
+on. So `#idea("x", display-name: false, display-tags: true, ..)` still shows its pills, in
 a tab, exactly where they were.
 
 **The cost, and it is a real one for an UNTITLED note: a permalink is the ONLY
 way to discover its auto-generated id.** There is no `show heading` rule and
 no template hook — the chip is it. A note written `#idea[..]` and rendered
-with `display-id: false` therefore has an id nothing on the page reveals, so
+with `display-name: false` therefore has an id nothing on the page reveals, so
 nobody can write a `#window` for it. Give a note a name (`#idea("x")[..]`) if
-it should stay linkable, or leave `display-id` on.
+it should stay linkable, or leave `display-name` on.
 
-A TITLED note is cheaper to turn `display-id` off on: its id is a slug of the
+A TITLED note is cheaper to turn `display-name` off on: its id is a slug of the
 title (see "Unnamed notes: where their ids come from"), so anyone who can read
 the title on the page can reconstruct `idea:<slug>` without the chip. Two
 notes titled alike cannot both build this way — the second one fails at build
@@ -670,8 +679,8 @@ page would inherit every link inside every note it shows.
 **Both switches ride the nested-note payload.** A note written inside another
 note's body is rebuilt from a `#metadata` record when its parent is transcluded or
 minted, never from the original call site, so the resolved `display` dictionary's
-`frame` and `id` keys are stored on that record and read back with a default of
-`true`. A nested `#idea(display-id: false)` therefore stays bare when its parent
+`frame` and `name` keys are stored on that record and read back with a default of
+`true`. A nested `#idea(display-name: false)` therefore stays bare when its parent
 is windowed, and a record written before these keys existed reads as an ordinary
 framed, permalinked note.
 
@@ -1025,14 +1034,14 @@ ids, and why" below for cross-document id collisions in general.
 
 ### Its inverted defaults
 
-`ideate(body, separator: none, title: none, name: auto, tags: (), display: (:), display-frame: false, display-id: false, ..args)`.
+`ideate(body, separator: none, title: none, name: auto, tags: (), display: (:), display-frame: false, display-name: false, ..args)`.
 
 `separator: none` mints the WHOLE body as one note — the common case is a
 document-level `#show: ideate` on a page that is one idea, and a caller who
 wants the old paragraph-per-note behaviour asks for it explicitly with
 `separator: par`.
 
-`display-frame` and `display-id` both invert `#idea`'s own defaults, and that
+`display-frame` and `display-name` both invert `#idea`'s own defaults, and that
 inversion is most of the reason the function is worth having: an inferred note
 is not one anybody named, so a frame and a permalink around every paragraph is
 chrome nobody asked for — and with no name, that permalink points at a sequence
@@ -1048,7 +1057,7 @@ tags a whole block at once:
 #ideate(tags: "slip")[..]     // every paragraph becomes a note tagged `slip`
 ```
 
-**Every note minted this way has an AUTO-GENERATED id**, and with `display-id: false`
+**Every note minted this way has an AUTO-GENERATED id**, and with `display-name: false`
 no visible permalink, so none of them is addressable by name. That is fine for a
 block a tag query will pick up and wrong for anything anyone needs to link to; a
 note that must be linkable is written by hand as `#idea("name")[..]`.
@@ -1249,7 +1258,7 @@ Three ways, pick by how much ceremony you want:
 
   `display-frame: false` drops the window's left rule and indent, the same switch
   `#idea` takes for a card, and leaves the summary, the disclosure and the body
-  exactly as they were. `display-id: false` drops the permalink from the summary,
+  exactly as they were. `display-name: false` drops the permalink from the summary,
   the same switch again. See "Dropping a note's frame" above for both.
 
   `display-label: false` names this window only if its note carries an AUTHORED

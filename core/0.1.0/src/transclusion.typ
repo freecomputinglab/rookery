@@ -94,7 +94,7 @@
 //
 // `display` is the dictionary `#window` (or `_flatten`'s WK rule) already
 // produced — this function reads its six keys (`date`, `tags`, `frame`,
-// `id`, `label`, `background`) and ignores the other three, which ride along
+// `name`, `label`, `background`) and ignores the other three, which ride along
 // unused.
 //
 // Must be called from inside a `context` block: `_permalink` reads the page
@@ -106,7 +106,7 @@
   // which carries no `display` key at all (`_flatten`'s WK rule passes
   // `(:)` for one): `_display-final` treats a missing key the same as
   // `auto`.
-  let display = _display-final(display, ("date", "tags", "frame", "id", "label", "background"))
+  let display = _display-final(display, ("date", "tags", "frame", "name", "label", "background"))
   // `created`, matching `#idea`'s own hat. A hand-maintained `updated:` field
   // would be a second date that can contradict the note's actual history, so
   // core carries none: `@rookery/timeline` stores a dated log and derives
@@ -196,7 +196,7 @@
           rec.at("tags", default: (:)).pairs().filter(((_, v)) => v == none).map(((k, _)) => k)
         } else { () },
         date: date,
-        display-id: display.id,
+        display-name: display.name,
       ) + title-span,
     )
     // `open` is a BOOLEAN html attribute: present means present and there is no
@@ -386,7 +386,7 @@
     // against document-wide state — the same treatment a missing key gets
     // as an explicit `auto`.
     let d = v.at("display", default: (:))
-    let rd = _display-final(d, ("tags", "id", "frame"))
+    let rd = _display-final(d, ("tags", "name", "frame"))
     // A count of REPLAYS: every time this rule rebuilds a note's card
     // instead of the note's own direct rendering, it stamps the id being
     // replayed. `placements - stamps` (`_assert-unique-names`, validate.typ)
@@ -406,7 +406,7 @@
             tags: if rd.tags {
               v.tags.pairs().filter(((_, val)) => val == none).map(((k, _)) => k)
             } else { () },
-            display-id: rd.id,
+            display-name: rd.name,
           )
         },
         html.elem(

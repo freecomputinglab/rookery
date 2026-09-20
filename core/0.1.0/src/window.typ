@@ -69,7 +69,7 @@
   // The nine-key display dictionary `#idea` also takes (`_resolve-display`,
   // pure.typ). `#window` now declares all nine as flags too, for parity with
   // `#idea` and the `display:` dictionary, but only HONOURS six of them —
-  // `date`, `tags`, `frame`, `id`, `label`, `background`. `context`,
+  // `date`, `tags`, `frame`, `name`, `label`, `background`. `context`,
   // `backlinks` and `title` describe a minted page, and a window is not one,
   // so all three ride along unused, exactly as they already did inside the
   // `display:` dictionary.
@@ -83,7 +83,7 @@
   // `false` omits the `[idea:<name>]` permalink from the summary. With
   // `display-tags`/`display-date` also off the summary keeps only its title, and with
   // no title it keeps nothing — see `_permalink-tab` (permalink.typ).
-  display-id: auto,
+  display-name: auto,
   // `false` names this window only if its note carries an AUTHORED title,
   // instead of falling back to the label derived from the note's first line.
   // For a window that RENDERS a note rather than referring to it — see
@@ -165,7 +165,7 @@
     display,
     (
       date: display-date, tags: display-tags, frame: display-frame,
-      id: display-id, label: display-label, background: display-background,
+      name: display-name, label: display-label, background: display-background,
       "context": display-context, backlinks: display-backlinks, title: display-title,
     ),
     "#window's",
@@ -191,7 +191,7 @@
     message: "@rookery/core: #window got unknown named argument(s) " + repr(unknown)
       + " — every argument #window honours is a declared one; the display "
       + "flags are display-background, display-backlinks, display-context, "
-      + "display-date, display-frame, display-id, display-label, display-tags "
+      + "display-date, display-frame, display-name, display-label, display-tags "
       + "and display-title.",
   )
   assert(

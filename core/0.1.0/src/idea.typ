@@ -38,7 +38,7 @@
 // on `data-rookery-plain` there for why a downstream stylesheet cannot do this
 // from outside the package.
 //
-// `display-id: false` DROPS THE PERMALINK from the hat. With `display-tags`
+// `display-name: false` DROPS THE PERMALINK from the hat. With `display-tags`
 // and `display-date` both already off by default, that leaves the tab empty
 // and the hat disappears entirely — see `_permalink-tab` (permalink.typ) for
 // how. The cost falls on an UNTITLED note, whose id is a bare counter value a
@@ -52,7 +52,7 @@
 // unset — none of them gets a built-in default substituted in this function
 // any more. `context`, `backlinks` and `title` mean "use the document-wide
 // setting", resolved later on the minted page; `date`, `tags`, `frame` and
-// `id` mean the same thing one step earlier, resolved against document-wide
+// `name` mean the same thing one step earlier, resolved against document-wide
 // state (`_display-final`, state.typ) at the point this note's own card
 // renders, further down. `label` and `background` are accepted here too but
 // unused by the card itself — they seed what a later `#window` falls back to
@@ -67,7 +67,7 @@
   (if r.len() > 4096 { r.slice(0, 4096) } else { r }) + "#" + str(r.len())
 }
 
-#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-id: auto, display-label: auto, display-background: auto, display-context: auto, display-backlinks: auto, display-title: auto, ..args) = {
+#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-name: auto, display-label: auto, display-background: auto, display-context: auto, display-backlinks: auto, display-title: auto, ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
   // below and further down at render time — str has no `.map`, so the error
@@ -105,7 +105,7 @@
     display,
     (
       "context": display-context, backlinks: display-backlinks, background: display-background,
-      date: display-date, frame: display-frame, id: display-id, label: display-label,
+      date: display-date, frame: display-frame, name: display-name, label: display-label,
       tags: display-tags, title: display-title,
     ),
     "#idea's",
@@ -122,7 +122,7 @@
     message: "@rookery/core: #idea got unknown named argument(s) " + repr(unknown)
       + " — every argument #idea honours is a declared one; the display flags "
       + "are display-background, display-backlinks, display-context, "
-      + "display-date, display-frame, display-id, display-label, display-tags "
+      + "display-date, display-frame, display-name, display-label, display-tags "
       + "and display-title.",
   )
   // Variadic, not a plain positional: a positional parameter cannot carry a
@@ -340,7 +340,7 @@
       // rendering, so it is the point of use `_display-final`'s banner
       // describes. `context`/`backlinks`/`title` are not resolved here: this
       // card never reads them, only `.marrow.typ`'s minted page does.
-      let rdisplay = _display-final(display, ("date", "tags", "frame", "id"))
+      let rdisplay = _display-final(display, ("date", "tags", "frame", "name"))
 
       // Resolution order, most specific first: the explicit created:
       // argument, then the containing document's own
@@ -544,7 +544,7 @@
             href: own-href,
             tags: if rdisplay.tags { flat-tags } else { () },
             date: date,
-            display-id: rdisplay.id,
+            display-name: rdisplay.name,
           ),
           html.elem(
             "h" + str(level + 1),

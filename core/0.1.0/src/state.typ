@@ -233,7 +233,7 @@
 #let _display-background = state("rheo-idea-show-background", true)
 #let _display-date = state("rheo-idea-show-date", false)
 #let _display-frame = state("rheo-idea-show-frame", true)
-#let _display-id = state("rheo-idea-show-id", true)
+#let _display-name = state("rheo-idea-show-name", true)
 #let _display-label = state("rheo-idea-show-label", true)
 #let _display-tags = state("rheo-idea-show-tags", false)
 
@@ -246,7 +246,7 @@
   background: _display-background,
   date: _display-date,
   frame: _display-frame,
-  id: _display-id,
+  name: _display-name,
   label: _display-label,
   tags: _display-tags,
   title: _display-title,

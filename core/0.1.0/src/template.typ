@@ -37,7 +37,7 @@
   display-background,
   display-date,
   display-frame,
-  display-id,
+  display-name,
   display-label,
   display-tags,
   display-title,
@@ -155,8 +155,8 @@
     message: "@rookery/core: `display-frame` must be a boolean — got " + repr(display-frame),
   )
   assert(
-    type(display-id) == bool,
-    message: "@rookery/core: `display-id` must be a boolean — got " + repr(display-id),
+    type(display-name) == bool,
+    message: "@rookery/core: `display-name` must be a boolean — got " + repr(display-name),
   )
   assert(
     type(display-label) == bool,
@@ -463,7 +463,7 @@
   display-background: auto,
   display-date: auto,
   display-frame: auto,
-  display-id: auto,
+  display-name: auto,
   display-label: auto,
   display-tags: auto,
   display-title: auto,
@@ -487,7 +487,7 @@
     display,
     (
       "context": display-context, backlinks: display-backlinks, background: display-background,
-      date: display-date, frame: display-frame, id: display-id, label: display-label,
+      date: display-date, frame: display-frame, name: display-name, label: display-label,
       tags: display-tags, title: display-title,
     ),
     "#rookery's",
@@ -503,7 +503,7 @@
     background: if display.background == auto { true } else { display.background },
     date: if display.date == auto { false } else { display.date },
     frame: if display.frame == auto { true } else { display.frame },
-    id: if display.id == auto { true } else { display.id },
+    name: if display.name == auto { true } else { display.name },
     label: if display.label == auto { true } else { display.label },
     tags: if display.tags == auto { false } else { display.tags },
     title: if display.title == auto { true } else { display.title },
@@ -524,7 +524,7 @@
     display.background,
     display.date,
     display.frame,
-    display.id,
+    display.name,
     display.label,
     display.tags,
     display.title,
@@ -579,7 +579,7 @@
   _display-background.update(display.background)
   _display-date.update(display.date)
   _display-frame.update(display.frame)
-  _display-id.update(display.id)
+  _display-name.update(display.name)
   _display-label.update(display.label)
   _display-tags.update(display.tags)
   _display-title.update(display.title)

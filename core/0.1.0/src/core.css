@@ -379,7 +379,7 @@
 
 /* THE SAME TRICK ONE ELEMENT UP, for a tab rather than a heading. A tab holds
    three things and every one of them is optional: the permalink
-   (`display-id: false` drops it), the tag pills (`display-tags:`, off by default) and
+   (`display-name: false` drops it), the tag pills (`display-tags:`, off by default) and
    the date (`display-date:`, off by default). Turn the permalink off on an ordinary
    note and nothing is left, so the tab has to collapse or a note asked for no
    hat still wears an empty band in its place. `#idea`/`#window` keep
