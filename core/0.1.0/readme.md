@@ -5,20 +5,20 @@ rheo-aware where rheo is present.
 
 A note exists ONLY where you write `#idea("name")[...]`. There is no document
 show rule and no "every heading is a note" behaviour — a labeled heading is
-just a labeled heading. `#idea[body]` (no name, no title) works too: an untitled
-one takes an id counted within its own container — the note it's nested
-inside, or the current page when it's top-level — and a TITLED one takes a
-slug of its title instead (see "Unnamed notes: where their ids come from").
-Either way it names itself by its own opening words wherever it is referred
-to (see "Derived labels"), and wears its id as a permalink — `[idea:1]`-style
-for a top-level untitled note, `[idea:my-title]`-style for the titled one —
-which is how you discover a generated id in order to paste it into a
-`#window`.
+just a labeled heading. `#idea[body]` (no name, no title) works too: a TITLED
+one takes a slug of its title, and an untitled one takes a slug of its own
+body instead — its own opening words, capped and suffixed with a short digest
+so two notes that open the same way still land apart (see "Unnamed notes:
+where their ids come from"). Either way it names itself by its own opening
+words wherever it is referred to (see "Derived labels"), and wears its id as
+a permalink — `[idea:my-title]`-style for the titled one,
+`[idea:<body-slug>-<digest>]`-style for the untitled one — which is how you
+discover a generated id in order to paste it into a `#window`.
 
 ```typst
 #import "@rookery/core:0.1.0": idea
 
-#idea[A frictionless note — reads its generated id off the [idea:1] permalink.]
+#idea[A frictionless note — names itself from its own opening words.]
 #idea("etal")[A pinned note — its id is always `idea:etal`.]
 ```
 
@@ -775,20 +775,21 @@ being only one group; it renders nothing.
 
 The one note this mode mints has no heading of its own to title or id itself
 by, so both default off `document.title`: the title IS `document.title`, and
-the id is `slug(document.title)` — readable, unlike the container-ordinal
-form it would otherwise fall to. A `title:` passed to `#ideate` wins over
-this, and `#ideate-id` still wins the id outright. With no document title
-set, this changes nothing: the note mints titleless, under the
-container-ordinal fallback, as always.
+the id is `slug(document.title)` — stable, unlike the body-derived form it
+would otherwise fall to, which moves whenever the page's own content changes.
+A `title:` passed to `#ideate` wins over this, and `#ideate-id` still wins
+the id outright. With no document title set, this changes nothing: the note
+mints titleless, under the body-derived fallback described in "Unnamed
+notes: where their ids come from", as always.
 
 Under rheo, "no document title set" is the uncommon case. Rheo wraps every
 page in its own `document(..)` and, for a page whose own content never calls
 `#set document(title: ..)`, supplies a title derived from the page's path
 instead of leaving it `none`. So a rheo site gets a stable, path-derived id
 for every page's note without writing `#set document(..)` anywhere — the
-titleless/container-ordinal fallback above is reached only by a page that
-somehow has no title at all, not by the ordinary case of a page that simply
-never set one.
+titleless/body-derived fallback above is reached only by a page that somehow
+has no title at all, not by the ordinary case of a page that simply never
+set one.
 
 In heading mode, the matching heading **starts** the group that follows it
 rather than being discarded — the opposite of par mode's rule. `== rookery`
@@ -828,12 +829,12 @@ and fails `_slug`'s own empty-name check.
 | | `none`/`auto` (default) | fixed value | function |
 | --- | --- | --- | --- |
 | `title:` | no title (today's behaviour) | the same content on every note | a function `(content, labels) => content` — each note's own computed title |
-| `name:` | the container-ordinal fallback (today's behaviour) | — not accepted; see below | `(content, labels) => string` — a custom id computed per section |
+| `name:` | the unnamed-`#idea` fallback (today's behaviour) | — not accepted; see below | `(content, labels) => string` — a custom id computed per section |
 | `tags:` | no tags | the same tags on every note | `(content, labels) => tags` — each note's own computed tags |
 
-An id minted from a heading is a readable, chosen string rather than a
-container-ordinal number — which is the reason to prefer a `name:` function
-for anything worth linking to.
+An id minted from a heading is a stable, chosen string rather than a
+body-derived one — which is the reason to prefer a `name:` function for
+anything worth linking to.
 
 All heading-reading forms are **heading mode only**: with `separator: par` or
 `separator: none` there is no heading to read, and any of them there fails with
@@ -925,7 +926,7 @@ Three things follow from it reading the separating heading:
   note the same, which a plain `tags:` value already says.
 - The **preamble group** (content before the first separating heading) has no
   heading to pass, so the function is not called for it and it carries no tags —
-  the same way a `name:` lambda leaves the preamble on the container-ordinal
+  the same way a `name:` lambda leaves the preamble on the body-derived
   fallback.
 - **`#ideate-tag` still wins.** Beacons are unioned after the function's result,
   so a section that computes `report` from its heading and also carries
@@ -935,7 +936,7 @@ Three things follow from it reading the separating heading:
 ### Naming sections with a custom function
 
 `name:` accepts a function that computes each section's id from its heading and
-labels, substituting for the container-ordinal fallback.
+labels, substituting for the body-derived fallback.
 The function receives two arguments:
 
 - **`content`**: the separating heading's own body as raw Typst content — the
@@ -968,8 +969,9 @@ Minted as `idea:26w37-waterline`.
 ```
 
 The preamble group (content before the first separating heading) has no heading
-to pass to the lambda and still mints under the container-ordinal fallback. A
-lambda names the sections; the preamble is unaffected.
+to pass to the lambda and still mints under the body-derived fallback
+described in "Unnamed notes: where their ids come from". A lambda names the
+sections; the preamble is unaffected.
 
 **A `#ref` inside the heading contributes nothing to the lambda's input** —
 `content` is the heading's raw body, and what the lambda sees of a reference is
@@ -1046,35 +1048,49 @@ id up.
 
 ## Unnamed notes: where their ids come from
 
-An unnamed `#idea` with a `title:` takes a slug of that title. An unnamed
-`#idea` with no usable title mints an id from its own authored position
-instead — its CONTAINER — never from a running count of notes seen so far:
+An unnamed `#idea` mints its id from a ladder, tried top to bottom, stopping
+at the first rung that yields a value — never from a running count of notes
+seen so far, and never from where the note sits in the document:
 
 ```typst
-#idea("etal")[
-  #idea(title: [My Title])[..]   // nested, titled: mints idea:my-title
-  #idea[..]                      // nested, untitled: mints idea:etal-1
-]
-#idea[..]                        // top-level, no vertebra handle: mints idea:1
+#idea(title: [My Title])[..]                     // titled: mints idea:my-title
+#idea[Loose reading notes on separation logic.]  // untitled: mints idea:loose-reading-445
 ```
 
-The rules:
+The rungs:
 
-- The slug is the title lowercased, every run of non-alphanumeric characters
-  collapsed to a single `-`, trimmed, and capped at 60 characters.
-- A title that slugs to nothing (pure punctuation) or to digits only falls
-  back to the container form below — digits are refused as a slug because
-  they would be indistinguishable from a container ordinal.
-- An unnamed note with no title, or one whose title just fell back, mints
-  `idea:<container>-<k>`. `<container>` is the bare id of the note it is
-  written inside, or — for a top-level note — the current vertebra's own
-  handle with `:` replaced by `-` (empty under plain `typst compile`, where
-  there is no vertebra at all, so the id is `<k>` alone). `<k>` counts, from
-  1, the notes in that container that have taken this fallback so far. A
-  titled note that slugs successfully never touches `<k>`, so the numbers
-  stay contiguous within a container.
-- A PINNED name always wins over both: `#idea(<x>, title: [My Title])` mints
-  `idea:x`.
+1. **A pinned name wins outright**, over everything below:
+   `#idea(<etal>, ..)` always mints `idea:etal`.
+2. **A slug of the title**, if the note has one: lowercased, every run of
+   non-alphanumeric characters collapsed to a single `-`, trimmed, and capped
+   at 60 characters. A title that slugs to nothing (pure punctuation) or to
+   digits only falls through to the next rung instead.
+3. **A slug of the note's own body**, if it has no usable title: its opening
+   words, lowercased and hyphenated, capped at 16 characters — never cut
+   mid-word — plus a hyphen and a three-character digest of the note's own
+   content (its title, body, tags, level, and display flags), so two notes
+   that open the same way still land on different ids.
+4. **Nothing derivable** — no pinned name, no title, and a body with no
+   readable text — fails the build asking for one.
+
+A body that **begins with a URL** slugs from the URL's last path segment, not
+its host — a reading list of bare links is a common shape, and a URL's
+distinguishing part is at its end:
+
+```typst
+#idea[https://anil.recoil.org/papers/2024-hope-bastion]
+```
+
+mints `idea:2024-hope-kg9` — the tail `2024-hope-bastion`, capped at 16
+characters at a whole word (`2024-hope`, not `2024-hope-bastion`; the slug
+never cuts mid-word), plus its digest. Rung 3 names come out shorter than
+the 16-character cap suggests whenever a word boundary falls short of it.
+
+**Editing a titleless note's body changes its id.** Rung 3 is a pure
+function of the note's own content, so a body that reads differently the
+next time the project builds mints a different id. Pin a name
+(`#idea(<some-name>, ..)`) on any note whose id must never move.
+
 - A second note whose title slugs to an id already taken gets a numeric
   suffix instead of failing the build: the first note titled "My Title"
   mints `idea:my-title`, the second `idea:my-title-2`, the third
@@ -1083,35 +1099,37 @@ The rules:
   `-3` — the suffix counts occurrences, not a fixed identity, so it moves
   when a colliding note is added or removed earlier in the document. Pin a
   name (`#idea(<some-name>, title: [..])`) on any note whose id must never
-  move regardless of what gets titled the same later.
-- A pinned id landing on a container ordinal some other note already
-  claimed, or two notes pinned to the same name, still fails the build
-  outright rather than being disambiguated — a pin is a promise about the
-  id, so retitling, renaming, or pinning explicitly is the only fix.
+  move regardless of what gets titled the same later. Rung 3 carries no such
+  suffix: two notes identical in title, body, tags, level and display merge
+  into one note instead of colliding, and two that differ in any of those
+  already land on different ids without needing one.
+- A pinned id landing on a derived id some other note already reached, or
+  two notes pinned to the same name, still fails the build outright rather
+  than being disambiguated — a pin is a promise about the id, so retitling,
+  renaming, or pinning explicitly is the only fix.
 
-An unnamed note's id mostly does not depend on document order: reordering
-the sections around it, or moving it, leaves its id untouched, because both
-the slug and the container form are computed from the note's own title and
-its authored position in the tree rather than from a count that shifts as
-neighbouring notes come and go. The one exception is the `-<n>` suffix
-above — that number counts how many earlier-registering notes already
-claimed the same slug, so it does shift when a colliding note is inserted or
-removed ahead of it, even though the notes on either side of it keep their
-own ids. The same note also keeps its id when it is shown again inside a
-`#window` or on a minted page, since a re-render re-establishes the same
-container the original mint used. `#ideate`'s heading-derived ids follow the
-same container/order rules, but not this suffix — it mints only through
-`#idea`.
+An unnamed note's id does not depend on document order or on where the note
+sits in the tree: reordering the sections around it, or moving it, leaves
+its id untouched, because both the title slug and the body slug are computed
+purely from the note's own title and body — never from a count of notes seen
+so far and never from the note's authored position. The one exception is the
+`-<n>` suffix above — that number counts how many earlier-registering notes
+already claimed the same title slug, so it does shift when a colliding note
+is inserted or removed ahead of it, even though the notes on either side of
+it keep their own ids. The same note also keeps its id when it is shown
+again inside a `#window` or on a minted page, since both the title slug and
+the body slug are pure functions of the note's own title, body, tags, level
+and display — the same values every time, regardless of where a re-render
+places it. `#ideate`'s heading-derived ids follow the same rules above, but
+not this suffix — it mints only through `#idea`.
 
-**This changes existing URLs.** A titled, unnamed note that used to mint at
-`ideas/3.html` now mints at `ideas/my-title.html`. An untitled note that used
-to mint at `ideas/1.html` now mints at `ideas/<container>-1.html` wherever it
-has an enclosing note or a vertebra handle to prefix it with — only a
-top-level note built with plain `typst compile` and no vertebra keeps a bare
-number. An in-repo `@idea:3` reference to either fails to compile — loud, and
-caught at build time — but an external link or a bookmark to the old page
-breaks silently. Pin a name (`#idea(<3>, title: [My Title])[..]`) on a note
-if some old id needs to keep resolving.
+**This changes existing URLs, again.** An untitled note that minted at
+`ideas/<container>-1.html` under the retired container-ordinal scheme now
+mints at `ideas/<body-slug>-<digest>.html` instead. An in-repo reference to
+the old id fails to compile — loud, and caught at build time — but an
+external link or a bookmark to the old page breaks silently. Pin a name
+(`#idea(<some-name>, ..)[..]`) on a note if some old id needs to keep
+resolving.
 
 ## Two modes
 

@@ -608,8 +608,7 @@
         let content = _strip-beacons(group).join()
         if beacon-id != none {
           // A beacon is a fixed value the caller wrote — it wins the id
-          // outright, over both a container ordinal and a derived
-          // `doc-title` slug.
+          // outright: a beacon-set id beats a derived `doc-title` slug.
           context mint(_free-id(beacon-id), content, tags: group-tags)
         } else if doc-title != none {
           context mint(_free-id(slug(doc-title)), content, title: doc-title, tags: group-tags)

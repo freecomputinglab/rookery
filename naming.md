@@ -1,5 +1,11 @@
 # How an idea gets its name
 
+> **Superseded.** This describes the container-ordinal scheme
+> `@rookery/core` used before an unnamed note's id became a pure function of
+> its own content. See `generating-idea-names.md` for the algorithm in use
+> now; this file stays as the record of why the ordinal scheme could not
+> converge.
+
 The algorithm `@rookery/core` uses to decide the id of a note that was not
 explicitly named, step by step, with the steps that cause the convergence
 failure marked. Companion to `convergence-bug.md`, which covers the failure
