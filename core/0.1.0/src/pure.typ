@@ -183,6 +183,10 @@
 // `none`), as an array of strings. Pure function of its argument so
 // `#show: rookery` can publish the result once instead of every caller
 // re-parsing the source.
+// The BibTeX entry-header pattern `_bib-keys-of` matches against — bound
+// once rather than rebuilt per bibliography source.
+#let _BIB-ENTRY-RE = regex("@\\w+\\s*\\{\\s*([^,\\s]+)\\s*,")
+
 #let _bib-keys-of(cfg) = {
   if cfg == none { return () }
   let src = cfg.pos().first()
@@ -193,7 +197,7 @@
     // Format is detected from the CONTENT, since bytes carry no filename. A
     // Hayagriva file is a YAML mapping and has no `@type{` entry headers; a
     // BibTeX file is nothing but those.
-    let entries = text.matches(regex("@\\w+\\s*\\{\\s*([^,\\s]+)\\s*,"))
+    let entries = text.matches(_BIB-ENTRY-RE)
     if entries.len() > 0 {
       keys += entries.map(m => m.captures.first())
     } else {

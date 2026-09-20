@@ -118,6 +118,10 @@
 
 #let _page-links() = {
   let out = (:)
+  // Resolved once for the whole pass, not per marker: the tag-selection walk
+  // below reads it for every window carrying a `tagged:` selector, and
+  // `.final()` is a document-wide resolution each time it is called.
+  let reg = _registry.final()
 
   // A `#window` announces its named ids in a `<rookery-window-mark>` metadata
   // element, and those are collected HERE rather than by the content walk that
@@ -159,7 +163,7 @@
       if tagged != none {
         let pred = _tag-pred(tagged, v.at("match", default: "any"))
         if pred != none {
-          for (id, rec) in _registry.final() {
+          for (id, rec) in reg {
             if pred(rec.at("tags", default: (:))) and id not in seen {
               seen.push(id)
             }

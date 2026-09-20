@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-core-review
 deps: []
-closed: false
+closed: true
 ---
 Two independent hoisting fixes: a regex literal rebuilt on every loop
 iteration in `pure.typ`, and a document-wide state resolved fresh inside a
