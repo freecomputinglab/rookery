@@ -79,7 +79,7 @@ the build succeeds either way.
   tags: none,
   exclude-tags: (),
   display-frame: false,
-  display-id: false,
+  display-name: false,
   ..args,
 )
 ```
@@ -101,7 +101,7 @@ deck, which never sees the call site itself, only the registry row.
 | `tags` | any of core's four tag forms | `none` | the caller's own tags, merged in LAST — a caller naming one of `#slip`'s own keys wins outright |
 | `exclude-tags` | array of tag names | `()` | forwarded through to the underlying `#idea` — see below |
 | `display-frame` | `bool` | `false` | `@rookery/core`'s own switch with its default INVERTED — no card left rule, no indent |
-| `display-id` | `bool` | `false` | core's again, inverted — no `[idea:<name>]` permalink, and so no hat |
+| `display-name` | `bool` | `false` | core's again, inverted — no `[idea:<name>]` permalink, and so no hat |
 | `..args` | — | — | every other `#idea` argument (`title`, `level`, `created`, `display-date`, `display-tags`, …), forwarded untouched |
 
 `fullscreen`, `enter`, `order`, `class` and `row` are each type-checked at the
@@ -114,7 +114,7 @@ deck renders that slip.
 
 ### A slip is bare by default, wherever it renders
 
-`display-frame` and `display-id` are `@rookery/core` arguments, and `#slip` only
+`display-frame` and `display-name` are `@rookery/core` arguments, and `#slip` only
 changes their defaults — the same inversion `#slipshow` makes for a queried slip
 (see "A slip wears no card chrome" below), and it has to be made in both places
 because the two routes render at different times. `#slipshow` renders a QUERIED
@@ -127,7 +127,7 @@ makes the array route agree with the query route.
 That is intended rather than a side effect: a `#slip` written on a page usually
 renders twice — once inline where it sits, once inside the deck that queries it
 back — and the two copies should look the same. Pass `display-frame: true` /
-`display-id: true` to get core's ordinary card back for one slip.
+`display-name: true` to get core's ordinary card back for one slip.
 
 `display-label` is deliberately absent: it is a `#window` argument, and a card
 already prints the authored title alone, so there is no derived label for a
@@ -185,7 +185,7 @@ and needs the same list `idea` itself gets:
   enter: "scroll",
   reveal: true,
   display-frame: false,
-  display-id: false,
+  display-name: false,
   display-label: false,
   foldable: false,
   reserve-title: false,
@@ -206,7 +206,7 @@ panics naming the valid set.
 `reveal:` is the progressive reveal, `true` by default — see its own section
 below.
 
-`display-frame:`, `display-id:`, `display-label:`, `foldable:` and `reserve-title:` are
+`display-frame:`, `display-name:`, `display-label:`, `foldable:` and `reserve-title:` are
 `@rookery/core`'s own chrome switches with their defaults inverted — see "A slip
 wears no card chrome" below.
 
@@ -249,7 +249,7 @@ their defaults **inverted**:
 | argument | here | in core | what `false` drops |
 | --- | --- | --- | --- |
 | `display-frame` | `false` | `true` | the card's left rule and its indent |
-| `display-id` | `false` | `true` | the `[idea:<name>]` permalink, and with it the whole hat |
+| `display-name` | `false` | `true` | the `[idea:<name>]` permalink, and with it the whole hat |
 | `display-label` | `false` | `true` | the title derived from a note's first line; an AUTHORED title still shows |
 
 The reasoning, one line each: a slip's `<section>` is already the visual unit, so
@@ -264,7 +264,7 @@ does the hiding. `#slipshow` only chooses different defaults and forwards them.
 
 **One cost, inherited from core and worth repeating:** the permalink is the ONLY
 way to discover an AUTO-GENERATED id. A deck of unnamed notes rendered with
-`display-id: false` therefore has no ids a reader can copy into a `#window` or a
+`display-name: false` therefore has no ids a reader can copy into a `#window` or a
 `#slip-<id>` fragment. Give the slips explicit names if they should be linkable.
 
 ### A deck is not a reference
@@ -839,6 +839,14 @@ states of a live deck rather than errors:
 One known limitation: a `.slip-row` is its own horizontal scroll container
 and this layer spans every row, so a curve crossing a scrolled row is drawn
 in full rather than clipped to it.
+
+### Migrating from `display-id:`
+
+**This rename is breaking.** `display-id:` is now `display-name:`, on both
+`#slipshow` and `#slip`, forwarded straight through to the same rename in
+`@rookery/core`. There is no alias: a stale `display-id:` fails the compile
+with `#idea`'s (or `#window`'s) unknown-named-argument panic rather than
+silently doing nothing.
 
 ## This is a built package
 

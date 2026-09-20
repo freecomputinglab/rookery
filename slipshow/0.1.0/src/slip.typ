@@ -52,7 +52,7 @@
   // here: a card already prints the authored title alone (`@rookery/core`'s
   // `idea.typ`), so there is no derived label for a `#slip` to suppress.
   display-frame: false,
-  display-id: false,
+  display-name: false,
   ..args,
 ) = {
   // `SLIP-KEY` merges UNDER everything `slip-tags` built, so a call site
@@ -81,7 +81,7 @@
   idea(
     exclude-tags: exclude-tags,
     display-frame: display-frame,
-    display-id: display-id,
+    display-name: display-name,
     tags: resolved-tags,
     ..args,
   )

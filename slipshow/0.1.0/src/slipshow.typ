@@ -28,7 +28,7 @@
 //   `src/slipshow.css`'s reveal section for the pair of rules, and
 //   `src/slipshow.js`'s `syncReveal`.
 // - A QUERIED SLIP IS TRANSCLUDED WITH CORE'S CHROME OFF. `#slipshow`'s
-//   `display-frame:`, `display-id:` and `display-label:` all default to `false` here,
+//   `display-frame:`, `display-name:` and `display-label:` all default to `false` here,
 //   inverting `@rookery/core`'s own defaults, and are passed straight to the
 //   `#window` each queried slip is rendered by. So the markup inside a
 //   `<section class="slip">` is a `[data-rookery="window"]` carrying
@@ -150,7 +150,7 @@
 #let _render-slip(
   e,
   display-frame: true,
-  display-id: true,
+  display-name: true,
   display-label: true,
   foldable: true,
   reserve-title: true,
@@ -162,7 +162,7 @@
     window(
       e.row.id,
       display-frame: display-frame,
-      display-id: display-id,
+      display-name: display-name,
       display-label: display-label,
       foldable: foldable,
       reserve-title: reserve-title,
@@ -382,7 +382,7 @@
   enter: "scroll",
   reveal: true,
   display-frame: false,
-  display-id: false,
+  display-name: false,
   display-label: false,
   // A slide is READ, not scanned, and both of these invert core's default for
   // that reason. `foldable: false` because a stray click that folded a slide
@@ -430,8 +430,8 @@
     message: "@rookery/slipshow: `display-frame` must be a bool — got " + repr(display-frame),
   )
   assert(
-    type(display-id) == bool,
-    message: "@rookery/slipshow: `display-id` must be a bool — got " + repr(display-id),
+    type(display-name) == bool,
+    message: "@rookery/slipshow: `display-name` must be a bool — got " + repr(display-name),
   )
   assert(
     type(display-label) == bool,
@@ -484,7 +484,7 @@
       _render-slip(
         e,
         display-frame: display-frame,
-        display-id: display-id,
+        display-name: display-name,
         display-label: display-label,
         foldable: foldable,
         reserve-title: reserve-title,
@@ -517,7 +517,7 @@
         _render-slip(
           pair.e,
           display-frame: display-frame,
-          display-id: display-id,
+          display-name: display-name,
           display-label: display-label,
           foldable: foldable,
           reserve-title: reserve-title,
