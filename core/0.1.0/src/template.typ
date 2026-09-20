@@ -669,7 +669,13 @@
   // file. Guarded on `_rheo-ctx()`: under rheo `.marrow.typ` already runs
   // this once at bundle root, and `#show: rookery` applies once per
   // vertebra, so an unguarded call here would run it once per page instead.
-  if _rheo-ctx() == none { context _assert-unique-names() }
+  //
+  // Rendered inline, on this vertebra's own page: an ordinary page (unlike
+  // rheo's bundle root) always allows visible content, so a warning for a
+  // pair of identical notes shows up right where they were written.
+  if _rheo-ctx() == none {
+    context { for w in _assert-unique-names() { _dup-warning-content(w) } }
+  }
   // The fallback for a rookery `#footnote` written OUTSIDE any idea: page-wide
   // numbering and a body in the page's own endnote section, exactly as Typst's
   // own footnote behaves. `#idea` installs a nested rule that wins over this

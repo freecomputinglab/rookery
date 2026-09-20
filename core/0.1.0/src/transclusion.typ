@@ -393,7 +393,13 @@
     // as an explicit `auto`.
     let d = v.at("display", default: (:))
     let rd = _display-final(d, ("tags", "id", "frame"))
-    if _target() == "html" or _target() == "epub" {
+    // A count of REPLAYS: every time this rule rebuilds a note's card
+    // instead of the note's own direct rendering, it stamps the id being
+    // replayed. `placements - stamps` (`_assert-unique-names`, validate.typ)
+    // is what tells a genuine second authoring of identical content apart
+    // from an ordinary transclusion of the one note.
+    let stamp = [#metadata((rookery-replay: id)) <rookery-replay>]
+    stamp + if _target() == "html" or _target() == "epub" {
       let attrs = (class: cls.join(" "), data-rookery: "idea") + _tags-attr(visible)
       if id != none { attrs = attrs + (id: id) }
       // Tab before the heading, and the `id == none` guard travels with it: a

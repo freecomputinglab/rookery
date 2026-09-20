@@ -89,13 +89,21 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names
+#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
   // per note or per page — see `validate.typ`'s own banner for why a
-  // resolved id alone cannot tell a collision from a replay.
-  _assert-unique-names()
+  // resolved id alone cannot tell a collision from a replay. Panics on a
+  // real collision; otherwise hands back a warning per id whose one
+  // repeated payload turns out to have two or more genuine call sites.
+  //
+  // KEPT AS DATA, not rendered here: bundle-root content has nowhere safe to
+  // go (a bare paragraph here hard-errors, "text is not allowed at the
+  // top-level in bundle export") — the mint loop below renders each
+  // warning on the affected note's OWN page instead, once it exists.
+  let dup-warnings = (:)
+  for w in _assert-unique-names() { dup-warnings.insert(w.id, w) }
   let registry = _registry.final()
   let tpl = _idea-page-template.final()
   let syndicate = _syndicate.final()
@@ -315,6 +323,11 @@
         } else { [] },
         attrs: _themed(if use-title { (:) } else { (id: id) }),
       )
+      // A DUPLICATE-NAME WARNING, when this id has one: rendered here, on the
+      // note's own minted page, rather than at bundle root where it was
+      // computed — bundle-root content has nowhere safe to go under rheo
+      // (see the `dup-warnings` comment above).
+      #if id in dup-warnings { _dup-warning-content(dup-warnings.at(id)) }
       // `flat`, not `rec.body`: the note is rendered at `minted-depth` (see
       // above), so a `#window` written in its body shows in full here and a
       // window nested inside THAT one follows the document's `window-unfurl`.
