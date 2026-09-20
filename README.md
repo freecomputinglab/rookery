@@ -10,3 +10,5 @@ collections of ideas, ranging from a set of ideas with the same tags to your
 entire rookery.
 
 Go to the [documentation](https://rookery.ohrg.org) to get started.
+
+For an example of a rookery in code, see the [rookery documentation source](https://github.com/freecomputinglab/rookery.ohrg.org).
