@@ -5,8 +5,9 @@
 //
 // The summary is a wrapping flex row — the tab first, the title on a second
 // line beneath it — and `_window-content` emits `.idea-window-title` only when
-// the note has a title. So an untitled note's summary had ONE flex line where a
-// titled one had two. MEASURED before the fix: titled 26.02px, untitled 8.02px.
+// the note has a title, so an untitled note's summary carries only ONE flex
+// line (8.02px) against a titled one's two (26.02px) without the reservation
+// below.
 //
 // `.idea-window-summary:not(:has(> .idea-window-title))::after` in
 // `src/core.css` now reserves `1lh` in exactly that case. MEASURED after:

@@ -13,9 +13,9 @@
 // The `<prefix>:` stripped off each id to get a slug comes from `_pfx` (the
 // document-wide prefix state), never a literal — a project running
 // `#show: rookery.with(prefix: "note")` must mint at the same paths lib.typ
-// links to. This file no longer strips it itself for the minting path:
-// `_note-page` returns the slug, the file and the handle together, and reads
-// that one state on this file's behalf.
+// links to. The `<prefix>:` stripping for the minting path is `_note-page`'s
+// job, not this file's: it returns the slug, the file and the handle
+// together, reading that one state on this file's behalf.
 //
 // Deliberately does NOT re-declare the note's `<prefix>:<id>` Typst label on the
 // minted page. Two elements sharing one label break every #link/#window/
@@ -354,7 +354,7 @@
       // bundle root, outside every vertebra, so `#show: rookery`'s
       // document-wide fallback never reaches it: without this the markers were
       // claimed by nothing and rendered as nothing, silently dropping the
-      // note's footnotes from its own page. MEASURED before the fix.
+      // note's footnotes from its own page.
       //
       // It also puts the block between the body and the footer, which is where
       // it belongs: the note's own apparatus stays attached to the note, and

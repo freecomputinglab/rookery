@@ -55,14 +55,15 @@ grep -q '>Backlinks</h2>' "$H/ideas/root-note.html" ||
 # `_page-links-beacon` walks the vertebra's content at `#show: rookery` time,
 # and that walk cannot enter a context block — the body does not exist until
 # layout. So the unlabelled `metadata((rookery-window: ..))` a `#window`
-# announces itself with is invisible there, and every note such a window
-# transcludes used to lose its backlink from the page transcluding it.
+# announces itself with is invisible there, and this assertion is what
+# confirms every note such a window transcludes still gains its backlink
+# from the page transcluding it.
 #
 # NOT A HYPOTHETICAL: any package that computes its rows must emit its windows
 # from inside a context block, because a registry read needs one.
-# `@rookery/todos`'s `#todos-ready(windows: true)` is the real case, and
-# MEASURED before the fix it produced no backlink at all while a hand-written
-# window on the same page produced one.
+# `@rookery/todos`'s `#todos-ready(windows: true)` is the real case, where a
+# window emitted this way gains the same backlink a hand-written window on
+# the same page does.
 #
 # `content/sub/page.typ` holds the fixture: a `#context { window("plain-note") }`.
 grep -q 'href="../sub/page.html"' "$H/ideas/plain-note.html" ||
@@ -89,11 +90,11 @@ PY
 
 # 5. A citation written inside a `#footnote` belongs to the idea the footnote was
 #    written in. `plain-note`'s ONLY citation sits in one, so the whole
-#    references block on both its pages depends on the walk descending into the
-#    footnote's metadata payload. MEASURED before that descent existed: the
-#    author-date marker rendered, `.idea-references` was emitted nowhere, and an
-#    empty `.idea-page-refs` appeared in its place — a reader saw a citation with
-#    nothing on the site saying what it cited.
+#    references block on both its pages depends on the walk descending into
+#    the footnote's metadata payload: the author-date marker renders and
+#    `.idea-references` carries the citation, rather than an empty
+#    `.idea-page-refs` leaving a reader with a citation and nothing on the
+#    site saying what it cited.
 #
 #    Counted, not merely found: the BIBLIOGRAPHY ENTRY must appear exactly once
 #    per page. The footnote body is rendered as well as scanned, and a walk
@@ -124,10 +125,9 @@ done
 #
 #    AS A BARE BASENAME, and that is the assertion, not an incidental spelling.
 #    This page IS `ideas/index.html`, so a minted note page is its SIBLING and
-#    `<slug>.html` is the whole correct href. It used to be spelled
-#    `ideas/<slug>.html` here, matching what rookery emitted — and what rookery
-#    emitted was wrong, resolving to `ideas/ideas/<slug>.html`. Measured on an
-#    82-note site: every row 404. So the old form must NOT be accepted again.
+#    `<slug>.html` is the whole correct href: a `ideas/<slug>.html` prefix
+#    would resolve to `ideas/ideas/<slug>.html` from inside this page and
+#    404 every row, so that prefixed form must NOT be accepted.
 [ -f "$H/ideas/index.html" ] || note "no ideas/index.html was minted"
 if [ -f "$H/ideas/index.html" ]; then
   idx="$H/ideas/index.html"
@@ -287,8 +287,8 @@ grep -q 'SECRETBODY' "$H/ideas/secret-note.html" ||
 #     build. Nothing in this package changes when they land.
 
 # 12. A DERIVED TITLE ON A MINTED PAGE. `demo/pure` asserts the derivation on a
-#     card; only here is there a minted page, whose `<title>` and `<h1>` used to
-#     fall back to the note's SLUG — so an untitled note's own page was named `1`.
+#     card; only here is there a minted page, whose `<title>` and `<h1>` come
+#     from the note's derived title rather than falling back to its SLUG.
 #     The note is called `derived-note`, so the slug and the derived title are
 #     plainly different strings and the assertion cannot pass by accident.
 dp="$H/ideas/derived-note.html"
@@ -296,11 +296,11 @@ dp="$H/ideas/derived-note.html"
 if [ -f "$dp" ]; then
   grep -q '<title>DERIVEDBODY' "$dp" ||
     note "ideas/derived-note.html <title> is not the derived title: $(grep -oE '<title>[^<]*' "$dp")"
-  #   AND THE <h1> IS EMPTY, which is the other half of the split and the
-  #   regression guard for the defect it fixed: a derived name is a LABEL for
-  #   referring to the note, not a heading to print above the note's own body.
-  #   MEASURED before the split — the minted page rendered `<h1>DERIVEDBODY..</h1>`
-  #   and then `<p>DERIVEDBODY..</p>`, the same text twice.
+  #   AND THE <h1> IS EMPTY, which is the other half of the split: a derived
+  #   name is a LABEL for referring to the note, not a heading to print above
+  #   the note's own body, so the minted page's <h1> must stay empty rather
+  #   than repeating `DERIVEDBODY..` as both the heading and the body's own
+  #   paragraph.
   #   Keyed on `data-rookery="idea"` with `-P` lookaheads rather than one literal
   #   string, so the three attributes may appear in any order — `[^>]*></h1>`
   #   right after them is what still proves the heading holds no text node.
@@ -598,10 +598,11 @@ declare -A IDEATED_TITLES=(
   [rookery]="Rookery"
   #   A section with NOTHING under it mints too. `== An empty section` in that
   #   file has no body at all, and a stub heading is still a note an author
-  #   wrote; it used to be emitted as a bare heading and never reach the
-  #   registry, so a chapter of stubs pinned only the sections that happened to
-  #   carry a sentence. The page existing, titled by its own heading, is the
-  #   assertion — and the twice-only count below holds for it unchanged.
+  #   wrote and reaches the registry just as a section with a sentence in it
+  #   does, so a chapter of stubs is pinned in full, not only the sections
+  #   that happen to carry prose. The page existing, titled by its own
+  #   heading, is the assertion — and the twice-only count below holds for it
+  #   unchanged.
   [an-empty-section]="An empty section"
 )
 for slug in "${!IDEATED_TITLES[@]}"; do

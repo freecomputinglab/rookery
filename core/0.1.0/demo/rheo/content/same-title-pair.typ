@@ -5,10 +5,9 @@
 = Numbering a duplicate title-derived id
 
 // Two notes on this one vertebra whose titles both slug to `same-title`.
-// `core/0.1.0/src/idea.typ` used to panic the instant the second one
-// registered ("duplicate note id ... already registered"); it now mints
-// `idea:same-title` for the first and `idea:same-title-2` for the second,
-// counted in document order — see the slug-occurrence counter
+// `core/0.1.0/src/idea.typ` mints `idea:same-title` for the first and
+// `idea:same-title-2` for the second rather than panicking on the duplicate
+// id, counted in document order — see the slug-occurrence counter
 // (`_slug-peek`/`_slug-record`, `src/state.typ`). `check.sh` asserts both
 // pages exist under those exact ids and that each renders its own body.
 //

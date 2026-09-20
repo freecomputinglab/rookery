@@ -13,8 +13,7 @@ watch:
 # (mandatory regardless of format — see root.typ). The repo-root
 # .github/workflows/check.yml runs THIS RECIPE ("rookery pure demo compiles",
 # `cd core/0.1.0/demo/pure && just build`), so a root added here is picked up
-# by CI with no second edit. It did once invoke `typst compile` directly, which
-# is why this comment used to warn that both needed updating — it no longer does.
+# by CI with no second edit.
 #
 # `excluded.typ` is HTML ONLY, deliberately: it asserts nothing about the
 # paged target, and a PDF line would double its runtime for no coverage.
@@ -89,9 +88,8 @@ check:
       note "a URL-bodied note's id carries its own scheme instead of the URL's tail"
     fi
 
-    # 7. A NESTED TITLELESS NOTE derives its own id instead of taking its
-    #    parent's id with a counter appended — the old ordinal-based scheme
-    #    this replaced.
+    # 7. A NESTED TITLELESS NOTE derives its own id from its own body rather
+    #    than reusing its parent's id with a counter appended.
     grep -qE 'idea:filed-here-with-[0-9a-z]{3}' build/naming.html ||
       note "the nested note's id is not a slug of its own body (filed-here-with)"
     if grep -qE 'idea:nn-parent-[0-9]' build/naming.html; then

@@ -227,8 +227,8 @@
 #assert.eq(_blocks(_styled-two-blocks).len(), 2)
 // Consecutive `item`s are ONE block, so `limit:` cannot cut a list in half.
 // Children here are `space text space parbreak space item space item space`, so
-// this holds only because a `space` between two items no longer clears the run:
-// it is list punctuation, not a block boundary (bead rheo-packages-rtd.1).
+// this holds because a `space` between two items does not clear the run — see
+// `_blocks`'s own comment on why a list's own punctuation space must survive.
 #let _text-then-list = [
   Intro.
   #parbreak()
@@ -281,8 +281,9 @@
   Body text.
 ]
 #assert.eq(_blocks(_heading-then-text).len(), 2)
-// `#idea`'s own marker is `metadata`: invisible, and it used to take a whole
-// block — and therefore a whole `limit` slot — to itself.
+// `#idea`'s own marker is `metadata`: invisible, and this assertion is what
+// confirms it never takes a whole block — and therefore a whole `limit`
+// slot — to itself.
 #assert.eq(_blocks([A#metadata((k: 1))B]).len(), 1)
 // A SMARTQUOTE IS INLINE, and nothing in a paragraph looks less like a block.
 // MEASURED DEFECT, on `rookery.ohrg.org`'s packages shelf: a `#window(..,
@@ -472,11 +473,11 @@
 
 // ---- _cite-scan / _outbound — a `#footnote`'s body is a metadata payload ---
 // A `#footnote` stores its body inside `metadata((rookery-fn: body))`, and both
-// walks used to stop dead at any metadata that was not a window marker. MEASURED
-// before the fix: an idea whose only citation sat in a footnote rendered the
-// author-date marker and no references block at all, and a `#window` written in
-// a footnote registered no outbound link, so the windowed note lost that
-// backlink. Both are the same missing descent.
+// walks descend into it rather than stopping at metadata that is not a window
+// marker: an idea whose only citation sits in a footnote still gets its
+// author-date marker and references block, and a `#window` written inside a
+// footnote still registers its outbound link, so the windowed note still gets
+// that backlink. Both walks share the same descent.
 //
 // `_own-cited-keys` filters against `_bib-keys()`, so these run after the
 // `_bib.update` above.
@@ -614,10 +615,10 @@
 )
 
 // ---- _plain / _body-text — a smart quote is its own element ----------------
-// It used to contribute NOTHING, so every apostrophe and quotation mark vanished
-// from a note's plain text and no search could match one. MEASURED on a real
-// rookery: a note titled `Read Anil's 'Rumour is the exploit'` indexed as
-// `"Read Anils Rumour is the exploit"`. ASCII rather than the curly glyph, because
+// A `smartquote` renders as its ASCII form in plain text (see the sibling
+// banner in `pure.typ` on `_plain-with`'s own `smartquote` branch): every
+// apostrophe and quotation mark survives in a note's plain text, which is
+// what search matches against. ASCII rather than the curly glyph, because
 // open-vs-close depends on position and the element carries only `double`.
 #assert.eq(_plain([Anil's]), "Anil's")
 #assert.eq(_plain([Read "this"]), "Read \"this\"")
@@ -689,16 +690,16 @@
 #assert(not _blank(heading(depth: 2)[A heading]))
 // A PARBREAK IS BLANK, and heading mode is what needs it: there a parbreak is
 // ordinary content, so the blank line before a body's first `==` forms a group
-// of one parbreak that used to mint a note holding nothing but a paragraph
-// break. In parbreak mode the separator never lands inside a group, so this
-// changes nothing there.
+// of one parbreak, and that group is blank rather than minting a note holding
+// nothing but a paragraph break. In parbreak mode the separator never lands
+// inside a group, so this changes nothing there.
 #assert(_blank(parbreak()))
 #assert(_heading-only((parbreak(), heading(depth: 2)[A heading])))
 
 // `_inert`/`_no-content`: rheo appends a trailing `context` child to every page
-// body, which renders nothing yet is not whitespace — so it used to mint one
-// bodyless note per page. Such a group is emitted unwrapped, never dropped: the
-// postamble has to survive.
+// body, which renders nothing yet is not whitespace, so `_no-content` treats
+// it as inert rather than as a note's own body. Such a group is emitted
+// unwrapped, never dropped: the postamble has to survive.
 #assert(_inert([#context none]))
 #assert(_inert(metadata(1)))
 #assert(not _inert(text("word")))
@@ -736,9 +737,9 @@
 // `want:` — AN EMPTY SECTION IS STILL A NOTE. In heading mode the separator
 // heading starts its own group, so a group holding nothing but a heading of
 // THAT level is a section an author has not filled in yet, and minting it is
-// what keeps a chapter's note set equal to its heading set (a stub `== Title`
-// used to vanish from `#ideas()`, and so from every pinboard and outline). A
-// heading of any other level alone remains structure.
+// what keeps a chapter's note set equal to its heading set: a stub `== Title`
+// stays in `#ideas()`, and so in every pinboard and outline. A heading of any
+// other level alone remains structure.
 #assert(not _heading-only((heading(depth: 2)[Empty section],), want: 2))
 #assert(not _heading-only(([ ], heading(depth: 2)[Empty section], parbreak()), want: 2))
 #assert(_heading-only((heading(depth: 1)[Part One],), want: 2))

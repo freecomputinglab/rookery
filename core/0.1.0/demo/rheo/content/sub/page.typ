@@ -24,9 +24,9 @@ back to #vertebra-link("index")[the root vertebra].
 A window emitted from INSIDE a `#context` block, which is what any package
 computing its own rows must do — `@rookery/todos`'s views are the real
 case. The backlink walk reads a page's content at `#show: rookery` time and
-cannot enter a context block, so a window written like this used to announce
-itself to nobody and the note it transcludes lost its backlink from this page.
-`check.sh` asserts that `plain-note` now lists this vertebra.
+cannot enter a context block, so a window written like this must announce
+itself for the note it transcludes to gain its backlink from this page.
+`check.sh` asserts that `plain-note` lists this vertebra.
 
 #context {
   window("plain-note", folded: true)

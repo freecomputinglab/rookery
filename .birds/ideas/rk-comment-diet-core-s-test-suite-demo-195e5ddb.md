@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-core-review
 deps: []
-closed: false
+closed: true
 ---
 Outside `src/`, this package's unit fixture, its two demo suites and
 `.marrow.typ` carry the same history-narrating pattern the `src/` comment-diet

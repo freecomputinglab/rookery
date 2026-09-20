@@ -36,8 +36,9 @@ the only thing that produces a page backlink:
   A `#note`, so the registry carries a prepended `note` tag and the heading a
   `idea-tag-note` class.
 
-  Its only citation sits inside a footnote, which is the case that used to
-  vanish: the marker rendered and no references block was emitted anywhere.
+  Its only citation sits inside a footnote, and the idea's own references
+  block still claims a citation from there: the marker renders and the
+  references block is emitted alongside it.
   #footnote[A second work, cited from inside the footnote @lamport1994.]
 
   Two more footnotes with IDENTICAL bodies, on purpose: a naive by-content
@@ -106,8 +107,8 @@ the only thing that produces a page backlink:
 //
 // A note with no `title:` takes the first 60 characters of its body as plain text
 // (`_derived-title`, src/pure.typ). `demo/pure` asserts that on a CARD; what needs
-// rheo is the minted page, whose `<title>` and `<h1>` used to fall back to the
-// note's SLUG — so an auto-numbered note's own page was called `1`.
+// rheo is the minted page, whose `<title>` and `<h1>` come from that derived
+// title rather than falling back to the note's SLUG.
 //
 // Named rather than auto-numbered, so `check.sh` has a stable path to grep. The
 // slug is what the fallback WOULD have produced, which is exactly what makes the
@@ -118,12 +119,12 @@ the only thing that produces a page backlink:
 ]
 
 // ---- A CONTENT-DERIVED ID ON A MINTED PAGE, which no `demo/pure` root can
-// show either — a minted page is a SECOND rendering of a note's own body,
-// exactly the case that broke before a nested note's borrowed ordinal was
-// replaced by one. A note with NEITHER a name NOR a title mints under a body
-// slug plus a content digest instead of a counter, and the id printed here,
-// on the vertebra that wrote it, has to be the same string as the minted
-// page's own filename.
+// show either — a minted page is a SECOND rendering of a note's own body, so
+// its id has to reach the same string on both renderings, which a
+// counter-based ordinal cannot guarantee. A note with NEITHER a name NOR a
+// title mints under a body slug plus a content digest instead of a counter,
+// and the id printed here, on the vertebra that wrote it, has to be the same
+// string as the minted page's own filename.
 #idea[CONTENTIDBODY and this is a titleless, unnamed note, so its id comes
   from its own body rather than from a counter.]
 
