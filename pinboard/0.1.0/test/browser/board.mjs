@@ -26,7 +26,11 @@ requireBuild(`${ROOT}index.html`, "cd pinboard/0.1.0 && just check");
 
 const CARD = ".pinboard-card";
 const TITLE = '[data-rookery="window-title"]';
-const LABEL = 'a[data-rookery="label"]';
+// The anchor INSIDE the permalink, not the permalink itself: core's
+// `_permalink` puts `data-rookery` on a wrapping `<span>`, because Typst's
+// `link()` renders a bare `<a href="..">` that carries none of the element's
+// own attributes. This suite wants the anchor, for its `href` and its click.
+const LABEL = '[data-rookery="label"] a';
 const DETAILS = '[data-rookery="window-details"]';
 const BODY = '[data-rookery="window-body"]';
 // The drag handle `drag.js` requires a press to land inside.
@@ -57,7 +61,7 @@ const clearStorage = (page) => page.evaluate(() => localStorage.clear());
 //     card painted over it — which moves the wrong card and leaves this one
 //     exactly where it was.
 //   - it must land inside the summary row, the handle `drag.js` requires.
-//   - it must MISS the tab's `<a data-rookery="label">` permalink and any other
+//   - it must MISS the anchor inside the tab's `[data-rookery="label"]` permalink, and any other
 //     interactive descendant, which `drag.js` bails on so their click survives.
 //
 // `elementFromPoint` answers all three from inside the page. Candidates walk
@@ -248,10 +252,15 @@ try {
     // Case 3: the note's own link still opens, and a drag never intercepts it.
     const counterargument = cardLocator(page, "idea:counterargument");
     const label = counterargument.locator(LABEL);
+    // Resolved against the page rather than pasted onto the origin: core mints
+    // a permalink relative to the page it sits on, so the href reads
+    // `./ideas/<name>.html` from the root and `../..`-style from a nested one,
+    // and neither concatenates into a URL the browser will report back.
     const href = await label.getAttribute("href");
+    const target = new URL(href, page.url()).href;
     await label.click();
-    await page.waitForURL(`${origin}/${href}`);
-    assert.ok(page.url().endsWith(href), `navigating the label landed on ${page.url()}, wanted ${href}`);
+    await page.waitForURL(target);
+    assert.equal(page.url(), target, `navigating the label landed on ${page.url()}, wanted ${target}`);
     await page.goBack();
     await page.waitForURL(`${origin}/index.html`);
 
