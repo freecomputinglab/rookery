@@ -89,9 +89,13 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label
+#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names
 
 #context {
+  // Two notes sharing a name, checked once here at bundle root rather than
+  // per note or per page — see `validate.typ`'s own banner for why a
+  // resolved id alone cannot tell a collision from a replay.
+  _assert-unique-names()
   let registry = _registry.final()
   let tpl = _idea-page-template.final()
   let syndicate = _syndicate.final()

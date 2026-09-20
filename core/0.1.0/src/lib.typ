@@ -39,6 +39,7 @@
 // `base.typ` with the rest of the rheo-context reads.
 #import "base.typ": *
 #import "state.typ": *
+#import "validate.typ": *
 #import "theme.typ": *
 #import "urls.typ": *
 #import "permalink.typ": *

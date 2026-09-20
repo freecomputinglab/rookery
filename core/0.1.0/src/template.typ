@@ -7,6 +7,7 @@
 
 #import "base.typ": *
 #import "state.typ": *
+#import "validate.typ": *
 #import "theme.typ": *
 #import "urls.typ": *
 #import "permalink.typ": *
@@ -663,6 +664,12 @@
   // Not gated on target: the beacon renders nothing anywhere, and the paged build
   // answers the same question about the same page.
   context _page-links-beacon(doc)
+  // Two notes sharing a name, checked here rather than left to `.marrow.typ`,
+  // because a project with no marrow (no rheo at all) never reaches that
+  // file. Guarded on `_rheo-ctx()`: under rheo `.marrow.typ` already runs
+  // this once at bundle root, and `#show: rookery` applies once per
+  // vertebra, so an unguarded call here would run it once per page instead.
+  if _rheo-ctx() == none { context _assert-unique-names() }
   // The fallback for a rookery `#footnote` written OUTSIDE any idea: page-wide
   // numbering and a body in the page's own endnote section, exactly as Typst's
   // own footnote behaves. `#idea` installs a nested rule that wins over this
