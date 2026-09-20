@@ -6,7 +6,7 @@ priority: 3
 labels:
 - move-root-design-notes
 deps: []
-closed: false
+closed: true
 ---
 Three working-note documents sit at the root of this repository and would be
 the first three files a visitor sees beside `CLAUDE.md`. They are lab notebooks

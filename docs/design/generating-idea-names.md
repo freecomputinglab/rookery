@@ -1,9 +1,7 @@
 # Generating an idea's name
 
 The design `@rookery/core` uses to name a note that was not explicitly named.
-Working notes, 20 September 2026. Supersedes the algorithm described in
-`naming.md`, which documents the container-ordinal scheme this replaces, and
-answers the failure recorded in `convergence-bug.md`.
+Working notes, 20 September 2026.
 
 ## The rule
 
