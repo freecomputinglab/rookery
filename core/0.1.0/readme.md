@@ -2792,6 +2792,27 @@ could read instead. See "Limitations" below for the one case neither marker
 reaches — an unplaced `#idea`/`#window` return value, whose `context`
 wrapper keeps it unreadable until Typst places it.
 
+### `#idea-key` — a name's label, as a string
+
+`#idea-href` and `#idea-path` both turn a name into a URL by composing the
+same two pieces: the configured prefix, and `name` normalized to a bare
+slug. `#idea-key` is that composition on its own, for a caller that wants
+the label name itself rather than a page URL — a `label(..)` call, or a
+`#tag-data()` lookup, both of which key on this exact string:
+
+```typst
+#import "@rookery/core:0.1.0": idea-key
+#context label(idea-key("etal"))                          // <idea:etal>
+#context tag-data().at(idea-key("etal"), default: (:))     // that note's tags
+```
+
+It takes a bare name (`"etal"`), a full id (`"idea:etal"`), or a label
+(`<etal>`, `<idea:etal>`) — whatever `idea-href` accepts — and always returns
+a `str`, never a `label` and never `none`: unlike `idea-href`/`idea-path`,
+resolving the prefix and normalizing the name need no rheo page to exist.
+Like both of them it reads document-wide state, so it needs its own
+`#context` at the call site.
+
 ### Reading data vs. rendering content: when a call needs its own `#context`
 
 Four accessors read the registry and hand back DATA — an array, a

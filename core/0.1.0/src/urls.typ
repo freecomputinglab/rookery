@@ -51,10 +51,19 @@
   if c == none or c.at("ext", default: none) == none { return label(id) }
   "rheo-page:" + _dir() + ":" + id.trim(_pfx(), at: start)
 }
+//   #context idea-key("etal")   // -> "idea:etal"
+// The label name for a note: the configured prefix plus the normalized
+// name — the same string that is the Typst label, the registry key, and the
+// key `#tag-data` returns a note's dictionary under. Needs `#context`, same
+// as `idea-href`/`idea-path` below, which both compose it. Public so a
+// caller building a `label(..)` or a `#tag-data()` lookup does not have to
+// hardcode the prefix, which a project can change.
+#let idea-key(name) = _pfx() + _norm(name)
+
 //   #context idea-href("etal")   // -> "../ideas/etal.html", or none
 // Public because `@rookery/search` builds links to minted pages. RELATIVE TO
 // WHERE IT IS CALLED — a caller must not cache the result across pages.
-#let idea-href(name) = _note-href(_pfx() + _norm(name))
+#let idea-href(name) = _note-href(idea-key(name))
 
 //   #context idea-path("etal")   // -> "ideas/etal.html", or none
 // The same page, from the site root — for a caller with none of its own.
@@ -63,4 +72,4 @@
   if c == none or c.at("ext", default: none) == none { return none }
   _note-file(id)
 }
-#let idea-path(name) = _note-path(_pfx() + _norm(name))
+#let idea-path(name) = _note-path(idea-key(name))

@@ -9,7 +9,7 @@ deps:
 - blocked-by:rk-cut-the-alpha-lineage-migration-notes-f592d238
 - blocked-by:rk-halve-the-comments-in-urls-and-base-5e633e85
 - blocked-by:rk-drop-tracker-ids-from-shipped-comments-b0162a03
-closed: false
+closed: true
 ---
 Every consumer that needs an idea's Typst label name — the `idea:etal` string
 that is simultaneously the label, the registry key, and the key `#tag-data`

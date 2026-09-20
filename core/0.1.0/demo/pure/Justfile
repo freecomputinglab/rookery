@@ -32,6 +32,11 @@ watch:
 # asserts nothing about the paged target, only about ids that show up as text
 # in the HTML.
 #
+# `idea-key.typ` and `idea-key-prefix.typ` are HTML ONLY too: both assert
+# only on `idea-key`'s return value, nothing about the paged target. They are
+# two files rather than one because `prefix:` is document-wide state — one
+# compile cannot cover both the default prefix and a non-default one.
+#
 # Comments belong in THIS header, not inside the recipe body: `just` echoes a
 # `#` line in a body as if it were a command, so an explanation written there is
 # printed to the user on every build.
@@ -45,6 +50,8 @@ build:
     typst compile --features html --format html --root ../.. --input rookery-include=private excluded.typ build/excluded-dev.html
     typst compile --features html --format html --root ../.. display-parity.typ build/display-parity.html
     typst compile --features html --format html --root ../.. naming.typ build/naming.html
+    typst compile --features html --format html --root ../.. idea-key.typ build/idea-key.html
+    typst compile --features html --format html --root ../.. idea-key-prefix.typ build/idea-key-prefix.html
     @just check
 
 # Greps on what `build` produced. The assertions live here rather than as
