@@ -77,7 +77,7 @@
 #let _THEME-KEYS = (
   "link-color": "--idea-link-color",
   "fold-color": "--idea-fold-color",
-  "id-color": "--idea-id-color",
+  "name-color": "--idea-name-color",
   "date-color": "--idea-date-color",
   "border-color": "--idea-border-color",
   "rule-width": "--idea-rule-width",

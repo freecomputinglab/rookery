@@ -14,7 +14,7 @@
   theme: (
     link-color: rgb("#0055aa"),
     fold-color: rgb("#aa00aa"),
-    id-color: rgb("#888888"),
+    name-color: rgb("#888888"),
     date-color: rgb("#888888"),
     border-color: rgb("#3366ff"),
     tags-color: (phd: (background: rgb("#ffcc00"), text: rgb("#000000"))),

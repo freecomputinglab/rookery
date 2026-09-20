@@ -27,7 +27,7 @@
 
      --idea-link-color   link-color   hover background on ANY rookery link
      --idea-fold-color   fold-color   hover background on a foldable window block
-     --idea-id-color     id-color     the [idea:etal] permalink's text
+     --idea-name-color   name-color   the [idea:etal] permalink's text
      --idea-date-color   date-color   an idea's/window's date, where shown
      --idea-border-color border-color the left rule on `[data-rookery="box"]`/`[data-rookery="window"]`,
                                       and the top tab rule (`[data-rookery="tab"]`) that
@@ -102,7 +102,7 @@
   margin-left: 0.5em;
   padding: 0 2px;
   white-space: nowrap;
-  color: var(--idea-id-color, gray);
+  color: var(--idea-name-color, gray);
   font-weight: 200;
   /* Metadata, not content — explicitly smaller than the title beside it
      (`[data-rookery="window-title"]` and a heading's own text both stay at their
@@ -452,7 +452,7 @@
 [data-rookery="page-refs"] a[href^="http"]:hover,
 [data-rookery="footer"] a[href^="http"]:hover {
   text-decoration-line: underline;
-  text-decoration-color: var(--idea-external-color, var(--idea-id-color, gray));
+  text-decoration-color: var(--idea-external-color, var(--idea-name-color, gray));
   text-decoration-thickness: 2px;
   text-underline-offset: 0.15em;
 }
@@ -1191,7 +1191,7 @@ h6[data-rookery="idea"] {
   border-radius: var(--idea-tag-radius, 999px);
   padding: 0 0.5em;
   white-space: nowrap;
-  color: var(--idea-tag-color, var(--idea-id-color, gray));
+  color: var(--idea-tag-color, var(--idea-name-color, gray));
   background-color: var(--idea-tag-bg, rgba(128, 128, 128, 0.18));
   background-color: var(--idea-tag-bg, color-mix(in oklab, currentColor 14%, transparent));
 }
@@ -1475,7 +1475,7 @@ a[data-rookery="row-title"]:hover {
    than part of it. It takes the shared link hover above, so it is not restyled
    here. */
 [data-rookery="fn-backlink"] {
-  color: var(--idea-id-color, gray);
+  color: var(--idea-name-color, gray);
   text-decoration: none;
   margin-right: 0.3em;
 }

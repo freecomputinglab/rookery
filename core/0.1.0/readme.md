@@ -229,6 +229,14 @@ note's name. There is no alias: a stale `display-id:` fails the compile with
 `#idea`'s (or `#window`'s) unknown-named-argument panic rather than silently
 doing nothing.
 
+### Migrating from `id-color`
+
+**This rename is breaking.** The theme key `id-color` is now `name-color`,
+and the custom property it publishes, `--idea-id-color`, is now
+`--idea-name-color` — the permalink it colours shows the note's name. There
+is no alias, and because a CSS custom property fails silently, a site that
+still sets `--idea-id-color` simply loses the colour rather than erroring.
+
 ## Setup, and the `idea:` prefix
 
 Nothing above needed any setup, and that stays true. One optional template
@@ -358,7 +366,7 @@ for you:
 | --- | --- | --- |
 | `link-color` | hover background on **any** rookery link | `rgba(128, 0, 255, .12)` |
 | `fold-color` | hover background on a foldable window block | `rgba(0, 100, 255, .05)` |
-| `id-color` | the `[idea:etal]` permalink's text | `gray` |
+| `name-color` | the `[idea:etal]` permalink, the note's name | `gray` |
 | `date-color` | an idea's/window's date, where shown | `gray` |
 | `border-color` | the rule down a note, a window and an outline, and the tab that rules off the top of a card | falls back to `link-color` |
 | `rule-width` | how **thick** every one of those rules is, markers included | `2px` |
@@ -2054,7 +2062,7 @@ unlayered stylesheet — so a project can restate any of them for a themed tag:
 | --- | --- | --- |
 | `--idea-tag-size` | the pill's font size | `--idea-label-size` (`0.57rem`) |
 | `--idea-tag-radius` | the pill's corner radius | `999px` |
-| `--idea-tag-color` | the pill's text colour | `--idea-id-color` (`gray`) |
+| `--idea-tag-color` | the pill's text colour | `--idea-name-color` (`gray`) |
 | `--idea-tag-bg` | the pill's background | `rgba(128, 128, 128, 0.18)`, or `color-mix(in oklab, currentColor 14%, transparent)` where supported |
 | `--idea-tag-line` | the colour of an outline row's marker, the tick off the outline's rule | `--idea-border-color`, else `--idea-link-color`. Set from a themed tag's `text` colour where it has one and its `background` otherwise |
 

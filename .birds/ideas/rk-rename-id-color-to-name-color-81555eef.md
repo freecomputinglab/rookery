@@ -7,7 +7,7 @@ labels:
 - fix-idea-name-terminology
 deps:
 - blocked-by:rk-rename-display-id-to-display-name-0e403847
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/theme.typ, core/0.1.0/src/template.typ, core/0.1.0/src/core.css, core/0.1.0/demo/pure/root-prefix.typ, core/0.1.0/readme.md, todos/0.1.0/src/todos.css, cfps/0.1.0/src/cfps.css, pinboard/0.1.0/src/pinboard.css, search/0.1.0/src/search.css, search/0.1.0/readme.md
 
