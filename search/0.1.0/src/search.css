@@ -32,7 +32,7 @@
      --rookery-search-border      input border, and the dropdown's edge
      --rookery-search-radius      corner radius, both
      --rookery-search-hover       row hover/focus background
-     --rookery-search-id-color    the `idea:etal` id beside a row's title
+     --rookery-search-name-color  the `idea:etal` name beside a row's title
      --rookery-search-width       the input's width
      --rookery-search-max-width   how wide the dropdown may grow before its
                                   longest row wraps; it hugs its content below
@@ -244,7 +244,7 @@
      `nowrap` so a bracketed id never breaks across lines; a long title wraps
      and the id follows it, exactly as it would in prose. */
   .rookery-search-id {
-    color: var(--rookery-search-id-color, var(--idea-id-color, gray));
+    color: var(--rookery-search-name-color, var(--idea-name-color, gray));
     margin-left: 0.4em;
     white-space: nowrap;
   }
@@ -341,7 +341,7 @@
        rather than stretching the row past the pane. */
     max-width: 100%;
     overflow-wrap: anywhere;
-    color: var(--rookery-search-tag-color, var(--idea-tag-color, var(--rookery-search-id-color, var(--idea-id-color, gray))));
+    color: var(--rookery-search-tag-color, var(--idea-tag-color, var(--rookery-search-name-color, var(--idea-name-color, gray))));
     background-color: var(--rookery-search-tag-bg, var(--idea-tag-bg, rgba(128, 128, 128, 0.18)));
     background-color: var(--rookery-search-tag-bg, var(--idea-tag-bg, color-mix(in oklab, currentColor 14%, transparent)));
   }

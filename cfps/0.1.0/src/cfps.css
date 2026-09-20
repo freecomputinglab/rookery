@@ -116,7 +116,7 @@
     padding: 0.1em 0.5em;
     border-radius: var(--idea-tag-radius, 999px);
     white-space: nowrap;
-    color: var(--idea-tag-color, var(--idea-id-color, GrayText));
+    color: var(--idea-tag-color, var(--idea-name-color, GrayText));
     background-color: transparent;
     border: 1px solid var(--idea-tag-line, var(--cfps-edge, GrayText));
   }

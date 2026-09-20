@@ -107,7 +107,7 @@
    One level down it can, and a grey minted to read against the page
    would otherwise sit unreadable on the fill. */
 .pinboard-card[data-selected] [data-rookery="window-details"] {
-  --idea-id-color: var(--pinboard-select-fg, #fff);
+  --idea-name-color: var(--pinboard-select-fg, #fff);
   --idea-date-color: var(--pinboard-select-fg, #fff);
 }
 

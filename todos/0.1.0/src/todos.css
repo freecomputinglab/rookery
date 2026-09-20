@@ -26,7 +26,7 @@
   }
 
   .todo-view-empty {
-    color: var(--todo-muted-color, var(--idea-id-color, gray));
+    color: var(--todo-muted-color, var(--idea-name-color, gray));
     font-style: italic;
     margin: 0;
   }
@@ -54,7 +54,7 @@
   }
 
   .todo-fields dt {
-    color: var(--todo-muted-color, var(--idea-id-color, gray));
+    color: var(--todo-muted-color, var(--idea-name-color, gray));
     text-transform: uppercase;
     letter-spacing: 0.03em;
     font-size: 0.85em;
@@ -86,7 +86,7 @@
   }
 
   .todo-row-note {
-    color: var(--todo-muted-color, var(--idea-id-color, gray));
+    color: var(--todo-muted-color, var(--idea-name-color, gray));
     font-size: 0.85em;
   }
 
@@ -123,7 +123,7 @@
     font-size: 0.8em;
     cursor: pointer;
     padding: 0.1rem 0.5rem;
-    color: var(--todo-muted-color, var(--idea-id-color, gray));
+    color: var(--todo-muted-color, var(--idea-name-color, gray));
     background: transparent;
     border: 1px solid var(--todo-search-border, var(--idea-border-color, currentColor));
     border-radius: 999px;
@@ -168,7 +168,7 @@
 
   .todo-search-count {
     margin: 0 0 0.3rem;
-    color: var(--todo-muted-color, var(--idea-id-color, gray));
+    color: var(--todo-muted-color, var(--idea-name-color, gray));
     font-size: 0.85em;
   }
 
@@ -193,7 +193,7 @@
    * separate status class is emitted for it, because the tag already says so. */
   .todo-row[data-rookery-tags~="todo-closed"] .todo-row-title {
     text-decoration: line-through;
-    color: var(--todo-muted-color, var(--idea-id-color, gray));
+    color: var(--todo-muted-color, var(--idea-name-color, gray));
   }
 
   /* A CLOSED TODO IS GREYED WHERE IT IS HATCHED, not only in a list. The rule above
@@ -297,7 +297,7 @@
   /* Opacity rather than a recolour, the same reasoning as the card rule
    * above: a closed todo is receded, not hidden. Hover restores it. */
   .todo-slip-closed {
-    --slip-rule-color: var(--todo-muted-color, var(--idea-id-color, gray));
+    --slip-rule-color: var(--todo-muted-color, var(--idea-name-color, gray));
     opacity: var(--todo-closed-opacity, 0.55);
   }
 
@@ -532,7 +532,7 @@
   }
 
   .todo-stat-key {
-    color: var(--todo-muted-color, var(--idea-id-color, gray));
+    color: var(--todo-muted-color, var(--idea-name-color, gray));
     font-size: 0.85em;
   }
 
@@ -609,12 +609,12 @@
   }
 
   .todo-graph-closed .todo-graph-rect {
-    --todo-graph-line: var(--todo-muted-color, var(--idea-id-color, gray));
+    --todo-graph-line: var(--todo-muted-color, var(--idea-name-color, gray));
   }
 
   .todo-graph-closed .todo-graph-label {
     text-decoration: line-through;
-    fill: var(--todo-muted-color, var(--idea-id-color, gray));
+    fill: var(--todo-muted-color, var(--idea-name-color, gray));
   }
 
   .todo-graph-edge {

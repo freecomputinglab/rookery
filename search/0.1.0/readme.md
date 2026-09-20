@@ -951,7 +951,7 @@ For the common cases you do not need a rule at all, only a property:
 | `--rookery-search-border` | `rgba(0, 0, 0, 0.25)` |
 | `--rookery-search-radius` | `4px` |
 | `--rookery-search-hover` | `--idea-link-color`, else `rgba(128, 0, 255, 0.12)` |
-| `--rookery-search-id-color` | `--idea-id-color`, else `gray` |
+| `--rookery-search-name-color` | `--idea-name-color`, else `gray` |
 | `--rookery-search-width` | `16em` |
 | `--rookery-search-max-width` | `28em` (a ceiling; the dropdown hugs its longest row below it) |
 | `--rookery-search-max-height` | `20em` |
@@ -1144,7 +1144,7 @@ figure at its intrinsic size would overflow the column.
 | `--rookery-search-modal-height` | `min(32rem, calc(100vh - 8rem))` |
 | `--rookery-search-backdrop` | `rgba(0, 0, 0, 0.5)` |
 | `--rookery-search-mark` | `--idea-link-color`, else `rgba(128, 0, 255, 0.25)` |
-| `--rookery-search-tag-color` | a tag pill's text: `--idea-tag-color`, else `--rookery-search-id-color`, else `--idea-id-color`, else `gray` |
+| `--rookery-search-tag-color` | a tag pill's text: `--idea-tag-color`, else `--rookery-search-name-color`, else `--idea-name-color`, else `gray` |
 | `--rookery-search-tag-bg` | that pill's fill: `--idea-tag-bg`, else a 14% `currentColor` tint (`rgba(128, 128, 128, 0.18)` without `color-mix`) |
 | `--rookery-search-tag-size` | that pill's text size, a factor of the row's own — `0.85em`, a chosen default and not a measurement |
 | `--rookery-search-tag-radius` | that pill's corners — `999px` is a pill, `0` is a rectangle |
