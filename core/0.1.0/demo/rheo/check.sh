@@ -665,12 +665,12 @@ grep -q 'class="idea-tag' "$H/tags.html" ||
 grep -q 'class="idea-tag' "$H/ideas/tag-nest-outer.html" ||
   note "ideas/tag-nest-outer.html replays the nested card without its tag pill"
 
-# 27. `#ideate-id` NAMES A NOTE EXPLICITLY UNDER ANY SEPARATOR
+# 27. `#ideate-name` NAMES A NOTE EXPLICITLY UNDER ANY SEPARATOR
 #     (`content/ideated-id.typ`). `separator: none` has no heading to feed a
 #     `name:` function at all — a single beacon anywhere in that one-note body
 #     still mints it under a fixed id rather than the package counter.
 p="$H/ideas/fixed-id-note.html"
-[ -f "$p" ] || note "no minted page at ideas/fixed-id-note.html — #ideate-id did not name the separator: none note"
+[ -f "$p" ] || note "no minted page at ideas/fixed-id-note.html — #ideate-name did not name the separator: none note"
 if [ -f "$p" ]; then
   grep -q 'FIXEDIDBODY' "$p" || note "ideas/fixed-id-note.html does not render its own body"
 fi
@@ -678,7 +678,7 @@ fi
 #     carries a beacon, so it alone mints under a fixed id while its sibling
 #     keeps the counter — proving the beacon is per-section, not document-wide.
 p="$H/ideas/second-para-note.html"
-[ -f "$p" ] || note "no minted page at ideas/second-para-note.html — #ideate-id did not name the beaconed paragraph"
+[ -f "$p" ] || note "no minted page at ideas/second-para-note.html — #ideate-name did not name the beaconed paragraph"
 if [ -f "$p" ]; then
   grep -q 'SECONDPARABODY' "$p" || note "ideas/second-para-note.html does not render its own body"
   if grep -q 'AUTOCOUNTBODY' "$p"; then
@@ -691,7 +691,7 @@ fi
 if ! grep -rq 'AUTOCOUNTBODY' "$H"; then
   note "AUTOCOUNTBODY never appears in the build — the unbeaconed paragraph did not mint at all"
 fi
-#     Two `#ideate-id` beacons in one section is a build error (panic naming
+#     Two `#ideate-name` beacons in one section is a build error (panic naming
 #     both ids), which a passing HTML build cannot exercise — verified
 #     manually instead, the same way `#idea`'s own third-positional-argument
 #     rejection is (see `core/0.1.0/test/units.typ`).

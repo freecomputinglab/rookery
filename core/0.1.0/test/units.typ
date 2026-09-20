@@ -20,7 +20,7 @@
   _bib, _bib-keys, _blocks, _body-plain, _body-plain-with, _body-text, _cite-scan, _dedup-tag,
   _is-inline, _join, _merge-base-tags, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _derived-title-with, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
-  _project, _split-tag-list, _tag-pred, _truncate, _truncate-split, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _id-slug, _name-slug, _h3, _b36, _ideate-tag-value, _ideate-id-value,
+  _project, _split-tag-list, _tag-pred, _truncate, _truncate-split, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _id-slug, _name-slug, _h3, _b36, _ideate-tag-value, _ideate-name-value,
   _resolve-display, _DISPLAY-KEYS,
   footnote, idea, idea-href, idea-path, slug,
   tag-index, window,
@@ -856,18 +856,18 @@
 // Non-metadata content: not a beacon.
 #assert.eq(_ideate-tag-value([text]), none)
 
-// ---- _ideate-id-value — extract id value from an `#ideate-id` beacon ------
+// ---- _ideate-name-value — extract name value from an `#ideate-name` beacon ------
 //
-// Mirrors `_ideate-tag-value` exactly, over the `rookery-ideate-id` key.
-#assert.eq(_ideate-id-value([#metadata((rookery-ideate-id: "fixed-name"))]), "fixed-name")
-// Plain metadata with a different key: not an id beacon.
-#assert.eq(_ideate-id-value([#metadata((other: 1))]), none)
-// A tag beacon is not an id beacon, and vice versa — the two keys are read
+// Mirrors `_ideate-tag-value` exactly, over the `rookery-ideate-name` key.
+#assert.eq(_ideate-name-value([#metadata((rookery-ideate-name: "fixed-name"))]), "fixed-name")
+// Plain metadata with a different key: not a name beacon.
+#assert.eq(_ideate-name-value([#metadata((other: 1))]), none)
+// A tag beacon is not a name beacon, and vice versa — the two keys are read
 // independently, so a section can carry both without either shadowing the
 // other.
-#assert.eq(_ideate-id-value([#metadata((rookery-ideate-tags: "rookery"))]), none)
+#assert.eq(_ideate-name-value([#metadata((rookery-ideate-tags: "rookery"))]), none)
 // Non-metadata content: not a beacon.
-#assert.eq(_ideate-id-value([text]), none)
+#assert.eq(_ideate-name-value([text]), none)
 
 // ---- _resolve-display — merges a `display:` dict with `display-*` flags ---
 //

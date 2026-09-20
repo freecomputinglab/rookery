@@ -1199,4 +1199,4 @@
 // paragraph, or anywhere in a section's body under any separator — unlike
 // `name:` as a function, this beacon does not require `separator: heading`,
 // since it carries its own value rather than reading one off a heading.
-#let ideate-id(id) = [#metadata((rookery-ideate-id: id))]
+#let ideate-name(name) = [#metadata((rookery-ideate-name: name))]

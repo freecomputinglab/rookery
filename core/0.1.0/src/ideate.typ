@@ -43,7 +43,7 @@
 // In `none` mode the single note has no heading of its own to take a title or
 // an id from, so both default off `document.title`: the title IS
 // `document.title`, and the id is `slug(document.title)`. A `title:` passed to
-// `#ideate` itself still wins, and `#ideate-id` still wins the id outright.
+// `#ideate` itself still wins, and `#ideate-name` still wins the name outright.
 // With no document title set (`document.title` is `none`), nothing changes —
 // the note mints titleless, under the package's auto counter, as before. Under
 // rheo this fallback is rare: rheo derives a title from the page's path for any
@@ -81,22 +81,22 @@
 // nothing. `#ideate-tag` remains the per-section override and works under
 // every separator mode — it is unioned last, so a beacon beats the function.
 //
-// ---- Naming a note explicitly: `#ideate-id` ------------------------------
+// ---- Naming a note explicitly: `#ideate-name` -----------------------------
 //
 // `name:` as a function reads the SEPARATING HEADING, so it only works in
 // heading mode — `separator: par` and `separator: none` have no heading to
-// read one off. `#ideate-id(id)` is the id analogue of `#ideate-tag`: dropped
+// read one off. `#ideate-name(name)` is the name analogue of `#ideate-tag`: dropped
 // anywhere in a section's own body, it names that note explicitly under ANY
 // separator, `par` and `none` included:
 //
 //   #ideate(separator: none)[
 //     A single-note body with no heading at all.
-//     #ideate-id("fixed-name")
+//     #ideate-name("fixed-name")
 //   ]
 //
 // It wins over both the `auto` counter and a `name:` function outright — a
 // beacon is a fixed value the caller wrote, not a derivation to fall back
-// past. At most one per section: two `#ideate-id` beacons in one section is a
+// past. At most one per section: two `#ideate-name` beacons in one section is a
 // build error, the note having no way to hold two ids at once.
 //
 // `par` NAMES THE SPLIT; IT DOES NOT CHANGE IT. There is no `par` element in a
@@ -246,18 +246,18 @@
   c.value.rookery-ideate-tags
 }
 
-// Extract the id value from an `#ideate-id` metadata beacon, or `none` if
+// Extract the name value from an `#ideate-name` metadata beacon, or `none` if
 // this child is not one. Mirrors `_ideate-tag-value` exactly.
-#let _ideate-id-value(c) = {
+#let _ideate-name-value(c) = {
   if c.func() != metadata { return none }
   if type(c.value) != dictionary { return none }
-  if "rookery-ideate-id" not in c.value { return none }
-  c.value.rookery-ideate-id
+  if "rookery-ideate-name" not in c.value { return none }
+  c.value.rookery-ideate-name
 }
 
 // Strip beacons from a group before joining for the minted body. Beacons are
 // apparatus (like the lead heading), not authored content.
-#let _strip-beacons(children) = children.filter(c => _ideate-tag-value(c) == none and _ideate-id-value(c) == none)
+#let _strip-beacons(children) = children.filter(c => _ideate-tag-value(c) == none and _ideate-name-value(c) == none)
 
 // Emits nothing on its own and carries nothing an author wrote. Not blank — it
 // has to survive — but not a note either.
@@ -561,9 +561,9 @@
               + repr(hb),
           )
         }
-        if kids.any(c => _ideate-id-value(c) != none) {
+        if kids.any(c => _ideate-name-value(c) != none) {
           panic(
-            "@rookery/core: #ideate-id inside a heading is never read — move it to "
+            "@rookery/core: #ideate-name inside a heading is never read — move it to "
               + "its own line BENEATH the heading, as a sibling. Heading: "
               + repr(hb),
           )
@@ -582,17 +582,17 @@
       // also carries `#ideate-tag((report: "final"))` gets the valued one.
       let group-tags = base-tags + fn-tags + beacon-tags
 
-      // `#ideate-id` names this one section explicitly, under ANY separator —
+      // `#ideate-name` names this one section explicitly, under ANY separator —
       // it is the only id mechanism that also works in `par` and `none` mode,
       // where there is no heading for a `name:` function to read. At most one
       // per section: two would mean the note has two ids, and neither wins.
       let beacon-ids = group.fold((), (acc, c) => {
-        let v = _ideate-id-value(c)
+        let v = _ideate-name-value(c)
         if v == none { acc } else { acc + (v,) }
       })
       if beacon-ids.len() > 1 {
         panic(
-          "ideate: more than one #ideate-id beacon in one section — got "
+          "ideate: more than one #ideate-name beacon in one section — got "
             + repr(beacon-ids) + ". Only one id per note.",
         )
       }
@@ -602,7 +602,7 @@
         // Neither function computes the heading, or this group (the preamble) has
         // none of its own to title or name by — minted exactly as it would be
         // with neither function given, carrying its own tag (if any) either way.
-        // A `#ideate-id` beacon still wins the id over the `auto` counter here —
+        // A `#ideate-name` beacon still wins the id over the `auto` counter here —
         // this is the branch `par` and `none` mode always take, having no
         // heading to feed a `name:` function at all.
         let content = _strip-beacons(group).join()

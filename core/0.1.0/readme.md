@@ -213,6 +213,13 @@ dictionary". The mapping is a straight prefix swap, one argument at a time:
 `foldable:` and `reserve-title:` on `#window` are NOT renamed — they were
 never part of the `show-*` family and keep their names.
 
+### Migrating from `#ideate-id`
+
+**This rename is breaking.** `#ideate-id` is now `#ideate-name`, matching the
+`name:` vocabulary the rest of the package uses. There is no alias: a stale
+call to `#ideate-id` fails the compile with an unknown-variable error rather
+than silently doing nothing.
+
 ## Setup, and the `idea:` prefix
 
 Nothing above needed any setup, and that stays true. One optional template
@@ -794,8 +801,8 @@ The one note this mode mints has no heading of its own to title or id itself
 by, so both default off `document.title`: the title IS `document.title`, and
 the id is `slug(document.title)` — stable, unlike the body-derived form it
 would otherwise fall to, which moves whenever the page's own content changes.
-A `title:` passed to `#ideate` wins over this, and `#ideate-id` still wins
-the id outright. With no document title set, this changes nothing: the note
+A `title:` passed to `#ideate` wins over this, and `#ideate-name` still wins
+the name outright. With no document title set, this changes nothing: the note
 mints titleless, under the body-derived fallback described in "Unnamed
 notes: where their ids come from", as always.
 

@@ -6,7 +6,7 @@ priority: 2
 labels:
 - fix-idea-name-terminology
 deps: []
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/pure.typ, core/0.1.0/src/ideate.typ, core/0.1.0/test/units.typ, core/0.1.0/demo/rheo/content/ideated-id.typ, core/0.1.0/demo/rheo/check.sh, core/0.1.0/readme.md
 
