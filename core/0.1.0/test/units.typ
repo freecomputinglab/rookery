@@ -20,7 +20,7 @@
   _bib, _bib-keys, _blocks, _body-plain, _body-plain-with, _body-text, _cite-scan, _dedup-tag,
   _is-inline, _join, _merge-base-tags, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _derived-title-with, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
-  _project, _split-tag-list, _tag-pred, _truncate, _truncate-split, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _id-slug, _ideate-tag-value, _ideate-id-value,
+  _project, _split-tag-list, _tag-pred, _truncate, _truncate-split, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _id-slug, _name-slug, _h3, _b36, _ideate-tag-value, _ideate-id-value,
   _resolve-display, _DISPLAY-KEYS,
   footnote, idea, idea-href, idea-path, slug,
   tag-index, window,
@@ -796,6 +796,52 @@
 #assert.eq(_id-slug("a" * 80).len(), 60)
 // The cap is configurable per call.
 #assert.eq(_id-slug("abc", limit: 2), "ab")
+
+// ---- _name-slug — content-derived slug for a note's third naming rung -----
+//
+// A string beginning with a URL scheme is special-cased to the URL's own
+// tail, not its host: a reading list of bare links needs its distinguishing
+// part, which is the LAST meaningful path segment, not the domain every
+// entry shares.
+//
+// A purely-numeric path segment ("2026", "09", "11" from a dated blog URL)
+// is dropped before taking the tail, and a trailing `.html`-style extension
+// is stripped from each segment first. With the numeric date segments gone,
+// the tail is "a-severe-misalignment"; the leading stopword "a" is then
+// dropped by the same rule as the next case, and "misalignment" does not
+// fit within the default 16-character limit once "severe" is already
+// there, so it is left off rather than truncated mid-word.
+#assert.eq(_name-slug("https://terrytao.wordpress.com/2026/09/11/a-severe-misalignment/"), "severe")
+// A tail with no trailing date segments keeps its whole self, as long as it
+// fits the limit — "unikernels" alone is well under 16 characters.
+#assert.eq(_name-slug("https://anil.recoil.org/projects/unikernels"), "unikernels")
+// A tail on the day-numbered rather than date-numbered case: "2024" is not
+// dropped (only ^[0-9.]+$ PATH SEGMENTS are, not words inside a segment that
+// survives), so the words are "2024", "hope", "bastion" — but the joined
+// tail is 17 characters, over the default limit, so the whole-word cutoff
+// keeps only "2024-hope" and leaves "bastion" off.
+#assert.eq(_name-slug("https://anil.recoil.org/papers/2024-hope-bastion"), "2024-hope")
+// A non-URL sentence: the leading stopword "the" is dropped, then the
+// result keeps whole words up to the 16-character limit.
+#assert.eq(_name-slug("The scorer lives in score.typ"), "scorer-lives-in")
+// A string that mentions "https"/"www" as ordinary words, not a scheme
+// (no "://"), skips the URL substitution entirely — but each of "https" and
+// "www" is still dropped as a leading scheme-shaped word, one at a time,
+// leaving the first ordinary word.
+#assert.eq(_name-slug("https www example"), "example")
+// The empty string has no words to keep.
+#assert.eq(_name-slug(""), none)
+// A purely-numeric result is refused, the same rule `_id-slug` applies.
+#assert.eq(_name-slug("12345"), none)
+
+// ---- _h3 / _b36 — the content-digest half of the naming ladder ------------
+//
+// `_h3` always returns exactly three characters, regardless of input.
+#assert.eq(_h3("abc").len(), 3)
+// Deterministic: the same string hashes the same way every time.
+#assert.eq(_h3("abc"), _h3("abc"))
+// `_b36` pads a small number out to the requested width with leading zeros.
+#assert.eq(_b36(0, 3), "000")
 
 // ---- _ideate-tag-value — extract tag value from `#ideate-tag` beacon -------
 //

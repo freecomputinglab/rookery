@@ -979,6 +979,113 @@
   if out == "" { none } else { out }
 }
 
+// Base36 digits, low to high — `_b36`'s alphabet.
+#let _B36-DIGITS = "0123456789abcdefghijklmnopqrstuvwxyz"
+
+// Renders a non-negative integer in lowercase base36, left-padded with `0`
+// to exactly `width` characters. A value too wide for `width` keeps its
+// LOW-order digits rather than its high ones: `_h3` below wants a fixed-width
+// tail, not a faithful base36 rendering of the whole accumulator.
+#let _b36(n, width) = {
+  let digits = if n == 0 { "0" } else { "" }
+  let v = n
+  while v > 0 {
+    digits = _B36-DIGITS.at(calc.rem(v, 36)) + digits
+    v = calc.div-euclid(v, 36)
+  }
+  if digits.len() < width {
+    digits = "0" * (width - digits.len()) + digits
+  } else if digits.len() > width {
+    digits = digits.slice(digits.len() - width)
+  }
+  digits
+}
+
+// A three-character base36 digest of a string: djb2, reduced modulo
+// 2147483647 at every step so `acc * 33` never leaves Typst's i64 range.
+// Typst ships no hash of its own — neither `std` nor `calc` has one — hence
+// hand-rolled. Not cryptographic: it exists to tell apart two notes whose
+// slugs would otherwise collide, not to authenticate anything. The caller
+// caps the input string; this does no capping of its own.
+#let _h3(s) = {
+  let acc = 5381
+  for b in array(bytes(s)) { acc = calc.rem(acc * 33 + b, 2147483647) }
+  _b36(acc, 3)
+}
+
+// Words `_name-slug` drops from the FRONT of a result, and only the front —
+// "the-two-towers" keeps its "two" once "the" goes. These are the words a
+// title or sentence casually opens with, not a general English stopword
+// list.
+#let _NAME-SLUG-STOPWORDS = (
+  "the", "a", "an", "and", "or", "of", "to", "in", "on", "at", "is", "are",
+  "was", "were", "be", "been", "it", "its", "this", "that", "for", "with",
+  "as", "by", "from",
+)
+
+// A content-derived slug, or `none` where the content cannot safely name a
+// note — the same `none`-not-panic contract as `_id-slug`, for the same
+// reason: a caller falls back to something else (a counter, `_id-slug`'s own
+// title slug) rather than crash on ordinary content like a bare URL or a
+// punctuation-only line.
+//
+// `s` is already-projected plain text (`_plain(c)`), capped by the caller —
+// this function does no capping of its own.
+//
+// A string that STARTS WITH a URL scheme is special-cased first: a reading
+// list of saved links is a common shape, and a URL's distinguishing part is
+// its tail, not its host — otherwise every link under one domain would slug
+// to that same host and collide. A scheme appearing mid-string instead of at
+// the start skips this substitution and is caught below by the
+// https/http/www word-drop.
+//
+// What is left — the URL's tail, or the original text unchanged — becomes
+// lowercase words joined by `-`; a leading filler word is dropped (the
+// stopword list above), any leftover leading scheme-shaped word is dropped
+// too, and the result keeps whole words from the start while it stays within
+// `limit` characters. Nothing is ever truncated mid-word, except a first
+// word that alone exceeds `limit` — hard-truncated, since there is nothing
+// shorter to fall back to.
+#let _name-slug(s, limit: 16) = {
+  let trimmed = s.trim()
+  if trimmed.starts-with("http://") or trimmed.starts-with("https://") {
+    let m = trimmed.match(regex("^\S+"))
+    let url = if m != none { m.text } else { trimmed }
+    let rest = url.replace(regex("^https?://"), "")
+    if rest.ends-with("/") { rest = rest.slice(0, -1) }
+    let segs = rest.split(regex("[/?#]")).filter(seg => seg != "")
+    segs = segs.map(seg => seg.replace(regex("\.(html|htm|pdf|php|asp|aspx)$"), ""))
+    segs = segs.filter(seg => seg.match(regex("^[0-9.]+$")) == none)
+    s = if segs.len() == 0 { "" } else { segs.last() }
+  }
+
+  let out = lower(s).replace(regex("[^a-z0-9]+"), "-").trim("-")
+  let words = out.split("-").filter(w => w != "")
+
+  while words.len() > 1 and _NAME-SLUG-STOPWORDS.contains(words.first()) {
+    words = words.slice(1)
+  }
+  while words.len() > 0 and (
+    words.first() == "https" or words.first() == "http" or words.first() == "www"
+  ) {
+    words = words.slice(1)
+  }
+  if words.len() == 0 { return none }
+
+  let result = words.first()
+  if result.len() > limit {
+    result = result.slice(0, limit)
+  } else {
+    for w in words.slice(1) {
+      let candidate = result + "-" + w
+      if candidate.len() > limit { break }
+      result = candidate
+    }
+  }
+
+  if result.match(regex("^[0-9]+$")) != none { none } else { result }
+}
+
 // Public metadata beacon for ideate tags: wrap tag(s) to emit from a section's own
 // content. `tags` accepts the same four forms as `#idea`'s own `tags:` — `none`,
 // a string, an array of strings, or a dictionary — and is normalized by `_norm-tags`
