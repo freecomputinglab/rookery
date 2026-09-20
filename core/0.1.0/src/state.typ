@@ -466,12 +466,11 @@
 // all that is asked of it, so it never resets.
 #let _fn-block = counter("rheo-idea-fn-block")
 
-// There is no single document-wide counter for the visible footnote number
-// (there used to be, `rheo-idea-fn`) — see `_footnoted` (bib.typ), which
-// mints one `counter`, freshly named per rendering off `_fn-block`'s value
-// above, instead of sharing one counter across every idea box. A transcluded
-// body renders at more than one document position, and one counter shared
-// across every placement of every note could not be made to converge.
+// There is no counter of any kind for the visible footnote number: it is not
+// a position in a laid-out document, only a position within one body's own
+// footnotes, which is already known the moment that body is in hand — see
+// `_footnoted` (bib.typ) and `_number-footnotes` (pure.typ), which decide it
+// there, once, rather than through a `context`-gated read.
 
 // The inline reference. `b` is this rendering's block number, `n` the
 // footnote's number within it; together they name both anchors.

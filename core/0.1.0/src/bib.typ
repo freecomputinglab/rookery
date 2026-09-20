@@ -149,40 +149,24 @@
 
 // Wrap one idea box's body: number its markers locally, then append the block.
 //
-// The `show FNK:` rule installed here is NESTED relative to the document-wide
-// fallback `#show: rookery` installs, and the nested rule wins — MEASURED. It
-// also travels with the content wherever it is later inserted, the same way
-// `_flatten`'s `show ref: hyperlink` does, which is what makes a transcluded
-// body number its footnotes against the window's own block rather than the
-// origin idea's.
-//
 // `_footnoted` runs FRESH every place a note's body is rendered: once for the
 // idea's own box (idea.typ), and again for every `#window` that transcludes
-// it (window.typ, transclusion.typ) — `notes`, `seq` and the `show FNK:` rule
-// below are rebuilt from scratch on each such call.
+// it (window.typ, transclusion.typ) — `notes` and the rebuilt body below are
+// recomputed from scratch on each such call, which is what makes a
+// transcluded body number its footnotes against the window's own block
+// rather than the origin idea's.
 //
-// The inline reference number is NOT read from one document-wide `counter`
-// shared by every idea box. A `counter` read via `context` names a value by
-// POSITION IN THE FINAL LAID-OUT DOCUMENT, and a transcluded body is replayed
-// at more than one such position; sharing one counter NAME across every box
-// means Typst has to reconcile writes from every placement of every note
-// against a single global timeline, and MEASURED (on a real, heavily-windowed
-// site) that does not converge — a footnote's number settled differently on
-// different resolution passes. (A plain local variable, mutated directly
-// inside the `show FNK:` handler below instead of through a counter, is
-// REFUTED too: Typst raises "variables from outside the function are
-// read-only and cannot be modified" — a show-rule handler cannot close over
-// and mutate an outer binding.)
-//
-// The fix keeps `context`/`counter`, the only mechanism Typst gives a show
-// rule for counting its own matches, but gives THIS call's counter a NAME
-// nothing else in the document can ever share: `b`, `_fn-block`'s value for
-// this exact rendering, is already unique per call (see `_fn-block` above),
-// so `counter("rheo-idea-fn-" + str(b))` is a counter no other `_footnoted`
-// call, anywhere in the document, ever steps or reads. Its entire history is
-// the handful of `.step()` calls this one body's own footnotes make, in
-// fixed structural order relative only to each other — nothing left for
-// Typst to reconcile against another placement, so it converges in one pass.
+// The inline reference number is NOT read from a `counter` at layout time. A
+// `counter` read via `context` names a value by POSITION IN THE FINAL
+// LAID-OUT DOCUMENT, and MEASURED (on a real, heavily-windowed site) a
+// counter minted fresh per rendering — even one no other `_footnoted` call
+// ever steps or reads — still did not converge: every trial pass read `0`
+// and only the final pass read the true value, because the surrounding page
+// had other content still resolving. There is nothing here for Typst to
+// reconcile ACROSS ATTEMPTS in the first place — a footnote's number is
+// fully decided by where it sits in this one body, which is known the moment
+// the body is in hand — so `_number-footnotes` (pure.typ) decides it right
+// there, with no counter and no layout dependency to converge.
 //
 // Returns `body` untouched when there is nothing to number, so `_fn-block` is
 // not stepped for an idea with no footnotes.
@@ -192,14 +176,7 @@
   _fn-block.step()
   context {
     let b = _fn-block.get().first()
-    let seq = counter("rheo-idea-fn-" + str(b))
-    {
-      show FNK: _ => {
-        seq.step()
-        context _fn-ref(b, seq.get().first())
-      }
-      body
-    }
+    _number-footnotes(body, 1, n => _fn-ref(b, n)).node
     _fn-block-html(notes, b)
   }
 }

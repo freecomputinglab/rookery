@@ -614,6 +614,106 @@
   out
 }
 
+// Rebuilds `node`, replacing each footnote marker with `mint(n)` — LITERAL
+// CONTENT computed here, at construction time, rather than read from a
+// `counter` through `context` at layout time (see `_footnoted`, bib.typ, for
+// why a layout-time counter cannot be made to converge). `next` is the
+// number to hand the first marker this call reaches; the function returns
+// both the rebuilt node and the number to hand the NEXT one, so a caller
+// walking several siblings threads it through in document order — which is
+// what makes two footnotes with byte-identical bodies still number
+// correctly: the walk counts occurrences, never matches them by content.
+//
+// `mint` is a plain `n => content` callback rather than a direct call to
+// `_fn-ref`, because `_fn-ref` lives in `state.typ` and needs `_target()` —
+// this file's own header forbids exactly that dependency, and `state.typ`
+// imports `base.typ` (which re-exports this file), so the reverse import
+// would be a cycle. `_footnoted` (bib.typ) is the caller and supplies
+// `n => _fn-ref(b, n)`.
+//
+// Mirrors `_footnotes`' own shape: the same two stops (a footnote's body is
+// a metadata PAYLOAD, never itself walked into; a nested IK/WK marker is
+// left untouched, since that note or window numbers its own footnotes when
+// IT renders) over the same three structural cases (children/body/child).
+//
+// Reattaches `node`'s own label to `built`, when it had one. `.fields()`
+// carries a `label` entry for ANY labelled content, of ANY element type —
+// MEASURED: `strong[Hi]<x>` reports `(.., label: <x>)` — and no element's
+// constructor accepts `label` as an argument, so every reconstruction below
+// removes it before calling one and this is what restores it afterward.
+// `[#built#lbl]`, not `built + lbl` (REFUTED: "cannot add content and
+// label") — writing the two adjacent in markup is what attaches a
+// dynamically-held label the same way `<x>` attaches a literal one, and
+// MEASURED it keeps `built`'s own `.func()` rather than wrapping it in a
+// further sequence.
+#let _relabel(built, node) = {
+  if node.has("label") { [#built#(node.label)] } else { built }
+}
+
+// Reconstructs every intermediate node from `.fields()`, replacing only the
+// slot the recursion descended through — the same generic reconstruction
+// `_outbound` (links.typ) already relies on to walk through anything Typst
+// or another show rule (a `styled` scope, `_flatten`'s among them) attaches
+// to a node this package did not build itself. A FEW element constructors
+// take more than their main content slot POSITIONALLY rather than by name —
+// `styled`'s `styles`, `link`'s `dest`, `enum.item`'s `number` — and each is
+// special-cased below, MEASURED against the alternative (`..fields` raises
+// "the argument `<x>` is positional" for each).
+#let _number-footnotes(node, next, mint) = {
+  if type(node) != content { return (node: node, next: next) }
+  if node.func() == metadata {
+    if type(node.value) == dictionary and "rookery-fn" in node.value {
+      return (node: mint(next), next: next + 1)
+    }
+    return (node: node, next: next)
+  }
+  if node.func() == figure and node.at("kind", default: none) in (IK, WK) {
+    return (node: node, next: next)
+  }
+  if node.has("children") {
+    let cur = next
+    let kids = ()
+    for k in node.children {
+      let r = _number-footnotes(k, cur, mint)
+      kids.push(r.node)
+      cur = r.next
+    }
+    // `sequence` (plain markup concatenation) takes its children as ONE
+    // array argument; every OTHER `.children`-bearing element (`grid`,
+    // `table`, ...) is an ordinary constructor taking them variadically —
+    // MEASURED: `(node.func())(kids)` on one of those raised "expected
+    // content, found array".
+    let built = if repr(node.func()) == "sequence" { (node.func())(kids) } else { (node.func())(..kids) }
+    return (node: _relabel(built, node), next: cur)
+  }
+  if node.has("body") {
+    let r = _number-footnotes(node.body, next, mint)
+    let built = if node.func() == link {
+      // `link(dest, body)` — TWO positional arguments, `dest` first.
+      link(node.dest, r.node)
+    } else if node.func() == enum.item {
+      // `enum.item(body)`, or `enum.item(number, body)` when the author gave
+      // this item an explicit number — `number` is present in `.fields()`
+      // only then.
+      if "number" in node.fields() { enum.item(node.number, r.node) } else { enum.item(r.node) }
+    } else {
+      let fields = node.fields()
+      let _ = fields.remove("body")
+      let _ = fields.remove("label", default: none)
+      (node.func())(r.node, ..fields)
+    }
+    return (node: _relabel(built, node), next: r.next)
+  }
+  if node.has("child") {
+    // The one type this reaches is `styled` — the wrapper a `show`/`set`
+    // scope leaves on content, `_flatten`'s own scope among them (see the
+    // banner on `_footnoted`, bib.typ).
+    let r = _number-footnotes(node.child, next, mint)
+    return (node: _relabel((node.func())(r.node, node.styles), node), next: r.next)
+  }
+  (node: node, next: next)
+}
+
 // Typst's OWN footnotes in a body — the ones this package cannot claim.
 //
 // `#footnote` above shadows `std.footnote` only at the author's IMPORT SITE, and

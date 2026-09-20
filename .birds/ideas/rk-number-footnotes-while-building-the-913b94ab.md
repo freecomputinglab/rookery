@@ -6,7 +6,7 @@ priority: 4
 labels:
 - fix-footnote-number-at-construction
 deps: []
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/bib.typ, core/0.1.0/src/pure.typ, core/0.1.0/src/state.typ, core/0.1.0/demo/rheo/check.sh
 
