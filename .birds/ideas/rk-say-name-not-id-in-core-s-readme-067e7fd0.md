@@ -9,7 +9,7 @@ deps:
 - blocked-by:rk-rename-ideate-id-to-ideate-name-7aed87f3
 - blocked-by:rk-rename-display-id-to-display-name-0e403847
 - blocked-by:rk-rename-id-color-to-name-color-81555eef
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/readme.md
 

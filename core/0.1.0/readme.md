@@ -9,17 +9,17 @@ just a labeled heading. `#idea[body]` (no name, no title) works too: a TITLED
 one takes a slug of its title, and an untitled one takes a slug of its own
 body instead — its own opening words, capped and suffixed with a short digest
 so two notes that open the same way still land apart (see "Unnamed notes:
-where their ids come from"). Either way it names itself by its own opening
-words wherever it is referred to (see "Derived labels"), and wears its id as
+where their names come from"). Either way it names itself by its own opening
+words wherever it is referred to (see "Derived labels"), and wears its name as
 a permalink — `[idea:my-title]`-style for the titled one,
 `[idea:<body-slug>-<digest>]`-style for the untitled one — which is how you
-discover a generated id in order to paste it into a `#window`.
+discover a generated name in order to paste it into a `#window`.
 
 ```typst
 #import "@rookery/core:0.1.0": idea
 
 #idea[A frictionless note — names itself from its own opening words.]
-#idea("etal")[A pinned note — its id is always `idea:etal`.]
+#idea("etal")[A pinned note — its name is always `idea:etal`.]
 ```
 
 Full signature: `idea(level: 1, title: none, tags: (), tag: none, base-tags: none,
@@ -245,7 +245,7 @@ does all of it in a line, and is the only place anything is configurable:
 ```typst
 #import "@rookery/core:0.1.0": rookery, idea, window
 #show: rookery.with(
-  prefix: "note",                 // ids are now `note:etal`
+  prefix: "note",                 // names are now `note:etal`
   note-dir: "ideas",              // ...but minted pages stay at `ideas/`
   css-prefix: none,               // ...and classes follow `prefix`: `note-title`, not `idea-title`
   window-unfurl: 2,               // a window inside a window unfurls one level
@@ -257,7 +257,7 @@ does all of it in a line, and is the only place anything is configurable:
 )
 ```
 
-`#show: rookery` does exactly eight things: it publishes the id prefix, the
+`#show: rookery` does exactly eight things: it publishes the name prefix, the
 minted-page directory (`note-dir`, see "Standalone note pages" for how it
 resolves), the CSS class stem (`css-prefix`, see just below), the
 nested-window unfurl budget, the minted-page template
@@ -300,7 +300,7 @@ and every other class this package emits. It resolves the same two-step way
 `note-dir` does: `css-prefix:` when you set one, else the resolved `prefix` —
 so `prefix: "note"` alone gets you `note-title`/`note-tag-<tag>` classes, not
 `idea-*`, and setting `css-prefix` explicitly pins the class stem independent
-of the id prefix (keep `idea-*` classes while renaming ids, or the reverse).
+of the name prefix (keep `idea-*` classes while renaming names, or the reverse).
 It must be `none` (the default) or a non-empty string usable as a CSS class —
 no whitespace, `.`, `#` or `:`.
 
@@ -371,8 +371,8 @@ for you:
 | `border-color` | the rule down a note, a window and an outline, and the tab that rules off the top of a card | falls back to `link-color` |
 | `rule-width` | how **thick** every one of those rules is, markers included | `2px` |
 | `pad` | the indent between a note's rule and its content, and a window's right padding | `0.5em` (halved under 600px) |
-| `label-font` | the face every **hat** is set in — a note's id, and `#ideas-outline`'s title | `monospace` |
-| `label-size` | the size every **hat** is set in — a note's id, and `#ideas-outline`'s title | `0.57rem` |
+| `label-font` | the face every **hat** is set in — a note's name, and `#ideas-outline`'s title | `monospace` |
+| `label-size` | the size every **hat** is set in — a note's name, and `#ideas-outline`'s title | `0.57rem` |
 
 The first two are the look, and the contrast between them is the point. Both
 are hover *backgrounds*, so they compare like with like: the lighter blue
@@ -421,7 +421,7 @@ rather than opening a notch in it.
 
 `label-font` is the third exception, being neither a colour nor a length. A **hat**
 is the stub of rule out of a frame's top-left corner with a label sitting on its
-end — a note's `[idea:etal]` id wears one, and so does `#ideas-outline`'s
+end — a note's `[idea:etal]` name wears one, and so does `#ideas-outline`'s
 "Contents", because both label the frame they sit on. This is the face they are set
 in, and it is deliberately the only `font-family` the package sets: your prose is
 yours. Pass a CSS font stack as a string, or the family names as an array and the
@@ -434,7 +434,7 @@ commas are added for you:
 
 The default is `monospace`, the **generic** family — so out of the box a hat is
 whatever monospace face the reader has configured, not one this package chose for
-them. An id is machine text and a monospace face says so without a word of
+them. A name is machine text and a monospace face says so without a word of
 explanation. A `#footnote` or references block's own heading is NOT a hat and does
 not follow this: those label a list inside a note, not the note's frame.
 
@@ -448,7 +448,7 @@ length, and that matters more here than for the other two. `--idea-label-size`
 is not just cosmetic — the tab's lift, a window's summary lift, a folded
 window's tint offset and the footer's own padding are all expressed as
 `calc()`s against this same variable, so retheming it keeps the card's corner
-shut instead of opening a notch. It is `rem`, deliberately, not `em`: an id is
+shut instead of opening a notch. It is `rem`, deliberately, not `em`: a name is
 one object wherever it appears, and `em` made it three visibly different
 sizes depending on context — 0.57 of an `#idea` heading, 0.57 of a minted
 page's `<h1>`, 0.57 of a window summary's body text (MEASURED, on
@@ -469,9 +469,9 @@ each. Apply the same arguments in every vertebra.
 **The prefix is ONE value for the whole document.** Under rheo, apply the
 template in every vertebra that uses the package — imports are per-file, so a
 vertebra that omits it loses the `ref` rule. It does not lose the prefix: a
-file that never applies the template still mints ids with whatever prefix the
+file that never applies the template still mints names with whatever prefix the
 document settled on, which is what keeps a `#window` across that boundary
-resolving instead of panicking on an id nothing registered.
+resolving instead of panicking on a name nothing registered.
 
 **CSS class names follow the prefix too, by default** — see `css-prefix`
 above: the heading is `idea`/`idea-tag-<tag>` and the permalink is
@@ -545,17 +545,17 @@ on. So `#idea("x", display-name: false, display-tags: true, ..)` still shows its
 a tab, exactly where they were.
 
 **The cost, and it is a real one for an UNTITLED note: a permalink is the ONLY
-way to discover its auto-generated id.** There is no `show heading` rule and
+way to discover its auto-generated name.** There is no `show heading` rule and
 no template hook — the chip is it. A note written `#idea[..]` and rendered
-with `display-name: false` therefore has an id nothing on the page reveals, so
+with `display-name: false` therefore has a name nothing on the page reveals, so
 nobody can write a `#window` for it. Give a note a name (`#idea("x")[..]`) if
 it should stay linkable, or leave `display-name` on.
 
-A TITLED note is cheaper to turn `display-name` off on: its id is a slug of the
-title (see "Unnamed notes: where their ids come from"), so anyone who can read
+A TITLED note is cheaper to turn `display-name` off on: its name is a slug of the
+title (see "Unnamed notes: where their names come from"), so anyone who can read
 the title on the page can reconstruct `idea:<slug>` without the chip. Two
 notes titled alike cannot both build this way — the second one fails at build
-time rather than landing on a suffixed id the title alone couldn't predict.
+time rather than landing on a suffixed name the title alone couldn't predict.
 
 ### `display-label:` — an authored title, or nothing
 
@@ -605,7 +605,7 @@ It is not the same switch as `folded:`, and the pair is easy to conflate:
 For a window that IS the thing being read rather than a pointer to it — a
 [`@rookery/slipshow`](../../slipshow/0.1.0) slide, where a stray click that
 folded the slide shut would be a bug and never an intention. The summary row
-keeps its id and its title and stops advertising a click; the permalink inside
+keeps its name and its title and stops advertising a click; the permalink inside
 it is still a link and still navigates.
 
 ### `reserve-title:` — the blank line a titleless summary keeps
@@ -623,7 +623,7 @@ Reaching for it means you are already passing `display-label: false`: with the
 default `display-label: true` a summary is essentially never titleless, because the
 derived label stands in (see above). The pair `display-label: false` +
 `reserve-title: false` is a slide — a titleless note renders as its body with a
-bare id above it and no dead space between them, and a titled one renders with
+bare name above it and no dead space between them, and a titled one renders with
 its title and the normal spacing.
 
 The reserved line exists for good reason everywhere else: two folded windows
@@ -814,19 +814,19 @@ document-level `#show: ideate`, one page being one idea. In this mode a trailing
 `context` or `metadata` node ends up inside the note rather than beside it, there
 being only one group; it renders nothing.
 
-The one note this mode mints has no heading of its own to title or id itself
+The one note this mode mints has no heading of its own to title or name itself
 by, so both default off `document.title`: the title IS `document.title`, and
-the id is `slug(document.title)` — stable, unlike the body-derived form it
+the name is `slug(document.title)` — stable, unlike the body-derived form it
 would otherwise fall to, which moves whenever the page's own content changes.
 A `title:` passed to `#ideate` wins over this, and `#ideate-name` still wins
 the name outright. With no document title set, this changes nothing: the note
 mints titleless, under the body-derived fallback described in "Unnamed
-notes: where their ids come from", as always.
+notes: where their names come from", as always.
 
 Under rheo, "no document title set" is the uncommon case. Rheo wraps every
 page in its own `document(..)` and, for a page whose own content never calls
 `#set document(title: ..)`, supplies a title derived from the page's path
-instead of leaving it `none`. So a rheo site gets a stable, path-derived id
+instead of leaving it `none`. So a rheo site gets a stable, path-derived name
 for every page's note without writing `#set document(..)` anywhere — the
 titleless/body-derived fallback above is reached only by a page that somehow
 has no title at all, not by the ordinary case of a page that simply never
@@ -848,7 +848,7 @@ Anything else passed as `separator:` — `heading` with no level, `pagebreak`,
 ### Titling and naming notes from their own heading
 
 In heading mode, `title:` and `name:` each accept a function that reads each
-section's separating heading and computes that note's own title or id:
+section's separating heading and computes that note's own title or name:
 
 ```typst
 #show: ideate.with(separator: heading.where(level: 2), title: (content, labels) => content, name: (content, labels) => slug(content))
@@ -856,7 +856,7 @@ section's separating heading and computes that note's own title or id:
 
 `== Literate programming` then mints a note whose `title:` is
 `[Literate programming]` — the heading's own content, references and all — and
-whose id is `idea:literate-programming`, a slug of the heading's text
+whose name is `idea:literate-programming`, a slug of the heading's text
 (lowercased, non-alphanumeric runs collapsed to one `-`). **The heading itself
 leaves the note's body**: `#idea` already renders `title` as the note's own
 heading, so leaving the source heading in place too would print it twice.
@@ -870,24 +870,24 @@ and fails `_slug`'s own empty-name check.
 | | `none`/`auto` (default) | fixed value | function |
 | --- | --- | --- | --- |
 | `title:` | no title (today's behaviour) | the same content on every note | a function `(content, labels) => content` — each note's own computed title |
-| `name:` | the unnamed-`#idea` fallback (today's behaviour) | — not accepted; see below | `(content, labels) => string` — a custom id computed per section |
+| `name:` | the unnamed-`#idea` fallback (today's behaviour) | — not accepted; see below | `(content, labels) => string` — a custom name computed per section |
 | `tags:` | no tags | the same tags on every note | `(content, labels) => tags` — each note's own computed tags |
 
-An id minted from a heading is a stable, chosen string rather than a
+A name minted from a heading is a stable, chosen string rather than a
 body-derived one — which is the reason to prefer a `name:` function for
 anything worth linking to.
 
 All heading-reading forms are **heading mode only**: with `separator: par` or
 `separator: none` there is no heading to read, and any of them there fails with
 a panic. A fixed `name:` is refused too, for a different reason — it would mint
-every note in the body under one id — so `name:` accepts only `auto`, `heading`,
+every note in the body under one name — so `name:` accepts only `auto`, `heading`,
 or a function. `title:` keeps accepting a fixed value, exactly as it always has:
 every note minted gets that same title, sentinel or not.
 
 Two sections in one `#ideate` call whose headings slug to the same name fail
 with a panic naming both, rather than silently minting one over the other. A
 second `#ideate` call, or another chapter elsewhere in the document, is not
-covered by this check — see "Flat ids, and why" below for cross-document id
+covered by this check — see "Flat names, and why" below for cross-document name
 collisions in general.
 
 ### Tagging a section with `#ideate-tag`
@@ -946,7 +946,7 @@ dictionary for valued tags, or `none` for no tag at all — and its result is
 normalized exactly as a literal `tags:` would be.
 
 The point is that ONE function can feed `title:`, `name:` and `tags:` at once, so
-a note's id cannot drift from its tag, and a section titled something new needs
+a note's name cannot drift from its tag, and a section titled something new needs
 nothing declared anywhere to carry a tag of its own:
 
 ```typst
@@ -976,7 +976,7 @@ Three things follow from it reading the separating heading:
 
 ### Naming sections with a custom function
 
-`name:` accepts a function that computes each section's id from its heading and
+`name:` accepts a function that computes each section's name from its heading and
 labels, substituting for the body-derived fallback.
 The function receives two arguments:
 
@@ -990,7 +990,7 @@ The function receives two arguments:
   array so the signature does not change if that ever stops being true, and so
   a lambda never has to guard against two types.
 
-The function must return the note's id as a **non-empty string**. Everything a
+The function must return the note's name as a **non-empty string**. Everything a
 caller does with the heading content is their own business — whether it includes
 a `#ref`, how it handles markup, and how it writes the result back are all
 decisions a caller makes, and the function calls the shots.
@@ -1011,7 +1011,7 @@ Minted as `idea:26w37-waterline`.
 
 The preamble group (content before the first separating heading) has no heading
 to pass to the lambda and still mints under the body-derived fallback
-described in "Unnamed notes: where their ids come from". A lambda names the
+described in "Unnamed notes: where their names come from". A lambda names the
 sections; the preamble is unaffected.
 
 **A `#ref` inside the heading contributes nothing to the lambda's input** —
@@ -1026,7 +1026,7 @@ attempt it unless you have a very specific reason.
 `slug()` is exported from this package and accepts either content or a string,
 returning a URL-safe slug (lowercased, non-alphanumeric runs collapsed to one
 hyphen, leading and trailing hyphens removed). It is the projection `ideate`
-uses for its own ids, and a convenient default for any lambda that wants to slug
+uses for its own names, and a convenient default for any lambda that wants to slug
 the heading text:
 
 ```typst
@@ -1035,10 +1035,10 @@ name: (content, labels) => slug(content)
 
 is the one-line function for naming every section after its own heading.
 
-Two sections that call the lambda and produce the same id fail with a panic
+Two sections that call the lambda and produce the same name fail with a panic
 naming both. A second `#ideate` call, or another
 chapter elsewhere in the document, is not covered by this check — see "Flat
-ids, and why" below for cross-document id collisions in general.
+names, and why" below for cross-document name collisions in general.
 
 ### Its inverted defaults
 
@@ -1065,7 +1065,7 @@ tags a whole block at once:
 #ideate(tags: "slip")[..]     // every paragraph becomes a note tagged `slip`
 ```
 
-**Every note minted this way has an AUTO-GENERATED id**, and with `display-name: false`
+**Every note minted this way has an AUTO-GENERATED name**, and with `display-name: false`
 no visible permalink, so none of them is addressable by name. That is fine for a
 block a tag query will pick up and wrong for anything anyone needs to link to; a
 note that must be linkable is written by hand as `#idea("name")[..]`.
@@ -1078,18 +1078,18 @@ sees none of it. A PDF of a block of prose should be that block of prose. EPUB
 takes the HTML path, since it is a rendering target with a stylesheet rather than
 a page.
 
-## Flat ids, and why
+## Flat names, and why
 
 `#idea("etal")` is the Typst label `<idea:etal>` everywhere — no handle or
-filename prefix. That means a note KEEPS ITS ID WHEN IT MOVES BETWEEN FILES:
+filename prefix. That means a note KEEPS ITS NAME WHEN IT MOVES BETWEEN FILES:
 nothing about `<idea:etal>` depends on which file it's written in. Names are
-therefore globally unique by design; giving two notes the same id is a build
-error naming the id, as soon as anything (`#window`, `#hyperlink`) looks the
-id up.
+therefore globally unique by design; giving two notes the same name is a build
+error naming it, as soon as anything (`#window`, `#hyperlink`) looks that
+name up.
 
-## Unnamed notes: where their ids come from
+## Unnamed notes: where their names come from
 
-An unnamed `#idea` mints its id from a ladder, tried top to bottom, stopping
+An unnamed `#idea` mints its name from a ladder, tried top to bottom, stopping
 at the first rung that yields a value — never from a running count of notes
 seen so far, and never from where the note sits in the document:
 
@@ -1110,7 +1110,7 @@ The rungs:
    words, lowercased and hyphenated, capped at 16 characters — never cut
    mid-word — plus a hyphen and a three-character digest of the note's own
    content (its title, body, tags, level, and display flags), so two notes
-   that open the same way still land on different ids.
+   that open the same way still land on different names.
 4. **Nothing derivable** — no pinned name, no title, and a body with no
    readable text — fails the build asking for one.
 
@@ -1127,49 +1127,49 @@ characters at a whole word (`2024-hope`, not `2024-hope-bastion`; the slug
 never cuts mid-word), plus its digest. Rung 3 names come out shorter than
 the 16-character cap suggests whenever a word boundary falls short of it.
 
-**Editing a titleless note's body changes its id.** Rung 3 is a pure
+**Editing a titleless note's body changes its name.** Rung 3 is a pure
 function of the note's own content, so a body that reads differently the
-next time the project builds mints a different id. Pin a name
-(`#idea(<some-name>, ..)`) on any note whose id must never move.
+next time the project builds mints a different name. Pin a name
+(`#idea(<some-name>, ..)`) on any note whose name must never move.
 
-- A second note whose title slugs to an id already taken gets a numeric
+- A second note whose title slugs to a name already taken gets a numeric
   suffix instead of failing the build: the first note titled "My Title"
   mints `idea:my-title`, the second `idea:my-title-2`, the third
   `idea:my-title-3`, counted in the ORDER the notes appear in the document.
   Inserting a new "My Title" note before an existing `-2` shifts it to
   `-3` — the suffix counts occurrences, not a fixed identity, so it moves
   when a colliding note is added or removed earlier in the document. Pin a
-  name (`#idea(<some-name>, title: [..])`) on any note whose id must never
+  name (`#idea(<some-name>, title: [..])`) on any note whose name must never
   move regardless of what gets titled the same later. Rung 3 carries no such
   suffix: two notes identical in title, body, tags, level and display merge
   into one note instead of colliding, and two that differ in any of those
-  already land on different ids without needing one.
-- A pinned id landing on a derived id some other note already reached, or
+  already land on different names without needing one.
+- A pinned name landing on a derived name some other note already reached, or
   two notes pinned to the same name, still fails the build outright rather
-  than being disambiguated — a pin is a promise about the id, so retitling,
+  than being disambiguated — a pin is a promise about the name, so retitling,
   renaming, or pinning explicitly is the only fix.
 
-An unnamed note's id does not depend on document order or on where the note
+A derived name does not depend on document order or on where the note
 sits in the tree: reordering the sections around it, or moving it, leaves
-its id untouched, because both the title slug and the body slug are computed
+it untouched, because both the title slug and the body slug are computed
 purely from the note's own title and body — never from a count of notes seen
 so far and never from the note's authored position. The one exception is the
 `-<n>` suffix above — that number counts how many earlier-registering notes
 already claimed the same title slug, so it does shift when a colliding note
 is inserted or removed ahead of it, even though the notes on either side of
-it keep their own ids. The same note also keeps its id when it is shown
+it keep their own names. The same note also keeps its name when it is shown
 again inside a `#window` or on a minted page, since both the title slug and
 the body slug are pure functions of the note's own title, body, tags, level
 and display — the same values every time, regardless of where a re-render
-places it. `#ideate`'s heading-derived ids follow the same rules above, but
+places it. `#ideate`'s heading-derived names follow the same rules above, but
 not this suffix — it mints only through `#idea`.
 
 **This changes existing URLs, again.** An untitled note that minted at
 `ideas/<container>-1.html` under the retired container-ordinal scheme now
 mints at `ideas/<body-slug>-<digest>.html` instead. An in-repo reference to
-the old id fails to compile — loud, and caught at build time — but an
+the old name fails to compile — loud, and caught at build time — but an
 external link or a bookmark to the old page breaks silently. Pin a name
-(`#idea(<some-name>, ..)[..]`) on a note if some old id needs to keep
+(`#idea(<some-name>, ..)[..]`) on a note if some old name needs to keep
 resolving.
 
 ## Two modes
@@ -1313,14 +1313,14 @@ Three ways, pick by how much ceremony you want:
   Tag and filter selection are always rookery-wide: they read the whole
   registry, so they pull the same notes wherever the window sits. That is the
   point — an index written once keeps up as you add notes, instead of going
-  quietly out of date the way a hand-listed set of ids does.
+  quietly out of date the way a hand-listed set of names does.
 
   Whether the window counts as a link at all follows the same rule for
   `tagged:` as it does for a named note, and `filter:` breaks it — see
   "`backlink:` — a view is not a reference" above.
 
   `sort:` is `auto`, `"date"` or `"lexicographic"`. `auto` keeps the notes you
-  named in the order you named them and appends the tag matches by id, so a
+  named in the order you named them and appends the tag matches by name, so a
   window that names its notes reads exactly as it always has; naming a sort
   orders the whole selection instead. `"date"` is newest first on the minted
   date, undated notes last.
@@ -1333,7 +1333,7 @@ Three ways, pick by how much ceremony you want:
 
   See "The click budget" below for what clicking each part does.
 - `@idea:etal` — the terse form, but on its own it renders as a bare figure
-  NUMBER (Typst's stock `@` rendering for a labeled figure — a note's id
+  NUMBER (Typst's stock `@` rendering for a labeled figure — a note's name
   lives on a hidden anchor figure). `#show: rookery` installs the rule that
   fixes this, so if you already applied the template there is nothing to do.
   Without it, apply the exported `hyperlink` by hand:
@@ -1344,7 +1344,7 @@ Three ways, pick by how much ceremony you want:
   ```
 
   With the rule applied, `@idea:etal` renders the note's title (linked)
-  instead, cross-page too; a note with no title falls back to the bare id
+  instead, cross-page too; a note with no title falls back to the bare name
   text rather than a number. References to anything else (an ordinary
   figure, a heading) pass through untouched — checking whether the reference
   actually resolves to a rookery note anchor is what lets `show ref:` be
@@ -1443,9 +1443,9 @@ against the page sequence a reader is holding would be a lie, and it is also
 why the two forms agree there rather than disagreeing about an order only one
 of them applied.
 
-It is deliberately not grouped under per-page headings. A note's id is flat
+It is deliberately not grouped under per-page headings. A note's name is flat
 and travels between files precisely so a reader never has to know which file
-holds it (see "Flat ids, and why"); an index that led with filenames would put
+holds it (see "Flat names, and why"); an index that led with filenames would put
 that back.
 
 Notes transcluded onto the page by a `#window` are never listed, at any depth
@@ -1476,7 +1476,7 @@ and "all of these" and nothing else: they cannot say `phd` but NOT `draft`, nor
 `(phd AND draft) OR todo`. Keyword parameters for those would be a filter
 language grown one special case at a time (`exclude:`, then `any-of:`, then
 nested groups), and a Typst function value already is that language. It sees the
-tag dictionary and nothing else — no title, no id, no depth.
+tag dictionary and nothing else — no title, no name, no depth.
 
 Because it is the dictionary, a filter can select on a tag's VALUE and not
 merely on its presence:
@@ -1540,8 +1540,9 @@ one returns data you can sort, filter and count.
 
 Each entry is:
 
-- `id` — the full id, prefix included (`"idea:etal"`).
-- `name` — the same id with the prefix stripped (`"etal"`), the form you write
+- `id` — the note's full name, prefix included (`"idea:etal"`). The field
+  is still called `id`; what it holds is the name in its prefixed form.
+- `name` — the same name with the prefix stripped (`"etal"`), the form you write
   in `#window("etal")`.
 - `title` — the title as content, or `none` for an untitled note.
 - `text` — that title flattened to a plain string, `""` when there is none.
@@ -1600,8 +1601,8 @@ predicate takes the dictionary rather than an array of names.
 ```
 
 `sort:` is `auto`, `"date"` or `"lexicographic"`. `auto` and `"lexicographic"`
-both mean the array is ordered by id, not by the order notes were written or
-the order their pages appear — an id order is the one order that is stable
+both mean the array is ordered by name, not by the order notes were written or
+the order their pages appear — a name order is the one order that is stable
 across builds, and it makes a diff of generated output mean something.
 `"date"` orders newest `created` first, undated notes last, same as
 `#window(sort: "date")`.
@@ -1762,7 +1763,7 @@ yourself:
 #context idea-href("etal")   // -> "../ideas/etal.html"
 ```
 
-It takes whatever `#window` takes — a bare name, a full id, or a label — and
+It takes whatever `#window` takes — a bare name, a prefixed name, or a label — and
 the string it returns is **relative to the page it was called on**, because
 that is what an href in the output has to be. Do not compute one on a page and
 use it on another.
@@ -1846,8 +1847,8 @@ whole of it fits in two rules:
   nothing navigates.
 - **The `[idea:etal]` permalink is the only link the package emits**, and it
   goes to the note's own page. It sits beside the title, or alone at the top
-  of the window when the note has no title (the id doing double duty as its
-  name). `#idea` renders the identical affordance beside its own heading, and
+  of the window when the note has no title (the name doing double duty as its
+  title). `#idea` renders the identical affordance beside its own heading, and
   a `#window` nested inside a transcluded body collapses to it once the unfurl
   budget runs out — so the rule holds at every level. Where the budget does
   reach, the nested window is a full window, summary and all, identical to the
@@ -1948,7 +1949,7 @@ rule off.
 rather than left to a site's heading scale: `font-variant: normal` and
 `text-transform: uppercase` are asserted on the class, so a site setting
 `h1..h6 { font-variant: small-caps }` cannot turn "Contents" into small caps
-against the ids beside it.
+against the names beside it.
 
 `.idea-head` is the element around the tab and the heading beneath it, in a card
 and on a minted note page alike. It exists because the two have to be real
@@ -1997,8 +1998,8 @@ hand:
 | `tags: (draft: none, priority: 1)` | unchanged |
 
 `("draft", "review")` and `(draft: none, review: none)` are therefore the same
-record, and a pinned id written one way in one place and the other way in
-another is not a duplicate-id collision.
+record, and a pinned name written one way in one place and the other way in
+another is not a duplicate-name collision.
 
 A VALUED tag is how a tag carries metadata rather than only naming itself:
 
@@ -2026,8 +2027,8 @@ same classes on its own wrapper, alongside the base `idea-window` class — one
 element per note, the same way the card carries them once.
 
 **`display-tags: true`** on `#idea`/`#window` ALSO renders a note's tags as a row
-of visible pills in the hat — the same `.idea-tab` the id and (with
-`display-date: true`) the date sit on, in that fixed order: id, then tags, then
+of visible pills in the hat — the same `.idea-tab` the name and (with
+`display-date: true`) the date sit on, in that fixed order: name, then tags, then
 date. Off by default, the same mechanism as `display-date`:
 
 ```typst
@@ -2185,7 +2186,7 @@ A plain tag's value is `none`, which is indistinguishable from a `default:
 none` on an absent key — ask `idea-tag-names` when the question is presence.
 
 `#context tag-data()` gives every note's whole tag store at once, keyed by full
-id:
+name:
 
 ```typst
 #context tag-data()   // -> ("idea:ship-it": (draft: none, priority: 1), ..)
@@ -2196,8 +2197,8 @@ each resolve the registry for ONE note, so N notes cost N reads, where one
 `#ideas()` plus one `#tag-data()` covers everything and the two join on `id`.
 
 All three take the same name forms as `#window` and `#hyperlink` — a bare name,
-a full id, or a label — and answer emptily for an untagged note and for an id
-that does not exist. An unknown id is deliberately not an error: a caller asking what
+a prefixed name, or a label — and answer emptily for an untagged note and for a name
+that does not exist. An unknown name is deliberately not an error: a caller asking what
 something is tagged is filtering, not dereferencing, and a filter that panics
 on the first miss is useless. That is what lets another package pick out a
 tagged subset of your notes without reaching into rookery's internals.
@@ -2459,7 +2460,7 @@ Resolution order, most specific first:
 
 A date is always RESOLVED and stored on the note's registry record, but
 rendering it is opt-in — `display-date: false` by default, on both `#idea` and
-`#window`, so an unconfigured note's header is just the title and its id:
+`#window`, so an unconfigured note's header is just the title and its name:
 
 ```typst
 #idea("a", display-date: true)[Shows its date at the right-hand end of the hat.]
@@ -2467,12 +2468,12 @@ rendering it is opt-in — `display-date: false` by default, on both `#idea` and
 ```
 
 **Where it renders is the hat** — the `.idea-tab` rule across the top of a card
-or a window, with the id on the stub at the left end and the date pushed to the
+or a window, with the name on the stub at the left end and the date pushed to the
 far right. It is the frame's metadata, not a subtitle: it used to sit inside the
 `<h2>` on a card and as a third item in a window's summary row, which made one
 piece of information wear two classes in two places. Now it is `.idea-date`
 inside `.idea-tab`, wherever it appears. The top rule does not resume on the
-date's far side — the hat draws one stub, to the left, and stops at the id.
+date's far side — the hat draws one stub, to the left, and stops at the name.
 
 **There is ONE date, and it is `created`.** Until 0.6.0 there were two — `minted`
 and an `updated` beside it — and every hat showed `updated`, on the argument that
@@ -2633,7 +2634,7 @@ This is the part that needs **rheo >= 0.5.2**: inlining a package's
 than failing, so the symptom is not an error but an absence — no minted
 pages, and links into them that resolve to nothing.
 
-Each minted page shows the note's title and permalink id, then its body, then
+Each minted page shows the note's title and permalink name, then its body, then
 a footer with two parts — each omitted, rather than left empty, when it has
 nothing to say.
 
@@ -2653,7 +2654,7 @@ the prefix as-is:
 
 ```typst
 #show: rookery.with(prefix: "maths")
-// no note-dir set -> pages mint at maths/<slug>.html, ids read `maths:<slug>`
+// no note-dir set -> pages mint at maths/<slug>.html, names read `maths:<slug>`
 ```
 
 **Breaking, if you already set a custom `prefix`.** Before `note-dir`
@@ -2717,7 +2718,7 @@ changing the rest of the rookery:
 ```
 
 With `display-title: false` resolved, the minted page omits the `<h1>` entirely
-rather than leaving an empty one — the id that would have been the heading's
+rather than leaving an empty one — the name that would have been the heading's
 anchor moves onto its `.idea-head` container instead, so a Context link from
 another page's footer still lands on the note.
 
@@ -2731,7 +2732,7 @@ rookery linked to **its own minted page**, carrying its date and its tags. The
 rows wear `#ideas-outline`'s
 classes — `.idea-outline`, `.idea-outline-row`, `.idea-tag-<tag>` — so a
 stylesheet that already knows the outline knows this page too, and it needs no
-CSS of its own. They are listed in id order, which is what `#ideas()` returns.
+CSS of its own. They are listed in name order, which is what `#ideas()` returns.
 
 It is NOT `#ideas-outline()`, and the difference matters: the
 outline links each row to the note's anchor on the vertebra that authored it,
@@ -2772,7 +2773,7 @@ to its own pages, and by default has no site header or nav.
 It is called once per note, wrapping the **whole** minted page — heading, body
 and footer — so it sees exactly what a vertebra's own `#show:` would.
 
-- `id` is the note's full id (`idea:etal`), the same string `#window` and
+- `id` is the note's full name (`idea:etal`), the same string `#window` and
   `@idea:etal` name it by, and the natural "which page am I on" key.
 - `note` is the note's registry record — `title`, `minted`, `updated`,
   `origin` (the handle of the page it was written in) and `links` — so a
@@ -2937,7 +2938,7 @@ rather than call one of this package's own accessors:
   `<rkfn>` label, not a figure kind.
 
 A walker that needs to find where an idea or a window sits inside a body of
-rendered content, rather than looking a note up by id, matches
+rendered content, rather than looking a note up by name, matches
 `figure(kind: IK)` or `figure(kind: WK)`. `@rookery/slipshow` does exactly
 this, in `src/select.typ` and `src/marker.typ`, to recover a `#slip`'s own
 options from a content value it was handed rather than a registry record it
@@ -3024,7 +3025,7 @@ whichever package it sits on top of.
   self-windows and window cycles safe to compile. See "Nested windows, and
   `window-unfurl`" above.
 - An author's own `<label>` written inside a note's body is duplicated if
-  that note is transcluded elsewhere — a note owns exactly one id, attached
+  that note is transcluded elsewhere — a note owns exactly one name, attached
   by `#idea` itself.
 - Backlinks appear on minted note pages, so under rheo only — see "Standalone
   note pages".
@@ -3038,7 +3039,7 @@ whichever package it sits on top of.
 - A window's citations resolve to the window's own reference block rather than
   to the note's page — see "Bibliographies" for why linking them across is not
   available.
-- **`#idea`'s return value cannot be introspected.** It resolves a note's id
+- **`#idea`'s return value cannot be introspected.** It resolves a note's name
   and registers it from inside a `context` block, so what `#idea(..)[..]`
   returns is itself a deferred `context` node — and a Typst `context` node's
   body is opaque to `.fields()` until Typst actually realizes it, which
