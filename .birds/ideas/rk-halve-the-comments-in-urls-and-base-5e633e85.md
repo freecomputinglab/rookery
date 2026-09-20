@@ -7,7 +7,7 @@ labels:
 - cut-comment-volume
 deps:
 - blocked-by:rk-correct-six-wrong-comments-in-src-6e39825c
-closed: false
+closed: true
 ---
 This project's `CLAUDE.md` ends its comment rules with: "Aim for files where
 comments are a minority of the lines." Every file in `core/0.1.0/src/` fails
