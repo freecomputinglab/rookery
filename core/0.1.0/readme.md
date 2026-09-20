@@ -668,6 +668,23 @@ minted, never from the original call site, so the resolved `display` dictionary'
 is windowed, and a record written before these keys existed reads as an ordinary
 framed, permalinked note.
 
+**A tag-selected window counts as a link too, once the registry is final.**
+`#window(tagged: "phd")` counts as a link to every note the selection matched
+— from the page the window sits on, and from the enclosing note when the
+window is written inside one — exactly as `#window("etal")` counts as one to
+`etal`. `#window(tagged: "phd", filter: ..)` counts as a link to nothing, and
+neither does `#window(filter: ..)` alone: `tagged:` and `filter:` are ANDed at
+the call site, but `filter:` is a function and nothing in a `metadata`
+payload can carry one, so resolving the tag half alone would announce
+backlinks from notes the window never actually showed — a missing backlink is
+a smaller wrong than a fabricated one. `backlink: false` suppresses all of
+it, tag selection included.
+
+```typst
+#window(tagged: "phd")                            // links to every match
+#window(tagged: "phd", filter: t => "draft" in t) // no backlink at all
+```
+
 ## `#ideate` — every paragraph a note
 
 ```typst
@@ -1273,6 +1290,10 @@ Three ways, pick by how much ceremony you want:
   registry, so they pull the same notes wherever the window sits. That is the
   point — an index written once keeps up as you add notes, instead of going
   quietly out of date the way a hand-listed set of ids does.
+
+  Whether the window counts as a link at all follows the same rule for
+  `tagged:` as it does for a named note, and `filter:` breaks it — see
+  "`backlink:` — a view is not a reference" above.
 
   `sort:` is `auto`, `"date"` or `"lexicographic"`. `auto` keeps the notes you
   named in the order you named them and appends the tag matches by id, so a

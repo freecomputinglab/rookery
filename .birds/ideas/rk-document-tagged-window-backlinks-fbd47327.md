@@ -8,7 +8,7 @@ labels:
 deps:
 - blocked-by:rk-backlink-tag-selected-windows-per-page-e99edead
 - blocked-by:rk-backlink-tag-selected-windows-per-note-9f632f19
-closed: false
+closed: true
 ---
 `core/0.1.0/readme.md` never documents how a tag-selected `#window` behaves in
 the backlink graph, even though `src/window.typ` claims it does. Two sibling
