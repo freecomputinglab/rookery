@@ -956,16 +956,18 @@
 #let slug(content) = _slug(_plain(content))
 
 // A title-derived note id, or `none` if the title cannot supply one — the
-// caller's cue to fall back to the counter instead. Duplicates `_slug`'s
-// one-line regex rather than calling it: `_slug` panics on the empty case,
-// and that is the one case this function exists to handle gracefully.
+// caller's cue to fall back to the body-derived name instead. Duplicates
+// `_slug`'s one-line regex rather than calling it: `_slug` panics on the
+// empty case, and that is the one case this function exists to handle
+// gracefully.
 //
 // `none` on three inputs, each for a different reason: an empty result (the
 // title is pure punctuation — the same case `_slug` panics on, but an id
 // has a safe fallback where a heading name does not); a purely-numeric
-// result (it would collide with the unnamed-note counter's own namespace,
-// `1`, `2`, `3`, …); and a result still empty after the length cap strips a
-// trailing `-` left by cutting mid-word.
+// result, which reads as a bare number rather than as a name (`_name-slug`
+// rejects one for the same reason, so neither rung can mint `idea:2024`);
+// and a result still empty after the length cap strips a trailing `-` left
+// by cutting mid-word.
 //
 // The cap exists because an id becomes a filename (`ideas/<id>.html`) — a
 // 200-character title must not become a 200-character path segment.

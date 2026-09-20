@@ -11,9 +11,17 @@
 // `#set document(title: ..)` would apply to this whole single compiled
 // document rather than to just that page, fighting the other vertebrae's
 // titles (or the lack of one) instead of naming only its own note.
+//
+// A VERTEBRA WINDOWED BY ONE ALREADY LISTED HERE HAS TO BE LISTED TOO. Under
+// rheo the spine finds every file in `content/` whether this root names it or
+// not, so a `#window` resolves against the whole rookery; here the document is
+// only what these lines include, and a window onto a note nobody included
+// panics with `#window unknown note`. `content/sub/page.typ` windows
+// `same-title`, which is why `same-title-pair.typ` is below.
 #include "content/index.typ"
 #include "content/sub/page.typ"
 #include "content/relations.typ"
 #include "content/sub/deeper/page.typ"
 #include "content/refs.typ"
 #include "content/tags.typ"
+#include "content/same-title-pair.typ"
