@@ -41,7 +41,7 @@ is its character count.
 metadata no other field on the row carries. Every note in this corpus is
 authored in `content/corpus.typ` and mints into the same `ideas/` directory,
 so grouping by `r.page` here reproduces id order — the interesting case is a
-project whose notes are pinned across several `note-dir:` sections, where
+project whose notes are pinned across several `idea-dir:` sections, where
 this groups them by section instead.
 
 #slipshow(tags: "slip", order: r => r.page)
