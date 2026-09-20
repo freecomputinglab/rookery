@@ -809,6 +809,19 @@ if [ -n "$p" ]; then
     note "index.html's authoring vertebra does not carry idea:$id, though its minted page is ideas/$id.html"
 fi
 
+
+# 33. A TAG-SELECTED WINDOW BACKLINKS THE PAGE THAT SHOWS IT
+#     (`content/index.typ`'s `#window(tagged: "phd")`, on the root vertebra,
+#     picks up `tag-t-both` from the DIFFERENT `tags` vertebra where it is
+#     defined). `tag-t-both` is never named by that window, only tag-matched,
+#     so its Backlinks section is empty unless the page-level link map
+#     resolves the marker's tag selector against the final registry. A
+#     same-page tag window, such as either on `content/tags.typ` itself,
+#     cannot exercise this: Context already names a note's own origin page,
+#     so Backlinks excludes it there on purpose.
+grep -qi 'backlinks' "$H/ideas/tag-t-both.html" ||
+  note "ideas/tag-t-both.html has no Backlinks section — a tag-selected window stopped registering a page backlink"
+
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"
   exit 1

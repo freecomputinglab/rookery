@@ -220,12 +220,14 @@
   // Bare names, not full ids: this runs outside `context`, so `_pfx()` is not
   // available here. `_outbound` re-adds the prefix, which it can.
   //
-  // Only the NAMED ids can be announced. A tag selection is not known until
-  // the registry is readable, which needs `context`, and by then this walk has
-  // already happened — so tag-matched notes get no backlink from this window.
-  // That asymmetry is documented in the readme; do not "fix" it by announcing
-  // the tags instead, which would have `_outbound` read the registry while it
-  // is still being built.
+  // Only the NAMED ids can be announced here — a tag selection is not known
+  // until the registry is readable, which needs `context`, and by then this
+  // walk has already happened, so `_outbound`'s NOTE-level graph still gives a
+  // tag-matched note no backlink (do not "fix" that by having `_outbound` read
+  // the registry while it is still being built). The PAGE-level graph is
+  // different: `_page-links` (outline.typ) runs at render time against the
+  // final registry, so the tag/match selector rides the marker below and gets
+  // resolved there instead.
   // LABELLED, so `query()` can find it as well as the content walk.
   //
   // `_page-outbound` walks a vertebra's content at `#show: rookery` time to
@@ -259,7 +261,23 @@
   //
   // So skipping the emission for `backlink: false` would silently break
   // citation partitioning in any note that cites anything and windows anything.
-  [#metadata((rookery-window: ids, backlink: backlink)) <rookery-window-mark>]
+  //
+  // `tagged`/`match` ride along too, unchanged from what this call received,
+  // because a selector is plain data and `_page-links` can resolve it once the
+  // registry is final. `filter` cannot: it is a function (asserted above), and
+  // nothing this package puts in `metadata` is one, so only whether it was
+  // given rides along, as `filtered`. `tagged`/`match` are ANDed with `filter`
+  // (see below), so a filtered window shows a narrower set than its tags alone
+  // would — `filtered: true` tells every reader that the tag selector on its
+  // own now overclaims, and to resolve nothing rather than announce a wrong
+  // backlink.
+  [#metadata((
+    rookery-window: ids,
+    backlink: backlink,
+    tagged: tagged,
+    match: match,
+    filtered: filter != none,
+  )) <rookery-window-mark>]
 
   context {
   let reg = _registry.final()

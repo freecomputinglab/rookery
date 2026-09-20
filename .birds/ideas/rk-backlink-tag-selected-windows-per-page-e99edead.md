@@ -6,7 +6,7 @@ priority: 3
 labels:
 - fix-tag-window-backlinks
 deps: []
-closed: false
+closed: true
 ---
 A `#window` that selects its notes by TAG gives those notes no backlink, while a
 `#window` that NAMES them does. This bird fixes the PAGE-level half of that gap:

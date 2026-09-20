@@ -25,6 +25,13 @@ the only thing that produces a page backlink:
   #window(<sub-note>)
 ]
 
+// A window selecting notes ACROSS vertebrae by TAG rather than by name — the
+// page-level backlink for a tag-selected window is what this pins. `#window(tagged:
+// "phd")` here picks up `tag-t-both` (on the `tags` vertebra, a different page
+// from this one), so `tag-t-both`'s own minted page must list THIS page in its
+// Backlinks, exactly as `#window(<sub-note>)` above already does for a named one.
+#window(tagged: "phd")
+
 #note("plain-note", title: [Plain note], created: datetime(year: 2026, month: 5, day: 2))[
   A `#note`, so the registry carries a prepended `note` tag and the heading a
   `idea-tag-note` class.

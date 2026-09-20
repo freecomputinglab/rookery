@@ -147,6 +147,26 @@
       let full = _pfx() + n
       if full not in seen { seen.push(full) }
     }
+    // The one reader that CAN resolve a tag selection: `_outbound` (links.typ)
+    // walks a note's raw body at registration, before the registry exists, so
+    // it can never do this — but this loop runs at render time, inside the
+    // `#context` that binds `_registry.final()` at the call site below, so the
+    // registry is already final. `filtered` skips resolution entirely: `tagged`
+    // is ANDed with `filter` at the call site, so a filtered window's tag
+    // selector alone would claim backlinks from notes the window never showed.
+    if not v.at("filtered", default: false) {
+      let tagged = v.at("tagged", default: none)
+      if tagged != none {
+        let pred = _tag-pred(tagged, v.at("match", default: "any"))
+        if pred != none {
+          for (id, rec) in _registry.final() {
+            if pred(rec.at("tags", default: (:))) and id not in seen {
+              seen.push(id)
+            }
+          }
+        }
+      }
+    }
     out.insert(handle, seen)
   }
 
