@@ -7,7 +7,7 @@ labels:
 - fix-wrong-comments
 deps:
 - blocked-by:rk-strip-the-interior-section-banners-7392205a
-closed: false
+closed: true
 ---
 Six comments in `core/0.1.0/src/` state things that are not true of the code
 as it stands. Two of them are in the first six lines of the package's

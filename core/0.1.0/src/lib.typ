@@ -3,9 +3,10 @@
 // A note exists only where the author writes `#idea("name")[...]` — there is
 // no document show rule and no "every heading is a note" behaviour. Notes are
 // flat: there is no kind/type taxonomy, only a free-form set of tags an
-// author attaches to a note. `#note`/`#todo` are pure sugar over that same
-// tags array (see below), not a taxonomy of their own. Note ids are flat
-// Typst labels (`<idea:name>`), not handle-prefixed, so a note can move
+// author attaches to a note. A project builds its own constructors over that
+// tags array — `#let todo = idea.with(tag: "todo")` and the like — rather
+// than the package offering a taxonomy of its own. An idea's name is a flat
+// Typst label (`<idea:name>`), not handle-prefixed, so a note can move
 // between files without breaking inbound links.
 //
 // This package takes no `ctx` argument and installs no template: under plain

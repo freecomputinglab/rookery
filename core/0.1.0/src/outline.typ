@@ -580,8 +580,9 @@
       // body can style the same note's row in the index. It is also the zero-API
       // half of tag filtering: with the classes here a site can grey, badge or
       // hide rows in its own CSS, with no Typst-side filter at all. The package
-      // ships NO default rule for any of them — `#note`/`#todo` are sugar, not a
-      // recognised set, and styling one here would invent an opinion.
+      // ships NO default rule for any of them — tags are a free-form set a
+      // project defines for itself, not a recognised set the package styles,
+      // and doing so here would invent an opinion.
       (e, sub) => {
         let visible = _visible-tags(e.tags.keys())
         html.elem(

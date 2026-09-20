@@ -201,9 +201,10 @@
   keys
 }
 
-// Prepends `tag`, unless the caller already passed it — `#todo("x", tags:
-// ("todo",))` must yield `(todo: none)`, not the tag twice, or the heading gets
-// a duplicated CSS class. Defined before `_merge-base-tags` that calls it: a
+// Prepends `tag`, unless the caller already passed it — a project's own
+// `todo("x", tags: ("todo",))` must yield `(todo: none)`, not the tag twice,
+// or the heading gets a duplicated CSS class. Defined before
+// `_merge-base-tags` that calls it: a
 // `#let` closure captures the scope visible AT DEFINITION time, so a forward
 // reference to a not-yet-defined name fails at call time.
 //
@@ -216,8 +217,8 @@
 // `((tag): value) + tags` would clobber a caller's own value for this tag with
 // the default. The "already a key" guard therefore comes FIRST, and that guard
 // is exactly the mechanism by which a caller supplies a value for the wrapper's
-// own tag: `#todo("x", tags: (todo: (state: "open")))` keeps `(state: "open")`.
-// A caller's value wins OUTRIGHT — there is no deep merge.
+// own tag: a project's own `todo("x", tags: (todo: (state: "open")))` keeps
+// `(state: "open")`. A caller's value wins OUTRIGHT — there is no deep merge.
 //
 // `value:` is the default `_merge-base-tags` passes for a key bound in a
 // dictionary `base-tags:`. It only applies when the caller did not name the
@@ -419,10 +420,11 @@
 
 // A `ref` IS THE SAME LEAF `_plain-with` PARAMETERISES, through the same
 // `resolve` hook and for a sharper reason: a note with NO TITLE names itself by
-// its body (`_derived-title` below), so `#todo[Write @idea:nz-man post]` is
-// called "Write  post" on every worklist, index row and search hit unless
-// whoever holds the registry can say what that reference is worth. MEASURED on
-// exactly that todo. `_body-text` below passes the pure answer, `_ => ""`,
+// its body (`_derived-title` below), so `#idea("draft")[Write @idea:nz-man
+// post]` is called "Write  post" on every worklist, index row and search hit
+// unless whoever holds the registry can say what that reference is worth.
+// MEASURED on exactly that note. `_body-text` below passes the pure answer,
+// `_ => ""`,
 // for a caller with no registry to resolve against; `_rec-label` and
 // `ideas()` pass `_ref-text(reg)`.
 #let _body-text-with(c, resolve) = {
@@ -525,7 +527,8 @@
 // reason this sits below `_derived-title-with` rather than above it. The stored
 // `label` was flattened PURELY at registration time — `#idea` runs before any
 // registry exists — so a titleless note whose body references another
-// (`#todo[Write @idea:nz-man post]`) has "Write  post" stored, and a caller
+// (`#idea("draft")[Write @idea:nz-man post]`) has "Write  post" stored, and a
+// caller
 // holding the registry that read that field would print the gap it can itself
 // fill. Deriving it again with `ref-text` is what makes a reference worth its
 // target's name in a note's derived name too, and the stored field stays as the

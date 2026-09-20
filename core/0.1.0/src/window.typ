@@ -34,7 +34,7 @@
 //
 // `sort:` is `auto`, "date" or "lexicographic". `auto` keeps named ids in
 // call-site order and appends the tag matches by id, so a window that names
-// its notes and asks for no sort behaves exactly as it always has; naming a
+// its notes and asks for no sort keeps them in call-site order; naming a
 // sort orders the whole selection instead. See `_sort-ids`.
 //
 // A `#window` is pure presentation: it never registers, never advances the
@@ -65,12 +65,11 @@
   limit: none,
   folded: false,
   // The nine-key display dictionary `#idea` also takes (`_resolve-display`,
-  // pure.typ). `#window` now declares all nine as flags too, for parity with
+  // pure.typ). `#window` declares all nine as flags too, for parity with
   // `#idea` and the `display:` dictionary, but only HONOURS six of them —
   // `date`, `tags`, `frame`, `name`, `label`, `background`. `context`,
   // `backlinks` and `title` describe a minted page, and a window is not one,
-  // so all three ride along unused, exactly as they already did inside the
-  // `display:` dictionary.
+  // so all three ride along unused inside the `display:` dictionary too.
   display: (:),
   display-date: auto,
   display-tags: auto,
@@ -235,8 +234,8 @@
   // one announces itself to nobody, and every note it transcludes loses its
   // backlink from the page transcluding it. Not a corner case: any package
   // that computes which notes to window must do so inside a context, since
-  // reading the registry needs one (`@rookery/todos`'s
-  // `#todos-ready(windows: true)` is one such caller).
+  // reading the registry needs one (`@rookery/todos`'s ready-view builder is
+  // one such caller).
   //
   // The label costs nothing here and lets `_page-links` pick these up by
   // query instead. THE MARKER STAYS OUTSIDE THE CONTEXT BLOCK BELOW: that is

@@ -360,8 +360,9 @@
         tags: rec.at("tags", default: (:)).keys(),
         // A REFERENCE IN THE BODY READS AS ITS TARGET'S NAME here too, through the
         // same one-per-walk resolver the title and the label use: a search over
-        // `#todo[Write @idea:nz-man post]` has to match the words a reader can see
-        // in that row, and typing "New Zealand" is how they would look for it.
+        // `#idea("draft")[Write @idea:nz-man post]` has to match the words a
+        // reader can see in that row, and typing "New Zealand" is how they
+        // would look for it.
         body: _body-plain-with(rec.at("raw", default: none), ref-text),
         href: _note-href(id, handle: handle),
         page: _note-path(id),

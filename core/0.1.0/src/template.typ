@@ -590,8 +590,8 @@
   _invisible-tags.update(_norm-tags(invisible-tags).keys())
   _theme.update(resolved)
   // DOCUMENT-SCOPE theme publication, ADDITIVE to the per-container INLINE
-  // styling `_themed` still applies everywhere it already did (see that
-  // function and its callers) — this does not replace them, it gives
+  // styling `_themed` applies everywhere it is used (see that function and
+  // its callers) — this does not replace them, it gives
   // anything ELSE on the page a `:root` to inherit from. Custom properties
   // inherit DOWN the DOM, but only from an ancestor that carries them, which
   // is why a document-scope `:root` block is emitted in addition to the

@@ -47,8 +47,8 @@
 // `_resolve-display` (pure.typ) into one dictionary: an explicit flag wins
 // over the dictionary's own value for that key, which wins over `auto`. Every
 // flag defaults to `auto`, and every one of the nine STAYS `auto` here when
-// unset — none of them gets a built-in default substituted in this function
-// any more. `context`, `backlinks` and `title` mean "use the document-wide
+// unset — this function substitutes no built-in default for any of them.
+// `context`, `backlinks` and `title` mean "use the document-wide
 // setting", resolved later on the minted page; `date`, `tags`, `frame` and
 // `name` mean the same thing one step earlier, resolved against document-wide
 // state (`_display-final`, state.typ) at the point this note's own card
@@ -88,9 +88,10 @@
   // narrower family to belong to the wider one at all.
   //
   // A caller's own value for a tag WINS OUTRIGHT over a constructor's default —
-  // `#todo("x", tags: (todo: (state: "open")))` keeps `(state: "open")` even
-  // though the `todo` constructor bound its own default for that key — and
-  // there is no deep merge between the two.
+  // given a project's own `#let todo = idea.with(tag: "todo", tags: (todo:
+  // (state: "closed")))`, calling `todo("x", tags: (todo: (state: "open")))`
+  // keeps `(state: "open")` even though the constructor bound its own default
+  // for that key — and there is no deep merge between the two.
   _assert-tags(tags, "#idea's")
   _assert-tags(base-tags, "#idea's", what: "base-tags")
   assert(

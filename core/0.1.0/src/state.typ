@@ -180,9 +180,12 @@
 // Whether `.marrow.typ` should mint an `ideas/index.html` landing page for the
 // whole rookery.
 //
-// DEFAULT OFF. A project with its own index — ohrg.org's homepage is a
-// `#window(tagged: "post", ..)`, weeknotes' is the same — must not find a second
-// one published under it because it upgraded the package.
+// DEFAULT ON: `#rookery(..)` (template.typ) always publishes `index-page:
+// true` unless a project overrides it. `#rookery(index-page: false)` turns it
+// off — the call a project with its own index needs, since ohrg.org's
+// homepage is a `#window(tagged: "post", ..)`, weeknotes' is the same, and
+// neither wants a second index published under it. This state's own `false`
+// initial value is only what a read sees before `#show: rookery` runs.
 #let _index-page = state("rheo-idea-index-page", false)
 
 // Whether `.marrow.typ` should render the Context section (a link back to
