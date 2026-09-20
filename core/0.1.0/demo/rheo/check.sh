@@ -147,8 +147,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">50 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 50 ideas"
+  grep -q 'idea-index-count">51 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 51 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -791,6 +791,23 @@ if not bad:
     print("  footnote numbering: two identical footnotes number 1, 2, 3 in order on both plain-note's own page and its #window")
 sys.exit(bad)
 FOOTNOTES
+
+# 32. A TITLELESS, UNNAMED NOTE'S MINTED PAGE (`content/index.typ`'s
+#     content-derived note). Its filename is its body slug plus a content
+#     digest, not a counter, and the id printed on the authoring vertebra —
+#     the note's OWN rendering — has to be the exact same string as the
+#     minted page's own basename, which is a SECOND rendering of that same
+#     body. `demo/pure` cannot show this half at all: it never mints a page.
+p=$(ls "$H"/ideas/contentidbody-*.html 2>/dev/null | head -1)
+[ -n "$p" ] ||
+  note "no minted page at ideas/contentidbody-<digest>.html — a titleless, unnamed note's id is not its body slug plus a content digest"
+if [ -n "$p" ]; then
+  id=$(basename "$p" .html)
+  grep -q 'CONTENTIDBODY' "$p" ||
+    note "ideas/$id.html does not render its own body"
+  grep -q "id=\"idea:$id\"" "$H/index.html" ||
+    note "index.html's authoring vertebra does not carry idea:$id, though its minted page is ideas/$id.html"
+fi
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"

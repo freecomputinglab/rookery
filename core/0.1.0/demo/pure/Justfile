@@ -29,6 +29,10 @@ watch:
 # today (see `_resolve-excluded`, src/base.typ), so `demo/rheo` cannot vary the
 # env half at all and this is where that half is covered.
 #
+# `naming.typ` is HTML ONLY too, for the same reason `excluded.typ` is: it
+# asserts nothing about the paged target, only about ids that show up as text
+# in the HTML.
+#
 # Comments belong in THIS header, not inside the recipe body: `just` echoes a
 # `#` line in a body as if it were a command, so an explanation written there is
 # printed to the user on every build.
@@ -41,6 +45,7 @@ build:
     typst compile --features html --format html --root ../.. excluded.typ build/excluded.html
     typst compile --features html --format html --root ../.. --input rookery-include=private excluded.typ build/excluded-dev.html
     typst compile --features html --format html --root ../.. display-parity.typ build/display-parity.html
+    typst compile --features html --format html --root ../.. naming.typ build/naming.html
     @just check
 
 # Greps on what `build` produced. The assertions live here rather than as
@@ -71,6 +76,38 @@ check:
     # 5. THE DEV BUILD, same file, one --input apart: the notes come back.
     grep -q DROPBODY build/excluded-dev.html || note "rookery-include did not restore the excluded notes"
     grep -q 'count=4' build/excluded-dev.html || note "ideas() count is not 4 in excluded-dev.html"
+
+    # 6. TWO URL-BODIED NOTES UNDER THE SAME HOST take DIFFERENT ids: the tail
+    #    rule reaches past the shared host to each URL's own last path segment,
+    #    so `unikernels` and `2024-hope` never collide on a host-derived slug.
+    #    Neither id carries the URL's own scheme.
+    grep -qE 'idea:unikernels-[0-9a-z]{3}' build/naming.html ||
+      note "the URL-bodied note's id is not a slug of its URL's tail (unikernels)"
+    grep -qE 'idea:2024-hope-[0-9a-z]{3}' build/naming.html ||
+      note "the second URL-bodied note's id is not a slug of its own URL's tail (2024-hope) — it may have collided with the first on their shared host"
+    if grep -q 'idea:http' build/naming.html; then
+      note "a URL-bodied note's id carries its own scheme instead of the URL's tail"
+    fi
+
+    # 7. A NESTED TITLELESS NOTE derives its own id instead of taking its
+    #    parent's id with a counter appended — the old ordinal-based scheme
+    #    this replaced.
+    grep -qE 'idea:filed-here-with-[0-9a-z]{3}' build/naming.html ||
+      note "the nested note's id is not a slug of its own body (filed-here-with)"
+    if grep -qE 'idea:nn-parent-[0-9]' build/naming.html; then
+      note "the nested note took its parent's id with a counter appended (idea:nn-parent-<n>) instead of deriving its own"
+    fi
+
+    # 8. THE SAME NOTE REACHES THE SAME ID ON BOTH ITS RENDERINGS — its own
+    #    card, and the #window transcluding it — which is exactly the case a
+    #    unit test, never rendering anything twice, cannot reach.
+    ids=$(grep -oE 'idea:notebook-margins-[0-9a-z]{3}' build/naming.html || true)
+    n=$(echo -n "$ids" | grep -c . || true)
+    u=$(echo "$ids" | sort -u | grep -c . || true)
+    [ "$n" -ge 2 ] ||
+      note "the windowed note's id appears $n time(s) in naming.html, expected at least 2 (its own card and the #window)"
+    [ "$u" -eq 1 ] ||
+      note "the windowed note's id takes $u distinct forms across its renderings, expected exactly 1 — a replay minted a different digest"
 
     if [ "$fail" -ne 0 ]; then exit 1; fi
     echo "demo/pure OK"

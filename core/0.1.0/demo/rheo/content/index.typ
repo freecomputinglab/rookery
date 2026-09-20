@@ -110,4 +110,14 @@ the only thing that produces a page backlink:
   than by its slug, and it runs past sixty characters so the ellipsis shows too.
 ]
 
+// ---- A CONTENT-DERIVED ID ON A MINTED PAGE, which no `demo/pure` root can
+// show either — a minted page is a SECOND rendering of a note's own body,
+// exactly the case that broke before a nested note's borrowed ordinal was
+// replaced by one. A note with NEITHER a name NOR a title mints under a body
+// slug plus a content digest instead of a counter, and the id printed here,
+// on the vertebra that wrote it, has to be the same string as the minted
+// page's own filename.
+#idea[CONTENTIDBODY and this is a titleless, unnamed note, so its id comes
+  from its own body rather than from a counter.]
+
 #ideas-outline()
