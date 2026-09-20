@@ -1,0 +1,35 @@
+[package]
+name = "core"
+version = "0.1.0"
+compiler = "0.15.0"
+entrypoint = "src/lib.typ"
+authors = ["The Free Computing Lab <https://freecomputinglab.ohrg.org>"]
+license = "MIT"
+description = "Atomic, interlinked, transcludable notes for Typst - Zettelkasten-style, rheo-aware"
+repository = "https://github.com/freecomputinglab/rookery"
+
+[tool.rheo]
+# 0.6.0 was the first floor: rheo rewrites the reserved `rheo-page:<handle>` link
+# dest that `_resolve-dest` (src/urls.typ) emits for every note link, and an
+# older rheo passes it through untouched, shipping a literal
+# `href="rheo-page:ideas:<slug>"` — a silent, site-wide dead-link failure.
+#
+# 0.6.1 raises it, and not because the Typst surface moved: it is where rheo
+# learned to resolve a namespace it does not ship, via the `[packages.<ns>]`
+# table a project needs to say where `@rookery` comes from at all. Without it
+# these packages cannot be consumed under their own namespace, and
+# `[tool.rheo.source.html]` below is a 0.6.1 manifest key an older rheo reads
+# straight past. The floor turns "package not found" into a message naming the
+# version.
+#
+# 0.6.2 raises it again, and this one is the sharpest reason yet: 0.6.1 located
+# packages by probing Typst's directory layout in the two places that read a
+# package's `.marrow.typ`, and a package fetched from a ref lives at a path keyed
+# by its resolved commit, which no probe matches. Every page THIS FAMILY MINTS
+# FROM MARROW therefore went missing — on a build that succeeded and warned about
+# nothing. Declaring 0.6.2 is what turns that silence into an error naming the
+# version.
+min_version = "0.6.2"
+
+[tool.rheo.html]
+css_stylesheet = "src/core.css"

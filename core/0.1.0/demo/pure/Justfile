@@ -1,0 +1,118 @@
+default:
+    @echo "demo/pure: run 'just watch' to live-rebuild root.typ as HTML, or 'just build' to compile every root"
+
+# --features html is required always — see root.typ. `mkdir`
+# first: unlike `rheo watch`, `typst watch` does not create its output
+# directory and fails with "No such file or directory" on a fresh checkout
+# (build/ is gitignored, never committed).
+watch:
+    mkdir -p build
+    typst watch --features html --format html --root ../.. root.typ build/root.html
+
+# Compiles every root in this demo, HTML and PDF, both with --features html
+# (mandatory regardless of format — see root.typ). The repo-root
+# .github/workflows/check.yml runs THIS RECIPE ("rookery pure demo compiles",
+# `cd core/0.1.0/demo/pure && just build`), so a root added here is picked up
+# by CI with no second edit.
+#
+# `excluded.typ` is HTML ONLY, deliberately: it asserts nothing about the
+# paged target, and a PDF line would double its runtime for no coverage.
+# `root.typ` and `root-prefix.typ` are built both ways because the paged
+# branch is exactly what they are testing.
+#
+# `excluded.typ` IS COMPILED TWICE, and that pair is the only test in this repo
+# that can make its point: the SAME source file, one `--input` apart. The file
+# declares `private` excluded, so the first compile drops those notes and the
+# second (`--input rookery-include=private`) puts them back — exactly the
+# dev-vs-CD split the feature exists for. `rheo compile` forwards no `--input`
+# today (see `_resolve-excluded`, src/base.typ), so `demo/rheo` cannot vary the
+# env half at all and this is where that half is covered.
+#
+# `naming.typ` is HTML ONLY too, for the same reason `excluded.typ` is: it
+# asserts nothing about the paged target, only about ids that show up as text
+# in the HTML.
+#
+# `idea-key.typ` and `idea-key-prefix.typ` are HTML ONLY too: both assert
+# only on `idea-key`'s return value, nothing about the paged target. They are
+# two files rather than one because `prefix:` is document-wide state — one
+# compile cannot cover both the default prefix and a non-default one.
+#
+# Comments belong in THIS header, not inside the recipe body: `just` echoes a
+# `#` line in a body as if it were a command, so an explanation written there is
+# printed to the user on every build.
+build:
+    mkdir -p build
+    typst compile --features html --format html --root ../.. root.typ build/root.html
+    typst compile --features html --root ../.. root.typ build/root.pdf
+    typst compile --features html --format html --root ../.. root-prefix.typ build/root-prefix.html
+    typst compile --features html --root ../.. root-prefix.typ build/root-prefix.pdf
+    typst compile --features html --format html --root ../.. excluded.typ build/excluded.html
+    typst compile --features html --format html --root ../.. --input rookery-include=private excluded.typ build/excluded-dev.html
+    typst compile --features html --format html --root ../.. display-parity.typ build/display-parity.html
+    typst compile --features html --format html --root ../.. naming.typ build/naming.html
+    typst compile --features html --format html --root ../.. idea-key.typ build/idea-key.html
+    typst compile --features html --format html --root ../.. idea-key-prefix.typ build/idea-key-prefix.html
+    @just check
+
+# Greps on what `build` produced. The assertions live here rather than as
+# `assert`s inside `excluded.typ` because what it claims is about the OUTPUT —
+# that a string is absent from the HTML — and a Typst `assert` cannot see its
+# own rendering. Same reason `demo/rheo/check.sh` exists.
+check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    fail=0
+    note() { echo "FAIL: $*"; fail=1; }
+
+    # 1. An excluded note is ABSENT, not hidden: neither its body nor its id
+    #    appears anywhere. Covers the plain form, an `idea.with(..)`
+    #    constructor, and a VALUED tag — three ways in, one gate.
+    if grep -qE 'DROPBODY|idea:gone' build/excluded.html; then
+      note "excluded note leaked into build/excluded.html"
+    fi
+    # 2. The surviving note is untouched.
+    grep -q 'idea:keeper' build/excluded.html || note "keeper missing from excluded.html"
+    grep -q KEEPBODY build/excluded.html || note "keeper body missing from excluded.html"
+    # 3. `#ideas()` sees one note — the assertion that also covers the registry,
+    #    and through it every minted page, the search index and the feeds beacon.
+    grep -q 'count=1' build/excluded.html || note "ideas() count is not 1 in excluded.html"
+    # 4. Graceful degradation: `#hyperlink` keeps its body as plain text (deleting
+    #    it would break the author's sentence), and nothing panicked getting here.
+    grep -q 'HLBODY' build/excluded.html || note "hyperlink body dropped in excluded.html"
+    # 5. THE DEV BUILD, same file, one --input apart: the notes come back.
+    grep -q DROPBODY build/excluded-dev.html || note "rookery-include did not restore the excluded notes"
+    grep -q 'count=4' build/excluded-dev.html || note "ideas() count is not 4 in excluded-dev.html"
+
+    # 6. TWO URL-BODIED NOTES UNDER THE SAME HOST take DIFFERENT ids: the tail
+    #    rule reaches past the shared host to each URL's own last path segment,
+    #    so `unikernels` and `2024-hope` never collide on a host-derived slug.
+    #    Neither id carries the URL's own scheme.
+    grep -qE 'idea:unikernels-[0-9a-z]{3}' build/naming.html ||
+      note "the URL-bodied note's id is not a slug of its URL's tail (unikernels)"
+    grep -qE 'idea:2024-hope-[0-9a-z]{3}' build/naming.html ||
+      note "the second URL-bodied note's id is not a slug of its own URL's tail (2024-hope) — it may have collided with the first on their shared host"
+    if grep -q 'idea:http' build/naming.html; then
+      note "a URL-bodied note's id carries its own scheme instead of the URL's tail"
+    fi
+
+    # 7. A NESTED TITLELESS NOTE derives its own id from its own body rather
+    #    than reusing its parent's id with a counter appended.
+    grep -qE 'idea:filed-here-with-[0-9a-z]{3}' build/naming.html ||
+      note "the nested note's id is not a slug of its own body (filed-here-with)"
+    if grep -qE 'idea:nn-parent-[0-9]' build/naming.html; then
+      note "the nested note took its parent's id with a counter appended (idea:nn-parent-<n>) instead of deriving its own"
+    fi
+
+    # 8. THE SAME NOTE REACHES THE SAME ID ON BOTH ITS RENDERINGS — its own
+    #    card, and the #window transcluding it — which is exactly the case a
+    #    unit test, never rendering anything twice, cannot reach.
+    ids=$(grep -oE 'idea:notebook-margins-[0-9a-z]{3}' build/naming.html || true)
+    n=$(echo -n "$ids" | grep -c . || true)
+    u=$(echo "$ids" | sort -u | grep -c . || true)
+    [ "$n" -ge 2 ] ||
+      note "the windowed note's id appears $n time(s) in naming.html, expected at least 2 (its own card and the #window)"
+    [ "$u" -eq 1 ] ||
+      note "the windowed note's id takes $u distinct forms across its renderings, expected exactly 1 — a replay minted a different digest"
+
+    if [ "$fail" -ne 0 ]; then exit 1; fi
+    echo "demo/pure OK"

@@ -1,0 +1,93 @@
+Safari / iPad: "the @rookery/search modal does not display"
+===========================================================
+
+Run this on the FAILING page in Safari on a Mac:
+  Develop -> Show Web Inspector -> Console, paste, Enter.
+
+(If Develop is missing: Safari -> Settings -> Advanced -> "Show features for
+web developers".)
+
+For an iPad, connect it by cable and use the Mac's Safari -> Develop ->
+<device name> -> <page> to get a console against the iPad's own WebKit.
+Chrome on iPad cannot be inspected this way; it is the same engine as iPad
+Safari, so testing iPad Safari covers it.
+
+
+THE SNIPPET
+-----------
+
+const d = document.querySelector("dialog[data-rookery-search]");
+const el = document.getElementById("rookery-search-index");
+console.log({
+  build: !!document.querySelector('script[src$="modal.js"]') ? "current" : "PRE-FIX (wire.js era)",
+  islandMode: el?.dataset.rookerySearchSrc ?? "inline",
+  parses: (() => { try { return Array.isArray(JSON.parse(el.textContent)) } catch (e) { return "THROWS: " + e.message } })(),
+  dialog: !!d, trigger: !!document.querySelector(".rookery-search-trigger"),
+});
+d?.showModal();   // does the dialog itself paint, independent of the wiring?
+
+Also record, in the same session:
+  navigator.userAgent
+  window.RookerySearch      // undefined on the pre-fix build; an object after
+and whatever the console printed on its own at page load (a `@rookery/search:`
+warning names a failed or malformed index).
+
+
+HOW TO READ THE RESULT
+----------------------
+
+The last line is the split that matters.
+
+showModal() PAINTS THE MODAL -> the rendering is fine and the bug is in the
+wiring. Then `build` says which:
+  - "PRE-FIX (wire.js era)": the site is serving a build from before the
+    trigger was wired ahead of the index load. The old `init()` runs
+    `if (rows === null) continue;` BEFORE wiring the trigger, so a null index
+    leaves the button inert with nothing in the console — the exact reported
+    symptom. Fix is in the consuming project, not this repo: bump the
+    `@rookery` git ref in its `rheo.toml` past 8f7baaa
+    (jj change ywnvuozlukyt, 2026-09-13).
+  - "current": the wiring is present, so read `islandMode` and `parses`.
+    `parses: "THROWS: ..."` means the inline island did not survive into
+    JSON.parse and `readIndex` returned null. `islandMode` naming a path means
+    asset mode, so check the network tab for that request — a failed fetch
+    reproduces an inert trigger in every engine, and why it fails on this
+    Safari and not on other browsers is the root cause that is still open.
+
+showModal() DOES NOT PAINT -> a genuine rendering divergence. Note the exact
+Safari version, because Playwright's WebKit does not show it (see below) and
+the version is then the only lead.
+
+
+WHAT IS ALREADY RULED OUT (2026-09-16) — do not redo this
+---------------------------------------------------------
+
+Driven under Playwright WebKit (Safari 26 engine), Chromium and Firefox,
+against both the live rookery.ohrg.org and a freshly built
+search/0.1.0/demo/rheo:
+
+  - WebKit desktop 1280x720: opens, :modal, 898x514, input focused, 28 rows.
+  - WebKit iPad Pro 11 device descriptor, touch tap: opens, :modal, 804x514,
+    focused, 28 rows. iPad Mini and a hand-rolled 820x1180 touch context too.
+  - The <dialog> sits inside header.site-header (position: sticky, z-index:
+    10). All three engines give the open dialog position: fixed from the
+    dialog:modal UA rule, with identical geometry scrolled and unscrolled —
+    the sticky stacking context neither contains nor clips it.
+  - Nothing in the modal's JS or CSS path gates above Safari 16.2. The one
+    color-mix() (src/search.css:346) already has a plain rgba fallback on the
+    line above it.
+  - An earlier pass also cleared overflow: hidden, transform, filter,
+    backdrop-filter, contain: paint, will-change, isolation and opacity on
+    every ancestor, and a wrong MIME type on the JSON index.
+
+So there is no WebKit rendering bug to chase in a current engine. What DOES
+reproduce the symptom in every engine, WebKit included, is making the index
+unavailable — abort the request or answer it 500.
+
+One caveat when re-running the suite locally: requireBuild() only checks that
+demo/rheo/build/html/index.html EXISTS, not that it is current, and WebKit is
+first in ALL_ENGINES — so a stale demo build reports as
+"FAIL search-modal [webkit]". Rebuild first:
+
+    cd search/0.1.0/demo/rheo && just check
+    cd search/0.1.0 && node test/browser/modal.mjs
