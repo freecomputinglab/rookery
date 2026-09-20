@@ -346,13 +346,7 @@
 // 1` throughout, and `depth: 1` (the default, and what registration flattens a
 // body at) is the collapse. See the scale at `_window-depth`.
 //
-// `id:` is the bare id of the note `body` belongs to, when there is one —
-// registration (`#idea`, idea.typ), `_body-at` and `.marrow.typ` all still
-// pass it. It fed a per-note mint context state.typ no longer keeps, now
-// that an unnamed note's id is a pure function of its own content —
-// `_flatten` itself no longer reads it, and it is left in the signature
-// rather than pulled out of every caller.
-#let _flatten(body, depth: 1, id: none) = {
+#let _flatten(body, depth: 1) = {
   // `show ref: hyperlink` is installed by `#show: rookery` on the VERTEBRA,
   // and a minted page is a separate `#document` that `.marrow.typ`
   // contributes at the bundle root — outside every vertebra's show-rule
@@ -539,17 +533,12 @@
 // full even at the default of 1. See the note beside `minted-depth` there.
 //
 // `d <= 1` short-circuits to the cached body rather than re-flattening at the
-// same budget: `rec.body` IS `_flatten(rec.raw, id: ..)` at depth 1
-// (registration's own default), and depth 0 transcludes nothing at all, so
-// neither has any nested window to unfurl. See the scale at `_window-depth`.
-//
-// `id:` is the note's own bare id, passed straight to `_flatten` (which no
-// longer reads it — see its own banner above) when it re-flattens `rec.raw`
-// at a fresh budget. Every caller looked `rec` up by this same id, so it
-// costs nothing to pass.
+// same budget: `rec.body` IS `_flatten(rec.raw)` at depth 1 (registration's
+// own default), and depth 0 transcludes nothing at all, so neither has any
+// nested window to unfurl. See the scale at `_window-depth`.
 //
 // Must be called from inside `context`: `.final()` on both states.
-#let _body-at(rec, depth: auto, id: none) = {
+#let _body-at(rec, depth: auto) = {
   let d = if depth == auto { _window-depth.final() } else { depth }
-  if d <= 1 { rec.body } else { _flatten(rec.raw, depth: d, id: id) }
+  if d <= 1 { rec.body } else { _flatten(rec.raw, depth: d) }
 }

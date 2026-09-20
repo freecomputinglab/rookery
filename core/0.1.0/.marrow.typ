@@ -229,7 +229,7 @@
     // wrapper around it, and the citation walk. `_flatten` is pure, so a
     // second call would only repeat the work; sharing one value also makes it
     // impossible for the walks to disagree with what is on the page.
-    let flat = _body-at(rec, depth: minted-depth, id: id.trim(_pfx(), at: start))
+    let flat = _body-at(rec, depth: minted-depth)
     // PER-NOTE OVERRIDE, same shape as `use-context`/`use-backlinks` further
     // down: `rec.display.title` is `auto` unless `#idea(display: (title: ..))`
     // or `#idea(display-title: ..)` set one, and `auto` falls back to the

@@ -314,9 +314,6 @@
     if slug != none {
       _slug-record(slug, occupant)
     }
-    // `own-id` is this note's own bare id (no `_pfx()`) — passed to
-    // `_flatten` below (transclusion.typ) alongside this note's body.
-    let own-id = id.trim(_pfx(), at: start)
     figure(kind: IK, supplement: none, [
     // `title`/`named`/`base`/`level`/`tags`/`id` let `_flatten`'s IK rule
     // rebuild this note's own heading+box when it is shown nested inside a
@@ -445,12 +442,7 @@
         title: title,
         label: note-label,
         raw: body,
-        // `id:` is `_flatten`'s own parameter (transclusion.typ) — it fed a
-        // per-note mint context that no longer exists now that an unnamed
-        // note's id is a pure function of its own content. `_flatten`
-        // itself ignores it now; left threaded through here rather than
-        // pulled out of every caller.
-        body: _flatten(body, id: own-id),
+        body: _flatten(body),
         created: resolved-created,
         origin: origin,
         links: links,

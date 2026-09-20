@@ -7,7 +7,7 @@ labels:
 - fix-content-derived-names
 deps:
 - blocked-by:rk-fail-the-build-on-two-notes-sharing-a-e9f4de62
-closed: false
+closed: true
 ---
 Touches: core/0.1.0/src/transclusion.typ, core/0.1.0/src/idea.typ, core/0.1.0/src/window.typ, core/0.1.0/.marrow.typ
 

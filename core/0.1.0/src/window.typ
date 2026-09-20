@@ -387,7 +387,7 @@
       continue
     }
 
-    let body = _body-at(rec, depth: unfurl, id: id.trim(_pfx(), at: start))
+    let body = _body-at(rec, depth: unfurl)
     let split = _truncate-split(body, limit)
 
     // Bracketed: the body being shown belongs to the note it came from, so
@@ -494,7 +494,7 @@
     panic("@rookery/core: #idea-body unknown note '" + id + "'")
   }
   let rec = reg.at(id)
-  let body = _body-at(rec, depth: unfurl, id: id.trim(_pfx(), at: start))
+  let body = _body-at(rec, depth: unfurl)
   let shown = _truncate(body, limit)
   let inner = _footnoted(shown) + _refs-block(_own-cited-keys(shown, windows-claim: unfurl > 1))
   if _target() == "html" or _target() == "epub" {
