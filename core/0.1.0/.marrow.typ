@@ -437,14 +437,15 @@
         // figure), so this needs no Typst label search at all. That search is
         // what `page-rows` below (the backlinks half of this same footer)
         // already avoids the same way. `link(label(id), ..)` still works when
-        // `id` is auto-numbered (this note's own `_scope`-derived container
-        // ordinal), but Typst's own cross-#document label resolution for a
+        // `id` is derived rather than pinned — a title slug's collision
+        // suffix, or an unnamed note's own content-derived slug and digest —
+        // but Typst's own cross-#document label resolution for a
         // DYNAMICALLY COMPUTED label needs the whole spine's worth of state to
-        // have settled first — MEASURED: two auto-numbered notes minted from
+        // have settled first — MEASURED: two derived-id notes minted from
         // one vertebra of a multi-vertebra spine took more attempts to resolve
-        // that way than Typst allows, even once `_scope` itself (state.typ)
-        // settled in one. A plain computed href needs none of that: `origin`
-        // and `id` are both already-resolved strings by the time this runs.
+        // that way than Typst allows. A plain computed href needs none of
+        // that: `origin` and `id` are both already-resolved strings by the
+        // time this runs.
         // Falls back to `label(id)` only where `_page-href` cannot answer at
         // all (the combined PDF target, where a fragment means nothing
         // anyway) rather than changing behavior there.
@@ -454,14 +455,15 @@
         // figure), so this needs no Typst label search at all. That search is
         // what `page-rows` below (the backlinks half of this same footer)
         // already avoids the same way. `link(label(id), ..)` still works when
-        // `id` is auto-numbered (this note's own `_scope`-derived container
-        // ordinal), but Typst's own cross-#document label resolution for a
+        // `id` is derived rather than pinned — a title slug's collision
+        // suffix, or an unnamed note's own content-derived slug and digest —
+        // but Typst's own cross-#document label resolution for a
         // DYNAMICALLY COMPUTED label needs the whole spine's worth of state to
-        // have settled first — MEASURED: two auto-numbered notes minted from
+        // have settled first — MEASURED: two derived-id notes minted from
         // one vertebra of a multi-vertebra spine took more attempts to resolve
-        // that way than Typst allows, even once `_scope` itself (state.typ)
-        // settled in one. A plain computed href needs none of that: `origin`
-        // and `id` are both already-resolved strings by the time this runs.
+        // that way than Typst allows. A plain computed href needs none of
+        // that: `origin` and `id` are both already-resolved strings by the
+        // time this runs.
         // Falls back to `label(id)` only where `_page-href` cannot answer at
         // all (the combined PDF target, where a fragment means nothing
         // anyway) rather than changing behavior there.

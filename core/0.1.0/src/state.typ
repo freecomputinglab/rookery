@@ -354,117 +354,14 @@
 // an argument sink, since `#idea[body]` passes body as the first positional
 // argument. A named note is pinned to `<prefix>:<name>` outright. An unnamed
 // note with a title mints the slug of that title. An unnamed note with no
-// title (or a title too bare to slug) mints against its enclosing CONTAINER
-// instead — see `_scope` below for what that means and why. Either way the
-// note gets: an `idea:<id>` Typst label on a hidden referenceable anchor, an
-// HTML heading (only when `title` is given) carrying that id and an
-// `idea`/`idea-tag-<tag>` class list, and a registry entry other beads
-// (#window, #hyperlink) read from.
+// title (or a title too bare to slug) mints a slug of its own BODY instead,
+// suffixed with a short digest so two notes with the same opening words
+// still land on different ids — see `idea.typ`'s main mint for the full
+// ladder. Either way the note gets: an `idea:<id>` Typst label on a hidden
+// referenceable anchor, an HTML heading (only when `title` is given)
+// carrying that id and an `idea`/`idea-tag-<tag>` class list, and a
+// registry entry other beads (#window, #hyperlink) read from.
 #let _registry = state("rheo-ideas", (:))
-
-// The stack of containers an unnamed, titleless note mints against — a
-// STACK because notes nest, and the entry a note reads is always the one it
-// is authored inside. Each entry is `(key: <str>, n: <int>)`, with a third
-// field `top: true` ONLY on the bottom-of-stack, per-vertebra accumulator a
-// top-level (no enclosing note) titleless note mints against — never on a
-// note's own pushed container — which is what tells `_scope-peek`/
-// `_scope-record` which kind of entry they are looking at. `key` is the
-// enclosing note's own bare id for a nested (non-`top`) entry, or the
-// current vertebra's handle (`:` replaced by `-`) for a `top` one, or `""`
-// where neither exists (a plain `typst compile`, with no rheo and no
-// enclosing note); `n` is how many titleless notes that container has
-// minted so far.
-//
-// A COORDINATE AGAINST THE CONTAINER, not a document-wide counter or a probe
-// of what ids exist: a container is re-established wherever its body is
-// placed, so a coordinate against it survives any number of re-renders
-// (`#window`, a minted page, a nested transclusion) with the same value —
-// see `#idea`'s own push/pop around this state, and `_flatten`/`_body-at`
-// (transclusion.typ) for how a REBUILT body re-establishes the same
-// container a fresh mint would.
-//
-// THE `top` ACCUMULATOR IS NEVER POPPED — nothing marks the end of a
-// vertebra the way a note's own push/pop pair marks the end of its body —
-// so it stays on the stack once minted. That is fine as long as a NEW
-// vertebra's first top-level mint starts its OWN entry instead of
-// continuing whatever the last vertebra left behind: see the key
-// comparison in both functions below. Without that comparison this
-// accumulator freezes to whichever handle happened to mint it first and
-// every later vertebra's top-level notes wrongly share its count — the
-// defect this pair of functions exists to avoid.
-#let _scope = state("rookery-idea-scope", ())
-
-// `_scope-peek()`/`_scope-record()` split the read and the write of a
-// container's ordinal into two calls rather than one, because a
-// `state.update()`'s return value is CONTENT that has to be joined into
-// whatever the caller is placing — never captured as a plain value — so a
-// single function cannot both compute `(key, n)` as data AND perform the
-// write. A caller reads `_scope-peek()` for the pair to mint against, then
-// later emits `_scope-record(key)` as a bare statement inside its own
-// content, once whatever else it is placing (an id string, a decision to
-// drop the note) no longer needs to share a value with that write.
-//
-// With the stack empty, or with a `top` entry at the stack's end (no
-// enclosing note either way), the container is the current vertebra's own
-// handle, so every top-level titleless note in ONE vertebra counts against
-// a shared container instead of each minting its own; with neither a
-// container nor a handle (a plain `typst compile`, no rheo), the key is
-// `""`. A `top` entry whose key does not match the CURRENT vertebra's key
-// is a previous vertebra's leftover accumulator, not this one's — peek
-// starts a fresh count under the new key instead of continuing it.
-#let _scope-peek() = {
-  let stack = _scope.get()
-  if stack.len() > 0 and not stack.last().at("top", default: false) {
-    (stack.last().key, stack.last().n + 1)
-  } else {
-    let handle = state("rheo-handle").get()
-    let key = if type(handle) == str { handle.replace(":", "-") } else { "" }
-    if stack.len() > 0 and stack.last().key == key {
-      (key, stack.last().n + 1)
-    } else {
-      (key, 1)
-    }
-  }
-}
-// `_scope-record` takes only `key`, NOT the `n` `_scope-peek` computed —
-// on purpose. Its updater RE-DERIVES `n` from the updater's OWN argument
-// (`s.last().n + 1`) rather than closing over the `n` `_scope-peek` already
-// read from a SEPARATE, earlier `.get()`. MEASURED in isolation (a bare
-// `state` stack behind a `context`/`figure`, no rheo): an updater that
-// closes over a value read from the SAME state a moment earlier needs one
-// MORE compile attempt per sequential mint sharing a container before
-// `_scope` itself settles — two such mints already needed more attempts
-// than typst's convergence loop investigates by default before a plain
-// `typst compile` of that isolated case gave up; an updater that only ever
-// reads its OWN argument does not, regardless of how many mints share one
-// container. Rederiving `n` here removes that cost from `_scope`'s own
-// convergence. `_scope-peek`'s OWN `n` is still exactly right to build the
-// id string with — nothing here disagrees with it, since nothing else
-// touches `_scope` between one note's peek and its own record.
-//
-// This does not by itself guarantee the whole SPINE converges: minting a
-// note's own standalone page is `.marrow.typ`'s job (a separate `#document`,
-// synthesized into rheo's own bundle), and ITS cross-document link back to
-// the authoring vertebra (the "Context" section) has convergence behaviour
-// of its own, downstream of whatever id `_scope` hands it, that this change
-// does not reach.
-#let _scope-record(key) = {
-  _scope.update(s => {
-    if s.len() > 0 and not s.last().at("top", default: false) {
-      // A note's own pushed container, still open — continue it in place.
-      let last = s.last()
-      s.slice(0, -1) + ((key: last.key, n: last.n + 1),)
-    } else if s.len() > 0 and s.last().key == key {
-      // The current vertebra's own `top` accumulator — continue it.
-      let last = s.last()
-      s.slice(0, -1) + ((key: key, n: last.n + 1, top: true),)
-    } else {
-      // Either the stack is empty, or its `top` entry belongs to a
-      // different (earlier) vertebra — start this vertebra's own.
-      s + ((key: key, n: 1, top: true),)
-    }
-  })
-}
 
 // ---- The slug-occurrence counter — numbering a duplicate title -----------
 //
@@ -493,10 +390,10 @@
 // times leaves it in the SAME slot it first took.
 #let _slug-count = state("rookery-idea-slug-count", (:))
 
-// Split the same way `_scope-peek`/`_scope-record` are, and for the same
-// reason: `_slug-count.update()`'s return value is CONTENT that has to join
-// whatever the caller is placing, never a plain value bound alongside `id`,
-// so a single function cannot both hand back a number AND perform the write.
+// Split into a peek and a record, because `_slug-count.update()`'s return
+// value is CONTENT that has to join whatever the caller is placing, never a
+// plain value bound alongside `id`, so a single function cannot both hand
+// back a number AND perform the write.
 //
 // `_slug-peek(slug, occupant)` counts from 1 — the note asking is always the
 // Nth to want this slug, so `n == 1` mints bare and `n > 1` mints `-<n>`.
@@ -521,12 +418,11 @@
 }
 
 // Pure function of ITS OWN ARGUMENTS ONLY (`s` and `occupant`), never of the
-// `n` `_slug-peek` already read from a separate, earlier `.get()` — the same
-// discipline `_scope-record`'s banner above explains and MEASURED there: an
-// updater that closes over a value read from the same state a moment
-// earlier costs one more Typst compile attempt per note sharing the key
-// before the state converges; rederiving the position from `s` itself costs
-// none, however many notes share one slug.
+// `n` `_slug-peek` already read from a separate, earlier `.get()` —
+// MEASURED: an updater that closes over a value read from the same state a
+// moment earlier costs one more Typst compile attempt per note sharing the
+// key before the state converges; rederiving the position from `s` itself
+// costs none, however many notes share one slug.
 //
 // Appends `occupant` only when it is not already on this slug's list —
 // idempotent per note, so a note replayed any number of times still

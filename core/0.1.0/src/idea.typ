@@ -19,9 +19,10 @@
 //
 // `#idea[body]`, `#idea("name")[body]`, and `#idea(<name>)[body]` all work via
 // an argument sink, since `#idea[body]` passes body as the first positional
-// argument. An unnamed note steps a package-wide counter and takes the
-// resulting sequence number as its id; a named note is pinned and does not
-// perturb that counter. Either way the note gets: an `idea:<id>` Typst label on
+// argument. A named note is pinned to that name outright. An unnamed note
+// mints the slug of its own title, or, titleless, a slug of its own body
+// with a short content digest appended — see the resolution order in the
+// mint below. Either way the note gets: an `idea:<id>` Typst label on
 // a hidden referenceable anchor, an HTML heading (only when `title` is given),
 // and a registry entry carrying its raw body for `#window` to transclude later.
 //
@@ -56,6 +57,16 @@
 // renders, further down. `label` and `background` are accepted here too but
 // unused by the card itself — they seed what a later `#window` falls back to
 // when it does not override them.
+
+// The string a titleless, untitled note's id is digested from. CAPS the
+// hashed string: cost is linear in body size, measured at roughly 1.5 MB/s,
+// so one very long body would otherwise be paid for on every note. The true
+// length rides along so two bodies sharing a 4096-byte prefix still differ.
+#let _digest-input(o) = {
+  let r = repr(o)
+  (if r.len() > 4096 { r.slice(0, 4096) } else { r }) + "#" + str(r.len())
+}
+
 #let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-id: auto, display-label: auto, display-background: auto, display-context: auto, display-backlinks: auto, display-title: auto, ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
@@ -154,20 +165,6 @@
   let excluded = _resolve-excluded(exclude-tags)
   if tags.keys().any(t => t in excluded) {
     return {
-      // A TITLELESS note dropped here still has to consume its container's
-      // ordinal: skipping it would shift every LATER titleless sibling's id
-      // between build variants (a build excluding fewer notes would shift
-      // `outer-3` down to `outer-2`). A note whose title slugs cleanly mints
-      // from that slug instead and never touches the ordinal at all — see
-      // the identical branch in the main mint below — so only a note that
-      // would ALSO have minted against the container needs to be counted
-      // here.
-      context {
-        if not named and (title == none or _id-slug(_plain(title)) == none) {
-          let (key, _) = _scope-peek()
-          _scope-record(key)
-        }
-      }
       if named {
         // THE ID GOES ON `_excluded-ids`, named notes only — an unnamed note
         // has no id anything could link to by name. That state is what lets
@@ -241,15 +238,16 @@
     // identically at every re-render (a `#window`, a minted page, a nested
     // transclusion re-placing this note's stored body elsewhere). An unnamed
     // note with no title, or one whose title cannot name a note (`_id-slug`
-    // returns `none`), mints against its enclosing CONTAINER instead: the
-    // bare id of the note it is authored inside, or this vertebra's own
-    // handle where there is none, plus an ordinal counting only the
-    // titleless notes that container has minted so far (`_scope`,
-    // state.typ). A container is re-established wherever its body is
-    // placed — this note's own push just below, and `_flatten`/`_body-at`
-    // (transclusion.typ) for a REBUILT body — so this reproduces too,
-    // unlike a document position or a probe of ids taken so far, either of
-    // which mints a fresh value at every new place a stored body lands.
+    // returns `none`), mints a slug of its own BODY instead (`_name-slug`,
+    // pure.typ), with a three-character digest of the note's own occupant
+    // tuple appended (`_h3`, pure.typ) so two notes whose bodies open the
+    // same way still land on different ids. Both the slug and the digest are
+    // pure functions of values already fixed by this call site, so this
+    // reproduces too, unlike a document position or a probe of ids taken so
+    // far, either of which mints a fresh value at every new place a stored
+    // body lands. A note with no name, no title, and a body that yields no
+    // readable text panics outright — there is nothing left to derive an id
+    // from.
     //
     // A collision has two shapes now, told apart by whether either side is
     // PINNED. Two titles slugging the same no longer panics: the second,
@@ -263,30 +261,33 @@
     // opts a note out of ever moving.
     //
     // Everything else still panics below, unchanged: two notes pinned to the
-    // same name, a pinned id landing on a container ordinal some other note
-    // already claimed, or a derived slug's id (suffixed or not) landing on
-    // an already-pinned one. A pinned id is a promise about the id and must
-    // never be silently moved, and a container ordinal has no title to hang
-    // a suffix on either way.
+    // same name, or a derived id — a title slug (suffixed or not), or a body
+    // slug and digest — landing on an already-pinned one. A pinned id is a
+    // promise about the id and must never be silently moved.
     let slug = if not named and title != none { _id-slug(_plain(title)) } else { none }
-    // `none` unless this note actually needs a container ordinal — computed
-    // (but not yet recorded) here, since `_scope.update()`'s return value is
-    // content that has to join whatever THIS block places, never a plain
-    // value bound alongside `id` below.
-    let container = if not named and slug == none { _scope-peek() } else { none }
     // WHAT MAKES THIS NOTE THE NOTE IT IS, for `_slug-peek`/`_slug-record`
     // (state.typ) to recognise a replay of it as itself rather than as a new
-    // colliding note. Built ONLY from values already fixed by this call
-    // site — the authored title, the raw body, the normalized tags, the
-    // heading level, the resolved display flags — never from `id`, `slug-n`,
-    // or anything else that depends on WHERE or WHEN this rendering is
-    // happening, since any of those would reintroduce exactly the
-    // render-position dependence this is meant to remove. `body` is the raw
-    // argument, not `_flatten(body, ..)`: two calls of THIS SAME site always
-    // pass the identical value, whether laid out at its own position, inside
-    // a `#window`, or on this note's minted page — see state.typ's banner
-    // for why that is what makes a replay recognisable at all.
+    // colliding note, and for `_digest-input` (above) to digest below. Built
+    // ONLY from values already fixed by this call site — the authored
+    // title, the raw body, the normalized tags, the heading level, the
+    // resolved display flags — never from `id`, `slug-n`, or anything else
+    // that depends on WHERE or WHEN this rendering is happening, since any
+    // of those would reintroduce exactly the render-position dependence
+    // this is meant to remove. `body` is the raw argument, not
+    // `_flatten(body, ..)`: two calls of THIS SAME site always pass the
+    // identical value, whether laid out at its own position, inside a
+    // `#window`, or on this note's minted page — see state.typ's banner for
+    // why that is what makes a replay recognisable at all.
     let occupant = (title: title, body: body, tags: tags, level: level, display: display)
+    // `none` unless this note actually needs a body-derived id — a pure
+    // function of `occupant`, so it reproduces identically at every replay.
+    // `_plain` returns `none`, not `""`, for genuinely empty content (an
+    // empty `[]` has no children to fall back on, unlike a lone space) —
+    // guarded here since `_name-slug` expects a string.
+    let plain-body = _plain(body)
+    let body-slug = if not named and slug == none {
+      _name-slug(if plain-body == none { "" } else { plain-body })
+    } else { none }
     // `none` unless this note actually needs a slug suffix — same reason:
     // computed here as plain data, recorded below only once `id` no longer
     // needs to share a value with that write.
@@ -295,40 +296,27 @@
       _pfx() + base
     } else if slug != none {
       _pfx() + slug + (if slug-n > 1 { "-" + str(slug-n) } else { "" })
+    } else if body-slug != none {
+      _pfx() + body-slug + "-" + _h3(_digest-input(occupant))
     } else {
-      let (key, n) = container
-      _pfx() + (if key != "" { key + "-" } else { "" }) + str(n)
-    }
-    // Recorded AFTER `id` is fully resolved, as a bare statement so its
-    // content joins the figure below rather than `id`'s own string value.
-    // `_scope-record` takes only the KEY, not the `n` just used to build
-    // `id` above — see its own banner (state.typ) for why re-deriving `n`
-    // from the state update's own argument, instead of closing over this
-    // `n`, is what keeps this to one Typst pass per titleless note.
-    if container != none {
-      let (key, _) = container
-      _scope-record(key)
+      panic(
+        "@rookery/core: this note has no name, no title, and a body that yields no "
+          + "readable text, so no id can be derived for it. Give it a name — "
+          + "`#idea(<some-name>, ..)` — or a `title:`.",
+      )
     }
     // Recorded whether or not a suffix was actually needed (slug-n == 1
     // still records), so the NEXT note sharing this slug counts correctly —
-    // same reasoning as `_scope-record` just above, and the same pure-updater
-    // discipline; see `_slug-record`'s own banner (state.typ). Idempotent per
-    // `occupant`, so replaying this same note through a `#window` or a
-    // minted page never grows this slug's list a second time.
+    // see `_slug-record`'s own banner (state.typ) for the pure-updater
+    // discipline. Idempotent per `occupant`, so replaying this same note
+    // through a `#window` or a minted page never grows this slug's list a
+    // second time.
     if slug != none {
       _slug-record(slug, occupant)
     }
-    // This note's OWN container, pushed for its body's nested notes and
-    // popped once that body has rendered (after the closing `figure` call
-    // below) — the push/pop pair is what lets a nested note's container
-    // ordinal reproduce wherever this note's body is later re-placed.
-    //
-    // `own-id` is resolved OUTSIDE the closure, not inside it: an updater
-    // closure runs LAZILY, at `.final()` time, where context is unknown, so
-    // a `_pfx()` call inside it fails with "can only be used when context is
-    // known" the moment any reader resolves this state.
+    // `own-id` is this note's own bare id (no `_pfx()`) — passed to
+    // `_flatten` below (transclusion.typ) alongside this note's body.
     let own-id = id.trim(_pfx(), at: start)
-    _scope.update(s => s + ((key: own-id, n: 0),))
     figure(kind: IK, supplement: none, [
     // `title`/`named`/`base`/`level`/`tags`/`id` let `_flatten`'s IK rule
     // rebuild this note's own heading+box when it is shown nested inside a
@@ -453,10 +441,11 @@
         title: title,
         label: note-label,
         raw: body,
-        // `id:` re-establishes THIS note's own container around the stored
-        // body — see the push/pop above — so a nested titleless note mints
-        // the same container ordinal here as it does wherever `#window`,
-        // `.marrow.typ`, or a nested `_flatten` re-places this body later.
+        // `id:` is `_flatten`'s own parameter (transclusion.typ) — it fed a
+        // per-note mint context that no longer exists now that an unnamed
+        // note's id is a pure function of its own content. `_flatten`
+        // itself ignores it now; left threaded through here rather than
+        // pulled out of every caller.
         body: _flatten(body, id: own-id),
         created: resolved-created,
         origin: origin,
@@ -628,10 +617,6 @@
       }
     }
     ])
-    // Popped once this note's own body has rendered — see the matching push
-    // above the figure — so a sibling note authored after this one does not
-    // mint against a container that is no longer open.
-    _scope.update(s => if s.len() > 0 { s.slice(0, -1) } else { s })
   }
 }
 

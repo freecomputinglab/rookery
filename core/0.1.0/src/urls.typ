@@ -61,9 +61,8 @@
 // the same state from a second source position in the same context, which
 // is one fewer thing for Typst's convergence loop to reconcile. MEASURED:
 // this second read is exactly the site `state("rheo-handle")` was reported
-// unstable at once two auto-numbered notes shared a vertebra, even after
-// `_scope` itself (state.typ) settled in one attempt — the id was never the
-// problem here, a second read of an already-known value was.
+// unstable at once two auto-numbered notes shared a vertebra — the id was
+// never the problem here, a second read of an already-known value was.
 #let _note-href(id, handle: auto) = {
   let c = _rheo-ctx()
   if c == none or c.at("ext", default: none) == none { return none }

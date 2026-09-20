@@ -689,13 +689,11 @@
 // child is one has its first block spent on something invisible, and
 // `limit: 1` then shows an empty block and hides the real first paragraph
 // behind the ellipsis. MEASURED on `rookery.ohrg.org`'s packages shelf, where
-// every window came out as a bare `…` with no text: `_flatten` opens every
-// registry body with `_scope.update(..)` and closes it with another, so
-// EVERY transcluded body starts with one of these. They cannot simply be
-// dropped either — the push and the pop are what makes a relative id inside
-// the body resolve — so they are HELD and ride on the next block instead,
-// which is the one place they can sit without either being lost or counting
-// for one.
+// every window came out as a bare `…` with no text, from exactly this: a
+// state update sitting as a transcluded body's own first child. It cannot
+// simply be dropped either — whatever it updates still needs the write to
+// land — so it is HELD and rides on the next block instead, which is the
+// one place it can sit without either being lost or counting for one.
 // FIVE NAMES ADDED AT ONCE, all of them things an author writes in the middle
 // of a sentence without thinking of them as elements at all: `smartquote`,
 // `ref`, `cite`, `smallcaps` and `symbol`.

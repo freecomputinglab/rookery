@@ -347,13 +347,11 @@
 // body at) is the collapse. See the scale at `_window-depth`.
 //
 // `id:` is the bare id of the note `body` belongs to, when there is one —
-// registration (`#idea`, idea.typ) and `_body-at` both pass it. A titleless
-// note nested in `body` mints against a CONTAINER (`_scope`, state.typ), and
-// a container is only reproducible if it is re-established every time this
-// same `body` is placed somewhere new — a `#window`, a minted page, a nested
-// transclusion. Pushing `id` here, around `body`, is what re-establishes it;
-// `none` (a call with no note behind it, or a caller with nothing to pass)
-// skips the push and leaves whatever container already surrounds this call.
+// registration (`#idea`, idea.typ), `_body-at` and `.marrow.typ` all still
+// pass it. It fed a per-note mint context state.typ no longer keeps, now
+// that an unnamed note's id is a pure function of its own content —
+// `_flatten` itself no longer reads it, and it is left in the signature
+// rather than pulled out of every caller.
 #let _flatten(body, depth: 1, id: none) = {
   // `show ref: hyperlink` is installed by `#show: rookery` on the VERTEBRA,
   // and a minted page is a separate `#document` that `.marrow.typ`
@@ -522,9 +520,7 @@
       )
     }
   }
-  if id != none { _scope.update(s => s + ((key: id, n: 0),)) }
   body
-  if id != none { _scope.update(s => if s.len() > 0 { s.slice(0, -1) } else { s }) }
 }
 
 // A note's body at a given nested-window budget. `auto` takes the
@@ -538,14 +534,13 @@
 //
 // `d <= 1` short-circuits to the cached body rather than re-flattening at the
 // same budget: `rec.body` IS `_flatten(rec.raw, id: ..)` at depth 1
-// (registration's default, already carrying the note's own container), and
-// depth 0 transcludes nothing at all, so neither has any nested window to
-// unfurl. See the scale at `_window-depth`.
+// (registration's own default), and depth 0 transcludes nothing at all, so
+// neither has any nested window to unfurl. See the scale at `_window-depth`.
 //
-// `id:` is the note's own bare id, passed straight to `_flatten` when it
-// re-flattens `rec.raw` at a fresh budget — the `d <= 1` branch needs no
-// push of its own, since `rec.body` already carries one from registration.
-// Every caller looked `rec` up by this same id, so it costs nothing to pass.
+// `id:` is the note's own bare id, passed straight to `_flatten` (which no
+// longer reads it — see its own banner above) when it re-flattens `rec.raw`
+// at a fresh budget. Every caller looked `rec` up by this same id, so it
+// costs nothing to pass.
 //
 // Must be called from inside `context`: `.final()` on both states.
 #let _body-at(rec, depth: auto, id: none) = {
