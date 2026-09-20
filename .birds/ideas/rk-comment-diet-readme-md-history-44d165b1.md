@@ -6,7 +6,7 @@ priority: 3
 labels:
 - chore-core-review
 deps: []
-closed: false
+closed: true
 ---
 `readme.md` carries seven stray asides that explain a current feature by
 narrating what an earlier, unpublished revision did instead — outside any of

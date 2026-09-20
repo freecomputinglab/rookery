@@ -1045,8 +1045,8 @@ names, and why" below for cross-document name collisions in general.
 `ideate(body, separator: none, title: none, name: auto, tags: (), display: (:), display-frame: false, display-name: false, ..args)`.
 
 `separator: none` mints the WHOLE body as one note — the common case is a
-document-level `#show: ideate` on a page that is one idea, and a caller who
-wants the old paragraph-per-note behaviour asks for it explicitly with
+document-level `#show: ideate` on a page that is one idea, and a caller
+wanting one note per paragraph asks for it explicitly with
 `separator: par`.
 
 `display-frame` and `display-name` both invert `#idea`'s own defaults, and that
@@ -1225,10 +1225,11 @@ Three ways, pick by how much ceremony you want:
   which reads as a mistake rather than a request, so it is rejected along
   with negatives and non-integers.
 
-  A limit can no longer land mid-paragraph. One paragraph is one block however
-  many inline runs it is made of, so a plain text run and the `raw` span beside
-  it are never separated, and the space between them survives — the MEASURED
-  defect that once rendered "three layers, because" as "three layers,because".
+  A limit cannot land mid-paragraph: one paragraph is one block however many
+  inline runs it is made of, so a plain text run and the `raw` span beside it
+  are never separated, and the space between them survives — so "three
+  layers, `because`" keeps its space rather than losing it to a truncation
+  cut.
   A block-level element (a heading, a table, a block quote) is still a block of
   its own, and the whitespace around it is still dropped, because that gap is
   drawn by margins rather than content.
@@ -1415,9 +1416,9 @@ levels.
 not the author-set `level:`, which is a heading-size knob most notes never
 touch. So the tree is right with no ceremony, matching `#idea`'s own "hatch
 without ceremony" design. A note with no title of its own is listed under its
-DERIVED label (see "Derived labels"), so an auto-numbered note is no longer
-skipped — only one with an empty body is, since there is then nothing to name
-it by at all.
+DERIVED label (see "Derived labels"), so an auto-numbered note is listed like
+any other — only a note with an empty body is skipped, since there is then
+nothing to name it by at all.
 
 **`scope`** names the breadth, and is `"rookery"` (the default) or `"page"`.
 `"rookery"` lists every note in the rookery — one tree, nested by the same
@@ -2095,7 +2096,7 @@ It deliberately does NOT colour the **card**, the **note's heading**, or a **win
 
 Two consequences worth knowing:
 
-- **A project stylesheet can override a themed pill.** The generated rules sit in a layer, and unlayered CSS beats layered CSS whatever the source order, so your own `.idea-tag-draft { --idea-tag-bg: ... }` wins. The inline style this replaced could not be overridden at all.
+- **A project stylesheet can override a themed pill.** The generated rules sit in a layer, and unlayered CSS beats layered CSS whatever the source order, so your own `.idea-tag-draft { --idea-tag-bg: ... }` wins.
 - **A themed pill is NOT coloured in EPUB or PDF.** An EPUB here ships no stylesheet, so the `var()`s fall back to their defaults, and the paged target renders no hat at all. Accepted deliberately in exchange for the reach above, not overlooked.
 
 Like the rest of `theme:`, this is **one value for the whole document** — apply the same arguments in every vertebra (see "The theme" above and "Setup").
@@ -2405,7 +2406,7 @@ Where the label is used:
 | --- | --- |
 | the note's minted page `<title>` | the browser tab, never beside the body |
 | an `ideas/index.html` row | |
-| an `#ideas-outline` entry | a titleless note used to be skipped outright |
+| an `#ideas-outline` entry | an untitled note is listed under its derived label, not skipped |
 | a `<feeds:item>` title | |
 | a `#window` summary | a folded window shows the summary alone |
 | an unfurl-exhausted `#window` | a titled row rather than a bare `[idea:1]` |
@@ -2469,11 +2470,11 @@ rendering it is opt-in — `display-date: false` by default, on both `#idea` and
 
 **Where it renders is the hat** — the `.idea-tab` rule across the top of a card
 or a window, with the name on the stub at the left end and the date pushed to the
-far right. It is the frame's metadata, not a subtitle: it used to sit inside the
-`<h2>` on a card and as a third item in a window's summary row, which made one
-piece of information wear two classes in two places. Now it is `.idea-date`
-inside `.idea-tab`, wherever it appears. The top rule does not resume on the
-date's far side — the hat draws one stub, to the left, and stops at the name.
+far right. It is the frame's metadata, not a subtitle — `.idea-date` sits
+inside `.idea-tab` wherever it appears, one class in one place, rather than
+duplicated as a heading child on a card and a summary-row item on a window.
+The top rule does not resume on the date's far side — the hat draws one stub,
+to the left, and stops at the name.
 
 **There is ONE date, and it is `created`.** Until 0.6.0 there were two — `minted`
 and an `updated` beside it — and every hat showed `updated`, on the argument that
@@ -2543,9 +2544,11 @@ shortened note there never shows an entry with nothing pointing at it.
 **`#footnote` has to be imported to take effect**, and Typst imports are
 per-file: every vertebra that writes a footnote needs `footnote` in its own
 import list, the same way each one needs the template for the `ref` rule.
-Omitting it used to be silent — the body went to the page's endnote section,
-numbered page-wide, and the idea rendered no block at all — so it is now a
-build error naming the import to add. A footnote in ordinary page prose,
+Omitting it fails the build with an error naming the import to add — the
+alternative (Typst's own footnote behaviour: the body goes to the page's
+endnote section, numbered page-wide, and the idea renders no block at all)
+fails silently, which is worse than a loud build error for a mistake this
+easy to make. A footnote in ordinary page prose,
 outside any idea, is untouched by that check and still behaves exactly as
 Typst's does: page-wide numbering, body in the page's own endnote section.
 `#show: rookery` installs that fallback, so a document that never applies the
