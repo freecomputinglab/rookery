@@ -46,8 +46,6 @@
 // are on the element.
 #let _tags-attr(names) = if names.len() == 0 { (:) } else { (data-rookery-tags: names.join(" ")) }
 
-// ---- _norm-tags — every accepted `tags:` form, as ONE dictionary -----------
-//
 // The tag store is a DICTIONARY: keys are tag names, values are
 // arbitrary Typst values, and a plain tag is one whose value is `none`. This is
 // what lets a tag carry metadata — `(depends-on: ("a", "b"))` — instead of only
@@ -81,8 +79,6 @@
   }
 }
 
-// ---- _split-tag-list — one `--input` value as tag names --------------------
-//
 // A `sys.inputs` value is ALWAYS a string — Typst's own contract for
 // `--input key=value`, not a choice this package made — so a LIST of tags
 // arrives as one string and has to be split somewhere.
@@ -105,8 +101,6 @@
   s.split(regex("[,\\s]+")).filter(t => t != "")
 }
 
-// ---- _tag-pred — the shared tag filter -----------------------------------
-//
 // `tags` is `none`, a single string, an array of strings, or a dictionary —
 // the same four forms `#idea` takes; `match` is "any" (the default) or "all".
 // Returns a predicate over a note's own tag DICTIONARY, or `none` when there is
@@ -233,8 +227,6 @@
   if tag in tags { tags } else { ((tag): value) + tags }
 }
 
-// ---- _merge-base-tags — a constructor's tags, under the caller's ----------
-//
 // The merge behind `#idea`'s `tag:` and `base-tags:`: `base` folds UNDER
 // `tags`, so a key both sides name keeps the caller's value — `_dedup-tag`'s
 // "already a key" guard is what decides that, which is why the higher side
@@ -253,8 +245,6 @@
   )
 }
 
-// ---- _sort-ids — a total order over a window's selected ids ---------------
-//
 // "lexicographic" is by full id, the same order `ideas()` publishes. "date" is
 // newest `created` first, undated notes last, ties broken by ASCENDING id.
 //
@@ -475,8 +465,6 @@
 
 #let _body-plain(c) = _body-plain-with(c, _ => "")
 
-// ---- _derived-title — a titleless note names itself by its body -------------
-//
 // The first `limit` characters of the body as plain text, with `...` appended
 // when there is more body than that. `#idea` uses it whenever `title:` is
 // `none`, so a titleless note is named everywhere a titled one is — its own
@@ -573,8 +561,6 @@
 // `#window` below) because `_flatten` needs both marker kinds and must be
 // defined before `#idea`, which calls it at registration time.
 
-// ---- Footnotes — scoped to an idea, not to an output page -----------------
-//
 // Typst's own `#footnote` CANNOT be intercepted. Its body is collected by the
 // HTML exporter through introspection, independently of show rules, so neither
 // `show footnote: it => ...` nor `show footnote: none` removes the entry from
@@ -941,8 +927,6 @@
   }
 }
 
-// ---- Argument validators shared by more than one public function ----------
-//
 // `tags`, `match` and `limit` are checked identically by several functions,
 // so each lives here once rather than as its own copy of the assert and its
 // message.

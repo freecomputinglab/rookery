@@ -6,9 +6,8 @@
 // captures the scope visible at definition time, so a cycle here would not be a
 // warning, it would be an unresolvable name.
 
-// ---- Target detection — the only rheo-specific read ------------------------
-//
-// `std.target()` reports EPUB as "html"; rheo's own context distinguishes
+// Target detection is the only rheo-specific read in this file. `std.target()`
+// reports EPUB as "html"; rheo's own context distinguishes
 // them. Use `std.target()` rather than a bare `target()`: rheo injects its
 // `target()` polyfill into each vertebra's scope, not into package scope.
 //
@@ -24,8 +23,6 @@
   if c != none and "target" in c { c.target } else { std.target() }
 }
 
-// ---- pure.typ — the ordering-free half ------------------------------------
-//
 // `pure.typ` holds the helpers that are pure functions of their arguments: no
 // `state`, no `context`, no `query`, no target detection, nothing that reads
 // document state. They therefore carry none of the definition-time scope
@@ -44,15 +41,13 @@
 // `"@rookery/core:0.1.0"` by name.
 #import "pure.typ": *
 
-// ---- CONSUMED BY .marrow.typ — a real API, with no other marker ------------
-//
 // `.marrow.typ` (this package's own, at the package root) imports THIRTY-THREE
 // names from `"@rookery/core:0.1.0"`, thirty of them underscore-private. They
 // are as load-bearing as anything public here, and nothing else in this file
-// says so. RENAMING OR RE-SIGNING ANY OF THEM MEANS CHANGING `.marrow.typ` IN
-// THE SAME COMMIT.
+// says so — this comment is their only marker. RENAMING OR RE-SIGNING ANY OF
+// THEM MEANS CHANGING `.marrow.typ` IN THE SAME COMMIT.
 //
-// The failure mode is why this banner exists rather than a convention. rheo's
+// The failure mode is why this comment exists rather than a convention. rheo's
 // `package_marrow_source` returns None for a marrow it cannot read instead of
 // erroring, so a broken marrow does not fail a build: the package installs,
 // compiles, and simply mints none of the pages it exists to mint. Nothing goes
@@ -91,8 +86,8 @@
 //
 // Their DEFINITIONS are deliberately not gathered here. Several (`_footnoted`,
 // `_body-at`) sit where they do because a `#let` closure captures the scope
-// visible at definition time, and moving them to satisfy a banner would break
-// the thing the banner is protecting.
+// visible at definition time, and moving them to satisfy this comment would
+// break the thing the comment is protecting.
 //
 // `demo/rheo` is what proves marrow mints, and needs the `rheo` binary to do
 // it: CI runs it against the release named by this package's own
@@ -158,8 +153,6 @@
   c.at("spine-flat", default: ()).any(v => v.at("handle", default: none) == handle)
 }
 
-// ---- Excluded tags — the build-level corpus filter -------------------------
-//
 // A note carrying an excluded tag is not hidden, it is ABSENT: `#idea` never
 // builds its marker, so there is no output, no registry entry, no Typst label,
 // no minted page, no `ideas()` row, no search-index entry, no feeds beacon, no

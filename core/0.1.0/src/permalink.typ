@@ -6,8 +6,6 @@
 #import "theme.typ": *
 #import "urls.typ": *
 
-// ---- The permalink — the ONE navigational affordance ----------------------
-//
 // `[idea:etal]`, rendered beside a note's title (or alone, where there is no
 // title) by BOTH `#idea` and `#window`. Shared so the two cannot drift: it is
 // the same affordance meaning the same thing in both places — "this is the

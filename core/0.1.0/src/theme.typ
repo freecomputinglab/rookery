@@ -12,8 +12,6 @@
 // cycle here — the module graph stays a DAG.
 #import "state.typ": *
 
-// ---- Theme — configurable the same way ------------------------------------
-//
 // Every colour the package will set for you, as one dictionary. `#show:
 // rookery` publishes it; `core.css` holds the DEFAULTS and this state holds
 // only the overrides, so an unconfigured document emits nothing extra at all.

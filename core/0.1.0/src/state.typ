@@ -10,7 +10,6 @@
 
 #import "base.typ": *
 
-// ---- Label prefix — configurable, document-wide ---------------------------
 //
 // A note's id is `<prefix>:<name>`, `idea:` by default; `#show: rookery` (at
 // the bottom of this file) changes it.
@@ -47,7 +46,6 @@
   if d != none { d } else if _prefix.final() == "idea" { "ideas" } else { _prefix.final() }
 }
 
-// ---- CSS class stem — configurable, same two-step rule as `_dir()` --------
 //
 // `css-prefix:` if the project set one, else the resolved id `prefix` — so a
 // project that renames `prefix` gets its classes renamed with it, and one that
@@ -67,7 +65,6 @@
 // `<stem>-<role>` for everything else, tag classes (`_c("tag-" + t)`) included.
 #let _c(role) = if role == "" { _cls() } else { _cls() + "-" + role }
 
-// ---- Window unfurl — how far a nested `#window` unfurls --------------------
 //
 // THE SCALE COUNTS LEVELS OF TRANSCLUSION, AND `0` IS NOT THE DEFAULT:
 //
@@ -91,7 +88,6 @@
 // another), read with `.final()` so every reader agrees. `#window`'s own
 // `unfurl:` argument overrides it per call site.
 #let _window-depth = state("rheo-idea-window-depth", 1)
-// ---- The bibliography — one for the whole rookery -------------------------
 //
 // Configured on the template, taking Typst's own `#bibliography` arguments so
 // there is nothing new to learn:
@@ -139,7 +135,6 @@
   if cached != none { return cached }
   _bib-keys-of(_bib.final())
 }
-// ---- Minted-page configuration: template, syndication, index page -------
 //
 // `.marrow.typ` mints one standalone page per note, and those pages are
 // separate `#document`s spliced in at the BUNDLE ROOT — outside every
@@ -292,7 +287,6 @@
 // footer to disagree with another's about what a page is called.
 #let _page-titles = state("rheo-idea-page-titles", "title")
 
-// ---- Invisible tags — a tag that leaves no visual trace -------------------
 //
 //   #show: rookery.with(invisible-tags: ("private",))
 //
@@ -348,7 +342,6 @@
   let hidden = _invisible-tags.final()
   names.filter(t => t not in hidden)
 }
-// ---- The registry, and a footnote's numbering within its idea -----------
 //
 // `#idea[body]`, `#idea("name")[body]`, and `#idea(<name>)[body]` all work via
 // an argument sink, since `#idea[body]` passes body as the first positional
@@ -363,7 +356,6 @@
 // registry entry other beads (#window, #hyperlink) read from.
 #let _registry = state("rheo-ideas", (:))
 
-// ---- The slug-occurrence counter — numbering a duplicate title -----------
 //
 // A title-derived slug that collides with an earlier one gets a numeric
 // `-<n>` suffix, counted in document order, and this dict is what counts it:
@@ -440,7 +432,6 @@
   })
 }
 
-// ---- The excluded ids — "deliberately absent", not "never existed" ---------
 //
 // Every NAMED note `#idea`'s exclusion gate dropped from this build, as a plain
 // ARRAY OF STRINGS of full ids — no bodies, titles, tags or dates, which is

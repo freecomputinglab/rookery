@@ -11,7 +11,7 @@
 #import "idea.typ": *
 #import "transclusion.typ": *
 
-// ---- tag-index — a DECLARED projection of tag values onto a row -----------
+// `tag-index` declares a projection of tag values onto a row:
 //
 //   #let INDEX = tag-index((
 //     cycle:    (family: "cycle-"),                 // flat-tag family -> "26-27"
@@ -179,8 +179,6 @@
     .to-dict()
 }
 
-// ---- #ideas — every registered note, as data ------------------------------
-//
 //   #context ideas()                 // -> ((id: "idea:etal", name: "etal", ..), ..)
 //   #context ideas(tagged: "phd")      // only the notes tagged phd
 //   #context ideas(tagged: ("phd", "draft"), match: "all")  // both tags
@@ -388,8 +386,6 @@
     })
 }
 
-// ---- tag-data — every note's tag store, in bulk ---------------------------
-//
 //   #context tag-data()   // -> ("idea:etal": (phd: none, priority: 1), ..)
 //
 // The whole tag dictionary of every registered note, keyed by full note id.

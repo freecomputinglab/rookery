@@ -9,8 +9,6 @@
 #import "base.typ": *
 #import "state.typ": *
 
-// ---- References blocks ----------------------------------------------------
-//
 // Typst partitions citations POSITIONALLY: each `#bibliography` claims the
 // citations nearest-following it. That is the whole mechanism — one
 // bibliography emitted after an idea's body claims exactly that idea's
@@ -26,8 +24,6 @@
   bibliography(..cfg.pos(), ..named)
 }
 
-// ---- Whose citation is it, when a note contains another block? ------------
-//
 // `_cite-scan` answers "what does this content cite", which is a CONTENT
 // question. An idea's own block needs a narrower, POSITIONAL one: "what will
 // still be unclaimed by the time my block renders".

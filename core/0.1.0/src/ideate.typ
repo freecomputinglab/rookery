@@ -26,8 +26,6 @@
 // the raw markup and the template wraps its output, which is the order that
 // works. The reverse hands `ideate` a body the template has already transformed.
 //
-// ---- Choosing what starts a note: `separator:` ---------------------------
-//
 // `separator:` decides where one note ends and the next begins. Four spellings
 // are accepted, and nothing else:
 //
@@ -56,8 +54,6 @@
 //
 //   #show: ideate.with(separator: heading.where(level: 2), tags: "weeknotes")
 //
-// ---- Tagging: a value, a function, or a beacon ---------------------------
-//
 // `tags:` takes any of `#idea`'s own forms — `none`, a string, an array, a
 // dictionary — and puts them on EVERY note the call mints. It also takes a
 // FUNCTION of `(content, labels)`, the same pair `title:` and `name:` take,
@@ -80,8 +76,6 @@
 // keeps whatever `tags:` would otherwise give it, which for a function is
 // nothing. `#ideate-tag` remains the per-section override and works under
 // every separator mode — it is unioned last, so a beacon beats the function.
-//
-// ---- Naming a note explicitly: `#ideate-name` -----------------------------
 //
 // `name:` as a function reads the SEPARATING HEADING, so it only works in
 // heading mode — `separator: par` and `separator: none` have no heading to
@@ -123,8 +117,6 @@
 // separator and stays wherever it falls; `parbreak` itself is ordinary
 // content in heading mode too, so a section with three paragraphs in it is
 // still exactly one note.
-//
-// ---- The content tree this walks, MEASURED -------------------------------
 //
 // There is NO `par` element in a markup content tree; Typst builds those at
 // layout time. What a `[..]` body actually holds, probed on prose with a

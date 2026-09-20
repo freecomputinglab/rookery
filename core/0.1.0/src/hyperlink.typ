@@ -11,8 +11,6 @@
 #import "urls.typ": *
 #import "permalink.typ": *
 
-// ---- #hyperlink — a plain link to a note, page-or-anchor -------------------
-//
 // `#hyperlink("etal")[see this]` links to note "etal"'s own minted page when
 // one exists, falling back to its in-context anchor otherwise (same
 // preference the permalink and `#window` already carry, via

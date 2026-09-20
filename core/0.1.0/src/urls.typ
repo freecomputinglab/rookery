@@ -9,8 +9,6 @@
 #import "base.typ": *
 #import "state.typ": *
 
-// ---- Note page URLs -------------------------------------------------------
-//
 // `.marrow.typ` mints one standalone page per note (see that file). Links
 // here must agree with what it mints, so BOTH sides build the path with
 // `_note-file` — never spell it out twice.
@@ -116,8 +114,6 @@
   if c == none or c.at("ext", default: none) == none { return label(id) }
   "rheo-page:" + _dir() + ":" + id.trim(_pfx(), at: start)
 }
-// ---- #idea-href — where a note's minted page lives, from here -------------
-//
 //   #context idea-href("etal")   // -> "../ideas/etal.html", or none
 //
 // Public because another package (`@rookery/search`) has to build links
@@ -132,8 +128,6 @@
 // caller must not cache the result across pages.
 #let idea-href(name) = _note-href(_pfx() + _norm(name))
 
-// ---- #idea-path — where a note's minted page lives, from the SITE ROOT -----
-//
 //   #context idea-path("etal")   // -> "ideas/etal.html", or none
 //
 // `#idea-href` above is relative to the page it is called from — right for a

@@ -7,8 +7,6 @@
 #import "urls.typ": *
 #import "transclusion.typ": *
 
-// ---- Outbound links, for backlinks ----------------------------------------
-//
 // Every note this note points at, walked out of its body ONCE at registration.
 // Backlinks are the inverse of this map, computed by `.marrow.typ`.
 //

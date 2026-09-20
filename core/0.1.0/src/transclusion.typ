@@ -13,8 +13,6 @@
 #import "hyperlink.typ": *
 #import "bib.typ": *
 
-// ---- Transclusion: edge markers, window content, _flatten, _body-at ------
-//
 // A link that sits DIRECTLY in a page — in its prose, or a page-level `#window`
 // — is a backlink from that page. A link inside a note is a backlink from the
 // note, and must not also be counted for the page or for any note enclosing

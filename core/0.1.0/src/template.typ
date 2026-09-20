@@ -354,8 +354,6 @@
   resolved
 }
 
-// ---- #show: rookery — the setup, and the knobs ----------------------------
-//
 //   #import "@rookery/core:0.1.0": rookery, idea, window
 //   #show: rookery.with(
 //     prefix: "note",

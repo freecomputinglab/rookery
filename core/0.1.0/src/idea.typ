@@ -15,8 +15,6 @@
 #import "hyperlink.typ": *
 #import "links.typ": *
 
-// ---- #idea — the note itself: validation, registration, rendering ---------
-//
 // `#idea[body]`, `#idea("name")[body]`, and `#idea(<name>)[body]` all work via
 // an argument sink, since `#idea[body]` passes body as the first positional
 // argument. A named note is pinned to that name outright. An unnamed note
@@ -616,8 +614,6 @@
   }
 }
 
-// ---- #idea-tag-names / #idea-tag-value — reading an idea's tags ------------------------
-//
 //
 //   #context idea-tag-names("etal")   // -> ("note", "draft")
 //
@@ -662,8 +658,6 @@
   _registry.final().at(id, default: (:)).at("tags", default: (:)).at(key, default: default)
 }
 
-// ---- #footnote — shadows Typst's, scoped to the enclosing idea ------------
-//
 // Import it alongside `#idea` and write footnotes exactly as before:
 //
 //   #import "@rookery/core:0.1.0": idea, footnote

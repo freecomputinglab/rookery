@@ -7,7 +7,7 @@ labels:
 - strip-section-banners
 deps:
 - blocked-by:rk-rename-note-dir-to-idea-dir-79af1377
-closed: false
+closed: true
 ---
 This project's `CLAUDE.md` states the rule plainly: "**One header per file, no
 interior banners.** The first comment block says what the file is. A

@@ -13,8 +13,6 @@
 #import "links.typ": *
 #import "idea.typ": *
 
-// ---- #window — transclusion, array form, working limit --------------------
-//
 // `#window("etal")` transcludes the target note: its title, its permalink, and
 // its stored (flattened) body, as one foldable block. `names` accepts a
 // string, a label, or an array of either — bare (`"etal"`, `<etal>`) or full
@@ -403,8 +401,6 @@
   }
 }
 
-// ---- #idea-body — one note's body, as CONTENT ------------------------------
-//
 //   #context idea-body("etal")                 // -> content, or a panic
 //   #context idea-body("etal", limit: 3)        // first three blocks
 //

@@ -13,8 +13,6 @@
 #import "links.typ": *
 #import "idea.typ": *
 
-// ---- Page-level links ------------------------------------------------------
-//
 // `handle -> (note ids that page links to DIRECTLY)`, for the page half of the
 // backlinks list. Directly means at depth 0: not inside an `#idea`, and not
 // inside a `#window`'s transcluded body (see `_edge`).
@@ -191,8 +189,6 @@
   out
 }
 
-// ---- #ideas-outline — a table of contents for THIS page's own ideas -------
-//
 // Typst's own `#outline()` can't see ideas: it lists `heading` elements, and
 // an idea only ever becomes one on the PAGED target (`heading(depth: level,
 // ...)`, inside `#idea`'s `else` branch) — never on html/epub, where the
@@ -628,8 +624,6 @@
   _rel-prefix(here) + handle.replace(":", "/") + "." + ext
 }
 
-// ---- #outline — a `target:` front door onto `#ideas-outline` --------------
-//
 // Typst's own idiom for an outline over something other than headings is a
 // `target:` argument (`#outline(target: figure.where(kind: image))`), so
 // this overloads the same call rather than adding a second name:
