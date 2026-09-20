@@ -23,7 +23,7 @@
 // Every `#show: rookery` argument, checked before anything is published.
 #let _validate-config(
   prefix,
-  note-dir,
+  idea-dir,
   css-prefix,
   window-unfurl,
   idea-page-template,
@@ -54,15 +54,15 @@
   // inserts extra directory levels into the minted path, and `:` is the
   // separator in the rheo handle `<dir>:<slug>` minted alongside it.
   assert(
-    note-dir == none
+    idea-dir == none
       or (
-        type(note-dir) == str
-          and note-dir != ""
-          and not note-dir.contains("/")
-          and not note-dir.contains(":")
+        type(idea-dir) == str
+          and idea-dir != ""
+          and not idea-dir.contains("/")
+          and not idea-dir.contains(":")
       ),
-    message: "@rookery/core: `note-dir` must be `none` or a non-empty string containing "
-      + "no `/` or `:` — got " + repr(note-dir),
+    message: "@rookery/core: `idea-dir` must be `none` or a non-empty string containing "
+      + "no `/` or `:` — got " + repr(idea-dir),
   )
   // A `css-prefix` becomes a CSS class stem (`<stem>-title`, `<stem>-tag-<t>`,
   // ...), so it is rejected on the same grounds a raw CSS selector would be —
@@ -364,7 +364,7 @@
 //
 // Does exactly five things, and deliberately nothing else:
 //
-//   1. publishes `prefix` (so `#idea("etal")` mints `<note:etal>`), `note-dir`
+//   1. publishes `prefix` (so `#idea("etal")` mints `<note:etal>`), `idea-dir`
 //      (where `.marrow.typ` mints that note's own page; `none`, the default,
 //      resolves through `_dir()` in state.typ) and `css-prefix` (the class
 //      stem every emitted element wears; `none`, the default, falls back to
@@ -438,7 +438,7 @@
 // visible AT DEFINITION time — `hyperlink` must already exist.
 #let rookery(
   prefix: "idea",
-  note-dir: none,
+  idea-dir: none,
   css-prefix: none,
   window-unfurl: 1,
   idea-page-template: none,
@@ -510,7 +510,7 @@
   )
   _validate-config(
     prefix,
-    note-dir,
+    idea-dir,
     css-prefix,
     window-unfurl,
     idea-page-template,
@@ -546,7 +546,7 @@
 
 
   _prefix.update(prefix)
-  _note-dir.update(note-dir)
+  _idea-dir.update(idea-dir)
   _css-prefix.update(css-prefix)
   _window-depth.update(window-unfurl)
   // Default the style to author-date, and ONLY when the author passed none.

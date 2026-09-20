@@ -6,7 +6,7 @@ priority: 4
 labels:
 - rename-note-dir-to-idea-dir
 deps: []
-closed: false
+closed: true
 ---
 `@rookery/core`'s public vocabulary is **idea** and **name**. One user-facing
 configuration argument still says "note": `#rookery(note-dir: ..)`, the

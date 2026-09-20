@@ -246,7 +246,7 @@ does all of it in a line, and is the only place anything is configurable:
 #import "@rookery/core:0.1.0": rookery, idea, window
 #show: rookery.with(
   prefix: "note",                 // names are now `note:etal`
-  note-dir: "ideas",              // ...but minted pages stay at `ideas/`
+  idea-dir: "ideas",              // ...but minted pages stay at `ideas/`
   css-prefix: none,               // ...and classes follow `prefix`: `note-title`, not `idea-title`
   window-unfurl: 2,               // a window inside a window unfurls one level
   theme: (
@@ -258,7 +258,7 @@ does all of it in a line, and is the only place anything is configurable:
 ```
 
 `#show: rookery` does exactly eight things: it publishes the name prefix, the
-minted-page directory (`note-dir`, see "Standalone note pages" for how it
+minted-page directory (`idea-dir`, see "Standalone note pages" for how it
 resolves), the CSS class stem (`css-prefix`, see just below), the
 nested-window unfurl budget, the minted-page template
 (`idea-page-template`, see "Standalone note pages"), the bibliography (see
@@ -290,14 +290,14 @@ path is unique by construction. Document-wide, like the settings above it —
 the last `#show: rookery` to run settles it for every minted page.
 
 `prefix` must be a non-empty string with no `:` in it (the separator is added
-for you). `note-dir` must be `none` (the default) or a non-empty string with
+for you). `idea-dir` must be `none` (the default) or a non-empty string with
 no `/` or `:` in it — see "Standalone note pages" for what it does and, if you
 already set a custom `prefix`, for a breaking change to read before you
 upgrade.
 
 **`css-prefix`** is the CSS class stem — `<stem>-title`, `<stem>-tag-<tag>`,
 and every other class this package emits. It resolves the same two-step way
-`note-dir` does: `css-prefix:` when you set one, else the resolved `prefix` —
+`idea-dir` does: `css-prefix:` when you set one, else the resolved `prefix` —
 so `prefix: "note"` alone gets you `note-title`/`note-tag-<tag>` classes, not
 `idea-*`, and setting `css-prefix` explicitly pins the class stem independent
 of the name prefix (keep `idea-*` classes while renaming names, or the reverse).
@@ -2641,12 +2641,12 @@ Each minted page shows the note's title and permalink name, then its body, then
 a footer with two parts — each omitted, rather than left empty, when it has
 nothing to say.
 
-### Where pages are minted: `note-dir`
+### Where pages are minted: `idea-dir`
 
 `<dir>` above defaults to `"ideas"`, not to the prefix. This is deliberate,
 resolved in order:
 
-1. `note-dir:`, when you set one;
+1. `idea-dir:`, when you set one;
 2. else `"ideas"`, when `prefix` is left at its default `"idea"`;
 3. else `prefix`, verbatim.
 
@@ -2657,20 +2657,20 @@ the prefix as-is:
 
 ```typst
 #show: rookery.with(prefix: "maths")
-// no note-dir set -> pages mint at maths/<slug>.html, names read `maths:<slug>`
+// no idea-dir set -> pages mint at maths/<slug>.html, names read `maths:<slug>`
 ```
 
-**Breaking, if you already set a custom `prefix`.** Before `note-dir`
+**Breaking, if you already set a custom `prefix`.** Before `idea-dir`
 existed, every project minted to `ideas/` regardless of `prefix` — the
 directory was a package constant. A project that set `prefix: "note"` (say)
 and expects its pages to stay at `ideas/<slug>.html` must now set
-`note-dir: "ideas"` explicitly:
+`idea-dir: "ideas"` explicitly:
 
 ```typst
-#show: rookery.with(prefix: "note", note-dir: "ideas")
+#show: rookery.with(prefix: "note", idea-dir: "ideas")
 ```
 
-Leaving `note-dir` unset moves every page in such a project to `note/`
+Leaving `idea-dir` unset moves every page in such a project to `note/`
 instead. A project that never touched `prefix` is unaffected either way —
 rule 2 above keeps it at `ideas/`.
 
@@ -2727,8 +2727,8 @@ another page's footer still lands on the note.
 
 ### A landing page for the whole rookery: `index-page`
 
-`<dir>/` (see "Where pages are minted: `note-dir`" — `ideas/` unless you set
-`prefix` or `note-dir`) is the parent directory of every permalink this
+`<dir>/` (see "Where pages are minted: `idea-dir`" — `ideas/` unless you set
+`prefix` or `idea-dir`) is the parent directory of every permalink this
 package mints, and the URL a reader will guess. Rookery mints
 `<dir>/index.html` there by default: a heading, a count, and every note in the
 rookery linked to **its own minted page**, carrying its date and its tags. The

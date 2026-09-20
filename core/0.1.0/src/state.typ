@@ -36,14 +36,14 @@
 #let _prefix = state("rheo-idea-prefix", "idea")
 #let _pfx() = _prefix.final() + ":"
 
-// The minted-page directory: `note-dir:` if the project set one, else `ideas`
+// The minted-page directory: `idea-dir:` if the project set one, else `ideas`
 // for the built-in `idea` prefix (the historical directory name, kept for
 // every site that never touched `prefix:`), else the resolved prefix itself.
 // NOT `prefix + "s"` — a project on `prefix: "maths"` gets `maths/`, not
 // `mathss/`. Read with `.final()`, for the same reason as `_prefix` above.
-#let _note-dir = state("rheo-idea-note-dir", none)
+#let _idea-dir = state("rheo-idea-dir", none)
 #let _dir() = {
-  let d = _note-dir.final()
+  let d = _idea-dir.final()
   if d != none { d } else if _prefix.final() == "idea" { "ideas" } else { _prefix.final() }
 }
 
