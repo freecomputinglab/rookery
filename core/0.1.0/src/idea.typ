@@ -182,9 +182,8 @@
     }
   }
 
-  // ---- TITLE vs LABEL, and the distinction is the whole point ---------------
-  //
-  // A note travels under two names:
+  // Title and label are two different things, and the distinction is the whole
+  // point. An idea travels under two names:
   //
   //   `title`  the AUTHORED title, `none` when the author gave none. This is what
   //            gets PRINTED AS A HEADING above the note's own body — its card, its
