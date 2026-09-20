@@ -147,8 +147,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">51 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 51 ideas"
+  grep -q 'idea-index-count">52 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 52 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -821,6 +821,16 @@ fi
 #     so Backlinks excludes it there on purpose.
 grep -qi 'backlinks' "$H/ideas/tag-t-both.html" ||
   note "ideas/tag-t-both.html has no Backlinks section — a tag-selected window stopped registering a page backlink"
+
+# 34. A TAG-SELECTED WINDOW INSIDE ANOTHER NOTE'S BODY BACKLINKS THAT NOTE
+#     (`content/tags.typ`'s `tag-windower` note, whose body carries
+#     `#window(tagged: ("todo", "phd"), match: "all")`). This is the
+#     note-level counterpart to assertion 33: `tag-t-both` is only
+#     tag-matched, never named, so its Backlinks section names
+#     `tag-windower` only if the note-level link map also resolves a tag
+#     selector, not just the page-level one.
+grep -q 'tag-windower' "$H/ideas/tag-t-both.html" ||
+  note "ideas/tag-t-both.html does not mention tag-windower — a tag window inside a note's body stopped registering a note backlink"
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"

@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content
+#import "@rookery/core:0.1.0": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
@@ -148,6 +148,22 @@
       if target not in registry { continue }
       let seen = backlinks.at(target, default: ())
       if src not in seen { backlinks.insert(target, seen + (src,)) }
+    }
+    // A tag-selected window inside this note's body: `_outbound-tag-selectors`
+    // deferred it to a `(tagged, match)` selector at registration, and the
+    // registry is final here, so it can be resolved against every note's
+    // tags now. Skipped: `target == src` (a note's own tags routinely match
+    // its own window, and that must not be a backlink to itself) and any
+    // target already recorded by the named-link loop above.
+    for sel in rec.at("tag-links", default: ()) {
+      let pred = _tag-pred(sel.tagged, sel.at("match", default: "any"))
+      if pred == none { continue }
+      for (target, trec) in registry {
+        if target == src { continue }
+        if not pred(trec.at("tags", default: (:))) { continue }
+        let seen = backlinks.at(target, default: ())
+        if src not in seen { backlinks.insert(target, seen + (src,)) }
+      }
     }
   }
 

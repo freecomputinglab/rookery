@@ -7,7 +7,7 @@ labels:
 - fix-tag-window-backlinks
 deps:
 - blocked-by:rk-backlink-tag-selected-windows-per-page-e99edead
-closed: false
+closed: true
 ---
 A `#window` that selects by TAG rather than by name gives the notes it shows no
 backlink. The companion bird fixed the PAGE-level half of that (a vertebra

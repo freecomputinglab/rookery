@@ -23,6 +23,16 @@
   tag-t-both is tagged: #repr(idea-tag-names("tag-t-both"))
 ]
 
+// A tag window written INSIDE a note's body, not at page top level — this is
+// what gives tag-t-both a NOTE-level backlink rather than only a page-level
+// one. Carries neither `todo` nor `phd` itself (`#note` prepends only `note`),
+// so it cannot match its own selection.
+#note("tag-windower")[
+  A note whose body windows by tag rather than by name.
+
+  #window(tagged: ("todo", "phd"), match: "all")
+]
+
 // `#window(tagged: ..)` selects across the WHOLE rookery, not merely this
 // page's own notes — the rule `window-tags.typ`'s regression fixture pins
 // (`content/sub/deeper/page.typ`) — so a real rookery's other tagged notes

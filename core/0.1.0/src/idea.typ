@@ -417,6 +417,10 @@
         .filter(t => t.starts-with(_pfx()) and t != id)
         .dedup()
 
+      // Tag-selected windows in this note's body, deferred to `.marrow.typ`
+      // for expansion once the registry is final — see `_outbound-tag-selectors`.
+      let tag-links = _outbound-tag-selectors(body)
+
       // `raw` is the body BEFORE flattening, kept alongside the flattened one
       // so a `#window` with a nested-window budget can re-flatten at a smaller
       // depth (see `_body-at`). Re-flattening the FLATTENED body would be
@@ -450,6 +454,7 @@
         created: resolved-created,
         origin: origin,
         links: links,
+        tag-links: tag-links,
         tags: tags,
         // `display` carries `context`/`backlinks`/`title` as `auto` (the
         // default) when unset, meaning "use the document-wide

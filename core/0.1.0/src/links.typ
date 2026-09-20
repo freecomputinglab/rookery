@@ -88,3 +88,41 @@
   for (_, v) in node.fields() { out += _outbound(v) }
   out
 }
+
+// The deferred half of `_outbound`: a tag window (`#window(tagged: ..)`)
+// cannot resolve to ids at registration, because the registry it would query
+// is still being built. This walk records the SELECTOR instead — the
+// `tagged`/`match` the window was called with — and `.marrow.typ` expands
+// each one against the final registry once every note is registered.
+//
+// Mirrors `_outbound`'s traversal exactly (nested note stops the walk, a
+// `rookery-fn` payload is descended into, everything else recurses over
+// `fields()`), so the two walks agree about which windows belong to which
+// note. A `filter:` predicate cannot be stored in metadata, so a filtered
+// window is skipped here too — it gets no note-level backlink, same as at
+// the page level.
+#let _outbound-tag-selectors(node) = {
+  if type(node) == array { return node.map(_outbound-tag-selectors).flatten() }
+  if type(node) != content { return () }
+
+  let f = node.func()
+  let kind = node.at("kind", default: none)
+
+  if f == figure and kind == IK { return () }
+
+  if f == metadata and type(node.value) == dictionary and "rookery-window" in node.value {
+    let v = node.value
+    if not v.at("backlink", default: true) { return () }
+    if v.at("filtered", default: false) { return () }
+    if v.at("tagged", default: none) == none { return () }
+    return ((tagged: v.tagged, match: v.at("match", default: "any")),)
+  }
+
+  if f == metadata and type(node.value) == dictionary and "rookery-fn" in node.value {
+    return _outbound-tag-selectors(node.value.rookery-fn)
+  }
+
+  let out = ()
+  for (_, v) in node.fields() { out += _outbound-tag-selectors(v) }
+  out
+}
