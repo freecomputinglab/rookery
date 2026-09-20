@@ -7,7 +7,7 @@ labels:
 - trim-core-readme
 deps:
 - blocked-by:rk-correct-the-rheo-floor-in-core-s-readme-13d996a8
-closed: false
+closed: true
 ---
 `core/0.1.0/readme.md` is the front door of a package about to be published for
 the first time, and it opens with 165 lines of migration guidance away from an

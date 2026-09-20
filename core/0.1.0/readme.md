@@ -72,170 +72,14 @@ defaults" below), not the bottom of the stack.
 
 ## 0.1.0
 
-This is the first release of `@rookery/core`, and of the three packages that
-sit beside it — `@rookery/search`, `@rookery/timeline` and
-`@rookery/todos`. The four are version-aligned, and they are meant to be
-read and installed as one family: a project on `rookery:0.1.0` should be on
-`rookery-search:0.1.0` too, because the note registry's state key is NOT
+This is the first release of `@rookery/core`, and of the seven packages that
+sit beside it — `@rookery/bibtex`, `@rookery/cfps`, `@rookery/meetings`,
+`@rookery/pinboard`, `@rookery/search`, `@rookery/slipshow` and
+`@rookery/timeline`. The family is version-aligned, and they are meant to be
+read and installed together: a project on `rookery:0.1.0` should be on
+`rookery-search:0.1.0` too, because the idea registry's state key is NOT
 versioned and two packages disagreeing about the record shape fail at compile
 time rather than politely.
-
-There was an alpha lineage before this, numbered 0.1.0 through 0.6.0, and it
-has been retired wholesale rather than carried forward. Nothing was published
-from it that anybody but this machine's own four sites ever installed, so the
-numbering was describing a history no reader shared. What the alpha lineage
-argued its way towards is the package documented below, and the argument now
-lives where it belongs — in the prose about each surface, rather than in a
-sequence of deltas from versions that no longer exist.
-
-### Migrating from the alpha lineage
-
-If you are one of the four projects that WAS on it, seven changes will bite, and
-the first is the only one that bites silently.
-
-**`updated` is REMOVED.** No parameter, no record field, no `#ideas()` row
-field. A note's card hat, a `#window` summary's hat and a minted page's hat all
-show `created`.
-
-Drop `updated:` from every call site. It is not accepted, and — this is the part
-worth reading twice — a note that passes it anyway does NOT error: the argument
-is silently swallowed by `#idea`'s positional sink, and the note builds looking
-exactly as though the date had been honoured. Every one of the three hats
-carried a comment arguing that "the date a reader wants off the top of a card is
-when the note was last touched", and that argument is right; this package was
-simply the wrong place to answer it, because a hand-maintained `updated:` is a
-second date the author has to remember and it can contradict what actually
-happened to the note. A note's lifecycle belongs to `@rookery/timeline`,
-which stores a dated log and derives last-touched from it:
-
-```typ
-#import "@rookery/timeline:0.1.0": updated-of
-// last log entry, else `created` — updated-of reads the row's own `tags-dict`
-#context updated-of((..row, tags-dict: tag-data().at(row.id)))
-```
-
-**`minted` is now `created`** — the `#idea(minted:)` parameter, the registry
-record's field, and every `#ideas()` row's field. Nothing else about it moved:
-the same resolution order (the explicit argument, then the document's own `#set
-document(date:)`, then nothing), and the same date-descending sort behind
-`#window(sort: "date")`. The word `minted` still means a minted PAGE
-throughout this package, which is most of its uses, and none of those changed.
-
-**`note` and `todo` are not exported.** `idea.with(tag: "note")` builds your
-own constructors, and two lines restore the old pair verbatim, after which
-every existing call site works unchanged:
-
-```typst
-#import "@rookery/core:0.1.0": idea
-#let note = idea.with(tag: "note")
-#let todo = idea.with(tag: "todo")
-```
-
-**`#ideas-outline(filter:)` receives the tag DICTIONARY**, not an array of
-names. `t => "phd" in t` is unaffected, because `in` tests keys. A predicate
-reaching for an array method has to be rewritten: `t.map(..)`, `t.any(..)`,
-`t.all(..)` and `t.at(0)` no longer work, since a dictionary has no
-`.any`/`.all` and its `.at` takes a key rather than an index. While you are in
-there, note that tag ORDER is unspecified — `#ideas().tags` and `#idea-tag-names()`
-still hand back an array of names, but nothing guarantees the sequence, so sort
-it yourself if you were depending on it.
-
-**Four accessors are renamed**, to match the `idea-*` vocabulary the rest of
-the package uses:
-
-| old | new |
-| --- | --- |
-| `tags-of(name)` | `idea-tag-names(name)` |
-| `tag-value(name, key, default: none)` | `idea-tag-value(name, key, default: none)` |
-| `note-href(name)` | `idea-href(name)` |
-| `note-path(name)` | `idea-path(name)` |
-
-`tag-data()` keeps its name: the obvious parallel with `#ideas()` would be a
-bare `tags()`, and that name is unavailable because `tags` is a parameter on
-`#idea`, `#ideate` and most of this package's other constructors, so it would
-shadow the function inside every one of their bodies. None of these are kept
-as aliases — a stale call to any of the four old names fails the compile with
-an unknown-variable error.
-
-**The transclusion budget is renamed `unfurl`.** `#window`'s and
-`idea-body`'s `depth:` argument, and `rookery(..)`'s document-wide
-`window-depth:`, are now `unfurl:` and `window-unfurl:`. The old name
-collided with `#ideas-outline(depth:)`'s unrelated meaning — levels of the
-outline tree, not the transclusion budget, and the two even disagreed about
-whether `0` is legal — so `#ideas-outline` keeps `depth:` and the budget
-moves instead. Same numbers, same defaults, only the word changes; see
-"Nested windows, and `window-unfurl`" below.
-
-| old | new |
-| --- | --- |
-| `#window(depth: n)` | `#window(unfurl: n)` |
-| `idea-body(depth: n)` | `idea-body(unfurl: n)` |
-| `rookery(window-depth: n)` | `rookery(window-unfurl: n)` |
-
-Not kept as an alias — a stale `depth:`/`window-depth:` call site fails the
-compile with an unknown-argument panic.
-
-**The selecting `tags:` argument is renamed `tagged:`**, on the three
-functions that use it to pick notes rather than tag them: `#window`,
-`ideas()` and `#ideas-outline`. `tags:` still means what it always has on
-`#idea`, `idea.with(tag:/base-tags:)` and `#ideate(tags:)`, which ASSIGN a
-tag rather than select by one, and `display-tags` (showing tag pills) is a
-third, unrelated meaning that also keeps its name.
-
-| old | new |
-| --- | --- |
-| `#window(tags: ..)` | `#window(tagged: ..)` |
-| `ideas(tags: ..)` | `ideas(tagged: ..)` |
-| `#ideas-outline(tags: ..)` | `#ideas-outline(tagged: ..)` |
-
-Not kept as an alias — a stale `tags:` call site on any of the three fails the
-compile with an unknown-argument panic.
-
-### Migrating from `show-*` arguments
-
-**This rename is breaking.** `#idea`, `#window`, `#ideate` and `rookery(..)`
-no longer take `show-*` arguments — each now takes a `display:` dictionary
-plus individual `display-*` overrides, described above in "The `display:`
-dictionary". The mapping is a straight prefix swap, one argument at a time:
-
-| old | new |
-| --- | --- |
-| `show-date` | `display-date` |
-| `show-tags` | `display-tags` |
-| `show-frame` | `display-frame` |
-| `show-id` | `display-name` |
-| `show-label` | `display-label` |
-| `show-background` | `display-background` |
-| `show-context` | `display-context` |
-| `show-backlinks` | `display-backlinks` |
-| `show-title` | `display-title` |
-
-`foldable:` and `reserve-title:` on `#window` are NOT renamed — they were
-never part of the `show-*` family and keep their names.
-
-### Migrating from `#ideate-id`
-
-**This rename is breaking.** `#ideate-id` is now `#ideate-name`, matching the
-`name:` vocabulary the rest of the package uses. There is no alias: a stale
-call to `#ideate-id` fails the compile with an unknown-variable error rather
-than silently doing nothing.
-
-### Migrating from `display-id:`
-
-**This rename is breaking.** `display-id:` is now `display-name:`, and the
-`display: (id: ..)` dictionary key is now `display: (name: ..)`, for the same
-reason as the `#ideate-id` rename above: the permalink the flag governs IS the
-note's name. There is no alias: a stale `display-id:` fails the compile with
-`#idea`'s (or `#window`'s) unknown-named-argument panic rather than silently
-doing nothing.
-
-### Migrating from `id-color`
-
-**This rename is breaking.** The theme key `id-color` is now `name-color`,
-and the custom property it publishes, `--idea-id-color`, is now
-`--idea-name-color` — the permalink it colours shows the note's name. There
-is no alias, and because a CSS custom property fails silently, a site that
-still sets `--idea-id-color` simply loses the colour rather than erroring.
 
 ## Setup, and the `idea:` prefix
 
@@ -263,7 +107,7 @@ resolves), the CSS class stem (`css-prefix`, see just below), the
 nested-window unfurl budget, the minted-page template
 (`idea-page-template`, see "Standalone note pages"), the bibliography (see
 "Bibliographies") and the theme, and it installs `show ref: hyperlink` (see
-below and "Referencing a note") so `@note:etal` renders the note rather than a bare
+below and "Referencing a note") so `@idea:etal` renders the note rather than a bare
 figure number. It sets no other styles and wraps `doc` in nothing. It emits
 nothing of its own either, with one exception: a page that cites something
 outside every idea gets a references block after its content, because a
@@ -272,10 +116,10 @@ in it, it is a no-op, and even the `ref` rule passes every non-rookery
 reference straight through. Pass `refs: false` to keep the rest and skip that
 rule.
 
-`hyperlink-target-minted: true` (the default) sends `@note:etal` to the note's
+`hyperlink-target-minted: true` (the default) sends `@idea:etal` to the note's
 own minted page. Pass `hyperlink-target-minted: false` to make every
-`@note:etal` in the document link to the note's in-context anchor instead, the
-same destination `#link(label("note:etal"))` always uses. It is `#hyperlink`'s
+`@idea:etal` in the document link to the note's in-context anchor instead, the
+same destination `#link(label("idea:etal"))` always uses. It is `#hyperlink`'s
 own parameter of that name, handed straight to the installed rule, and is
 ignored when `refs: false`, since there is then no installed rule for it to
 configure.
@@ -1486,10 +1330,9 @@ merely on its presence:
 #ideas-outline(title: [Urgent], filter: t => t.at("priority", default: 9) <= 1)
 ```
 
-`t => "phd" in t` still works unchanged — `in` tests keys. What does NOT work is
-an array method: `t.map(..)`, `t.any(..)`, `t.all(..)` and `t.at(0)` are gone,
-because a dictionary has no `.any`/`.all` and its `.at` takes a key. See
-"Migrating from 0.4.1".
+`t => "phd" in t` works, because `in` tests keys. An array method does not:
+`t.map(..)`, `t.any(..)`, `t.all(..)` and `t.at(0)` are unavailable, because a
+dictionary has no `.any`/`.all` and its `.at` takes a key.
 
 **A filter prunes AND PROMOTES.** A matching note whose parent does NOT match is
 re-based to its nearest KEPT ancestor's level, so the tree never shows a hole
@@ -1572,8 +1415,8 @@ Each entry is:
 - `page` — the same minted page, as a site-root-relative path instead — the
   same string `#idea-path()` returns, for a consumer with no page of its own
   to measure depth from (a feed, a sitemap). See `#idea-path()` below.
-- `created` — the note's date, or `none`. Was `minted` before 0.6.0, and there
-  is no `updated` beside it any more — see "Dates".
+- `created` — the note's date, or `none`. There is no `updated` beside it —
+  see "Dates".
 
 `#ideas()` also takes `tagged:` and `match:` — the same pair `#window` takes, with
 the same meanings and the same shared predicate behind them. `tagged:` is a single
@@ -2012,8 +1855,8 @@ That is the primitive `@rookery/todos` builds its dependency graph on, and
 `@rookery/timeline` its `scheduled`/`deadline` dates. A value can be any
 Typst value at all — an integer, an array, a `datetime`, content.
 
-**Tags are UNORDERED.** Key order is unspecified as of 0.5.0 and nothing may
-depend on it; sort them yourself if you need a stable sequence.
+**Tags are UNORDERED.** Key order is unspecified and nothing may depend on
+it; sort them yourself if you need a stable sequence.
 
 **Naming a key.** A tag key becomes a CSS class fragment (`.idea-tag-<key>`),
 so keep keys class-safe — alphanumerics and hyphens. A package contributing
@@ -2415,8 +2258,8 @@ Where the label is used:
 
 Where it is deliberately NOT used — every place a heading sits above the body:
 the note's own card, its minted page's `<h1>`, and a transcluded card's heading.
-A titleless note's heading stays empty there, exactly as in 0.5.0; the element
-survives only to carry the `id` anchor, and the stylesheet collapses it.
+A titleless note's heading stays empty there; the element survives only to
+carry the `id` anchor, and the stylesheet collapses it.
 
 `#ideas()` therefore publishes three fields where it published two:
 
@@ -2476,9 +2319,9 @@ duplicated as a heading child on a card and a summary-row item on a window.
 The top rule does not resume on the date's far side — the hat draws one stub,
 to the left, and stops at the name.
 
-**There is ONE date, and it is `created`.** Until 0.6.0 there were two — `minted`
-and an `updated` beside it — and every hat showed `updated`, on the argument that
-the date a reader wants off the top of a card is when the note was last touched.
+**There is ONE date, and it is `created`.** There is no `updated` beside it,
+even though the date a reader wants off the top of a card is arguably when
+the note was last touched.
 
 That argument is right, and this package was the wrong place to answer it. A
 hand-maintained `updated:` is a second date the author has to remember, and one
@@ -2753,7 +2596,7 @@ The page goes through `idea-page-template` exactly as a note page does, so it
 inherits your project's chrome. It is the one minted page that is not a note,
 and the template sees that: `id` is `none` and `note` is an empty dictionary. A
 template that assumes a string id needs one branch —
-`rookery/0.6.0/demo/rheo/content/lib.typ` carries the two-line version.
+`core/0.1.0/demo/rheo/content/lib.typ` carries the two-line version.
 
 ### Giving minted pages your own chrome
 
@@ -3074,7 +2917,7 @@ whichever package it sits on top of.
   dead link); 0.6.1 resolves the `@rookery` namespace via `[packages.<ns>]`;
   and 0.6.2 fixes package location for a package fetched from a remote ref,
   which the two prior releases fail to find at all. An older rheo does not
-  complain: it mints nothing, and every `@note:etal` then links at a page
+  complain: it mints nothing, and every `@idea:etal` then links at a page
   that was never written. Plain `typst compile` is unaffected — the standalone
   half has no floor beyond typst itself, see "Two modes".
 
@@ -3100,4 +2943,4 @@ already provide `just` and `typst`, and direnv finds them by walking up from
 anywhere under this directory. `demo/pure/` has its own `just watch` for
 live-rebuild; for the rheo side, `just watch` in the `rookery.ohrg.org` repo
 picks up edits to `src/` on the next rebuild, since the whole of this repo is
-symlinked into the package cache as the `rheo` namespace.
+symlinked into the package cache as the `rookery` namespace.
