@@ -2632,7 +2632,7 @@ stripped off whatever it is set to — via a package
 no project file needed. Typst will print `warning: bundle export is
 experimental` — expected, not a sign anything is wrong.
 
-This is the part that needs **rheo >= 0.5.2**: inlining a package's
+This is the part that needs **rheo >= 0.6.2**: inlining a package's
 `.marrow.typ` landed there, and an older rheo passes over it in silence rather
 than failing, so the symptom is not an error but an absence — no minted
 pages, and links into them that resolve to nothing.
@@ -3066,22 +3066,17 @@ whichever package it sits on top of.
   `std.target()` unconditionally, which typst gates behind that feature
   regardless of output format — even a plain PDF build needs the flag, or it
   hard-errors.
-- rheo >= 0.5.2 — but only if you build with rheo at all. The rheo-only half of
+- rheo >= 0.6.2 — but only if you build with rheo at all. The rheo-only half of
   the package (minted note pages, the hrefs that point into them, backlinks)
-  rides on rheo inlining a package's `.marrow.typ` at the bundle root, and
-  0.5.2 is the first release that does. An older rheo does not complain: it
-  ignores the file, mints nothing, and every `@note:etal` then links at a page
+  needs three fixes stacked on top of each other: 0.6.0 rewrites the reserved
+  `rheo-page:<handle>` link destination that this package emits for every
+  idea link (an older rheo passes it through untouched, a silent site-wide
+  dead link); 0.6.1 resolves the `@rookery` namespace via `[packages.<ns>]`;
+  and 0.6.2 fixes package location for a package fetched from a remote ref,
+  which the two prior releases fail to find at all. An older rheo does not
+  complain: it mints nothing, and every `@note:etal` then links at a page
   that was never written. Plain `typst compile` is unaffected — the standalone
   half has no floor beyond typst itself, see "Two modes".
-
-  OBSERVED (rheo 0.5.2, built from source at tag `v0.5.2`; typst 0.15.1):
-  `rheo compile .` in `demo/rheo` mints all five `ideas/*.html` pages with no
-  warnings, and `./check.sh` prints `demo/rheo OK` — all eight blocks, including
-  the generated `@layer rookery-tags` assertions. The floor is measured, not
-  inferred: this package reads only `state("rheo-handle")`, `rheo-document()`,
-  and `rheo-context`'s `target`/`ext`/`spine-flat`, every one of which 0.5.2
-  provides. CI installs the 0.5.2 release and runs that demo, so the version
-  this line promises is the version actually tested.
 
 ## Build and local development
 

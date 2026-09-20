@@ -7,7 +7,7 @@ labels:
 - fix-rheo-version-floor
 deps:
 - blocked-by:rk-rename-note-dir-to-idea-dir-79af1377
-closed: false
+closed: true
 ---
 `core/0.1.0/typst.toml` and `core/0.1.0/readme.md` disagree about the minimum
 rheo version, and the readme is the one that is wrong. A reader who follows it
