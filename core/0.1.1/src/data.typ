@@ -1,0 +1,420 @@
+// `#ideas` — every registered note as plain data, which is the supported way to
+// build anything this package does not: an index page, a feed, a graph.
+//
+// `@rookery/search` is written entirely against this and `#idea-href`.
+
+#import "base.typ": *
+#import "state.typ": *
+#import "urls.typ": *
+#import "hyperlink.typ": *
+#import "links.typ": *
+#import "idea.typ": *
+#import "transclusion.typ": *
+
+// `tag-index` declares a projection of tag values onto a row:
+//
+//   #let INDEX = tag-index((
+//     cycle:    (family: "cycle-"),                 // flat-tag family -> "26-27"
+//     kind:     (family: "venue-", one-of: KINDS),  // -> "postdoc"
+//     deadline: (key: "date-deadline", stamp: true), // -> "20261101"
+//     stage:    (from: stage-of),                   // derived from a tag's VALUE
+//   ))
+//
+//   #context ideas(index: INDEX)   // rows carry .cycle .kind .deadline .stage
+//
+// SCALARS ONLY, AND ASSERTED. That assert is the whole contract, not a
+// nicety. The ban on values riding a row exists because a value is ARBITRARY —
+// content in a row is a silent `json.encode` blob. A projection makes values
+// NARROW and CHECKED instead, which is what lets them back on safely: a
+// projected field is guaranteed encodable as JSON and as an HTML attribute.
+//
+// ONE WALK. The index is resolved once for the whole `ideas()` call, not per
+// row and not per view. Callers are expected to build ONE index per page and
+// pass it to everything on it; nothing here caches, because a self-caching
+// accessor would hide a full corpus walk behind a nicer name.
+
+// The reserved row fields a projection may not shadow. Naming a field `href`
+// and silently replacing every link on the page is the failure this prevents.
+#let _ROW-FIELDS = (
+  "id",
+  "name",
+  "title",
+  "text",
+  "label",
+  "tags",
+  "body",
+  "href",
+  "page",
+  "created",
+  "tags-dict",
+)
+
+// Three extractor forms and no more. Each may carry `stamp: true`.
+//
+// NOT `as:`. `as` is a reserved keyword, so `(key: "x", as: "date")` fails to
+// parse with "expected named or keyed pair, found string" — the conversion
+// flag cannot wear the name that reads best.
+//
+//   (key: "<tag key>")      that tag's value, or none
+//   (family: "<prefix>")    the first flat tag whose key starts with the prefix,
+//                           prefix stripped; `one-of:` restricts AND orders the
+//                           candidates, so a note carrying two of a family
+//                           resolves to the earliest LISTED rather than to
+//                           whichever `.keys()` happens to yield first — tags
+//                           are unordered and nothing may depend on their order
+//   (from: <function>)      called with the note's whole tag dictionary
+//
+// `from:` is not a convenience. A derived value — "the current stage of a dated
+// log", "how far this got" — is a COMPUTATION, not a tag value, and the log it
+// reads can never ride on a row under the rule above. This form is the only way
+// such a value becomes filterable or sortable at all.
+#let _project-one(field, spec, tags) = {
+  let value = if "from" in spec {
+    assert(
+      type(spec.from) == function,
+      message: "@rookery/core: tag-index field `" + field + "` has a `from:` that is not a function — got " + repr(
+        spec.from,
+      ),
+    )
+    (spec.from)(tags)
+  } else if "key" in spec {
+    tags.at(spec.key, default: none)
+  } else if "family" in spec {
+    let prefix = spec.family
+    let names = if "one-of" in spec {
+      // ORDERED by the caller's own list, which is what makes the answer
+      // deterministic rather than dependent on key order.
+      spec.at("one-of").filter(n => prefix + n in tags)
+    } else {
+      tags.keys().filter(k => k.starts-with(prefix)).map(k => k.slice(prefix.len()))
+    }
+    if names.len() == 0 { none } else { names.first() }
+  } else {
+    panic(
+      "@rookery/core: tag-index field `"
+        + field
+        + "` names no extractor. Give it exactly one of `key:` (a tag key), "
+        + "`family:` (a flat-tag prefix) or `from:` (a function of the tag "
+        + "dictionary).",
+    )
+  }
+
+  // `stamp: true` -> a zero-padded [year][month][day] STRING, never a datetime.
+  // Two reasons, and the second is the useful one: a datetime is not a scalar
+  // the assert below would pass, and a fixed-width numeric string sorts
+  // lexically in date order — the same device `_sort-ids` above already uses to
+  // sidestep how `datetime` orders as a sort key at all. So a projected date is
+  // a free sort key.
+  let value = if spec.at("stamp", default: false) and value != none {
+    assert(
+      type(value) == datetime,
+      message: "@rookery/core: tag-index field `"
+        + field
+        + "` says `stamp: true` but produced "
+        + repr(value)
+        + ", which is not a datetime.",
+    )
+    value.display("[year][month][day]")
+  } else { value }
+
+  assert(
+    value == none or type(value) in (str, int, float, bool),
+    message: "@rookery/core: tag-index field `"
+      + field
+      + "` produced "
+      + repr(type(value))
+      + "; a projected value must be a scalar (str, int, float, bool, none) so it "
+      + "is safe to encode as JSON or as an HTML attribute. A datetime wants "
+      + "`stamp: true`; content and arrays want a `from:` that reduces them.",
+  )
+  value
+}
+
+// Builds the projection. Validated HERE, once, rather than per note: a spec
+// naming `href` or carrying no extractor is a mistake about the SPEC, and
+// finding it on the first note that happens to match reports it as a mistake
+// about that note.
+#let tag-index(spec) = {
+  assert(
+    type(spec) == dictionary,
+    message: "@rookery/core: tag-index takes a dictionary of field-name -> extractor spec — got " + repr(spec),
+  )
+  for (field, s) in spec.pairs() {
+    assert(
+      type(s) == dictionary,
+      message: "@rookery/core: tag-index field `" + field + "` must be a dictionary — got " + repr(s),
+    )
+    assert(
+      field not in _ROW-FIELDS,
+      message: "@rookery/core: tag-index field `"
+        + field
+        + "` collides with an `ideas()` row field. Reserved: "
+        + _ROW-FIELDS.join(", ")
+        + ".",
+    )
+    let forms = ("key", "family", "from").filter(k => k in s)
+    assert(
+      forms.len() == 1,
+      message: "@rookery/core: tag-index field `"
+        + field
+        + "` names "
+        + str(forms.len())
+        + " extractors ("
+        + forms.join(", ")
+        + "); give it exactly one of `key:`, `family:` or `from:`.",
+    )
+  }
+  (rookery-tag-index: spec)
+}
+
+// Applied per row by `#ideas`. Not exported: a caller projects through
+// `ideas(index: ..)` rather than reaching for this. The shape of `index` is
+// checked once, by `ideas()`, before the walk starts.
+#let _project(index, tags) = {
+  if index == none { return (:) }
+  index
+    .rookery-tag-index
+    .pairs()
+    .map(((field, spec)) => (field, _project-one(field, spec, tags)))
+    .to-dict()
+}
+
+//   #context ideas()                 // -> ((id: "idea:etal", name: "etal", ..), ..)
+//   #context ideas(tagged: "phd")      // only the notes tagged phd
+//   #context ideas(tagged: ("phd", "draft"), match: "all")  // both tags
+//
+// The whole rookery as a plain ARRAY of dictionaries, ordered by id so a build
+// is reproducible. This is the primitive other packages and custom site code
+// are written against — `@rookery/search` ranks it, a site can render it
+// as an index, a feed can walk it — and it is deliberately a snapshot of
+// STABLE fields rather than the internal record:
+//
+//   (id:      "idea:etal",     // the full id, prefix included
+//    name:    "etal",          // the id with the prefix stripped
+//    title:   [Et al.],        // the title as CONTENT, or none
+//    text:    "Et al.",        // the same title as plain text, "" if none
+//                              // (a `ref` in it reads as its target's name)
+//    label:   "Et al.",         // what to CALL it — never empty; see below
+//    tags:    ("note", "draft"), // as the author gave them, () if untagged
+//    body:    "Et al. is ...", // the note's body as plain text, "" if empty
+//    href:    "ideas/etal.html", // depth-relative, or none — see `idea-href`
+//    page:    "ideas/etal.html", // site-root-relative, or none — see `idea-path`
+//    created: datetime or none)
+//
+// `tags` is the note's tag NAMES, every key including the valued ones, and
+// TAGS ARE UNORDERED: key order is unspecified and nothing may depend on it.
+// A consumer wanting a stable sequence sorts them itself. The VALUES are not
+// here — `tag-data()` below hands over the whole store.
+//
+// `#idea-tag-names(name)` exposes ONE note's tags too, and still does. This field is
+// the bulk form and the cheap one: `idea-tag-names` resolves `_registry.final()` once
+// PER NOTE, where `ideas()` resolves it once for the whole pass — and
+// `@rookery/search`'s `#search-index` runs on every page of a site, so the
+// difference is one state resolution per note per page against one per page.
+//
+// NOT exposed IN BULK: `raw`, `body`-as-CONTENT and `links`. `body` above is
+// a plain STRING derived from `raw` — matchable and excerptable, but not
+// renderable, so returning it in an array of every note in the rookery does
+// not make a consumer a second transclusion engine the way handing out every
+// note's content here would; `links` is backlink plumbing that `.marrow.typ`
+// already owns. Add fields here when a consumer genuinely needs them — this
+// list is a contract other packages depend on, so removing one is a breaking
+// change.
+//
+// A SINGLE note's body-as-content IS available, on request: `#idea-body(name)`
+// below renders one note at a time, the same rendering `#window` gives it —
+// links, styling, footnotes, citations — for a consumer that wants to show
+// the actual note rather than describe it. The distinction is bulk vs.
+// one-at-a-time: `#ideas()` handing out `title` (content) for the WHOLE
+// rookery would already be the transclusion-engine problem above if it
+// contained the full body instead of a heading; asking for one note's body
+// by name is what `#window` has always let an author do explicitly, and
+// `#idea-body` is that same permission, minus the chrome.
+//
+// `tagged:`/`match:` narrow the corpus to the notes carrying a tag, and are the
+// SAME pair `#window` takes, with the same meanings, through the same shared
+// `_tag-pred`: `tagged` is `none`, one string or an array; `match` is "any" (the
+// default) or "all". `filter:` is a predicate over the tag DICTIONARY, ANDed
+// with the `tagged:`/`match:` test, for a selection those two cannot express —
+// exclusion, or an OR of ANDs. They exist because the workaround does not
+// scale and does not reach far enough — `ideas().filter(e => "phd" in
+// idea-tag-names(e.name))` works and is VERIFIED, but it costs one
+// `_registry.final()` read per row, and `#search-bar` builds its index
+// internally with no hook for a caller's filter at all.
+//
+// Filtered BEFORE the `.map`, so a note that is dropped never pays for its
+// `_body-plain`/`_note-href`/`_plain` conversions. That is the whole reason the
+// parameter is here rather than left to a caller's own `.filter`.
+//
+// `sort:` is `auto`, "date" or "lexicographic" — the same three `#window`
+// takes, through the same `_sort-ids`. `auto` and "lexicographic" both mean
+// the id order this function has always published; "date" orders newest
+// `created` first, undated notes last.
+//
+// `index:` takes a `tag-index(..)` projection and merges its declared fields
+// onto every row — the supported way to filter or sort on a tag VALUE without
+// walking `tag-data()`. See that function above for the scalar contract.
+//
+// `values: true` adds a `tags-dict` field holding the note's WHOLE tag
+// dictionary, values included. THREE TIERS, and the narrow one is the default so
+// nobody pays for what they did not ask for:
+//
+//   default          tag NAMES only               free
+//   index: SPEC      declared fields, scalar      one walk, only what is named
+//   values: true     the whole tag dictionary     the full value store
+//
+// This tier is not new capability — it is exactly what `tag-data()` already
+// returns. What changes is that it arrives ATTACHED TO THE ROW instead of
+// needing a keyed lookup per row, and it is paid for only when asked.
+//
+// IT COMPOSES WITH `tagged:`, which is what keeps it from being a cliff:
+// `ideas(tagged: "submission", values: true)` narrows FIRST and attaches values
+// only to the survivors, so the cost is proportional to what was asked for rather
+// than to the corpus.
+//
+// Must be called INSIDE a `#context` block (it reads `_registry.final()`); it
+// is not itself a context function, because a context function can only return
+// content and the whole point here is to return data.
+#let ideas(tagged: none, match: "any", filter: none, sort: auto, index: none, values: false) = {
+  _assert-tags(tagged, "#ideas'", what: "tagged")
+  _assert-match(match, "#ideas'")
+  assert(
+    filter == none or type(filter) == function,
+    message: "@rookery/core: #ideas' `filter` must be none or a "
+      + "function taking the note's tag dictionary — got " + repr(filter),
+  )
+  assert(
+    sort == auto or sort == "date" or sort == "lexicographic",
+    message: "@rookery/core: #ideas' `sort` must be auto, \"date\" or "
+      + "\"lexicographic\" — got " + repr(sort),
+  )
+  if index != none {
+    assert(
+      type(index) == dictionary and "rookery-tag-index" in index,
+      message: "@rookery/core: `index:` must be a value built by `tag-index(..)` — got " + repr(index),
+    )
+  }
+  let reg = _registry.final()
+  // ONE read of the CURRENT page's own handle for the whole walk, not one per
+  // row — every row's `href` (below) is relative to the SAME calling page, so
+  // there is exactly one value here regardless of how many rows follow.
+  // Threaded into `_note-href` explicitly rather than left to its own
+  // `state("rheo-handle").get()` fallback, which would otherwise read that
+  // same state once per row from a single shared source position: MEASURED,
+  // that repeated read is exactly where `state("rheo-handle")` was reported
+  // unstable once a titleless note anywhere in the spine needed `context` to
+  // name itself.
+  let handle = state("rheo-handle").get()
+  // ONE resolver for the whole walk, not one per row: it closes over the registry
+  // and nothing else, so every row's title flattens against the same corpus.
+  let ref-text = _ref-text(reg)
+  let plain = c => _plain-with(c, ref-text)
+  let keep = _tag-pred(tagged, match, filter: filter)
+  let survivors = reg
+    .pairs()
+    .filter(((_, rec)) => keep == none or keep(rec.at("tags", default: (:))))
+    .map(((id, _)) => id)
+  // `auto` and "lexicographic" both mean the id order this function has
+  // always published; only "date" changes anything — see `_sort-ids`.
+  let ids = _sort-ids(survivors, reg, sort)
+  ids
+    .map(id => {
+      let rec = reg.at(id)
+      (
+        id: id,
+        name: _norm(id),
+        title: rec.at("title", default: none),
+        // A REFERENCE IN THE TITLE READS AS ITS TARGET'S NAME here — see
+        // `_ref-text` above. The `title` field beside it stays the authored
+        // CONTENT, refs and all, so a caller rendering rather than naming still
+        // gets the real thing.
+        text: plain(rec.at("title", default: none)),
+        // WHAT TO CALL THIS NOTE, and NEVER `none`: the authored title as plain
+        // text, else the first 60 characters of the body, else the note's own
+        // name. See `#idea`'s title-vs-label banner for why this is separate from
+        // `title`/`text` above — those are the AUTHORED title and stay exactly as
+        // they were, because printing a derived name as a heading above the note's
+        // own body prints the body twice.
+        //
+        // Use this wherever a note is REFERRED TO rather than rendered: a row in
+        // an index, an entry in a list, a node in a graph, a sort key, a search
+        // string. It exists precisely so a consumer stops writing
+        // `if r.text == "" { r.name } else { r.title }`.
+        //
+        // A `str`, always, so it drops into `lower(..)`, an HTML attribute or a
+        // JSON index with no cast. The fallback to `name` is what makes it total.
+        //
+        // `_rec-label` (pure.typ) IS THAT CHAIN, shared with every other place a
+        // note gets named — a reference's link text, a window's summary, an
+        // outline entry — so the five of them cannot answer differently.
+        label: _rec-label(rec, ref-text, fallback: _norm(id)),
+        // TAG NAMES ONLY, as a flat array of every key — valued tags included.
+        // The VALUES are deliberately kept off this row, and that is load-
+        // bearing rather than tidiness: `@rookery/search` puts this field
+        // straight into a JSON index (`corpus.typ`, `row.tags`) and calls
+        // `.map` on it (`rank.typ`). A dictionary breaks both, and a value can
+        // be a datetime or content — MEASURED, `json.encode` of content does
+        // not error, it silently emits a structural blob and bloats every page.
+        // Keeping values off the row makes that failure impossible rather than
+        // merely unlikely. Reach for `tag-data()` below when you want them.
+        tags: rec.at("tags", default: (:)).keys(),
+        // A REFERENCE IN THE BODY READS AS ITS TARGET'S NAME here too, through the
+        // same one-per-walk resolver the title and the label use: a search over
+        // `#idea("draft")[Write @idea:nz-man post]` has to match the words a
+        // reader can see in that row, and typing "New Zealand" is how they
+        // would look for it.
+        body: _body-plain-with(rec.at("raw", default: none), ref-text),
+        href: _note-href(id, handle: handle),
+        page: _note-path(id),
+        created: rec.at("created", default: none),
+        // The projection's own fields, merged LAST so a spec cannot silently
+        // shadow a row field — `tag-index` refuses those names outright, and
+        // merging here rather than earlier keeps that refusal the only defence
+        // needed. `(:)` when no index was given, which merges into nothing.
+        .._project(index, rec.at("tags", default: (:))),
+        // A SEPARATE FIELD, never a widening of `tags` above, and that is the one
+        // thing in this tier that would break silently if got wrong:
+        // `@rookery/search` puts `row.tags` straight into a JSON index and
+        // calls `.map` on it (`corpus.typ`, `rank.typ`), so replacing that flat
+        // array with a dictionary would reintroduce the measured content-blob
+        // failure the `tags:` comment above exists to prevent. A new field leaves
+        // search's index untouched by construction.
+        //
+        // ABSENT rather than `(:)` when not asked for, so a consumer cannot read
+        // an empty dictionary off a row and conclude the note has no tags.
+        ..if values { (tags-dict: rec.at("tags", default: (:))) } else { (:) },
+      )
+    })
+}
+
+//   #context tag-data()   // -> ("idea:etal": (phd: none, priority: 1), ..)
+//
+// The whole tag dictionary of every registered note, keyed by full note id.
+// This is the accessor a package builds on when it needs tag VALUES across the
+// corpus — `@rookery/todos` reads its dependency edges out of it.
+//
+// BULK, and that is the point. `idea-tag-names`/`idea-tag-value` each resolve
+// `_registry.final()` for ONE note, so walking N notes through them pays N
+// registry reads; the same cost is already noted against `idea-tag-names` further up.
+// One `ideas()` plus one `tag-data()` covers the whole corpus, and the two join
+// cleanly on `id`.
+//
+// Values are arbitrary Typst values — datetimes, arrays, content, anything a
+// package put there. DO NOT serialize this wholesale into a page: that is
+// exactly what `ideas().tags` publishing keys only is there to prevent.
+//
+// NOT named `tags()`, though that is the obvious parallel with `ideas()`: `tags`
+// is a parameter name on `#idea`, `#ideate` and most of this package's
+// constructors, so a bare `tags()` would be shadowed by that parameter inside
+// every one of those bodies.
+//
+// Must be called INSIDE a `#context` block (it reads `_registry.final()`); it
+// is not itself a context function, because a context function can only return
+// content and the whole point here is to return data.
+#let tag-data() = {
+  _registry
+    .final()
+    .pairs()
+    .map(((id, rec)) => (id, rec.at("tags", default: (:))))
+    .to-dict()
+}

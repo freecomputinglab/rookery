@@ -225,7 +225,7 @@ rheo present at all.
   on this machine) — readable from package scope without any `ctx:`
   parameter.
 - `@rookery/core` uses this pattern throughout and takes NO `ctx` parameter at
-  all: see `core/0.1.0/src/lib.typ`'s `_rheo-ctx()`/`_target()` helpers.
+  all: see `core/0.1.1/src/lib.typ`'s `_rheo-ctx()`/`_target()` helpers.
 
 DO NOT assert or panic when rheo is absent under this pattern — that's
 Pattern A's job for packages that genuinely can't function without rheo.

@@ -38,9 +38,9 @@ jobs:
       # core declares `min_version = "0.6.2"`, and NOT because the Typst
       # surface moved — it has not since 0.6.0. Three requirements stack up.
       #
-      # 0.6.0: `_resolve-dest` (`core/0.1.0/src/urls.typ`) emits a reserved
+      # 0.6.0: `_resolve-dest` (`core/0.1.1/src/urls.typ`) emits a reserved
       # `rheo-page:<handle>` link dest that only 0.6.0 and later rewrite into a
-      # depth-correct href; `core/0.1.0/demo/rheo/check.sh` catches the literal an
+      # depth-correct href; `core/0.1.1/demo/rheo/check.sh` catches the literal an
       # older rheo ships instead.
       #
       # 0.6.1: where rheo learned to resolve a namespace it does not ship, via the
@@ -57,7 +57,7 @@ jobs:
       #
       # 0.6.3: where a namespace could first resolve from a directory on disk
       # (`path`), which is what `[packages.rookery] path = "../../../.."` in
-      # `core/0.1.0/demo/rheo/rheo.toml` asks for. core's `min_version` stays at
+      # `core/0.1.1/demo/rheo/rheo.toml` asks for. core's `min_version` stays at
       # 0.6.2 because no package surface moved — the gap is entirely in how the
       # DEMO PROJECT locates `@rookery`, so the version installed here is set by
       # the demo's floor rather than the package's own.
@@ -94,15 +94,15 @@ jobs:
         run: just check-versions
 
       - name: core unit fixture
-        run: cd core/0.1.0 && just test
+        run: cd core/0.1.1 && just test
 
       # `@rookery` IS A CUSTOM NAMESPACE, NOT A TYPST-UNIVERSE ONE, so there is
       # no registry to download it from: it resolves only where the package
-      # cache already holds it. `core/0.1.0/demo/rheo/native.typ` imports
-      # `@rookery/core:0.1.0` by coordinate and is compiled by BARE `typst`,
+      # cache already holds it. `core/0.1.1/demo/rheo/native.typ` imports
+      # `@rookery/core:0.1.1` by coordinate and is compiled by BARE `typst`,
       # which knows only the cache — so without this the `check-typst` step
       # below dies with
-      # `error: package not found (searched for @rookery/core:0.1.0)`.
+      # `error: package not found (searched for @rookery/core:0.1.1)`.
       #
       # THE WHOLE NAMESPACE, not one package, and this is the same one-line
       # setup CLAUDE.md prescribes for a developer's machine. Linking a single
@@ -121,7 +121,7 @@ jobs:
           mkdir -p "$cache"
           ln -s "$PWD" "$cache/rookery"
           # Fail HERE with something legible rather than inside a typst error later.
-          test -f "$cache/rookery/core/0.1.0/typst.toml"
+          test -f "$cache/rookery/core/0.1.1/typst.toml"
 
       # This repo's definition of "lint" is that a package's demo compiles
       # (CLAUDE.md, "Build"). `demo/pure` is plain `typst compile`, so it runs
@@ -134,18 +134,18 @@ jobs:
       # `prefix:`/`theme:`, which is document-wide state and cannot share a
       # document with content that hardcodes the default.
       - name: core pure demo compiles and checks, HTML and PDF
-        run: cd core/0.1.0/demo/pure && just build
+        run: cd core/0.1.1/demo/pure && just build
 
       # The rheo half of core's coverage, and the only thing that proves
       # package-`.marrow.typ` still mints: `check.sh` asserts on the OUTPUT —
       # minted note pages, backlinks, depth-relative hrefs, and the generated
       # `@layer rookery-tags` rules — none of which `demo/pure` can reach.
       - name: core rheo demo compiles and asserts, under the declared floor
-        run: cd core/0.1.0/demo/rheo && just check
+        run: cd core/0.1.1/demo/rheo && just check
 
       # The same content compiled a SECOND way, plain `typst compile`, no
       # rheo — one document, one compile pass, no minted pages — and asserted
       # by `check-native.sh`, not merely compiled. AFTER the namespace-symlink
-      # step, because the content imports `@rookery/core:0.1.0` by coordinate.
+      # step, because the content imports `@rookery/core:0.1.1` by coordinate.
       - name: core rheo demo's rookery compiles and asserts without rheo too
-        run: cd core/0.1.0/demo/rheo && just check-typst
+        run: cd core/0.1.1/demo/rheo && just check-typst
