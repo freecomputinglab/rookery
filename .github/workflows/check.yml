@@ -48,7 +48,7 @@ jobs:
           git fetch --no-tags --depth=1 origin main
           just check-release-parity FETCH_HEAD
 
-      # `pdftotext`, which `slipshow/0.1.0/demo/rheo/check.sh` reads the combined
+      # `pdftotext`, which `slipshow/0.1.1/demo/rheo/check.sh` reads the combined
       # PDF with to prove no HTML tag leaks into a paged compile. The runner image
       # carries no poppler, and the script's `2>/dev/null` on that call means an
       # absent binary would otherwise kill it silently under `set -e`.
@@ -140,7 +140,7 @@ jobs:
 
       # `@rookery` IS A CUSTOM NAMESPACE, NOT A TYPST-UNIVERSE ONE, so there is
       # no registry to download it from: it resolves only where the package
-      # cache already holds it. `search/0.1.0/src/lib.typ` imports
+      # cache already holds it. `search/0.1.1/src/lib.typ` imports
       # `@rookery/core:0.1.1` for `ideas` and `note-href`, and `just parity`
       # compiles that file through `typst eval` — so without this the next step
       # dies with `error: package not found (searched for @rookery/core:0.1.1)`.
@@ -163,7 +163,7 @@ jobs:
           mkdir -p "$cache"
           ln -s "$PWD" "$cache/rookery"
           # Fail HERE with something legible rather than inside a typst error later.
-          test -f "$cache/rookery/search/0.1.0/typst.toml"
+          test -f "$cache/rookery/search/0.1.1/typst.toml"
 
       # `search`, `todos`, `slipshow` and `pinboard` each import
       # `@rheo/rehydrate:0.1.0` from their entrypoint, for the `RheoRehydrate`
@@ -200,11 +200,11 @@ jobs:
       # `test/view.typ` + `test/check.sh` assert the markup `#timeline-view`
       # produces, which a paged compile cannot see.
       - name: timeline unit and view fixtures
-        run: cd timeline/0.1.0 && just test
+        run: cd timeline/0.1.1 && just test
 
       # AFTER the namespace-symlink step, like every step that resolves a
       # package by coordinate: @rookery/meetings imports BOTH
-      # `@rookery/core:0.1.1` and `@rookery/timeline:0.1.0`. Buildless like
+      # `@rookery/core:0.1.1` and `@rookery/timeline:0.1.1`. Buildless like
       # those two, so no vite step.
       #
       # `just test` here runs TWO fixtures: `test/units.typ` asserts the values
@@ -214,7 +214,7 @@ jobs:
       # note's prose, which is document order and so invisible to the value
       # fixture.
       - name: meetings unit and view fixtures
-        run: cd meetings/0.1.0 && just test
+        run: cd meetings/0.1.1 && just test
 
       # bibtex is buildless like meetings — pure Typst, no vite — and imports
       # `@rookery/core:0.1.1` for the notes its `#citation` constructor builds,
@@ -222,7 +222,7 @@ jobs:
       # two PDF fixtures and four HTML ones, echoing each one's stderr: the sweep
       # fixtures assert on the WARNINGS a sweep emits, so the output is the test.
       - name: bibtex unit and sweep fixtures
-        run: cd bibtex/0.1.0 && just test
+        run: cd bibtex/0.1.1 && just test
 
       # `just test` and `just parity` answer different questions: `just test`
       # is this package's own node suite (the panels, the island, the URL
@@ -233,7 +233,7 @@ jobs:
       # recipes import `src/`, but a build failure is worth catching here too,
       # since publish-packages.yml only builds on main.
       - name: search build, unit suite and parity
-        run: cd search/0.1.0 && just build && just test && just parity
+        run: cd search/0.1.1 && just build && just test && just parity
 
       # This repo's definition of "lint" is that a package's demo compiles
       # (CLAUDE.md, "Build"). `demo/pure` is plain `typst compile`, so it runs
@@ -278,18 +278,18 @@ jobs:
       # `search build and parity` step above, because `dist/` is gitignored and
       # rheo cannot resolve the package until vite has written it.
       - name: search rheo demo compiles and asserts
-        run: cd search/0.1.0/demo/rheo && just check
+        run: cd search/0.1.1/demo/rheo && just check
 
       # @rookery/todos needs three things in this order, which is why it sits
       # here rather than beside the unit fixtures above:
       #   - it is a BUILT package (its release ships `dist/lib.js`, gitignored),
       #     so vite has to run before rheo can resolve the release path;
       #   - it hard-imports BOTH `@rookery/core:0.1.1` and
-      #     `@rookery/timeline:0.1.0`, so it must follow the namespace symlink;
+      #     `@rookery/timeline:0.1.1`, so it must follow the namespace symlink;
       #   - `just test-js` covers the graph layout, which is the half of this
       #     package the Typst fixture cannot reach.
       - name: todos build, unit fixture and graph tests
-        run: cd todos/0.1.0 && just build && just test && just test-js
+        run: cd todos/0.1.1 && just build && just test && just test-js
 
       # `just check` builds the demo and then asserts on its OUTPUT. The one
       # assertion it exists for is the `.todo-search-row[hidden]` CSS rule:
@@ -298,27 +298,27 @@ jobs:
       # removes nothing. That compiles clean, passes the unit and JS suites, and
       # looks correct in the markup — it is only wrong on screen.
       - name: todos rheo demo compiles and asserts
-        run: cd todos/0.1.0 && just check
+        run: cd todos/0.1.1 && just check
 
       # AFTER the namespace-symlink step, like every rheo demo above: this
       # package imports `@rookery/core:0.1.1` by coordinate. AFTER its own
       # `just build`, because `dist/` is gitignored and rheo cannot resolve
       # the package until vite has written it.
       - name: slipshow build, unit fixtures and rheo demo
-        run: cd slipshow/0.1.0 && just build && just test && just test-js && just check
+        run: cd slipshow/0.1.1 && just build && just test && just test-js && just check
 
       # AFTER the namespace-symlink step, like every rheo demo above: these
       # example projects import `@rookery/core:0.1.1` by coordinate. AFTER
       # slipshow's own `just build` above, because `dist/` is gitignored and
       # rheo cannot resolve the package until vite has written it.
       - name: slipshow examples compile
-        run: cd slipshow/0.1.0 && just examples
+        run: cd slipshow/0.1.1 && just examples
 
       # The ninth package, on the same footing as the four above: `just check`
       # builds `dist/` and then the demo whose built HTML `test/browser/board.mjs`
       # asserts against, so the browser step below has a fixture to serve.
       - name: pinboard build, unit suite and rheo demo
-        run: cd pinboard/0.1.0 && just build && just test-js && just check
+        run: cd pinboard/0.1.1 && just build && just test-js && just check
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4

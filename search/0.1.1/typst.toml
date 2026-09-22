@@ -1,0 +1,86 @@
+[package]
+name = "search"
+version = "0.1.1"
+compiler = "0.15.0"
+entrypoint = "src/lib.typ"
+authors = ["The Free Computing Lab <https://freecomputinglab.ohrg.org>"]
+license = "MIT"
+description = "Fuzzy search over @rookery/core notes — Typst primitive, JSON index, and an embeddable search bar"
+repository = "https://github.com/freecomputinglab/rookery"
+
+# THE RHEO FLOOR, not a rookery version. It was `0.5.2` and that was wrong rather
+# than merely stale: this package hard-imports `@rookery/core` (`src/lib.typ`,
+# `src/lookup.typ`), whose own manifest declares the same floor — so a project on
+# rheo 0.5.2 satisfied what this said, then failed on the rookery it pulled in.
+# The other three packages in the family already said 0.6.0; this was the odd one
+# out. Its own readme states the dependency in prose too.
+#
+# 0.6.1 raises it, and not because the Typst surface moved: it is where rheo
+# learned to resolve a namespace it does not ship, via the `[packages.<ns>]`
+# table a project needs to say where `@rookery` comes from at all. Without it
+# these packages cannot be consumed under their own namespace, and
+# `[tool.rheo.source.html]` below is a 0.6.1 manifest key an older rheo reads
+# straight past. The floor turns "package not found" into a message naming the
+# version.
+[tool.rheo]
+#
+# 0.6.2 raises it again, and this one is the sharpest reason yet: 0.6.1 located
+# packages by probing Typst's directory layout in the two places that read a
+# package's `.marrow.typ`, and a package fetched from a ref lives at a path keyed
+# by its resolved commit, which no probe matches. Every page THIS FAMILY MINTS
+# FROM MARROW therefore went missing — on a build that succeeded and warned about
+# nothing. Declaring 0.6.2 is what turns that silence into an error naming the
+# version.
+min_version = "0.6.2"
+
+[tool.rheo.html]
+js_scripts = "dist/lib.js"
+css_stylesheet = "src/search.css"
+# THIS PACKAGE REBUILDS ITS OWN STATE AFTER A MORPH, so it does not need the
+# reload rheo's dev server would otherwise fall back to. `search.js`'s `init()`
+# wires every bar, modal and panel off the DOM as it stands at the moment it
+# runs, and rheo's `watch` build can now patch a content edit straight into the
+# live page (Idiomorph) instead of reloading it — a pass nothing re-runs
+# script for, and after which a widget wired against the OLD DOM is reading
+# markup that has moved under it. Declaring `js_rehydrate = true` is this
+# package saying it has its own fix: `search.js` pushes a callback onto
+# `window.__rheoRehydrate`, a queue rheo's live client drains after every
+# morph, which resets the URL-sync claim registry and re-runs `init()` from
+# scratch against the patched markup. OMITTING THE FLAG BREAKS NOTHING — an
+# older rheo, or a project that never opts in, reads straight past a key it
+# does not know and falls back to the full-page reload it already does today.
+js_rehydrate = true
+
+[tool.rheo.source.html]
+# THE SAME DECLARATION AS ABOVE, REPEATED RATHER THAN INHERITED: rheo merges
+# `[tool.rheo.source.*]` OVER `[tool.rheo.html]` for a project built against
+# `src/` rather than the `dist/lib.js` release, and a key stated only in the
+# release table is not something that merge carries across to the source one.
+# Skip it here and a source build would silently lose the fix above and fall
+# back to a full reload, while the very same package built as a release kept
+# rehydrating — the one asymmetry between the two build shapes that must never
+# show up as a behaviour difference.
+js_rehydrate = true
+# Every file `src/search.js` reaches via a relative ES import, listed
+# dependency-first: rheo's asset copy acts on exactly this list, not on a
+# scan of import statements, so a file left out here never lands in the
+# output even though the browser's own module graph would have found it.
+js_scripts = [
+  "src/urlstate.js",
+  "src/urlsync.js",
+  "src/text.js",
+  "src/marks.js",
+  "src/tagquery.js",
+  "src/score.js",
+  "src/row.js",
+  "src/preview.js",
+  "src/selection.js",
+  "src/island.js",
+  "src/limit.js",
+  "src/keywords.js",
+  "src/bar.js",
+  "src/modal.js",
+  "src/panel.js",
+  "src/search.js",
+]
+js_module = true
