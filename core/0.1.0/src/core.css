@@ -615,6 +615,16 @@ figure:has(> [data-rookery="page-list"]) {
      `margin-bottom`), so raising the id does not quietly spend the clearance
      above it. */
   padding-top: calc(0.5 * var(--idea-label-size, 0.57rem) + 1px);
+
+  /* THE GAP ABOVE A CARD IS THE UA'S OWN `figure { margin: 1em }`, collapsed with
+     whatever precedes it — a paragraph's `margin-bottom`, the card above's figure
+     margin — and this padding is all that is added to it. Stating a `margin-top`
+     here instead would buy nothing (see above) and stating one on a following-card
+     pairing would make a card after a card sit lower than a card after prose, which
+     is the one difference a reader notices in a column of notes. A project wanting a
+     wider column sets `figure { margin-block: … }` in its own stylesheet, where it
+     applies to every position at once. The bare-card rule below states the same
+     total on its own, having no figure to inherit it from. */
 }
 
 /* WINDOW AFTER WINDOW GETS A GAP, and it has to be said three times because a
@@ -659,55 +669,33 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
   margin-top: 1rem;
 }
 
-/* A CARD AFTER ANY FIGURE, and the gap has to grow with the label, which is the
-   whole point of the `calc`.
-
-   The rule above covers window-after-window; card-after-card would otherwise ride
-   the UA's own collapsed `figure { margin: 1em }` — 16px, which this stylesheet
-   never states and so never adjusts for the id. A card's id overhangs the top of
-   its figure by half a label: the tab is lifted by `label + 1px` and the figure
-   pays back only `0.5 * label + 1px` (see `figure:has(> [data-rookery="box"])`
-   above), so the clearance a reader actually sees is `16px - 0.5 * label` — linear
-   in the label size, and negative once the label is wide enough that the id would
-   touch the card above. The body's own content has nothing to do with it: an empty
-   card's clearance is identical to a full one's at every label size.
-
-   `1rem +` the overhang, so the visible clearance is a constant 1rem whatever
-   the project sets the label to — the same "express it against
-   `--idea-label-size`, not a pixel count" rule every other height here follows.
-
-   `figure + figure:has(> [data-rookery="box"])` rather than spelling out each pairing: the
-   overhang belongs to the FOLLOWING card, so what precedes it does not matter.
-   Window-after-window keeps its own flat `1rem` above; a window's summary tab
-   has a different lift and its rule is tuned against that. */
-figure + figure:has(> [data-rookery="box"]) {
-  margin-top: calc(1rem + 0.5 * var(--idea-label-size, 0.57rem));
-}
-
 /* A CARD WITH NO FIGURE AROUND IT, which is every card a minted page or a
    transclusion draws: `_flatten`'s IK rule (transclusion.typ) rebuilds the note
    in place of the `figure(kind: IK)` it matches and emits no figure of its own,
-   so that an enclosing `_flatten` cannot claim the same expansion twice. Both
-   rules above are keyed to that wrapper and so cannot reach such a card, which
-   therefore owes itself both of their numbers.
+   so that an enclosing `_flatten` cannot claim the same expansion twice. The
+   figure rule above cannot reach such a card, so it owes itself that rule's
+   clearance, as a margin it states in full rather than as padding inside a
+   wrapper it does not have.
 
-   A WHOLE LABEL, not the half `figure + figure:has(> [data-rookery="box"])`
-   adds: that pairing splits the overhang with the figure's own `padding-top`,
-   and here there is no figure to pay the other half. So this is `1rem` of
-   visible gap plus the entire lift the tab carries, `label + 1px`.
-
-   MARGIN, and nothing collapses it: `_sweep-block` runs before every replayed
-   card, so a `[data-rookery="page-refs"]` always sits directly above one, and an
-   empty sweep carries `margin: 0`. A sweep that DID catch a citation keeps its
-   own tighter clearance — `[data-rookery="page-refs"]:has(li) + [data-rookery="box"]`
-   below is the more specific selector and wins there.
+   ONE VALUE FOR EVERY POSITION, which is what makes a replayed card and a hatched
+   one indistinguishable. `1rem` is the collapsed figure margin a hatched card sits
+   under whatever precedes it, and `0.5 * label + 1px` is that figure's own
+   `padding-top`; their sum less the tab's `label + 1px` lift is the clearance a
+   reader sees, identical in both shapes. The card above contributes nothing to
+   compare against: a box sets no `margin-bottom`, and `[data-rookery="head"]` is a
+   block formatting context, so neither a run of cards nor a minted page's heading
+   collapses anything into this.
 
    `:not(figure > *)` because a replayed card wears exactly the markup a hatched
    one does; standing outside a figure IS the difference, and there is no class to
    hook. Where complex `:not()` is unsupported a hatched card takes this margin on
-   top of its figure's, and the run of cards reads loose rather than broken. */
+   top of its figure's, and the run of cards reads loose rather than broken.
+
+   A sweep that caught a citation keeps its own tighter clearance:
+   `[data-rookery="page-refs"]:has(li) + [data-rookery="box"]` below is the more
+   specific selector and wins there. */
 [data-rookery="box"]:not(figure > *) {
-  margin-top: calc(1rem + var(--idea-label-size, 0.57rem) + 1px);
+  margin-top: calc(1rem + 0.5 * var(--idea-label-size, 0.57rem) + 1px);
 }
 
 /* A PAGE LIST AFTER A CARD — the fourth shape a run of backlink rows arrives in,
@@ -1612,8 +1600,8 @@ a[data-rookery="row-title"]:hover {
 
    Expressed against `--idea-label-size` and carrying the same `+ 1px` the lift
    does, so the visible gap stays about 0.5rem whatever a project sets the label
-   to. Half of `figure + figure:has(> [data-rookery="box"])`'s 1rem, because a sweep and its
-   card are one note's apparatus rather than two stacked cards. */
+   to — tighter than the clearance above any other card, because a sweep and the
+   card it belongs to are one note's apparatus rather than two stacked cards. */
 [data-rookery="page-refs"]:has(li) + [data-rookery="box"] {
   margin-top: calc(0.5rem + var(--idea-label-size, 0.57rem) + 1px);
 }
