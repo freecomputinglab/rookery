@@ -74,6 +74,22 @@
                                       the card's corner shut. Defaults to
                                       `0.57rem`
 
+   DERIVED FROM `label-size`, and NOT for a project to set: three lengths the
+   spacing rules share, so the same arithmetic is stated once here instead of at
+   every site that needs it. Declared on the containers that carry the theme, so
+   each resolves against whatever `label-size` is in force where it is read:
+
+     --idea-hat-lift     how far a hat rises above the card edge it straddles —
+                         `label-size + 1px`, and the tab's negative margin is
+                         exactly its negation
+     --idea-hat-inset    what a figure pays back for that overhang, as its
+                         `padding-top`: `0.5 * label-size + 1px`
+     --idea-stack-gap    the clearance a reader SEES above a card, a window or a
+                         backlink row: `1rem - 0.5 * label-size`. Something with
+                         a hat adds `hat-lift` to it, because the hat eats that
+                         much of the gap; a backlink row, having none, takes it
+                         as written
+
    `--idea-border-color` defaults to `--idea-link-color` itself (not to a
    separate literal), so the rule and the link hover read as the same colour
    until a theme sets `border-color` on its own.
@@ -227,6 +243,34 @@
   display: flow-root;
 }
 
+/* THE HAT'S GEOMETRY, named once. Every lift, clearance and gap below is one of
+   these three lengths, or one plus another; see the header for what each means.
+
+   ON THE CONTAINERS, not on `:root`, and that is the whole reason the selector is
+   this long. A theme's `--idea-label-size` arrives as an INLINE property on the
+   elements `_themed` wraps (theme.typ) rather than at the document root, so a
+   derived length declared on `:root` would resolve against the 0.57rem fallback
+   while the tab's own lift resolved against the theme — the corner would open at
+   any label size but the default. Declared here, each container derives from the
+   value it actually carries, and the tab and label inherit the result.
+
+   The figures are listed for the same reason and read the fallback, being the
+   PARENT of the themed element rather than a descendant of it: a figure's inset
+   and the lift it pays for are only in step while a theme leaves `label-size`
+   alone. Moving the theme to the root, or onto the figure, is what would put them
+   back in step at any value. */
+figure:has(> [data-rookery="box"]),
+figure:has(> [data-rookery="window"]),
+figure:has(> [data-rookery="page-list"]),
+[data-rookery="box"],
+[data-rookery="window"],
+[data-rookery="head"],
+[data-rookery="page-list"] {
+  --idea-hat-lift: calc(var(--idea-label-size, 0.57rem) + 1px);
+  --idea-hat-inset: calc(0.5 * var(--idea-label-size, 0.57rem) + 1px);
+  --idea-stack-gap: calc(1rem - 0.5 * var(--idea-label-size, 0.57rem));
+}
+
 /* A REAL TOP-LEFT CORNER, and both margins are what make it one.
    `margin-left` cancels the card's `padding-left` so the stub starts exactly on
    the left rule's own line. `margin-top` lifts the tab so it STRADDLES the card's
@@ -260,19 +304,19 @@
      on the stub, because there the dash is a leader beside the id rather than a
      frame's top edge. */
   gap: 0.15em;
-  /* A whole label, not half: with the rule at the line's bottom (above), lifting by
-     the label's full height lands that rule on the box's top edge and leaves the id
-     entirely above it — half a label would centre the id ON the border instead.
-     From the custom property, never a pixel count, so a project retheming
-     `--idea-label-size` keeps the alignment. */
-  margin-top: calc(-1 * var(--idea-label-size, 0.57rem) - 1px);
+  /* THE NEGATION OF `--idea-hat-lift`, which is what makes that property mean what
+     it says: a whole label, not half, because with the rule at the line's bottom
+     (above) lifting by the label's full height lands that rule on the box's top edge
+     and leaves the id entirely above it, where half a label would centre the id ON
+     the border. */
+  margin-top: calc(-1 * var(--idea-hat-lift));
   margin-left: calc(-1 * var(--idea-pad, 0.5em) - var(--idea-rule-width, 2px));
 }
 
 /* `[data-rookery="window"]` puts 2px of padding above the `<summary>`, so the lift there has
    to clear that too or the corner lands 2px low. */
 [data-rookery="window-summary"] > [data-rookery="tab"] {
-  margin-top: calc(-1 * var(--idea-label-size, 0.57rem) - 3px);
+  margin-top: calc(-1 * var(--idea-hat-lift) - 2px);
 }
 
 /* ONE PIXEL OF AIR UNDER THE ID, and on the LABEL rather than on the tab. Lifting
@@ -296,7 +340,7 @@
    below), so the lift must give up the 2px it added to clear it or the tab lands
    2px high and the hat parts company with the wash under it. */
 [data-rookery="window-details"]:not([open]) > [data-rookery="window-summary"] > [data-rookery="tab"] {
-  margin-top: calc(-1 * var(--idea-label-size, 0.57rem) - 1px);
+  margin-top: calc(-1 * var(--idea-hat-lift));
 }
 
 /* The tab carries the space above a note, so the heading under it contributes
@@ -605,16 +649,13 @@ figure:has(> [data-rookery="page-list"]) {
   margin-right: 0;
   /* ROOM FOR THE LIFTED ID. The tab is pulled up by a negative margin, which does
      not make this figure any taller, so the id overflows UPWARD out of the box and
-     into whatever precedes it, by a whole label's height — the figure owes that
-     clearance back or the gap above the note shrinks by it.
+     into whatever precedes it — the figure owes that clearance back or the gap above
+     the note shrinks by it.
 
      PADDING, NOT MARGIN, and this is the trap: a `margin-top` here COLLAPSES with
      the preceding paragraph's `margin-bottom` (16px by default) and would do
      nothing at all. */
-  /* The `+ 1px` matches the extra 1px of lift the tab carries (see the label's
-     `margin-bottom`), so raising the id does not quietly spend the clearance
-     above it. */
-  padding-top: calc(0.5 * var(--idea-label-size, 0.57rem) + 1px);
+  padding-top: var(--idea-hat-inset);
 
   /* THE GAP ABOVE A CARD IS THE UA'S OWN `figure { margin: 1em }`, collapsed with
      whatever precedes it — a paragraph's `margin-bottom`, the card above's figure
@@ -678,13 +719,11 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
    wrapper it does not have.
 
    ONE VALUE FOR EVERY POSITION, which is what makes a replayed card and a hatched
-   one indistinguishable. `1rem` is the collapsed figure margin a hatched card sits
-   under whatever precedes it, and `0.5 * label + 1px` is that figure's own
-   `padding-top`; their sum less the tab's `label + 1px` lift is the clearance a
-   reader sees, identical in both shapes. The card above contributes nothing to
-   compare against: a box sets no `margin-bottom`, and `[data-rookery="head"]` is a
-   block formatting context, so neither a run of cards nor a minted page's heading
-   collapses anything into this.
+   one indistinguishable: `--idea-stack-gap` is the clearance a reader is meant to
+   see, and `--idea-hat-lift` is what the id eats out of it, so a card owes both.
+   Nothing collapses into it either way — a box sets no `margin-bottom` and
+   `[data-rookery="head"]` is a block formatting context, so neither a run of cards
+   nor a minted page's heading has a margin to contribute here.
 
    `:not(figure > *)` because a replayed card wears exactly the markup a hatched
    one does; standing outside a figure IS the difference, and there is no class to
@@ -695,7 +734,7 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
    `[data-rookery="page-refs"]:has(li) + [data-rookery="box"]` below is the more
    specific selector and wins there. */
 [data-rookery="box"]:not(figure > *) {
-  margin-top: calc(1rem + 0.5 * var(--idea-label-size, 0.57rem) + 1px);
+  margin-top: calc(var(--idea-stack-gap) + var(--idea-hat-lift));
 }
 
 /* A PAGE LIST AFTER A CARD — the fourth shape a run of backlink rows arrives in,
@@ -711,21 +750,17 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
    zeroes exactly that — the same reason `[data-rookery="footer"] figure + figure` had to
    exist above.
 
-   `1rem` MINUS HALF A LABEL, not a flat `1rem`, because two gaps are the same gap
-   only if they LOOK the same. Between two cards the 1rem above buys 16px of box
-   gap and the next card's id is lifted up into it: the figure's `padding-top` and
-   the tab's negative `margin-top` put the label's top exactly
-   `0.5 * --idea-label-size` above the figure's edge, so the reader sees only
-   `1rem - 0.5 * label` of empty space, not the full 1rem. A page row has no id to
-   lift, so a flat `1rem` would read as a LARGER gap than the run of cards it ends.
-   Reading the same custom property is what keeps the two in step when a project
-   retunes `--idea-label-size`.
+   `--idea-stack-gap` AS WRITTEN, with no `--idea-hat-lift` added to it, because two
+   gaps are the same gap only if they LOOK the same. That property IS the clearance a
+   reader sees above a card, once the id lifted into it is accounted for; a page row
+   has no id to lift, so it takes the value neat, where adding the lift as a card
+   does would read as a LARGER gap than the run of cards this list ends.
 
    No mirrored `[data-rookery="page-list"] + figure`: pages come after notes in Backlinks
    (see `page-rows` in `.marrow.typ`) and Context is a lone list with no figure
    beside it, so the reverse order does not arise. */
 [data-rookery="footer"] figure + [data-rookery="page-list"] {
-  margin-top: calc(1rem - 0.5 * var(--idea-label-size, 0.57rem));
+  margin-top: var(--idea-stack-gap);
 }
 
 /* A note and a transclusion of one indent identically, from a rule in the same
@@ -1598,12 +1633,12 @@ a[data-rookery="row-title"]:hover {
    under it; and because `_sweep-block` is never emitted before an `[data-rookery="window"]`,
    whose summary tab carries a different lift.
 
-   Expressed against `--idea-label-size` and carrying the same `+ 1px` the lift
-   does, so the visible gap stays about 0.5rem whatever a project sets the label
-   to — tighter than the clearance above any other card, because a sweep and the
-   card it belongs to are one note's apparatus rather than two stacked cards. */
+   `0.5rem` plus `--idea-hat-lift`, so what a reader sees is the half-rem and the id
+   lifted into it is paid for — tighter than `--idea-stack-gap` on purpose, because a
+   sweep and the card it belongs to are one note's apparatus rather than two stacked
+   cards. */
 [data-rookery="page-refs"]:has(li) + [data-rookery="box"] {
-  margin-top: calc(0.5rem + var(--idea-label-size, 0.57rem) + 1px);
+  margin-top: calc(0.5rem + var(--idea-hat-lift));
 }
 
 /* ---- #ideas-outline — a page's own notes, as a tree ------------------------
