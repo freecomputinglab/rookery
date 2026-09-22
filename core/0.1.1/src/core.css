@@ -1037,9 +1037,35 @@ h6[data-rookery="idea"] {
   cursor: default;
 }
 
-/* Its own line above the title, not another item in the title's row. */
+/* Its own line above the title, not another item in the title's row.
+
+   `min-width: 0` IS WHAT MAKES THE 100% MEAN 100%, and without it a long id
+   takes the document's scroll width with it — the same failure the long-id
+   clip near the top of this file exists to prevent, arriving by a different
+   route and so surviving that fix.
+
+   `flex: 0 0 100%` is `flex-shrink: 0` against a 100% basis, and a flex
+   item's automatic minimum size is its MIN-CONTENT width. The tab's children
+   are `nowrap` by construction, so min-content is the whole `[idea:<slug>]`,
+   and an item that may not shrink and floors at min-content resolves WIDER
+   than its own basis. The clip chain above (`[data-rookery="tab"] >
+   [data-rookery="label"]` and the three rules under it) then never fires: it
+   can only clip what it is given room to clip, and the tab hands it
+   unlimited room.
+
+   MEASURED on waterline's ohrg.org index at a 485px viewport, where an id is
+   a whole post slug: `summary[data-rookery="window-summary"]` came out 630px
+   against a 459px content box, the page scrolled 159px sideways, and the
+   centred search dialog was dragged off with it. A STANDALONE page was
+   already correct at the same id length, because there the tab is not a flex
+   item and takes its container's width with no floor to escape — which is
+   why this survived the fix that covered that case.
+
+   A SITE WITH SHORT IDS NEVER SAW IT: weeknotes.ohrg.org ids are five
+   characters, and its index measures zero overflow either way. */
 [data-rookery="window-summary"] > [data-rookery="tab"] {
   flex: 0 0 100%;
+  min-width: 0;
 }
 
 /* A FOLDED window says so at rest. Closed, a `#window` is its summary row and
