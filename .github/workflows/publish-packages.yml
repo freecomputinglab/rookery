@@ -1,18 +1,35 @@
+# A RELEASE IS THE MERGE OF A PULL REQUEST INTO MAIN, and nothing else. Not a push
+# to main: `check.yml` runs on a pull request, so gating the release on the merge is
+# what puts those checks between a version bump and the tag cut from it. A direct
+# push to main therefore publishes NOTHING — advance main by PR, or cut the release
+# by hand with `workflow_dispatch`.
 name: Publish Packages
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [main]
   workflow_dispatch:
 
 jobs:
   publish:
+    # `closed` fires whether the pull request merged or was simply abandoned, and
+    # only a merge is a release. `workflow_dispatch` carries no `pull_request`
+    # payload at all, hence the second arm rather than one combined condition.
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
+      # THE MERGE COMMIT, not the default `pull_request` checkout: that one is a
+      # throwaway merge of head into base, computed while the PR was open, and for a
+      # PR that has just closed it is neither what was reviewed nor what main now
+      # holds. Releases are cut from the tree main actually has. The fallback arm
+      # covers `workflow_dispatch`, where there is no pull request to read.
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.ref }}
 
       - uses: pnpm/action-setup@v5
         with:
