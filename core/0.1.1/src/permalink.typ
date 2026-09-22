@@ -63,7 +63,29 @@
       title: if same-page { "Link to this note" } else { "Open this note's page" },
       data-rookery: "label",
     ),
-    link(dest, "[" + id + "]"),
+    // TWO SPANS FOR ONE ID, and the closing bracket is the whole reason. On a
+    // column too narrow for it the id is clipped with an ellipsis (see the tab
+    // rules in core.css), and `text-overflow` eats the END of the text — which
+    // is the `]`, leaving `[idea:26w29-typst-…` hanging open. Held in its own
+    // element the bracket is outside the clipped box, so what the reader sees
+    // is `[idea:26w29-typst-…]`: a truncated id that still looks like an id.
+    //
+    // Both halves are real text, not generated content, so selecting the
+    // permalink still copies `[idea:26w29-typst-limited-form]` in full —
+    // which is the thing a reader is copying it FOR, to paste into a
+    // `#window("...")`.
+    link(dest, {
+      html.elem(
+        "span",
+        attrs: (class: _c("label-id"), data-rookery: "label-id"),
+        "[" + id,
+      )
+      html.elem(
+        "span",
+        attrs: (class: _c("label-close"), data-rookery: "label-close"),
+        "]",
+      )
+    }),
   )
 }
 

@@ -168,6 +168,43 @@
   margin-left: 0;
 }
 
+/* A LONG ID ON A NARROW COLUMN, clipped to what fits and closed with its own
+   bracket: `[idea:26w29-typst-…]`. Without this the hat is a `nowrap` row of
+   items that each floor at their content width, so `[idea:26w27-typst-limited-form]`
+   on a phone runs off the right edge and takes the document's scroll width
+   with it.
+
+   SCOPED TO THE TAB, not to every permalink: a bare one standing in prose (a
+   depth-exhausted nested window) is a word in a sentence, and a flex box in
+   the middle of a line is an atomic inline that will not break where the line
+   needs it to. There the two spans of `_permalink` just sit side by side and
+   nothing below applies.
+
+   THE ANCHOR IS THE FLEX BOX and the span outside it is the flex ITEM — the
+   clip has to happen on a box that is allowed to be narrower than its text,
+   and `min-width: 0` on both is what allows it (a flex item floors at
+   `auto`, its own content width, which is precisely the width being escaped).
+   The bracket keeps `flex: none`, so the shrinking lands entirely on the id
+   and the `]` stays whole at the right end of whatever room the hat has. */
+[data-rookery="tab"] > [data-rookery="label"] {
+  min-width: 0;
+}
+
+[data-rookery="tab"] > [data-rookery="label"] > a {
+  display: flex;
+  min-width: 0;
+}
+
+[data-rookery="tab"] > [data-rookery="label"] > a > [data-rookery="label-id"] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-rookery="tab"] > [data-rookery="label"] > a > [data-rookery="label-close"] {
+  flex: none;
+}
+
 /* THE TOP RULE. A note's id is not a word in its heading — it is the card's top
    edge, as wide as the id needs and no wider, with the id straddling it:
 
@@ -1310,6 +1347,17 @@ h6[data-rookery="idea"] {
   border-radius: var(--idea-tag-radius, 999px);
   padding: 0 0.5em;
   white-space: nowrap;
+  /* ELLIPSIS RATHER THAN OVERFLOW, which a narrow viewport otherwise gets: a
+     chip is `nowrap` by the line above, and a flex item's `min-width: auto`
+     floors it at its own content width — so `digital-theory-lab` in a hat on a
+     phone runs off the right edge of the page and takes the document's scroll
+     width with it. `min-width: 0` lets the chip be the item that gives, which
+     is the right one: the id beside it is an address a reader may want to type,
+     and the date is four characters. Clipped rather than wrapped because the
+     hat is one line tall by construction (see the height note above). */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--idea-tag-color, var(--idea-name-color, gray));
   background-color: var(--idea-tag-bg, rgba(128, 128, 128, 0.18));
   background-color: var(--idea-tag-bg, color-mix(in oklab, currentColor 14%, transparent));
