@@ -684,6 +684,32 @@ figure + figure:has(> [data-rookery="box"]) {
   margin-top: calc(1rem + 0.5 * var(--idea-label-size, 0.57rem));
 }
 
+/* A CARD WITH NO FIGURE AROUND IT, which is every card a minted page or a
+   transclusion draws: `_flatten`'s IK rule (transclusion.typ) rebuilds the note
+   in place of the `figure(kind: IK)` it matches and emits no figure of its own,
+   so that an enclosing `_flatten` cannot claim the same expansion twice. Both
+   rules above are keyed to that wrapper and so cannot reach such a card, which
+   therefore owes itself both of their numbers.
+
+   A WHOLE LABEL, not the half `figure + figure:has(> [data-rookery="box"])`
+   adds: that pairing splits the overhang with the figure's own `padding-top`,
+   and here there is no figure to pay the other half. So this is `1rem` of
+   visible gap plus the entire lift the tab carries, `label + 1px`.
+
+   MARGIN, and nothing collapses it: `_sweep-block` runs before every replayed
+   card, so a `[data-rookery="page-refs"]` always sits directly above one, and an
+   empty sweep carries `margin: 0`. A sweep that DID catch a citation keeps its
+   own tighter clearance — `[data-rookery="page-refs"]:has(li) + [data-rookery="box"]`
+   below is the more specific selector and wins there.
+
+   `:not(figure > *)` because a replayed card wears exactly the markup a hatched
+   one does; standing outside a figure IS the difference, and there is no class to
+   hook. Where complex `:not()` is unsupported a hatched card takes this margin on
+   top of its figure's, and the run of cards reads loose rather than broken. */
+[data-rookery="box"]:not(figure > *) {
+  margin-top: calc(1rem + var(--idea-label-size, 0.57rem) + 1px);
+}
+
 /* A PAGE LIST AFTER A CARD — the fourth shape a run of backlink rows arrives in,
    and the only one that is not a figure, so the rule above cannot reach it. A
    minted page's Backlinks lists notes as figure-wrapped windows and then pages as
