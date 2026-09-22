@@ -25,8 +25,14 @@
    anything emits no properties at all and still gets exactly this, and a
    reader with no custom-property support gets it too:
 
-     --idea-link-color   link-color   hover background on ANY rookery link
-     --idea-fold-color   fold-color   hover background on a foldable window block
+     --idea-link-color   link-color   THE POINTER IS ON A CONTROL: any rookery
+                                      link, a folded window, an open window's
+                                      header. Never a window's body, which has
+                                      nothing in it to click
+     --idea-fold-color   fold-color   THIS IS A WINDOW — an open one's ground, and
+                                      the resting wash on one with more behind it
+                                      (folded, or truncated). Painted with no
+                                      pointer near it, and hover deepens it
      --idea-name-color   name-color   the [idea:etal] permalink's text
      --idea-date-color   date-color   an idea's/window's date, where shown
      --idea-border-color border-color the left rule on `[data-rookery="box"]`/`[data-rookery="window"]`,
@@ -839,12 +845,74 @@ h6[data-rookery="idea"] {
   padding-bottom: 2px;
 }
 
-/* `:not([data-rookery-no-bg])` is `#window`'s `display-background: false`. It is a
+/* THE TWO FILLS ANSWER TWO DIFFERENT QUESTIONS, and the split is what the three
+   rules below are for. `--idea-link-color` — the stronger one, and the same fill a
+   rookery link, a search row and `@rheo/contents-panel`'s progress rail take —
+   means THE POINTER IS ON SOMETHING THAT CLICKS. `--idea-fold-color`, the fainter,
+   means THIS BLOCK IS A WINDOW: it is a resting ground, painted with no pointer
+   anywhere near it.
+   So a window tints green exactly over its control and nowhere else. Painting the
+   whole box on hover — which is what one blanket `[data-rookery="window"]:hover`
+   rule did — promised a click across a body that has nothing to click, and a
+   non-foldable window (`data-rookery-static`) got the same promise with no control
+   at all. Neither does now: the only rules are the three cases where a click
+   really is there.
+
+   `:not([data-rookery-no-bg])` is `#window`'s `display-background: false`. It is a
    switch of its own rather than part of the frame: a slipshow slide asks for
-   `display-frame: false` and keeps this tint, because the frame is decoration and
-   the tint is the slide answering a pointer. */
-[data-rookery="window"]:not([data-rookery-no-bg]):hover {
+   `display-frame: false` and keeps these tints, because the frame is decoration and
+   the tint is the slide answering a pointer.
+
+   CASE 1, FOLDED: the whole box IS the control — a folded window is its summary
+   plus the window's own padding, and a click anywhere on it unfurls. So the box
+   takes the green. `data-rookery-static` needs no exclusion here: a non-foldable
+   window carries `open` on its `div`, so it never matches `:not([open])`. */
+[data-rookery="window"]:not([data-rookery-no-bg]):has(> [data-rookery="window-details"]:not([open])):hover {
+  background-color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
+}
+
+/* CASE 2, OPEN: the window wears its own ground and keeps it under the pointer.
+   The body is prose — there is nothing in it to click — so a reader running the
+   mouse down a note they are READING gets no flicker, and the green stays worth
+   something by staying rare.
+   `:not([data-rookery-static])` IS load-bearing, unlike in case 1: a non-foldable
+   window carries `open` on its `div` and so matches `:has(> [open])`. It is a plain
+   block with no open/closed state to report, so it gets no ground either. */
+[data-rookery="window"]:not([data-rookery-no-bg]):not([data-rookery-static]):has(> [data-rookery="window-details"][open]) {
   background-color: var(--idea-fold-color, rgba(0, 100, 255, 0.05));
+}
+
+/* CASE 3, THE OPEN WINDOW'S HEADER, which is the one thing in an open window that
+   clicks — it closes it again. Green under the pointer, over the ground case 2 put
+   on the box behind it.
+   `summary[…]` RATHER THAN A `data-rookery-static` EXCLUSION, because the tag name
+   already is the test: `transclusion.typ` emits this row as a `<summary>` only when
+   the window folds and as a `<div>` otherwise, on the grounds that a `<summary>`
+   outside a `<details>` is not a control. So the selector matches a control and
+   cannot match a header that merely looks like one.
+   `[open]` KEEPS THIS OFF THE FOLDED CASE, where it would be a second green over
+   case 1's — compositing to a darker summary inside a lighter box, i.e. the
+   window's padding reading as a rim. Folded, the box alone is painted. */
+[data-rookery="window"]:not([data-rookery-no-bg]) > [data-rookery="window-details"][open] > summary[data-rookery="window-summary"]:hover {
+  background-color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
+}
+
+/* THE HEADER'S BACKGROUND HAS TO REACH THE FRAME, or case 3's green paints the
+   title's own box and leaves an `--idea-pad` gutter of case 2's ground down either
+   side — a band floating inside the window rather than the top of it. Same reach,
+   same arithmetic and the same reasoning as the folded window's wash below: out to
+   the left rule's INNER edge and across the window's own `padding-right`, never
+   under the border, because a translucent fill composited over a frame piece
+   changes that piece's colour where it sits and two ends of one frame must not part
+   company.
+   UNCONDITIONAL, NOT ON `:hover`: negative margin paired with equal padding leaves
+   the content box exactly where it was, so this widens what gets painted and moves
+   nothing. Doing it on hover instead would relayout the row under the pointer. */
+[data-rookery="window-details"][open] > summary[data-rookery="window-summary"] {
+  margin-left: calc(-1 * var(--idea-pad, 0.5em));
+  padding-left: var(--idea-pad, 0.5em);
+  margin-right: calc(-1 * var(--idea-pad, 0.5em));
+  padding-right: var(--idea-pad, 0.5em);
 }
 
 /* `#idea-body`'s wrapper carries this SECOND ATTRIBUTE to opt out of the box —
@@ -980,10 +1048,11 @@ h6[data-rookery="idea"] {
 
    TWO PROPERTIES, EACH DOING WHAT IT IS FOR. The floor is `--idea-border-color`,
    the frame colour, because a boundary is what it is. The folded row also takes
-   `--idea-fold-color` as a BACKGROUND WASH, which is the colour that already means
-   "this folds" — `[data-rookery="window"]:hover` paints exactly it. So a folded window reads
-   as pre-hovered: the affordance is on the row at rest instead of waiting for a
-   pointer that a touch device does not have.
+   `--idea-fold-color` as a BACKGROUND WASH, the fainter of the theme's two fills
+   and the one that means "there is more behind this". So a folded window carries its
+   affordance at rest instead of waiting for a pointer that a touch device does not
+   have, and the folded window's own `:hover` (case 1, above) answers the pointer in
+   the DARKER `--idea-link-color` over the top of it.
 
    THE WASH, NOT A FOLD-COLOURED LINE, and this is measured rather than taste.
    `--idea-fold-color`'s default is `rgba(0, 100, 255, 0.05)` — 5% alpha, tuned for
@@ -993,9 +1062,10 @@ h6[data-rookery="idea"] {
    reads fine, because area is what a 5% wash needs. Alpha that is too low for a
    hairline is exactly right for a wash.
 
-   Hovering a folded window therefore paints the wash twice — once here, once from
-   `[data-rookery="window"]:hover` behind it — compositing to about 9.75%. That is deliberate:
-   hover still does something, it just deepens a tint that is already there.
+   Hovering a folded window therefore paints twice — this 5% wash here, and
+   `--idea-link-color`'s 12% from case 1's rule on the box behind it, compositing to
+   about 16.4%. That is deliberate: hover still does something, it just deepens a
+   tint that is already there.
 
    Inert everywhere it should be: `[open]` exists only in HTML, so the paged
    target (where `folded` is ignored and the body always shows) never sees this,
@@ -1030,12 +1100,12 @@ h6[data-rookery="idea"] {
 }
 
 /* THE WASH stays on the SUMMARY rather than joining the floor on `[data-rookery="window"]`,
-   and the reason is `:hover`. `[data-rookery="window"]:hover` paints the same
-   `--idea-fold-color` on the window; put the resting wash on that same element and
+   and the reason is `:hover`. Case 1 above paints `--idea-link-color` on the folded
+   window's own box; put the resting wash on that same element and
    the two rules fight over one property — this selector is the more specific, so
-   hover would stop doing anything visible at all on a folded window. On separate
-   elements they COMPOSITE instead: about 9.75% under the pointer against 5% at
-   rest, so hover still deepens what is already there.
+   hover would stop doing anything at all on a folded window. On separate elements
+   they COMPOSITE instead: about 16.4% under the pointer against 5% at rest, so
+   hover still deepens what is already there.
    Both ends reach the frame so the wash spans the floor's full length: left to the
    rule's outer edge (the hat's arithmetic, above), right across the window's own
    `padding-right`. No radius on it: the folded window is square (see above), so

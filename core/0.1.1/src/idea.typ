@@ -226,7 +226,7 @@
   // A consequence for callers: this makes `#idea`'s own return value a
   // deferred `context` node, opaque to `.fields()` until Typst realizes it —
   // so a caller cannot walk an unplaced `#idea` value for the IK marker (see
-  // `slipshow/0.1.0/src/marker.typ` for a package that hit this and worked
+  // `slipshow/0.1.1/src/marker.typ` for a package that hit this and worked
   // around it with a sibling marker).
   context {
     // Resolution order: a NAMED note keeps its pinned id unconditionally —

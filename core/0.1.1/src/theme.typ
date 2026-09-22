@@ -36,9 +36,14 @@
 // through `var(--x, <default>)`. Adding a knob means adding a line here and a
 // `var()` there — nothing else.
 // The two that carry the look are `link-color` and `fold-color`: both are
-// hover backgrounds, so they compare like with like, and the lighter one
-// belongs to the fold (a block that only opens and closes) while the
-// stronger one belongs to every link (which actually goes somewhere).
+// translucent fills of the same hue, so they compare like with like, and what
+// separates them is the pointer rather than the element. `link-color`, the
+// stronger one, means A CONTROL IS UNDER THE POINTER — a link, a folded window, an
+// open window's header, a search row the mouse is on — so a hover reads the same
+// everywhere, and never appears over something that does not click. `fold-color`,
+// the lighter one, means THIS IS A WINDOW: an open one's ground and the resting
+// wash on one with more behind it, painted with no pointer near and deepened rather
+// than replaced when one arrives.
 //
 // `border-color` (the `.idea-box`/`.idea-window` left rule) has no default of
 // its own — `core.css` falls it back to `link-color` first, so a note's
