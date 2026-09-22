@@ -79,6 +79,62 @@ check-versions:
     fi
     echo "check-versions OK across $(ls -d */*/typst.toml | wc -l) manifests"
 
+# A STABILIZED PACKAGE IS AUTHORED ON MAIN, and reaches every other line by
+# inheritance rather than by an edit made there. `main` carries the packages that
+# have stabilized — `core` alone for now, the rest being alpha — and is the line
+# publish-packages.yml cuts releases from; `dev` carries all nine and descends
+# from main, so the stable ones it holds are main's, unmodified.
+#
+# That is what keeps a rebase cheap. While it holds, moving dev onto a new main is
+# a fast-forward; the moment a commit on dev edits a package that main also has,
+# the same rebase must merge two divergent copies of it, and every commit in
+# between inherits the conflict. This recipe states that invariant as a check, so
+# the failure lands on the commit that breaks it rather than on whoever rebases
+# next.
+#
+# THE PACKAGE LIST COMES FROM MAIN, not from a literal here, so a package
+# graduating out of alpha is covered the moment it lands there and this recipe
+# needs no edit. A package that is alpha — here but not on main — is untouched by
+# this, which is the point: dev is where it is still being written.
+#
+# `git`, NOT `jj`, because the CI runner has only the former — the same reason
+# `check-versions` above is written with grep and sed rather than rg.
+#
+# BASE is a revision, not a branch name, so CI can hand it the `FETCH_HEAD` of a
+# shallow fetch: `git diff` compares trees and needs no common history, which a
+# depth-1 checkout does not have.
+check-release-parity BASE="main":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    base='{{BASE}}'
+    if ! git rev-parse --verify --quiet "$base^{commit}" >/dev/null; then
+        echo "check-release-parity: no such revision '$base'"
+        exit 1
+    fi
+    # `<pkg>/<version>/typst.toml` is the layout (CLAUDE.md), so the first path
+    # component of every manifest on BASE is a released package's name.
+    pkgs=$(git ls-tree -r --name-only "$base" \
+        | sed -n 's|^\([^/]*\)/[^/]*/typst\.toml$|\1|p' | sort -u)
+    if [ -z "$pkgs" ]; then
+        echo "check-release-parity: $base holds no packages — nothing to compare"
+        exit 1
+    fi
+    fail=0
+    for pkg in $pkgs; do
+        if ! git diff --quiet "$base" -- "$pkg/"; then
+            echo "$pkg/ differs from $base:"
+            git diff --stat "$base" -- "$pkg/"
+            fail=1
+        fi
+    done
+    if [ "$fail" -ne 0 ]; then
+        echo
+        echo "Author changes to a stabilized package on main, then rebase this line onto it."
+        echo "check-release-parity: FAILED"
+        exit 1
+    fi
+    echo "check-release-parity OK — $(echo "$pkgs" | tr '\n' ' ')matches $base"
+
 # Real-engine tests, across WebKit (the Safari engine), Chromium and Gecko.
 # One runner per file under a package's `test/browser/`, so a package adds a
 # suite by adding a file and nothing here changes. Needs the root devShell for
