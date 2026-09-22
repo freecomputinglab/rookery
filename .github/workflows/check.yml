@@ -1,6 +1,7 @@
 # Tests and lints. Deliberately NOT folded into publish-packages.yml: a release
-# run must not be gated on a demo build, and a pull request needs these checks
-# before merge, where the publish workflow only runs on push to main.
+# run must not be gated on a demo build. The two meet at the pull request — this
+# workflow runs on one, and publish-packages.yml runs when one MERGES into main, so
+# these checks sit between a version bump and the tag cut from it.
 name: Check
 
 on:
@@ -23,6 +24,29 @@ jobs:
           node-version: '22'
 
       - uses: extractions/setup-just@v3
+
+      # A STABILIZED PACKAGE IS AUTHORED ON MAIN — see `check-release-parity` in the
+      # root Justfile for the invariant and why it is worth keeping. Editing one here
+      # is what turns the next rebase of this line onto main from a fast-forward into
+      # a conflict that every commit after it inherits, so this fails on the commit
+      # that did it rather than on whoever rebases next.
+      #
+      # SECOND in the job, after only the tool setup it needs: it costs one shallow
+      # fetch, and the twenty minutes of typst, rheo and playwright work below has no
+      # bearing on whether the answer is yes.
+      #
+      # dev ONLY. On main the comparison is against itself and proves nothing, and a
+      # branch aimed at main must stay free to change a released package — main being
+      # exactly where such a change belongs.
+      #
+      # The checkout is depth-1, so main is not in it. Fetching its tip alone is
+      # enough: `git diff` compares trees and needs no history shared with them.
+      - name: Stabilized packages match main
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin main
+          just check-release-parity FETCH_HEAD
 
       # `pdftotext`, which `slipshow/0.1.0/demo/rheo/check.sh` reads the combined
       # PDF with to prove no HTML tag leaks into a paged compile. The runner image
