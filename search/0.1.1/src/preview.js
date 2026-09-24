@@ -70,13 +70,21 @@ export const extractNote = (doc, pageUrl) => {
   // selector that survives that rename. `h1.idea` stays alongside it for a
   // page built by a core old enough to carry only the class.
   const h1 = doc.querySelector('h1.idea, h1[data-rookery="idea"]');
-  if (h1 === null) return null;
-  const head = h1.closest('.idea-head, [data-rookery="head"]') ?? h1;
+  // `display-title: false` on the minted note omits the `<h1>` entirely and
+  // moves the note's `id` onto the head wrapper itself (see
+  // `@rookery/core`'s `.marrow.typ`) — so a titleless page's own head is
+  // still a valid anchor, found by that `id` rather than by an `<h1>`. The
+  // `[id]` qualifier keeps this from matching a page with no note at all.
+  const head =
+    h1 === null
+      ? doc.querySelector('.idea-head[id], [data-rookery="head"][id]')
+      : h1.closest('.idea-head, [data-rookery="head"]') ?? h1;
+  if (head === null) return null;
   const box = document.createElement("div");
   box.className = "idea-window idea-window-plain";
   box.dataset.rookery = "window";
   box.dataset.rookeryPlain = "plain";
-  const style = head.getAttribute("style") ?? h1.getAttribute("style");
+  const style = head.getAttribute("style") ?? h1?.getAttribute("style") ?? null;
   if (style !== null) box.setAttribute("style", style);
   const inner = document.createElement("div");
   inner.className = "idea-window-body";

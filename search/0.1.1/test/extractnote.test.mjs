@@ -45,6 +45,20 @@ test("extractNote: null when there is no h1.idea at all (not a minted page)", ()
   assert.equal(extractNote(doc, "https://example.org/x.html"), null);
 });
 
+test("extractNote: titleless minted page — head wrapper carries the id, no <h1> at all", () => {
+  const doc = parse(`<!doctype html><body>
+    <div class="idea-head" data-rookery="head" id="maths:26-09-30">
+      <span class="idea-tab">tab</span>
+    </div>
+    <p>Body</p>
+    <footer class="idea-footer">f</footer>
+  </body>`);
+  const box = extractNote(doc, "https://example.org/maths/26-09-30.html");
+  assert.notEqual(box, null);
+  assert.equal(box.querySelector(".idea-window-body").textContent.trim(), "Body");
+  assert.equal(box.hasAttribute("style"), false);
+});
+
 test("extractNote: null when the range between heading and footer is empty", () => {
   const doc = parse(`<!doctype html><body>
     <div class="idea-head"><h1 class="idea">Title</h1></div>
