@@ -4,7 +4,7 @@
 
 = Rookery with horizontal footnotes
 
-#idea("margin-note", title: [Margin note])[
+#idea("margin-note", title: [Margin note], created: datetime(year: 2026, month: 1, day: 15), display-date: true)[
   A first paragraph with one footnote#footnote[The first margin note, beside
   this paragraph's own line.].
 

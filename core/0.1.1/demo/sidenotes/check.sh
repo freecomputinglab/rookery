@@ -51,7 +51,7 @@ note() { echo "FAIL: $*"; fail=1; }
 #
 # (f) Exactly one `data-rookery="mode"` marker per page, naming this
 # project's `data-rookery-footnotes="horizontal"` choice.
-python3 - "$H/index.html" "$H/ideas/margin-note.html" "$H/ideas/host-note.html" "$H/ideas/no-gutter.html" <<'SIDENOTES' || fail=1
+python3 - "$H/index.html" "$H/ideas/margin-note.html" "$H/ideas/host-note.html" "$H/ideas/no-gutter.html" "$H/ideas/plain-wide.html" <<'SIDENOTES' || fail=1
 import re, sys
 bad = 0
 
@@ -133,7 +133,7 @@ for path in sys.argv[1:]:
     # element, and that element's Footnotes block is INSIDE it — the own
     # card standing core.css needs to show margin notes on the page at all.
     if path.endswith("/ideas/margin-note.html"):
-        page_body_ms = list(re.finditer(r'<div class="[^"]*" data-rookery="page-body">', h))
+        page_body_ms = list(re.finditer(r'<div class="[^"]*" data-rookery="page-body"[^>]*>', h))
         if len(page_body_ms) != 1:
             print(f"FAIL: {path} has {len(page_body_ms)} data-rookery=\"page-body\" element(s), "
                   f"expected exactly 1")
@@ -144,6 +144,19 @@ for path in sys.argv[1:]:
                 print(f"FAIL: {path}'s data-rookery=\"page-body\" element carries no "
                       f"data-rookery=\"footnotes\" block")
                 bad = 1
+
+    # `data-rookery-gutter` on the minted page's body mirrors the resolved
+    # right-gutter flag, the same as an idea's own card (idea.typ) — the
+    # project sets `display-right-gutter: true`, and `no-gutter` overrides
+    # it back to `false` for its own note (content/index.typ).
+    if path.endswith("/ideas/plain-wide.html") or path.endswith("/ideas/margin-note.html"):
+        if 'data-rookery-gutter="on"' not in h:
+            print(f"FAIL: {path}'s page-body carries no data-rookery-gutter=\"on\"")
+            bad = 1
+    if path.endswith("/ideas/no-gutter.html"):
+        if 'data-rookery-gutter="off"' not in h:
+            print(f"FAIL: {path}'s page-body carries no data-rookery-gutter=\"off\"")
+            bad = 1
 
     if path.endswith("/index.html"):
         # (c) `host-note`'s window transclusion of `margin-note`: its own

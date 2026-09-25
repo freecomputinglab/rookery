@@ -9,6 +9,7 @@
     footnotes: "horizontal",
     bibliography: arguments(bytes(read("refs.bib"))),
     right-gutter: 40%,
+    display-right-gutter: true,
   )
   doc
 }

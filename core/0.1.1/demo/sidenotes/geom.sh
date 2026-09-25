@@ -80,6 +80,7 @@ const measure = box => {
       const p = r(n.parentElement);
       return {left: nr.left, right: nr.right, top: nr.top, bottom: nr.bottom, parentRight: p.right};
     });
+  const dateEl = box.querySelector('[data-rookery="date"]');
   return {
     right: b.right,
     width: b.width,
@@ -87,6 +88,7 @@ const measure = box => {
     notes,
     hasFootnotes: !!box.querySelector('[data-rookery="footnotes"]'),
     paragraphRight: firstParagraphRight(box),
+    dateRight: dateEl ? r(dateEl).right : null,
   };
 };
 
@@ -172,8 +174,20 @@ const sidenoteSample = pageBody.querySelector('[data-rookery="sidenote"]');
 const footnotesBlock = pageBody.querySelector('[data-rookery="footnotes"]');
 const fnRefLink = pageBody.querySelector('[data-rookery="fn-ref"] a');
 
+// The head and the footer are the page body's SIBLINGS (`.marrow.typ`), not
+// its descendants, so their own right edges have to be probed separately —
+// the split reaching them at all is exactly what core.css's sibling-combinator
+// rules are for.
+const h1 = document.querySelector('[data-rookery="head"] > h1');
+const dateEl = document.querySelector('[data-rookery="head"] [data-rookery="date"]');
+const footer = document.querySelector('[data-rookery="footer"]');
+const footerContentRight = footer
+  ? r(footer).right - parseFloat(getComputedStyle(footer).paddingRight)
+  : null;
+
 document.body.dataset.out = JSON.stringify({
   right: r(pageBody).right,
+  paddingRight: parseFloat(getComputedStyle(pageBody).paddingRight),
   notes,
   blockquoteRight: bq ? r(bq).right : null,
   textColumnRight: firstParagraphRight(pageBody),
@@ -181,19 +195,26 @@ document.body.dataset.out = JSON.stringify({
   footnotesDisplay: footnotesBlock ? getComputedStyle(footnotesBlock).display : null,
   fnRefPointerEvents: fnRefLink ? getComputedStyle(fnRefLink).pointerEvents : null,
   fnRefTextDecorationLine: fnRefLink ? getComputedStyle(fnRefLink).textDecorationLine : null,
+  h1Right: h1 ? r(h1).right : null,
+  dateRight: dateEl ? r(dateEl).right : null,
+  footerContentRight,
 });
 JS
 
 INDEX_OUT="$(measure index "$INDEX_JS" "index.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 BLOCKS_OUT="$(measure blocks "$BLOCKS_JS" "blocks.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 MARGIN_PAGE_OUT="$(measure ideas/margin-note "$MARGIN_PAGE_JS" "ideas/margin-note.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
+PLAIN_WIDE_PAGE_OUT="$(measure ideas/plain-wide "$MARGIN_PAGE_JS" "ideas/plain-wide.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
+NO_GUTTER_PAGE_OUT="$(measure ideas/no-gutter "$MARGIN_PAGE_JS" "ideas/no-gutter.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 
-python3 - "$INDEX_OUT" "$BLOCKS_OUT" "$MARGIN_PAGE_OUT" <<'PY'
+python3 - "$INDEX_OUT" "$BLOCKS_OUT" "$MARGIN_PAGE_OUT" "$PLAIN_WIDE_PAGE_OUT" "$NO_GUTTER_PAGE_OUT" <<'PY'
 import json, sys
 
 d = json.loads(sys.argv[1])
 b = json.loads(sys.argv[2])
 m = json.loads(sys.argv[3])
+pwp = json.loads(sys.argv[4])
+ngp = json.loads(sys.argv[5])
 TOL = 1
 bad = []
 
@@ -208,6 +229,13 @@ for n in mn["notes"]:
         bad.append(f"margin-note sidenote left {n['left']} < paragraph right {n['parentRight']}")
 if not close(mn["paddingRight"], 0.4 * mn["width"]):
     bad.append(f"margin-note padding-right {mn['paddingRight']} != 0.4 * width {mn['width']}")
+
+# (c) The hat's date ends at the text column's right edge — the card's own
+# content-box right edge, i.e. its border-box right minus its own
+# padding-right, the same split that makes room for the margin notes.
+mn_content_right = mn["right"] - mn["paddingRight"]
+if mn["dateRight"] is None or not close(mn["dateRight"], mn_content_right):
+    bad.append(f"margin-note card date right {mn['dateRight']} != content-box right {mn_content_right}")
 
 # The blockquote is exactly as wide as the text column (its first plain
 # paragraph's own right edge) — at most that edge, 1px tolerance either way.
@@ -228,9 +256,14 @@ wfr = d["windowFnRef"]
 if wfr is None or wfr["pointerEvents"] != "auto":
     bad.append(f"host-note window fn-ref link computes {wfr}, expected pointer-events auto")
 
+# `plain-wide` has no footnotes or citations of its own, but the project
+# sets `display-right-gutter: true` (content/lib.typ) with no per-note
+# override, so it resolves "on" exactly as `forced-gutter` does explicitly —
+# `_display-final`'s document-wide fallback (state.typ) reaches a note with
+# no margin notes just as readily as one with them.
 pw = d["plainWide"]
-if pw["paragraphRight"] is None or not close(pw["paragraphRight"], pw["right"]):
-    bad.append(f"plain-wide paragraph right {pw['paragraphRight']} != card right {pw['right']} — should not split")
+if not close(pw["paddingRight"], 0.4 * pw["width"]):
+    bad.append(f"plain-wide padding-right {pw['paddingRight']} != 0.4 * width {pw['width']} — should split under the project's display-right-gutter: true")
 
 # `no-gutter`'s body is a single paragraph, so Typst emits no <p> to probe —
 # checked directly via padding-right instead, the mechanism the split
@@ -313,6 +346,32 @@ if m["fnRefPointerEvents"] != "none" or m["fnRefTextDecorationLine"] != "none":
         f"text-decoration-line: {m['fnRefTextDecorationLine']}, expected none/none"
     )
 
+# (a) The head (the tab and the <h1>) and the footer are SIBLINGS of the
+# page body (`.marrow.typ`), not descendants of it, so the text column's
+# right edge has to be computed off the page body itself: its border-box
+# right minus its own computed padding-right.
+m_text_col = m["right"] - m["paddingRight"]
+if m["h1Right"] is None or m["h1Right"] > m_text_col + TOL:
+    bad.append(f"minted margin-note page h1 right {m['h1Right']} > text column right {m_text_col}")
+if m["footerContentRight"] is None or m["footerContentRight"] > m_text_col + TOL:
+    bad.append(f"minted margin-note page footer content right {m['footerContentRight']} > text column right {m_text_col}")
+
+# (b) The hat's date ends exactly at the text column's right edge, the same
+# alignment the card wears (assertion (c) on margin-note's own card, above).
+if m["dateRight"] is None or not close(m["dateRight"], m_text_col):
+    bad.append(f"minted margin-note page date right {m['dateRight']} != text column right {m_text_col}")
+
+# (d) A minted page's own `data-rookery-gutter` (`.marrow.typ`) drives the
+# same split its card gets: `plain-wide` resolves "on" from the project's
+# `display-right-gutter: true` and reserves a non-zero gutter; `no-gutter`
+# resolves "off" from its own `display-right-gutter: false` override and
+# reserves none. check.sh checks the attribute itself; this checks what it
+# does to the layout.
+if close(pwp["paddingRight"], 0):
+    bad.append(f"minted plain-wide page padding-right {pwp['paddingRight']} == 0, expected a reserved gutter")
+if not close(ngp["paddingRight"], 0):
+    bad.append(f"minted no-gutter page padding-right {ngp['paddingRight']} != 0")
+
 if bad:
     for line in bad:
         print("FAIL: " + line)
@@ -320,10 +379,12 @@ if bad:
 
 print(
     "  geom: margin-note's sidenotes sit flush on the card's right edge clear of "
-    "its text, its padding-right is 0.4 of its width, plain-wide and no-gutter "
-    "stay unsplit, no-gutter keeps a Footnotes block, forced-gutter splits with "
-    "no note, the two same-line notes stack, the blockquote stays within the text "
-    "column, and a footnote link is dead on the card and live inside a window"
+    "its text, its padding-right is 0.4 of its width, its date ends at the text "
+    "column's right edge, plain-wide now splits under the project's "
+    "display-right-gutter: true and no-gutter still overrides back to unsplit, "
+    "no-gutter keeps a Footnotes block, forced-gutter splits with no note, the "
+    "two same-line notes stack, the blockquote stays within the text column, and "
+    "a footnote link is dead on the card and live inside a window"
 )
 print(
     "  geom: blocks.html's page-level gutter block aligns with after-panel's "
@@ -334,7 +395,11 @@ print(
 print(
     "  geom: the minted margin-note page's page-body carries the same own-card "
     "standing — its sidenotes align, its blockquote stays in the text column, "
-    "sidenotes show, the Footnotes block hides, and its fn-ref links are dead"
+    "sidenotes show, the Footnotes block hides, and its fn-ref links are dead; "
+    "its head and footer, siblings of the body, split with it too, keeping the "
+    "<h1>, the footer and the hat's date inside the text column; and plain-wide's "
+    "minted page reserves a gutter while no-gutter's reserves none, matching "
+    "each one's own `data-rookery-gutter` attribute"
 )
 PY
 

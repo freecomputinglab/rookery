@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.1": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _margin-cite
+#import "@rookery/core:0.1.1": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _margin-cite
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
@@ -378,10 +378,31 @@
       // the mode, only CSS reads it, because varying the markup itself costs
       // convergence passes on a large, deeply windowed project (the same
       // reasoning the split rule's own banner gives, core.css).
-      #html.elem(
-        "div",
-        attrs: (class: _c("page-body"), data-rookery: "page-body"),
-        {
+      // `data-rookery-gutter` mirrors the resolved flag ONLY when it is a
+      // concrete `true`/`false`, the same rule `#idea`'s own card applies
+      // (idea.typ) — an `auto` result adds nothing, leaving the split to
+      // CSS's own `:has([data-rookery="sidenote"])` detection (core.css).
+      // `rec.display` carries the note's own override; `_display-final`
+      // falls back to the document-wide `rookery(display-right-gutter:)`
+      // state for whichever key is `auto`.
+      //
+      // THEMED, like the head and the footer beside it — `--idea-right-
+      // gutter` (a project's `right-gutter:` percentage) is a themed
+      // custom property (theme.typ), set as an inline style on whichever
+      // container reads it, and custom properties do not inherit sideways:
+      // the head and footer each carry their own copy (`_head`'s and the
+      // footer's own `_themed(..)` calls, above and below), so the body
+      // needs its own too, or it falls back to core.css's bare default
+      // instead of the project's own width and no longer agrees with them.
+      #{
+        let gutter = _display-final(rec.at("display", default: (:)), ("right-gutter",)).at("right-gutter")
+        let gutter-attrs = if gutter == true { ("data-rookery-gutter": "on") }
+          else if gutter == false { ("data-rookery-gutter": "off") }
+          else { (:) }
+        html.elem(
+          "div",
+          attrs: _themed((class: _c("page-body"), data-rookery: "page-body") + gutter-attrs),
+          {
           // Wrapped in `_footnoted` — the same wrapper `#idea` and `#window` use —
           // so the note's footnote markers are claimed HERE and listed in a block
           // of this page's own. A minted page is a separate `#document` at the
@@ -437,7 +458,8 @@
           // this page collapse and claim nothing, and this correctly goes false.
           _refs-block(_own-cited-keys(flat, windows-claim: minted-depth > 1), id: "refs-" + slug)
         },
-      )
+        )
+      }
       #{
         let origin = rec.at("origin", default: none)
         let back = backlinks.at(id, default: ())

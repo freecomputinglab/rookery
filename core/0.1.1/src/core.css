@@ -921,10 +921,37 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
    notes in-flow within its host's gutter, never a gutter of its own.
 
    A minted page's `[data-rookery="page-body"]` (`.marrow.typ`) is an own
-   card too, but it has no `data-rookery-gutter` attribute to opt out with —
-   there is only one body per page — so it joins the `:is(...)` unconditionally. */
-:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *):not([data-rookery-gutter="off"]), [data-rookery="page-body"]):has([data-rookery="sidenote"]),
-[data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *)[data-rookery-gutter="on"] {
+   card too, and carries the same `data-rookery-gutter` attribute a box
+   does — `.marrow.typ` resolves it from the note's own override, falling
+   back to the document-wide `display-right-gutter` state, exactly as
+   `#idea`'s card does. So it shares both branches below rather than only
+   the `:has(sidenote)` one. */
+:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]):not([data-rookery-gutter="off"]):has([data-rookery="sidenote"]),
+:is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"])[data-rookery-gutter="on"] {
+  padding-right: calc(var(--idea-right-gutter, 0.3333) * 100%);
+}
+
+/* On a minted page the head (the tab and the `<h1>`) and the footer
+   (Context/Backlinks) are SIBLINGS of `[data-rookery="page-body"]`, not
+   descendants of it (`.marrow.typ`), so the split above never reaches
+   them on its own — they still spanned the full width while the body
+   between them split into a text column. Both conditions here repeat the
+   page-body condition above verbatim, once for `:has(~ ...)` (the head,
+   which comes BEFORE the body) and once for the plain sibling combinator
+   (the footer, which comes AFTER it), so a page's title and footer split
+   exactly when its own body does, no wider and no narrower.
+
+   THE HEAD'S `:has()` READS `~ [data-rookery="page-body"]:not(…) [data-rookery
+   ="sidenote"]` — sibling combinator, THEN a descendant space — rather than
+   nesting a second `:has([data-rookery="sidenote"])` inside it: the CSS
+   spec forbids a `:has()` argument from containing another `:has()`, and a
+   nested one is not a specificity mismatch or a slow selector, it makes the
+   WHOLE rule invalid and silently unmatched — MEASURED, the head and footer
+   stayed full width until this was rewritten around it. */
+:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) [data-rookery="head"]:has(~ [data-rookery="page-body"]:not([data-rookery-gutter="off"]) [data-rookery="sidenote"]),
+[data-rookery="head"]:has(~ [data-rookery="page-body"][data-rookery-gutter="on"]),
+:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) [data-rookery="page-body"]:not([data-rookery-gutter="off"]):has([data-rookery="sidenote"]) ~ [data-rookery="footer"],
+[data-rookery="page-body"][data-rookery-gutter="on"] ~ [data-rookery="footer"] {
   padding-right: calc(var(--idea-right-gutter, 0.3333) * 100%);
 }
 
