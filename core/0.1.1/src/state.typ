@@ -524,14 +524,29 @@
 // distinct since both are always in the document. A `span`, not a `div`: it
 // is placed inline, inside the paragraph the marker sits in, and CSS
 // `float`s it into the margin from there.
-#let _fn-side(b, n, body) = {
+// `refs` names the works a citation INSIDE this footnote's own body cites
+// (`_footnote-cite-keys`, bib.typ) — its citation marker already sits
+// mid-sentence in `body`, so CSS cannot move it to the note's end, and this
+// appends the full references there instead. Emitted whenever `refs` is
+// non-empty, in every mode: core.css decides whether a reader sees it.
+#let _fn-side(b, n, body, refs: ()) = {
   let tag = str(b) + "-" + str(n)
+  let refs-block = if refs.len() == 0 { [] } else {
+    html.elem(
+      "span",
+      attrs: (class: _c("sidenote-refs"), data-rookery: "sidenote-refs"),
+      refs
+        .map(k => html.elem("span", attrs: (data-rookery: "sidenote-ref"), cite(label(k), form: "full")))
+        .join(),
+    )
+  }
   html.elem(
     "span",
     attrs: (class: _c("sidenote"), id: "sn-" + tag, data-rookery: "sidenote"),
     html.elem("span", attrs: (class: _c("sidenote-number"), data-rookery: "sidenote-number"), str(n))
       + [ ]
-      + body,
+      + body
+      + refs-block,
   )
 }
 

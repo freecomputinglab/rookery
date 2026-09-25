@@ -197,6 +197,23 @@
   }
 }
 
+// A footnote body's own cited works, for the refs block `_fn-side` appends at
+// the end of the note. De-duplicated and in citation order. Excludes an idea
+// link (`_cite-scan` counts a `ref` to another note as a "cite" too) — its key
+// carries the project's own note prefix, and `cite(label(k), form: "full")`
+// on a label that names no bibliography entry is a compile error, not a
+// no-op. Reads `_pfx()`, so every caller must already be inside a `context`.
+#let _footnote-cite-keys(body) = {
+  let pfx = _pfx()
+  let seen = ()
+  for e in _cite-scan(body) {
+    if e.kind == "cite" and not e.key.starts-with(pfx) and e.key not in seen {
+      seen.push(e.key)
+    }
+  }
+  seen
+}
+
 // Wrap one idea box's body: number its markers locally, then append the block.
 //
 // `_footnoted` runs FRESH every place a note's body is rendered: once for the
@@ -261,7 +278,11 @@
   } else {
     context {
       let b = _fn-block.get().first()
-      _number-footnotes(body, 1, n => _fn-ref(b, n) + _fn-side(b, n, notes.at(n - 1))).node
+      _number-footnotes(
+        body,
+        1,
+        n => _fn-ref(b, n) + _fn-side(b, n, notes.at(n - 1), refs: _footnote-cite-keys(notes.at(n - 1))),
+      ).node
       _fn-block-html(notes, b)
     }
   }

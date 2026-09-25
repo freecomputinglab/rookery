@@ -83,6 +83,28 @@ def extract_div(h, start):
             j = nxt_close + 6
     return h[start:j]
 
+def extract_span(h, start):
+    # `extract_div`'s balanced scan, for a `<span>` instead — a sidenote is a
+    # span nesting a number span, the note's body, and (when its footnote
+    # cites something) a further sidenote-refs span, so a plain non-greedy
+    # regex stops at the first nested `</span>` instead of the sidenote's own.
+    i = h.index(">", start) + 1
+    depth = 1
+    j = i
+    while depth > 0:
+        nxt_open = h.find("<span", j)
+        nxt_close = h.find("</span>", j)
+        if nxt_close == -1:
+            break
+        if nxt_open != -1 and nxt_open < nxt_close:
+            depth += 1
+            j = nxt_open + 5
+        else:
+            depth -= 1
+            j = nxt_close + 7
+    return h[start:j]
+
+
 def box_for(h, name):
     # Finds the `[data-rookery="box"]` div carrying a given idea's own
     # `id="idea:<name>"` heading, by walking backward from that id to the
@@ -257,6 +279,29 @@ for path in sys.argv[1:]:
                   f"and its repeat in that rendering's Footnotes list), across its own card, "
                   f"host-note's #window and bib-group's #window")
             bad = 1
+
+        # The fourth footnote's own sidenote ("Citing @lamport1994 here, …")
+        # carries a data-rookery="sidenote-refs" naming Lamport, gathered at
+        # the note's end since its inline citation note sits mid-sentence. A
+        # footnote citing nothing (every other one here) carries no such span.
+        for sn_id, sn_start in [
+            (m.group(1), m.start())
+            for m in re.finditer(r'<span class="idea-sidenote" id="sn-(\d+-\d+)" data-rookery="sidenote">', h)
+        ]:
+            sn_html = extract_span(h, sn_start)
+            has_citing = "Citing" in sn_html
+            refs_m = re.search(
+                r'<span class="[^"]*" data-rookery="sidenote-refs">(.*?)</span>\s*</span>\s*$', sn_html, re.S,
+            )
+            if has_citing:
+                if refs_m is None or "Lamport" not in refs_m.group(1):
+                    print(f"FAIL: {path}'s sidenote sn-{sn_id} (\"Citing …\") carries no "
+                          f"data-rookery=\"sidenote-refs\" naming Lamport")
+                    bad = 1
+            elif 'data-rookery="sidenote-refs"' in sn_html:
+                print(f"FAIL: {path}'s sidenote sn-{sn_id} cites nothing of its own but "
+                      f"carries a data-rookery=\"sidenote-refs\" span")
+                bad = 1
 
         # `bib-group`'s `#window((<margin-note>, <with-bib>), display-bibliography:
         # false)`: neither transcluded window carries a references block of its

@@ -147,6 +147,18 @@ const blockquoteMeasure = box => {
   return bq ? r(bq).right : null;
 };
 
+// The fourth footnote's own sidenote ("Citing @lamport1994 here, …") and the
+// sidenote-refs span its own citation gathers at the note's end — the same
+// note the "Citing" text-probe in check.sh names, found here by content
+// rather than by id since a document-wide block counter decides the id.
+const citingNote = [...marginNoteBox.querySelectorAll('[data-rookery="sidenote"]')]
+  .filter(n => !n.closest('[data-rookery="window"]'))
+  .filter(n => !n.closest('[data-rookery="footnotes"]'))
+  .filter(n => n.parentElement.closest('[data-rookery="sidenote"]') === null)
+  .find(n => n.textContent.includes('Citing'));
+const refsSpan = citingNote ? citingNote.querySelector('[data-rookery="sidenote-refs"]') : null;
+const numberSpan = citingNote ? citingNote.querySelector('[data-rookery="sidenote-number"]') : null;
+
 document.body.dataset.out = JSON.stringify({
   marginNote: measure(byIdea("margin-note")),
   plainWide: measure(byIdea("plain-wide")),
@@ -158,6 +170,9 @@ document.body.dataset.out = JSON.stringify({
   blockquoteRight: blockquoteMeasure(marginNoteBox),
   cardFnRef: linkProbe(cardFnRefLink),
   windowFnRef: linkProbe(windowFnRefLink),
+  refsDisplay: refsSpan ? getComputedStyle(refsSpan).display : null,
+  refsTop: refsSpan ? r(refsSpan).top : null,
+  citingNoteTextTop: numberSpan ? r(numberSpan).top : null,
 });
 JS
 
@@ -272,6 +287,11 @@ const citeNote = box.querySelector('[data-rookery="sidenote"][data-rookery-cite]
 const referencesBlock = box.querySelector('[data-rookery="references"]');
 const footnotesBlock = box.querySelector('[data-rookery="footnotes"]');
 const citeLink = box.querySelector('a[role="doc-biblioref"]');
+// No sidenote-refs span computes visible here — `citations: "vertical"`
+// (this page's own override) never turns the rule on, whichever card holds
+// one.
+const refsSpans = [...document.querySelectorAll('[data-rookery="sidenote-refs"]')]
+  .map(el => getComputedStyle(el).display);
 
 document.body.dataset.out = JSON.stringify({
   footnoteNoteDisplay: footnoteNote ? getComputedStyle(footnoteNote).display : null,
@@ -279,6 +299,7 @@ document.body.dataset.out = JSON.stringify({
   referencesDisplay: referencesBlock ? getComputedStyle(referencesBlock).display : null,
   footnotesDisplay: footnotesBlock ? getComputedStyle(footnotesBlock).display : null,
   citeLinkPointerEvents: citeLink ? getComputedStyle(citeLink).pointerEvents : null,
+  refsSpans,
 });
 JS
 
@@ -328,6 +349,18 @@ for n in mn["notes"]:
         bad.append(f"margin-note sidenote left {n['left']} < paragraph right {n['parentRight']}")
 if not close(mn["paddingRight"], 0.4 * mn["width"]):
     bad.append(f"margin-note padding-right {mn['paddingRight']} != 0.4 * width {mn['width']}")
+
+# The fourth footnote's own sidenote-refs span (gathering the Lamport
+# reference its inline citation note cannot show mid-sentence) computes
+# visible under citations: "horizontal", and sits inside the note, below its
+# own text.
+if d["refsDisplay"] != "block":
+    bad.append(f"margin-note citing-footnote refs span computes display: {d['refsDisplay']}, expected block")
+if d["refsTop"] is None or d["citingNoteTextTop"] is None or d["refsTop"] < d["citingNoteTextTop"] - TOL:
+    bad.append(
+        f"margin-note citing-footnote refs span top {d['refsTop']} < its own note's text top "
+        f"{d['citingNoteTextTop']} — expected inside the note, below the text"
+    )
 
 # (c) The hat's date ends at the text column's right edge — the card's own
 # content-box right edge, i.e. its border-box right minus its own
@@ -532,6 +565,8 @@ if mx["citeLinkPointerEvents"] != "auto":
     bad.append(
         f"mixed-note doc-biblioref link computes pointer-events: {mx['citeLinkPointerEvents']}, expected auto"
     )
+if any(dsp != "none" for dsp in mx["refsSpans"]):
+    bad.append(f"mixed.html has a sidenote-refs span computing display: {mx['refsSpans']}, expected none — citations: \"vertical\" never shows one")
 
 # Below core.css's 769px breakpoint, margin-note's sidenotes and its
 # Footnotes block revert to vertical, whatever `footnotes: "horizontal"`
@@ -561,6 +596,11 @@ for label, dn in (("phone (375px)", d_phone), ("tablet (700px)", d_tablet)):
             bad.append(f"margin-note {label} sidenote {n} is not collapsed, expected display: none below 769px")
     if not mn_n["hasFootnotes"]:
         bad.append(f"margin-note {label} has no data-rookery=\"footnotes\" block, expected the vertical fallback")
+    if dn["refsDisplay"] not in ("none", None):
+        bad.append(
+            f"margin-note {label} citing-footnote refs span computes display: {dn['refsDisplay']}, "
+            f"expected none below 769px"
+        )
 
 # The search preview pane (search/0.1.1/src/preview.js) re-parents a fetched
 # page's own [data-rookery="page-body"] inside a [data-rookery="window"] it

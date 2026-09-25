@@ -1936,6 +1936,29 @@ a[data-rookery="row-title"]:hover {
   display: none;
 }
 
+/* A footnote's inline citation note sits mid-sentence (the hidden nested
+   span above), so the full references it stands for are gathered at the
+   end of the footnote's own margin note instead (`_fn-side`, state.typ).
+   Typst emits this element in every mode; only `citations: "horizontal"`,
+   on an own card or page body outside a window, turns it on — the same
+   scope the split rule above uses. */
+[data-rookery="sidenote-refs"] {
+  display: none;
+}
+@media (min-width: 769px) {
+  :root:has([data-rookery="mode"][data-rookery-citations="horizontal"])
+    :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
+    [data-rookery="sidenote"] [data-rookery="sidenote-refs"] {
+    display: block;
+    margin-top: .35em;
+  }
+  :root:has([data-rookery="mode"][data-rookery-citations="horizontal"])
+    :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
+    [data-rookery="sidenote"] [data-rookery="sidenote-ref"] {
+    display: block;
+  }
+}
+
 /* `#gutter` places a block at the top of the same gutter a margin note
    floats into, so `[data-rookery="gutter"]` shares `--_g`'s width/margin
    algebra with `[data-rookery="sidenote"]` above rather than recomputing it —
