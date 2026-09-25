@@ -63,90 +63,6 @@ export const previewCache = new Map();
 // range, so this guards against an author writing `html.elem("script", ..)`
 // inside a note body rather than against anything routine — but a search
 // preview should never run code merely to be looked at.
-// Converts a note built under `@rookery/core`'s `footnotes: "horizontal"` into
-// the vertical shape a narrow preview pane can render: `_fn-side`'s margin
-// notes (core/0.1.1/src/state.typ) become a `_fn-block-html`-shaped Footnotes
-// list, citation margin notes are dropped, and the References block they
-// duplicated is unhidden. A vertical-mode note carries no sidenote spans, so
-// it passes through untouched.
-const verticalizeNotes = (inner) => {
-  // Snapshotted once: removals below shrink the tree, but the RELATIVE order
-  // of the elements that survive is unaffected, so one order array answers
-  // every "which comes first" question the rest of this function asks.
-  const order = Array.from(inner.querySelectorAll("*"));
-  const indexOf = (el) => order.indexOf(el);
-  const referencesEls = Array.from(inner.querySelectorAll('[data-rookery="references"]'));
-
-  const groups = new Map();
-  for (const el of inner.querySelectorAll('[data-rookery="sidenote"]')) {
-    if (el.hasAttribute("data-rookery-cite")) continue;
-    const m = /^fn-(\d+)-(\d+)$/.exec(el.getAttribute("id") ?? "");
-    if (m === null) continue;
-    const [, b, n] = m;
-    if (!groups.has(b)) groups.set(b, []);
-    groups.get(b).push({ n: Number(n), el });
-  }
-
-  for (const [b, notes] of groups) {
-    notes.sort((x, y) => indexOf(x.el) - indexOf(y.el));
-    const firstClass = (notes[0].el.getAttribute("class") ?? "").split(/\s+/)[0] ?? "";
-    const prefix = firstClass.endsWith("-sidenote")
-      ? firstClass.slice(0, -"-sidenote".length)
-      : "idea";
-
-    const items = notes.map(({ n, el }) => {
-      const li = document.createElement("li");
-      li.className = `${prefix}-footnote`;
-      li.id = `fn-${b}-${n}`;
-      li.dataset.rookery = "footnote";
-      const backlink = document.createElement("a");
-      backlink.className = `${prefix}-fn-backlink`;
-      backlink.setAttribute("href", `#fnref-${b}-${n}`);
-      backlink.dataset.rookery = "fn-backlink";
-      backlink.textContent = "^";
-      li.append(backlink, document.createTextNode(" "));
-      // The number span and its one following space are core's own separator
-      // between the visible number and the body — an HTML parser merges that
-      // space into the body's own leading text, so it is stripped as one
-      // leading character rather than hunted for as a node of its own.
-      const numberSpan = el.querySelector('[data-rookery="sidenote-number"]');
-      const kids = Array.from(el.childNodes).filter((child) => child !== numberSpan);
-      if (kids.length > 0 && kids[0].nodeType === 3 && kids[0].data.startsWith(" ")) {
-        kids[0] = document.createTextNode(kids[0].data.slice(1));
-      }
-      for (const child of kids) li.append(child);
-      return li;
-    });
-    for (const { el } of notes) el.remove();
-
-    const block = document.createElement("div");
-    block.className = `${prefix}-footnotes`;
-    block.dataset.rookery = "footnotes";
-    const title = document.createElement("h4");
-    title.className = `${prefix}-footnotes-title`;
-    title.dataset.rookery = "footnotes-title";
-    title.textContent = "Footnotes";
-    const list = document.createElement("ol");
-    list.className = `${prefix}-footnote-list`;
-    list.dataset.rookery = "footnote-list";
-    for (const li of items) list.append(li);
-    block.append(title, list);
-
-    const lastTag = `${b}-${notes[notes.length - 1].n}`;
-    const lastMarker = inner.querySelector(`[data-rookery="fn-ref"]#fnref-${lastTag}`);
-    const markerIdx = lastMarker === null ? -1 : indexOf(lastMarker);
-    const ref = referencesEls.find((r) => indexOf(r) > markerIdx) ?? null;
-    if (ref === null) inner.append(block);
-    else ref.before(block);
-  }
-
-  for (const el of inner.querySelectorAll('[data-rookery="sidenote"][data-rookery-cite]')) {
-    el.remove();
-  }
-  for (const el of inner.querySelectorAll('[data-rookery="references"]')) {
-    el.removeAttribute("hidden");
-  }
-};
 
 export const extractNote = (doc, pageUrl) => {
   // Matches either shape, exactly as the `.idea-head` lookup below does: the
@@ -181,7 +97,6 @@ export const extractNote = (doc, pageUrl) => {
   }
   if (inner.childNodes.length === 0) return null;
   for (const script of box.querySelectorAll("script")) script.remove();
-  verticalizeNotes(inner);
   for (const el of box.querySelectorAll("[href], [src]")) {
     for (const attr of ["href", "src"]) {
       const raw = el.getAttribute(attr);
