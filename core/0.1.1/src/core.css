@@ -79,6 +79,14 @@
                                       this same variable, so retheming it keeps
                                       the card's corner shut. Defaults to
                                       `0.57rem`
+     --idea-sidenote-width            under `footnotes: "horizontal"`, how wide a
+                                      margin note is before the gutter clamp
+                                      narrows it (see `[data-rookery="sidenote"]`
+                                      below). No Typst param — set it in a
+                                      project's own stylesheet. Defaults to `14rem`
+     --idea-sidenote-gap              the clearance between a margin note and the
+                                      text column beside it, under the same mode.
+                                      Defaults to `2rem`
 
    DERIVED FROM `label-size`, and NOT for a project to set: three lengths the
    spacing rules share, so the same arithmetic is stated once here instead of at
@@ -1671,6 +1679,54 @@ a[data-rookery="row-title"]:hover {
   color: var(--idea-name-color, gray);
   text-decoration: none;
   margin-right: 0.3em;
+}
+
+/* Margin notes, under `footnotes: "horizontal"` (state.typ's `_fn-side`) — the
+   alternative to the Footnotes block above, HTML only. Each note floats into
+   the right margin beside the line its marker sits on, so it takes no width
+   in the text column: `float: right; clear: right` with a negative right
+   margin equal to its own width plus the gutter, which is what pulls it out
+   of the flow rather than pushing the text narrower. `clear: right` is what
+   makes a colliding note stack below the one above it instead of overlapping
+   it — the one piece of "layout" this needs, and CSS already does it.
+
+   The width clamp assumes the text column is centred in the viewport:
+   `50vw - 50%` is the distance from the column's right edge to the viewport's
+   right edge, where `%` resolves against the width of the float's containing
+   block (the paragraph). A column that is NOT centred throws this off; a
+   reader who centres their column differently overrides `--idea-sidenote-width`
+   or `--idea-sidenote-gap` rather than this formula. */
+[data-rookery="sidenote"] {
+  float: right;
+  clear: right;
+  display: block;
+  --_w: max(0px, min(var(--idea-sidenote-width, 14rem), calc(50vw - 50% - var(--idea-sidenote-gap, 2rem) - 1rem)));
+  width: var(--_w);
+  margin-right: calc(-1 * (var(--_w) + var(--idea-sidenote-gap, 2rem)));
+  margin-top: 0;
+  margin-bottom: 0.6em;
+  font-size: 0.8em;
+  line-height: 1.35;
+  color: var(--idea-name-color, gray);
+  border-left: 2px solid var(--idea-border-color, rgba(128, 0, 255, 0.12));
+  padding-left: 0.5em;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+[data-rookery="sidenote-number"] {
+  color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
+  font-weight: 600;
+}
+
+/* Hover couples the marker and its margin note in both directions, so either
+   one lights up the pair regardless of which the reader's pointer is on. */
+[data-rookery="fn-ref"]:hover + [data-rookery="sidenote"],
+[data-rookery="sidenote"]:hover {
+  color: inherit;
+  border-left-color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
+}
+[data-rookery="fn-ref"]:has(+ [data-rookery="sidenote"]:hover) a {
+  text-decoration: underline;
 }
 
 /* ---- References — one bibliography per idea, and the page's own -----------

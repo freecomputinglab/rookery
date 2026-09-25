@@ -42,6 +42,7 @@
   display-tags,
   display-title,
   page-titles,
+  footnotes,
   invisible-tags,
 ) = {
   assert(
@@ -175,6 +176,12 @@
     message: "@rookery/core: `page-titles` must be \"title\" (rheo's own spine "
       + "title for a page) or \"path\" (its source path, content dir and extension "
       + "dropped) — got " + repr(page-titles),
+  )
+  assert(
+    footnotes == "vertical" or footnotes == "horizontal",
+    message: "@rookery/core: `footnotes` must be \"vertical\" (a Footnotes block "
+      + "under each idea) or \"horizontal\" (margin notes beside the text) — got "
+      + repr(footnotes),
   )
   // THROUGH `_assert-tags`, the same helper every other tag-shaped argument in
   // this package uses, so `invisible-tags: "private"` needs no array ceremony and
@@ -432,6 +439,17 @@
 // false` already opted into supplying their own `show ref` rule, whichever
 // target it picks.
 //
+// `footnotes:` picks how `#footnote` bodies render: "vertical" (the default)
+// lists them in a Footnotes block under each idea; "horizontal" sets each
+// one in the right margin, beside the line its marker sits on. Only the HTML
+// target sees the difference — paged and epub always render the vertical
+// block. A PROJECT-WIDE choice like `page-titles` above, read with
+// `.final()`, so the last vertebra to apply the template settles it for
+// every idea and window, marrow's minted pages included. Under "horizontal"
+// it is the project's job to leave a right gutter wide enough for the notes;
+// the CSS clamps their width to whatever gutter it finds rather than
+// widening the page for them.
+//
 // Defined last in this file because a `#let` closure captures the scope
 // visible AT DEFINITION time — `hyperlink` must already exist.
 #let rookery(
@@ -466,6 +484,7 @@
   display-tags: auto,
   display-title: auto,
   page-titles: "title",
+  footnotes: "vertical",
   invisible-tags: (),
   doc,
 ) = {
@@ -527,6 +546,7 @@
     display.tags,
     display.title,
     page-titles,
+    footnotes,
     invisible-tags,
   )
   let resolved = _resolve-theme(
@@ -582,6 +602,7 @@
   _display-tags.update(display.tags)
   _display-title.update(display.title)
   _page-titles.update(page-titles)
+  _footnote-mode.update(footnotes)
   // Normalized to a flat array of NAMES here, once, so `_visible-tags` can do a
   // plain `t not in hidden` on every call rather than re-deriving the shape.
   // `.update(value)` and never `.update(_ => value)` — an array is not a

@@ -258,6 +258,13 @@ jobs:
       - name: core rheo demo compiles and asserts, under the declared floor
         run: cd core/0.1.1/demo/rheo && just check
 
+      # `footnotes: "horizontal"`'s own fixture — margin notes beside the
+      # text instead of a Footnotes block, HTML only. A separate project from
+      # `demo/rheo` above because that one pins the vertical default and
+      # must stay unchanged.
+      - name: core sidenotes demo compiles and asserts
+        run: cd core/0.1.1/demo/sidenotes && just check
+
       # The same content compiled a SECOND way, plain `typst compile`, no
       # rheo — one document, one compile pass, no minted pages — and asserted
       # by `check-native.sh`, not merely compiled. AFTER the namespace-symlink

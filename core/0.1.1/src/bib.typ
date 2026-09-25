@@ -172,7 +172,14 @@
   _fn-block.step()
   context {
     let b = _fn-block.get().first()
-    _number-footnotes(body, 1, n => _fn-ref(b, n)).node
-    _fn-block-html(notes, b)
+    // Horizontal mode is HTML-only (see `_fn-side`'s CSS, core.css) — paged
+    // and epub always get the vertical block below, regardless of the mode.
+    let horizontal = _footnote-mode.final() == "horizontal" and _target() == "html"
+    if horizontal {
+      _number-footnotes(body, 1, n => _fn-ref(b, n) + _fn-side(b, n, notes.at(n - 1))).node
+    } else {
+      _number-footnotes(body, 1, n => _fn-ref(b, n)).node
+      _fn-block-html(notes, b)
+    }
   }
 }

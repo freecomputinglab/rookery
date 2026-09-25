@@ -290,6 +290,13 @@
 // footer to disagree with another's about what a page is called.
 #let _page-titles = state("rheo-idea-page-titles", "title")
 
+// "vertical" (a Footnotes block under each idea) or "horizontal" (margin
+// notes beside the text, HTML only). A PROJECT-LEVEL CHOICE for the same
+// reason as `_page-titles` above: read with `.final()`, so the last vertebra
+// to apply the template settles it for every rendering, marrow's minted pages
+// included.
+#let _footnote-mode = state("rheo-idea-footnote-mode", "vertical")
+
 //
 //   #show: rookery.with(invisible-tags: ("private",))
 //
@@ -479,6 +486,21 @@
   } else {
     super(str(n))
   }
+}
+
+// The margin note, used in place of `_fn-block-html` under `footnotes:
+// "horizontal"` (see `_footnoted`, bib.typ). Carries the SAME id `_fn-ref`
+// links to (`fn-{b}-{n}`), so the marker's `href` resolves whichever mode is
+// in force. A `span`, not a `div`: it is placed inline, inside the paragraph
+// the marker sits in, and the CSS `float`s it into the margin from there.
+#let _fn-side(b, n, body) = {
+  let tag = str(b) + "-" + str(n)
+  html.elem(
+    "span",
+    attrs: (class: _c("sidenote"), id: "fn-" + tag, data-rookery: "sidenote"),
+    html.elem("span", attrs: (class: _c("sidenote-number"), data-rookery: "sidenote-number"), str(n))
+      + [ ] + body,
+  )
 }
 
 // The block itself, at the end of the idea's body. Empty content when there is

@@ -1,0 +1,14 @@
+# @rookery/core's in-repo coverage for `footnotes: "horizontal"` — a small
+# rheo project so `.marrow.typ`'s minted pages get the same margin notes as
+# the vertebra that hatched them. `demo/rheo` next door keeps the vertical
+# default and stays untouched.
+version = "0.6.2"
+content_dir = "content"
+formats = ["html"]
+
+# Reads `@rookery/*` straight out of this repository's own tree rather than
+# the package cache — see `demo/rheo/rheo.toml`'s copy of this comment for
+# why. `path` is anchored to this file's own directory, four levels up from
+# `<name>/<version>/`.
+[packages.rookery]
+path = "../../../.."
