@@ -508,22 +508,15 @@
     // rather than a downstream override. `data-rookery` stays "window" (every
     // generic window rule still applies); `data-rookery-plain` is the boolean
     // flag core.css keys the two box-suppressing overrides on.
-    // The `_in-window` bracket sits INSIDE `_bracket`'s figure, same as
-    // `_window-content`'s own (transclusion.typ): `inner` already carries
-    // the `_footnoted`/`_refs-block` calls that read the depth, and they
-    // must see it raised before they render.
     _bracket(
-      _in-window.update(n => n + 1) + html.elem(
+      html.elem(
         "div",
         attrs: _themed((class: _c("window") + " " + _c("window-plain"), data-rookery: "window", data-rookery-plain: "plain")),
         html.elem("div", attrs: (class: _c("window-body"), data-rookery: "window-body"), inner),
-      ) + _in-window.update(n => n - 1),
+      ),
       WK,
     )
   } else {
-    _bracket(
-      _in-window.update(n => n + 1) + align(start, block(inner)) + _in-window.update(n => n - 1),
-      WK,
-    )
+    _bracket(align(start, block(inner)), WK)
   }
 }

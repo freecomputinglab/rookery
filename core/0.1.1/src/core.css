@@ -886,15 +886,24 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
 }
 
 /* Which top-level cards split into a text column and a right gutter, under
-   `footnotes: "horizontal"`. `:has()` does the `display-right-gutter: auto`
-   detection: a card holding a margin note splits on its own; `idea.typ`'s
-   `data-rookery-gutter` attribute overrides that either way. TOP-LEVEL
-   ONLY — `:not([data-rookery="box"] *, [data-rookery="window"] *)` excludes
-   a card nested inside another card or a window, which never splits
-   independently; its notes float into whichever top-level card hosts it.
-   A window is never a candidate at all: it always renders its notes
-   in-flow within its host's gutter, never a gutter of its own. */
-[data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *):has([data-rookery="sidenote"]):not([data-rookery-gutter="off"]),
+   `footnotes: "horizontal"`.
+
+   Typst emits the SAME markup in both modes now (bib.typ/state.typ) — a
+   card always carries a `[data-rookery="sidenote"]`, whichever mode the
+   project chose — because varying Typst's own output with the mode cost
+   convergence passes on a large, deeply windowed project. So the split
+   itself is gated on `[data-rookery="mode"]` (template.typ/.marrow.typ,
+   one per page) rather than `:has([data-rookery="sidenote"])` alone, which
+   can no longer tell the modes apart. `idea.typ`'s `data-rookery-gutter`
+   attribute still overrides the result either way: `="off"` never splits,
+   `="on"` always does, mode included.
+
+   TOP-LEVEL ONLY — `:not([data-rookery="box"] *, [data-rookery="window"]
+   *)` excludes a card nested inside another card or a window, which never
+   splits independently; its notes float into whichever top-level card
+   hosts it. A window is never a candidate at all: it always renders its
+   notes in-flow within its host's gutter, never a gutter of its own. */
+:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) [data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *):has([data-rookery="sidenote"]):not([data-rookery-gutter="off"]),
 [data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *)[data-rookery-gutter="on"] {
   padding-right: calc(var(--idea-right-gutter, 0.3333) * 100%);
 }
@@ -1683,6 +1692,19 @@ a[data-rookery="row-title"]:hover {
   font-size: 0.85em;
 }
 
+/* Hidden on an own card under horizontal mode, where the margin notes
+   already show the same content beside the text — the same card and mode
+   condition the sidenote-visibility rule above uses, on the block instead of
+   the note. `:not([data-rookery="window"] *)` on the block itself, not only
+   on the card ancestor: without it a `#window` transcluded INTO this card
+   would have its own, always-vertical Footnotes block (below) swept up by
+   this rule too, since it is also a descendant of the same card. */
+:where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
+  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *))
+  [data-rookery="footnotes"]:not([data-rookery="window"] *) {
+  display: none;
+}
+
 /* An <h4> for document-outline correctness, styled so it does not read as one.
    Size and margins are set explicitly rather than left to inherit: a site's own
    heading scale would otherwise make "Footnotes" compete with the note's title
@@ -1755,11 +1777,15 @@ a[data-rookery="row-title"]:hover {
    right edge exactly on the card's right edge — the padding-right already
    reserved that space. KNOWN IMPRECISION: a note inside a list item or
    blockquote is narrower than this by that element's own indent, since
-   `--_inset` only accounts for the card's. */
+   `--_inset` only accounts for the card's.
+
+   `display: none` by default: Typst emits this element in every mode (see
+   the banner above the split rule), so vertical is CSS hiding what horizontal
+   shows rather than Typst omitting it. The rule below turns it back on. */
 [data-rookery="sidenote"] {
+  display: none;
   float: right;
   clear: right;
-  display: block;
   margin-top: 0;
   margin-bottom: 0.6em;
   font-size: 0.8em;
@@ -1768,6 +1794,37 @@ a[data-rookery="row-title"]:hover {
   border-left: 2px solid var(--idea-border-color, rgba(128, 0, 255, 0.12));
   padding-left: 0.5em;
   transition: color 0.2s, border-color 0.2s;
+}
+
+/* Shows a margin note on any idea's own card — nested or top-level — under
+   horizontal mode, as long as it is not inside a `#window` (below: a window
+   always renders vertically, whatever the project's mode) and has not opted
+   out with `data-rookery-gutter="off"` (left at the default, hidden, same as
+   vertical mode). `:where()` on the mode and card conditions keeps this
+   rule's specificity down to the bare attribute selector it ends in, which
+   is what lets the window rule below — a plain two-selector descendant rule —
+   outrank it for a note that is inside both. */
+:where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
+  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *))
+  [data-rookery="sidenote"] {
+  display: block;
+}
+
+/* A window always renders vertically, whatever the project's mode — a page
+   windowing several posts would otherwise scatter one host card's margin
+   notes across posts it does not own. Two attribute selectors outrank the
+   `:where()`-shielded rule above, so this wins regardless of source order
+   for a note that is inside both an own card and a window nested in it. */
+[data-rookery="window"] [data-rookery="sidenote"] {
+  display: none;
+}
+
+/* A citation cited from inside a footnote's own margin note is already in
+   the margin — `_margin-cite` (bib.typ) still wraps it, since a `show cite`
+   rule cannot see where it will land, so the nested span this produces is
+   hidden here instead, and the citation stays inline in the note's text. */
+[data-rookery="sidenote"] [data-rookery-cite] {
+  display: none;
 }
 
 /* `#gutter` places a block at the top of the same gutter a margin note
@@ -1780,6 +1837,19 @@ a[data-rookery="row-title"]:hover {
   --_g: calc((100% + var(--_inset, 0px)) * var(--idea-right-gutter, 0.3333) / (1 - var(--idea-right-gutter, 0.3333)));
   width: calc(var(--_g) - var(--idea-sidenote-gap, 1.5rem));
   margin-right: calc(-1 * var(--_g));
+}
+
+/* A `#gutter` transcluded inside a `#window` has no right gutter reserved
+   for it there — a transcluded body always renders vertically (see the
+   sidenote rule above), so its own `#gutter` renders in the flow like any
+   other block rather than floating into a margin nothing has reserved. Two
+   attribute selectors, outranking the rule above (also two) by source order
+   alone, so this wins for a `#gutter` inside a window nested in a card. */
+[data-rookery="window"] [data-rookery="gutter"] {
+  float: none;
+  width: auto;
+  margin: 0;
+  position: static;
 }
 
 /* At page level, before any card, `[data-rookery="gutter"]` has no `--_inset`
@@ -1858,11 +1928,15 @@ a[data-rookery="row-title"]:hover {
   font-size: 0.85em;
 }
 
-/* Horizontal footnote mode still emits this block (Typst partitions citations
-   positionally — one with no bibliography following it is a hard error) but
-   the margin notes beside each citation already show the full reference, so
-   it is hidden rather than removed. */
-[data-rookery="references"][hidden] {
+/* Hidden on an own card under horizontal mode, same condition and same
+   reason as `[data-rookery="footnotes"]` above: the margin notes beside each
+   citation already show the full reference. Typst still emits this block in
+   every mode (Typst partitions citations positionally — one with no
+   bibliography following it is a hard error), never `hidden`; CSS is the
+   only thing that ever hides it. */
+:where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
+  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *))
+  [data-rookery="references"]:not([data-rookery="window"] *) {
   display: none;
 }
 

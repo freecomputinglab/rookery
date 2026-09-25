@@ -241,13 +241,7 @@
     // element per note, matching how a card (`idea.typ`) carries them once —
     // not on the summary or the body nested inside it.
     let win-cls = (_c("window"),) + visible.map(l => _c("tag-" + l))
-    // The two `_in-window` updates bracket the whole rendered window (not
-    // just its body) so a nested window found ANYWHERE inside it — even in
-    // its summary — sees the depth already raised, and bracket them INSIDE
-    // this `html.elem` so they ride along with the window's own element
-    // rather than becoming siblings the WK figure's caller has to account
-    // for.
-    _in-window.update(n => n + 1) + html.elem(
+    html.elem(
       "div",
       // `data-rookery-bare`/`data-rookery-static`/`data-rookery-no-bg` only
       // when frame/foldable/background are off respectively, for the reason
@@ -302,7 +296,7 @@
                 + _footnoted(shown + parbreak() + rest)
                 + _refs-block(_own-cited-keys(shown + parbreak() + rest, windows-claim: windows-claim)),
             )
-          }))) + _in-window.update(n => n - 1)
+          })))
   } else {
     // No disclosure in a paged target — nothing to click, so a fold that
     // could not be opened would just hide the body: `folded` is ignored
@@ -324,13 +318,7 @@
     // own, and a paged window's rendering matches a window with no `rest` to
     // speak of.
     let ellipsis = if rest == none { [] } else { [#text(gray)[ ... ]] }
-    // Paged output has no margin notes to suppress, so the `_in-window`
-    // bracket here is harmless rather than load-bearing — kept for symmetry
-    // with the html arm above, so the depth is correct for a nested window
-    // even where a paged build renders one.
-    (_in-window.update(n => n + 1)
-      + align(start, block[#head#parbreak()#_footnoted(shown)#ellipsis#_refs-block(_own-cited-keys(shown, windows-claim: windows-claim))])
-      + _in-window.update(n => n - 1))
+    align(start, block[#head#parbreak()#_footnoted(shown)#ellipsis#_refs-block(_own-cited-keys(shown, windows-claim: windows-claim))])
   }
 }
 

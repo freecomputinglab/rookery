@@ -720,6 +720,19 @@
       }
     }
   }
+  // NAMES this page's footnote mode for CSS, taken straight from the
+  // `footnotes:` parameter rather than through `_footnote-mode` — the whole
+  // point is that Typst's own OUTPUT never varies with the mode, so nothing
+  // here reads document-wide state: core.css keys the margin-note vs.
+  // bottom-block split off this element (`data-rookery="mode"`), never off
+  // anything Typst decided at layout time. The `context` below is for
+  // `_target()` alone (`std.target()`'s own requirement without rheo), not
+  // for the marker's value. `.marrow.typ`'s minted pages carry the same
+  // element, reading `_footnote-mode`'s finalized value instead, since a
+  // minted page never calls `rookery()` to receive the parameter directly.
+  context if _target() == "html" {
+    html.elem("div", attrs: (data-rookery: "mode", data-rookery-footnotes: footnotes, hidden: "hidden"))
+  }
   // THE PAGE-LEVEL LINK BEACON, one per vertebra: which notes THIS page links to
   // in its own prose, for the page half of a minted page's backlink list. Read
   // `_page-links`'s banner in outline.typ for why this is beaconed rather than
@@ -762,6 +775,16 @@
   // only, and a document that opted out of reference rendering has not thereby
   // opted out of footnotes.
   show FNK: it => std.footnote(it.value.rookery-fn)
+  // THE ONE `show cite: _margin-cite` INSTALLATION for this whole page
+  // (`_margin-cite`, bib.typ) — every idea's and window's `_footnoted` call
+  // relies on exactly one such rule being active over the content it
+  // renders, never installing its own: a `#window` renders a note's raw
+  // stored body a second time, structurally nested inside whatever host
+  // card contains the `#window` call, and a SECOND `show cite:` nested
+  // inside this one would double-wrap every citation in it — MEASURED, see
+  // `_footnoted`'s banner. Inert (renders nothing) wherever `html.elem`
+  // itself is, i.e. every non-html target, so this needs no target guard.
+  show cite: _margin-cite
   if refs {
     show ref: hyperlink.with(hyperlink-target-minted: hyperlink-target-minted)
     doc

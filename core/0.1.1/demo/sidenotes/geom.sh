@@ -55,8 +55,20 @@ const firstParagraphRight = box => {
 
 const measure = box => {
   const b = r(box);
+  // A citation cited INSIDE a footnote (the fourth footnote's own Lamport
+  // reference) mints a `[data-rookery="sidenote"]` TWICE: once nested inside
+  // that footnote's own sidenote, and again where the Footnotes list below
+  // repeats the same footnote body. core.css hides the first by nesting
+  // (`[data-rookery="sidenote"] [data-rookery-cite]`) and the second because
+  // its `[data-rookery="footnotes"]` ancestor is itself `display: none` on
+  // an own card — an ancestor's `display: none` empties every descendant's
+  // box, `getComputedStyle` on the descendant itself notwithstanding, so
+  // both are excluded here by ancestor rather than by any property of the
+  // note itself.
   const notes = [...box.querySelectorAll('[data-rookery="sidenote"]')]
     .filter(n => !n.closest('[data-rookery="window"]'))
+    .filter(n => !n.closest('[data-rookery="footnotes"]'))
+    .filter(n => n.parentElement.closest('[data-rookery="sidenote"]') === null)
     .map(n => {
       const nr = r(n);
       const p = r(n.parentElement);

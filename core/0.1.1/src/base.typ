@@ -18,8 +18,8 @@
 // spliced into rheo's bundle root, this resolves against the package's own dir.
 #import "pure.typ": *
 
-// `.marrow.typ` imports THIRTY-THREE names from `"@rookery/core:0.1.1"`,
-// thirty underscore-private and load-bearing — a broken marrow mints no
+// `.marrow.typ` imports THIRTY-EIGHT names from `"@rookery/core:0.1.1"`,
+// thirty-six underscore-private and load-bearing — a broken marrow mints no
 // pages but fails silently. RENAME OR RE-SIGN ONLY WITH `.marrow.typ`:
 //   _registry            note store; marrow mints pages from it, inverts links
 //   _note-page           slug + minted path + handle for one note
@@ -34,6 +34,9 @@
 //   _page-href           depth-relative href between two pages
 //   _body-at             a note's body at a nested-window budget
 //   _footnoted           wraps a body with its own Footnotes block
+//   _footnote-mode       the project's "vertical"/"horizontal" choice, for
+//                        the page-top mode marker CSS keys the split off
+//   _margin-cite         the ONE `show cite:` rule a minted page installs
 //   _refs-block          References block for a set of citation keys
 //   _own-cited-keys      keys a body cites, minus the windowed ones
 //   _window-depth        nested-window budget state

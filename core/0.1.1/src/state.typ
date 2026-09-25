@@ -498,39 +498,21 @@
   }
 }
 
-// Whether the content being rendered right now sits inside a margin note.
-// `_margin-cite` (bib.typ) reads this to skip minting a second margin note
-// for a citation already written inside a footnote's sidenote — that
-// citation is in the margin already, so it stays inline there.
-#let _in-sidenote = state("rheo-idea-in-sidenote", false)
-
-// How many transcluded bodies (a `#window`, or `#idea-body`) enclose the
-// content being rendered right now. A DEPTH, not a flag, because windows
-// nest: a window's body can itself contain a window. `_footnoted`,
-// `_refs-block` and `_margin-cite` (bib.typ) treat any depth greater than
-// zero as "render vertically regardless of `_footnote-mode`" — a
-// transcluded note always gets its own Footnotes and References blocks,
-// never margin notes, since a page windowing several posts would otherwise
-// scatter one host card's margin notes across posts it does not own.
-// `#gutter` (gutter.typ) reads it the same way, to fall back to an ordinary
-// block instead of floating into a margin no window reserves.
-#let _in-window = state("rheo-idea-in-window", 0)
-
-// The margin note, used in place of `_fn-block-html` under `footnotes:
-// "horizontal"` (see `_footnoted`, bib.typ). Carries the SAME id `_fn-ref`
-// links to (`fn-{b}-{n}`), so the marker's `href` resolves whichever mode is
-// in force. A `span`, not a `div`: it is placed inline, inside the paragraph
-// the marker sits in, and the CSS `float`s it into the margin from there.
+// The margin note beside a footnote marker, emitted alongside
+// `_fn-block-html` (bib.typ) rather than instead of it — core.css decides
+// which of the two a reader sees. Its id is prefixed `sn-`, not `fn-`: the
+// bottom block's own `<li>` keeps `id="fn-{tag}"`, and the two must stay
+// distinct since both are always in the document. A `span`, not a `div`: it
+// is placed inline, inside the paragraph the marker sits in, and CSS
+// `float`s it into the margin from there.
 #let _fn-side(b, n, body) = {
   let tag = str(b) + "-" + str(n)
   html.elem(
     "span",
-    attrs: (class: _c("sidenote"), id: "fn-" + tag, data-rookery: "sidenote"),
+    attrs: (class: _c("sidenote"), id: "sn-" + tag, data-rookery: "sidenote"),
     html.elem("span", attrs: (class: _c("sidenote-number"), data-rookery: "sidenote-number"), str(n))
       + [ ]
-      + _in-sidenote.update(true)
-      + body
-      + _in-sidenote.update(false),
+      + body,
   )
 }
 

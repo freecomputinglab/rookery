@@ -111,32 +111,18 @@
 // One idea's references. Empty content when the idea cites nothing, so no
 // stray "References" heading appears — that is what `_own-cited-keys` is for.
 //
-// Emitted (but `hidden`, via CSS) even in horizontal mode, where the margin
-// notes already show every reference in full: Typst partitions citations
-// POSITIONALLY, so a citation with no bibliography following it is a hard
-// error, and this block is that bibliography.
-//
-// `horizontal:` overrides `_footnote-mode` for this one call: `false` keeps
-// the block visible regardless of the document-wide mode, which is what an
-// idea with `display-right-gutter: false` needs — its citations render
-// inline only, so its references have nowhere else to be read. `auto` (the
-// default) defers to `_footnote-mode` as before.
-#let _refs-block(keys, id: none, horizontal: auto) = {
+// ALWAYS emitted on html, never `hidden` in Typst's own output — whether a
+// reader sees this block or the margin notes instead is a CSS decision keyed
+// on `data-rookery="mode"` (core.css), not something Typst decides here.
+// Typst partitions citations POSITIONALLY regardless of mode, so a citation
+// with no bibliography following it is a hard error, and this block is that
+// bibliography.
+#let _refs-block(keys, id: none) = {
   if _bib.final() == none or keys.len() == 0 { return [] }
   if _target() == "html" or _target() == "epub" {
-    context {
-      let attrs = (class: _c("references"), data-rookery: "references")
-      if id != none { attrs = attrs + (id: id) }
-      let mode-horizontal = if horizontal == auto {
-        _footnote-mode.final() == "horizontal" and _in-window.get() == 0
-      } else {
-        horizontal
-      }
-      if mode-horizontal and _target() == "html" {
-        attrs = attrs + (hidden: "hidden")
-      }
-      html.elem("div", attrs: attrs, _bib-call([References]))
-    }
+    let attrs = (class: _c("references"), data-rookery: "references")
+    if id != none { attrs = attrs + (id: id) }
+    html.elem("div", attrs: attrs, _bib-call([References]))
   } else {
     _bib-call([References])
   }
@@ -164,10 +150,14 @@
   }
 }
 
-// A `show cite` rule, applied only under horizontal html (`_footnoted`
-// below): beside every inline citation marker, mint a margin note carrying
-// the FULL reference — the same information the vertical Footnotes block's
-// References section would otherwise be the only place to find.
+// A `show cite` rule, installed exactly once per page (template.typ's
+// `rookery()`, `.marrow.typ` — never here, see `_footnoted`'s banner for
+// why a second installation double-wraps a window's citations): beside
+// every inline citation marker, mint a margin note carrying the FULL
+// reference — the same information the vertical Footnotes block's
+// References section would otherwise be the only place to find. Emitted
+// UNCONDITIONALLY — whether a reader sees it is CSS's call, not Typst's; see
+// `_refs-block` above for why the split lives there.
 //
 // `it.form == "full"` is the recursion guard: the full-form `cite` this rule
 // itself mints below re-enters the same show rule when it renders, and must
@@ -175,37 +165,24 @@
 // `it.form == none` is defensive for the same reason, in case a caller ever
 // constructs a citation with no form set.
 //
-// Skipped entirely inside a sidenote (`_in-sidenote.get()`, state.typ): a
-// citation written inside a footnote is already in the margin, and stays
-// inline there rather than spawning a second margin note. Unnumbered and
-// idless, unlike `_fn-side` — the inline marker beside it already identifies
-// which work it names, and two citations of the same work each get their own
-// note rather than being deduplicated.
-//
-// Also skipped inside a window (`_in-window.get()`, state.typ), and not only
-// via `_footnoted`'s own gate: a host card's `show cite: _margin-cite` rule
-// stays in scope for content a nested window renders inside it, since the
-// window installs no rule of its own when it falls back to vertical mode —
-// this is the guard that keeps such a citation out of the host's margin.
+// A citation written inside a footnote's own sidenote, or inside a nested
+// window, still mints one of these spans — core.css hides it in both cases
+// (`[data-rookery="sidenote"] [data-rookery-cite]`, and every sidenote inside
+// `[data-rookery="window"]`) rather than Typst skipping it, so the span's
+// presence never depends on where in the tree it was rendered.
 #let _margin-cite(it) = {
   if it.form == "full" or it.form == none {
     return it
   }
-  it + context {
-    if _in-sidenote.get() or _in-window.get() > 0 {
-      []
-    } else {
-      html.elem(
-        "span",
-        attrs: (
-          class: _c("sidenote") + " " + _c("sidenote-cite"),
-          data-rookery: "sidenote",
-          data-rookery-cite: "cite",
-        ),
-        cite(it.key, form: "full"),
-      )
-    }
-  }
+  it + html.elem(
+    "span",
+    attrs: (
+      class: _c("sidenote") + " " + _c("sidenote-cite"),
+      data-rookery: "sidenote",
+      data-rookery-cite: "cite",
+    ),
+    cite(it.key, form: "full"),
+  )
 }
 
 // Wrap one idea box's body: number its markers locally, then append the block.
@@ -232,55 +209,47 @@
 // Returns `body` untouched when there is nothing to number, so `_fn-block` is
 // not stepped for an idea with no footnotes.
 //
-// `horizontal:` overrides `_footnote-mode` for this one call — `auto` (the
-// default) defers to it as before; `false` renders vertically regardless of
-// the document-wide mode. This is what `display-right-gutter: false` needs:
-// that idea's footnotes and citations fall back to the vertical blocks even
-// though the rest of the document is in horizontal mode.
-#let _footnoted(body, horizontal: auto) = {
-  let mode-horizontal = if horizontal == auto {
-    _footnote-mode.final() == "horizontal"
-  } else {
-    horizontal
-  }
+// On html, Typst emits the SAME shape regardless of `_footnote-mode`: a
+// margin note beside every marker AND the bottom Footnotes block, every
+// time. Which one a reader sees is core.css's call, keyed on
+// `data-rookery="mode"` — see that file for why: an html rendering that
+// varied with the mode cost convergence passes on a large, deeply windowed
+// project, and this function is what used to cost them.
+//
+// Installs NO `show cite: _margin-cite` of its own — that rule is installed
+// exactly ONCE per page, at the top (template.typ's `rookery()`,
+// `.marrow.typ`), not here. A `#window` transcludes a note's RAW stored
+// body, so its own `_footnoted` call is a second rendering of citations the
+// page-level rule has not seen yet — but the window's rendering still sits,
+// structurally, inside whatever host card contains the `#window` call.
+// Installing a SECOND `show cite:` here as well, nested inside the host's
+// own, wrapped every citation in the window body TWICE — MEASURED: two
+// identical margin-citation spans back to back — because Typst does not
+// deduplicate a matching element across two independently active `show`
+// statements for the same selector, only within a single one via its own
+// recursion guard (`_margin-cite`'s `it.form == "full"` check). One
+// page-wide installation has nothing else active to double against.
+#let _footnoted(body) = {
   let notes = _footnotes(body)
-  if notes.len() == 0 {
-    // No footnotes to number, but citations still need `_margin-cite` under
-    // horizontal html — an idea with no footnotes still gets margin
-    // citations. Reading `.final()` needs `context`, so this path is no
-    // longer a bare pass-through of `body`.
-    //
-    // `_in-window.get()` is read INSIDE this context, not folded into the
-    // eager `mode-horizontal` above: this whole function runs synchronously
-    // inside whatever context its caller already established (`_window-
-    // content`'s, typically), a SINGLE fixed position, so a read taken there
-    // cannot see an `_in-window.update()` that is itself part of the very
-    // content this call is helping build. This `context` literal is
-    // returned as content and gets its OWN position once actually laid out
-    // — after the update, if the update sits earlier in the tree — which is
-    // what makes the read here correct.
-    return context {
-      if mode-horizontal and _in-window.get() == 0 and _target() == "html" {
-        show cite: _margin-cite
-        body
-      } else {
-        body
-      }
-    }
-  }
+  if notes.len() == 0 { return body }
+  // `_fn-block.step()` is a bare statement, not assigned or joined by a
+  // `return` below it — Typst auto-joins sequential statements in a block,
+  // which is what makes the counter step actually land in the document
+  // rather than being silently discarded (a `return` on the NEXT statement
+  // would discard it instead; that is why this function has no early
+  // `return` anywhere past this point).
   _fn-block.step()
-  context {
-    let b = _fn-block.get().first()
-    // Horizontal mode is HTML-only (see `_fn-side`'s CSS, core.css) — paged
-    // and epub always get the vertical block below, regardless of the mode.
-    // `_in-window.get()` is read here for the same reason as the no-notes
-    // branch above.
-    let horizontal = mode-horizontal and _in-window.get() == 0 and _target() == "html"
-    if horizontal {
-      show cite: _margin-cite
-      _number-footnotes(body, 1, n => _fn-ref(b, n) + _fn-side(b, n, notes.at(n - 1))).node
-    } else {
+  if _target() != "html" {
+    // Paged and epub: the vertical block only, as always.
+    context {
+      let b = _fn-block.get().first()
       _number-footnotes(body, 1, n => _fn-ref(b, n)).node
+      _fn-block-html(notes, b)
+    }
+  } else {
+    context {
+      let b = _fn-block.get().first()
+      _number-footnotes(body, 1, n => _fn-ref(b, n) + _fn-side(b, n, notes.at(n - 1))).node
       _fn-block-html(notes, b)
     }
   }

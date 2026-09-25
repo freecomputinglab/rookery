@@ -96,20 +96,36 @@ PY
 #    `.idea-page-refs` leaving a reader with a citation and nothing on the
 #    site saying what it cited.
 #
-#    Counted, not merely found: the BIBLIOGRAPHY ENTRY must appear exactly once
-#    per page. The footnote body is rendered as well as scanned, and a walk
-#    claiming the citation from both places would list the work twice. The
-#    author-date MARKER is a separate string ("Lamport 1994", inside the
-#    footnote's own text) and is asserted separately, so neither check can pass
-#    by finding the other.
+#    Counted, not merely found, and scoped to the `.idea-references` BLOCK
+#    ITSELF rather than the whole page: Typst emits an html body identically
+#    in every mode now (bib.typ/state.typ) — a margin note beside the
+#    footnote marker AND its bottom Footnotes-list copy, whatever this
+#    project's own `footnotes:` setting is, core.css deciding which a reader
+#    sees — and both copies of the footnote's body carry their own full-form
+#    citation of the same work. Counting the whole page would see three
+#    (references block, sidenote, Footnotes-list item) even though the
+#    reference itself is entered ONCE; scoping to the references block keeps
+#    this assertion about the WALK (`_own-cited-keys`) it exists for, not
+#    about how many margin notes a citation happens to mint. The author-date
+#    MARKER is a separate string ("Lamport 1994", inside the footnote's own
+#    text) and is asserted separately, so neither check can pass by finding
+#    the other.
 for p in index.html ideas/plain-note.html; do
   grep -q 'idea-references' "$H/$p" ||
     note "$p has no references block for plain-note's footnote citation"
   grep -q 'doc-biblioref">Lamport 1994<' "$H/$p" ||
     note "$p is missing the footnote's own author-date citation marker"
-  n=$(grep -o 'Lamport, Leslie' "$H/$p" | wc -l)
+  # Bounded to the bibliography's own `<section>...</section>` (Typst's own
+  # element, closed well before the block's `</div>`), not the whole page —
+  # see the comment above for why a page-wide count would not be 1.
+  n=$(python3 -c "
+import re, sys
+h = open(sys.argv[1]).read()
+m = re.search(r'data-rookery=\"references\"[^>]*>.*?</section>', h, re.S)
+print(len(re.findall('Lamport, Leslie', m.group(0))) if m else -1)
+" "$H/$p")
   [ "$n" -eq 1 ] ||
-    note "$p lists the footnote's cited work $n times in its bibliography, expected exactly 1"
+    note "$p's references block lists the footnote's cited work $n times, expected exactly 1"
 done
 
 
@@ -832,6 +848,18 @@ grep -qi 'backlinks' "$H/ideas/tag-t-both.html" ||
 #     selector, not just the page-level one.
 grep -q 'tag-windower' "$H/ideas/tag-t-both.html" ||
   note "ideas/tag-t-both.html does not mention tag-windower — a tag window inside a note's body stopped registering a note backlink"
+
+# 35. THIS PROJECT'S PAGE-TOP MODE MARKER names "vertical" — this project sets
+#     no `footnotes:` of its own, so it is checking the DEFAULT. `template.typ`
+#     emits it on an ordinary vertebra (`index.html`), `.marrow.typ` on a
+#     minted note page (`ideas/plain-note.html`) — the one remaining read of
+#     `_footnote-mode` in either file, kept out of everything else that
+#     renders a note's body (bib.typ/state.typ) so an html rendering never
+#     varies with the mode.
+for p in index.html ideas/plain-note.html; do
+  grep -q 'data-rookery="mode" data-rookery-footnotes="vertical" hidden="hidden"' "$H/$p" ||
+    note "$p has no vertical data-rookery=\"mode\" marker"
+done
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"

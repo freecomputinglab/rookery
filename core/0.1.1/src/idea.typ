@@ -576,13 +576,14 @@
         // `data-rookery-gutter` mirrors the resolved flag ONLY when it is a
         // concrete `true`/`false` — an `auto` result adds nothing, leaving
         // the split to CSS's own `:has([data-rookery="sidenote"])` detection
-        // (core.css). `false` also forces the note's footnotes and citations
-        // vertical: a card with no gutter has nowhere for a margin note to go.
+        // (core.css). `false` is also what keeps a gutterless card's own
+        // footnotes and citations vertical under horizontal mode — a card
+        // with no gutter has nowhere for a margin note to go, and core.css
+        // keys that fallback off this same attribute.
         let gutter = rdisplay.at("right-gutter")
         let gutter-attrs = if gutter == true { ("data-rookery-gutter": "on") }
           else if gutter == false { ("data-rookery-gutter": "off") }
           else { (:) }
-        let fn-horizontal = if gutter == false { false } else { auto }
         _bracket(
           html.elem(
             "div",
@@ -596,8 +597,8 @@
                 + gutter-attrs
                 + _tags-attr(visible),
             ),
-            header + _footnoted(body, horizontal: fn-horizontal)
-              + _refs-block(_own-cited-keys(body), horizontal: fn-horizontal),
+            header + _footnoted(body)
+              + _refs-block(_own-cited-keys(body)),
           ),
           IK,
         )
