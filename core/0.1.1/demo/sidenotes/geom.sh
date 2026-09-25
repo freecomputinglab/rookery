@@ -43,7 +43,30 @@ INDEX_JS="$(mktemp)"
 BLOCKS_JS="$(mktemp)"
 MARGIN_PAGE_JS="$(mktemp)"
 MIXED_JS="$(mktemp)"
-trap 'rm -f "$INDEX_JS" "$BLOCKS_JS" "$MARGIN_PAGE_JS" "$MIXED_JS"' EXIT
+PREVIEW_JS="$(mktemp)"
+trap 'rm -f "$INDEX_JS" "$BLOCKS_JS" "$MARGIN_PAGE_JS" "$MIXED_JS" "$PREVIEW_JS"' EXIT
+
+# Reproduces search/0.1.1/src/preview.js's exact wrapper shape around a
+# fetched page's own [data-rookery="page-body"] — the search preview pane
+# re-parents that element inside a hand-built [data-rookery="window"], and a
+# card WITH a sidenote is the worst case for the split rule this exercises.
+cat > "$H/_preview-fixture.html" <<'HTML'
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="rookery/core/core.css">
+</head><body>
+<div data-rookery="mode" data-rookery-footnotes="horizontal" data-rookery-citations="horizontal" hidden="hidden"></div>
+<div class="idea-window idea-window-plain" data-rookery="window" data-rookery-plain="plain">
+  <div class="idea-window-body" data-rookery="window-body">
+    <div data-rookery="page-body" style="width:400px">
+      <p>Some body text.</p>
+      <sup data-rookery="fn-ref"><a href="#fn-1-1">1</a></sup>
+      <span data-rookery="sidenote">A margin note that must not reserve a gutter here.</span>
+    </div>
+  </div>
+</div>
+</body></html>
+HTML
 
 cat > "$INDEX_JS" <<'JS'
 const r = el => el.getBoundingClientRect();
@@ -259,6 +282,14 @@ document.body.dataset.out = JSON.stringify({
 });
 JS
 
+cat > "$PREVIEW_JS" <<'JS'
+const el = document.querySelector('[data-rookery="page-body"]');
+document.body.dataset.out = JSON.stringify({
+  paddingRight: el ? getComputedStyle(el).paddingRight : null,
+});
+JS
+
+PREVIEW_OUT="$(measure _preview-fixture "$PREVIEW_JS" "_preview-fixture.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 INDEX_OUT="$(measure index "$INDEX_JS" "index.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 BLOCKS_OUT="$(measure blocks "$BLOCKS_JS" "blocks.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 MARGIN_PAGE_OUT="$(measure ideas/margin-note "$MARGIN_PAGE_JS" "ideas/margin-note.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
@@ -271,7 +302,7 @@ MIXED_OUT="$(measure mixed "$MIXED_JS" "mixed.html")" || { echo "demo/sidenotes 
 INDEX_NARROW_PHONE_OUT="$(measure index "$INDEX_JS" "index.html (375px)" 375,800)" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 INDEX_NARROW_TABLET_OUT="$(measure index "$INDEX_JS" "index.html (700px)" 700,900)" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 
-python3 - "$INDEX_OUT" "$BLOCKS_OUT" "$MARGIN_PAGE_OUT" "$PLAIN_WIDE_PAGE_OUT" "$NO_GUTTER_PAGE_OUT" "$MIXED_OUT" "$INDEX_NARROW_PHONE_OUT" "$INDEX_NARROW_TABLET_OUT" <<'PY'
+python3 - "$INDEX_OUT" "$BLOCKS_OUT" "$MARGIN_PAGE_OUT" "$PLAIN_WIDE_PAGE_OUT" "$NO_GUTTER_PAGE_OUT" "$MIXED_OUT" "$INDEX_NARROW_PHONE_OUT" "$INDEX_NARROW_TABLET_OUT" "$PREVIEW_OUT" <<'PY'
 import json, sys
 
 d = json.loads(sys.argv[1])
@@ -282,6 +313,7 @@ ngp = json.loads(sys.argv[5])
 mx = json.loads(sys.argv[6])
 d_phone = json.loads(sys.argv[7])
 d_tablet = json.loads(sys.argv[8])
+pv = json.loads(sys.argv[9])
 TOL = 1
 bad = []
 
@@ -529,6 +561,14 @@ for label, dn in (("phone (375px)", d_phone), ("tablet (700px)", d_tablet)):
             bad.append(f"margin-note {label} sidenote {n} is not collapsed, expected display: none below 769px")
     if not mn_n["hasFootnotes"]:
         bad.append(f"margin-note {label} has no data-rookery=\"footnotes\" block, expected the vertical fallback")
+
+# The search preview pane (search/0.1.1/src/preview.js) re-parents a fetched
+# page's own [data-rookery="page-body"] inside a [data-rookery="window"] it
+# builds by hand — this fixture reproduces that shape directly. A page-body
+# nested in a window must never reserve a right-gutter split, however its
+# mode marker reads.
+if pv["paddingRight"] != "0px":
+    bad.append(f"page-body nested in a window computes padding-right: {pv['paddingRight']}, expected 0px")
 
 if bad:
     for line in bad:

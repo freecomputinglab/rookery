@@ -945,14 +945,17 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
    `#idea`'s card does. So it shares every branch below rather than only
    the `:has(sidenote)` ones. Below 769px this split reverts to vertical (see
    the note above), the unconditional `[data-rookery-gutter="on"]` override
-   excepted. */
+   excepted. A `[data-rookery="page-body"]` re-parented inside a `#window` —
+   as `@rookery/search`'s preview pane does when it fetches a note's own
+   minted page — is excluded from splitting the same way a nested
+   `[data-rookery="box"]` already is. */
 @media (min-width: 769px) {
-  :root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]):not([data-rookery-gutter="off"]):has([data-rookery="sidenote"]:not([data-rookery-cite])),
-  :root:has([data-rookery="mode"][data-rookery-citations="horizontal"]) :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]):not([data-rookery-gutter="off"]):has([data-rookery="sidenote"][data-rookery-cite]) {
+  :root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *)):not([data-rookery-gutter="off"]):has([data-rookery="sidenote"]:not([data-rookery-cite])),
+  :root:has([data-rookery="mode"][data-rookery-citations="horizontal"]) :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *)):not([data-rookery-gutter="off"]):has([data-rookery="sidenote"][data-rookery-cite]) {
     padding-right: calc(var(--idea-right-gutter, 0.3333) * 100%);
   }
 }
-:is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"])[data-rookery-gutter="on"] {
+:is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))[data-rookery-gutter="on"] {
   padding-right: calc(var(--idea-right-gutter, 0.3333) * 100%);
 }
 
@@ -1785,7 +1788,7 @@ a[data-rookery="row-title"]:hover {
    rule's own `@media` block. */
 @media (min-width: 769px) {
   :where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
-    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
     [data-rookery="footnotes"]:not([data-rookery="window"] *) {
     display: none;
   }
@@ -1901,14 +1904,14 @@ a[data-rookery="row-title"]:hover {
    the split rule's own `@media` block. */
 @media (min-width: 769px) {
   :where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
-    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
     [data-rookery="sidenote"]:not([data-rookery-cite]) {
     display: block;
   }
 }
 @media (min-width: 769px) {
   :where(:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]))
-    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
     [data-rookery="sidenote"][data-rookery-cite] {
     display: block;
   }
@@ -1965,7 +1968,7 @@ a[data-rookery="row-title"]:hover {
    above the split rule's own `@media` block. */
 @media (min-width: 769px) {
   :where(:root:has([data-rookery="mode"]:is([data-rookery-footnotes="horizontal"], [data-rookery-citations="horizontal"])))
-    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
     blockquote {
     box-sizing: border-box;
     width: auto;
@@ -1983,7 +1986,7 @@ a[data-rookery="row-title"]:hover {
    the same OR (not split-by-kind) condition, and the same 769px floor. */
 @media (min-width: 769px) {
   :where(:root:has([data-rookery="mode"]:is([data-rookery-footnotes="horizontal"], [data-rookery-citations="horizontal"])))
-    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
     :is(ul, ol) {
     padding-left: 1.5em;
     margin-inline: 0;
@@ -1991,7 +1994,7 @@ a[data-rookery="row-title"]:hover {
 }
 @media (min-width: 769px) {
   :where(:root:has([data-rookery="mode"]:is([data-rookery-footnotes="horizontal"], [data-rookery-citations="horizontal"])))
-    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
     li {
     --_indent: 1.5em;
   }
@@ -2082,7 +2085,7 @@ a[data-rookery="row-title"]:hover {
    split rule's own `@media` block. */
 @media (min-width: 769px) {
   :where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
-    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
     [data-rookery="fn-ref"] a:not([data-rookery="window"] *) {
     pointer-events: none;
     cursor: text;
@@ -2096,7 +2099,7 @@ a[data-rookery="row-title"]:hover {
    THAT setting, independently of what `footnotes:` says. Same 769px floor. */
 @media (min-width: 769px) {
   :where(:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]))
-    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
     a[role="doc-biblioref"]:not([data-rookery="window"] *) {
     pointer-events: none;
     cursor: text;
@@ -2111,7 +2114,7 @@ a[data-rookery="row-title"]:hover {
    anything. Same 769px floor as the deadening rule above. */
 @media (min-width: 769px) {
   :where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
-    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
     [data-rookery="fn-ref"] a:not([data-rookery="window"] *) {
     color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
   }
@@ -2164,7 +2167,7 @@ a[data-rookery="row-title"]:hover {
    note above the split rule's own `@media` block. */
 @media (min-width: 769px) {
   :where(:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]))
-    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]):not([data-rookery-bibliography="on"])
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *)):not([data-rookery-bibliography="on"])
     [data-rookery="references"]:not([data-rookery="window"] *) {
     display: none;
   }
