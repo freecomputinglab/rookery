@@ -43,18 +43,21 @@
 // permalink is the only way to discover; a titled note's id is the slug of
 // its own title, so it stays guessable without one.
 //
-// `display:` and the nine `display-*` flags are resolved together by
+// `display:` and the ten `display-*` flags are resolved together by
 // `_resolve-display` (pure.typ) into one dictionary: an explicit flag wins
 // over the dictionary's own value for that key, which wins over `auto`. Every
-// flag defaults to `auto`, and every one of the nine STAYS `auto` here when
+// flag defaults to `auto`, and every one of the ten STAYS `auto` here when
 // unset — this function substitutes no built-in default for any of them.
 // `context`, `backlinks` and `title` mean "use the document-wide
-// setting", resolved later on the minted page; `date`, `tags`, `frame` and
-// `name` mean the same thing one step earlier, resolved against document-wide
-// state (`_display-final`, state.typ) at the point this note's own card
-// renders, further down. `label` and `background` are accepted here too but
-// unused by the card itself — they seed what a later `#window` falls back to
-// when it does not override them.
+// setting", resolved later on the minted page; `date`, `tags`, `frame`,
+// `name` and `right-gutter` mean the same thing one step earlier, resolved
+// against document-wide state (`_display-final`, state.typ) at the point
+// this note's own card renders, further down — `right-gutter`'s `auto`
+// alone can survive that resolution too, since "split only when the card
+// holds a note" is a real outcome for it, not a stand-in for a built-in
+// default. `label` and `background` are accepted here too but unused by the
+// card itself — they seed what a later `#window` falls back to when it does
+// not override them.
 
 // The string a titleless, untitled note's id is digested from. CAPS the
 // hashed string: cost is linear in body size, measured at roughly 1.5 MB/s,
@@ -65,7 +68,7 @@
   (if r.len() > 4096 { r.slice(0, 4096) } else { r }) + "#" + str(r.len())
 }
 
-#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-name: auto, display-label: auto, display-background: auto, display-context: auto, display-backlinks: auto, display-title: auto, ..args) = {
+#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-name: auto, display-label: auto, display-background: auto, display-context: auto, display-backlinks: auto, display-title: auto, display-right-gutter: auto, ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
   // below and further down at render time — str has no `.map`, so the error
@@ -105,7 +108,7 @@
     (
       "context": display-context, backlinks: display-backlinks, background: display-background,
       date: display-date, frame: display-frame, name: display-name, label: display-label,
-      tags: display-tags, title: display-title,
+      tags: display-tags, title: display-title, "right-gutter": display-right-gutter,
     ),
     "#idea's",
   )
@@ -121,8 +124,8 @@
     message: "@rookery/core: #idea got unknown named argument(s) " + repr(unknown)
       + " — every argument #idea honours is a declared one; the display flags "
       + "are display-background, display-backlinks, display-context, "
-      + "display-date, display-frame, display-name, display-label, display-tags "
-      + "and display-title.",
+      + "display-date, display-frame, display-name, display-label, display-tags, "
+      + "display-title and display-right-gutter.",
   )
   // Variadic, not a plain positional: a positional parameter cannot carry a
   // default in Typst, and `#idea[body]` has to be callable with no name at
@@ -337,7 +340,7 @@
       // rendering, so it is the point of use `_display-final`'s banner
       // describes. `context`/`backlinks`/`title` are not resolved here: this
       // card never reads them, only `.marrow.typ`'s minted page does.
-      let rdisplay = _display-final(display, ("date", "tags", "frame", "name"))
+      let rdisplay = _display-final(display, ("date", "tags", "frame", "name", "right-gutter"))
 
       // Resolution order, most specific first: the explicit created:
       // argument, then the containing document's own
@@ -570,6 +573,16 @@
         // move, which is what leaves Typst's POSITIONAL citation partitioning
         // alone — the block still follows the body, so it still claims exactly
         // this note's citations.
+        // `data-rookery-gutter` mirrors the resolved flag ONLY when it is a
+        // concrete `true`/`false` — an `auto` result adds nothing, leaving
+        // the split to CSS's own `:has([data-rookery="sidenote"])` detection
+        // (core.css). `false` also forces the note's footnotes and citations
+        // vertical: a card with no gutter has nowhere for a margin note to go.
+        let gutter = rdisplay.at("right-gutter")
+        let gutter-attrs = if gutter == true { ("data-rookery-gutter": "on") }
+          else if gutter == false { ("data-rookery-gutter": "off") }
+          else { (:) }
+        let fn-horizontal = if gutter == false { false } else { auto }
         _bracket(
           html.elem(
             "div",
@@ -580,9 +593,11 @@
             attrs: _themed(
               (class: box-cls.join(" "), data-rookery: "box")
                 + (if rdisplay.frame { (:) } else { ("data-rookery-bare": "bare") })
+                + gutter-attrs
                 + _tags-attr(visible),
             ),
-            header + _footnoted(body) + _refs-block(_own-cited-keys(body)),
+            header + _footnoted(body, horizontal: fn-horizontal)
+              + _refs-block(_own-cited-keys(body), horizontal: fn-horizontal),
           ),
           IK,
         )

@@ -235,6 +235,15 @@
 #let _display-label = state("rheo-idea-show-label", true)
 #let _display-tags = state("rheo-idea-show-tags", false)
 
+// `auto`, not a built-in boolean default: unlike every other display key,
+// `right-gutter`'s `auto` is a real outcome, not a placeholder for one —
+// it means "split only when the card holds a note", decided in CSS
+// (`:has()`) rather than resolved to a boolean here. So the document-wide
+// default `rookery(display-right-gutter:)` sets stays `auto` unless the
+// project overrides it outright, and `_display-final` below is allowed to
+// hand back `auto` for this one key.
+#let _display-right-gutter = state("rheo-idea-show-right-gutter", auto)
+
 // Every display key mapped to its own document-wide state, for
 // `_display-final` below — one table instead of a chain of per-key
 // comparisons at each call site.
@@ -248,6 +257,7 @@
   label: _display-label,
   tags: _display-tags,
   title: _display-title,
+  "right-gutter": _display-right-gutter,
 )
 
 // Resolves `auto` in an already-merged `display` dictionary (`_resolve-display`,

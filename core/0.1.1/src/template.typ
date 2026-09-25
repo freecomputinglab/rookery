@@ -41,6 +41,7 @@
   display-label,
   display-tags,
   display-title,
+  display-right-gutter,
   page-titles,
   footnotes,
   invisible-tags,
@@ -171,6 +172,14 @@
     type(display-title) == bool,
     message: "@rookery/core: `display-title` must be a boolean — got " + repr(display-title),
   )
+  // Tri-state, unlike every other `display-*` flag above: `auto` survives
+  // resolution here on purpose (state.typ's `_display-right-gutter` banner),
+  // so this is the only display assert accepting it alongside a boolean.
+  assert(
+    display-right-gutter == auto or type(display-right-gutter) == bool,
+    message: "@rookery/core: `display-right-gutter` must be auto, true or "
+      + "false — got " + repr(display-right-gutter),
+  )
   assert(
     page-titles == "title" or page-titles == "path",
     message: "@rookery/core: `page-titles` must be \"title\" (rheo's own spine "
@@ -286,6 +295,7 @@
   pad,
   label-font,
   label-size,
+  right-gutter,
 ) = {
   // One converter for both sources, so `theme: (link-color: c)` and
   // `link-color: c` cannot disagree about what a value may be.
@@ -302,7 +312,18 @@
   // `2pt` -> "2pt", `0.15em` -> "0.15em" — so both spellings work and neither
   // needs a unit table here. A string passes through for the units Typst has no
   // literal for, `px` above all, which is what a hairline wants.
-  let css(key, value) = if key == "label-font" {
+  let css(key, value) = if key == "right-gutter" {
+    // A UNITLESS number, not a percentage: CSS's own `calc()` cannot mix `%`
+    // and unitless factors the way the gutter's algebra needs (core.css), so
+    // the ratio is divided down to a bare number here, once, rather than at
+    // every rule that reads `--idea-right-gutter`.
+    assert(
+      type(value) == ratio and value > 0% and value < 100%,
+      message: "@rookery/core: `right-gutter` must be a ratio between 0% and "
+        + "100%, e.g. 40% — got " + repr(value),
+    )
+    str(value / 100%)
+  } else if key == "label-font" {
     assert(
       type(value) == str or (type(value) == array and value.all(f => type(f) == str)),
       message: "@rookery/core: theme `label-font` must be a CSS font stack as a "
@@ -355,6 +376,7 @@
     pad: pad,
     label-font: label-font,
     label-size: label-size,
+    right-gutter: right-gutter,
   ) {
     if value != none { resolved.insert(key, css(key, value)) }
   }
@@ -446,15 +468,23 @@
 // block. A PROJECT-WIDE choice like `page-titles` above, read with
 // `.final()`, so the last vertebra to apply the template settles it for
 // every idea and window, marrow's minted pages included. Under "horizontal"
-// it is the project's job to leave a right gutter wide enough for the notes;
-// the CSS clamps their width to whatever gutter it finds rather than
-// widening the page for them.
+// a card holding a margin note splits into a text column and a right gutter
+// the notes float into — see `display-right-gutter:` and `right-gutter:`
+// below for the split and its width.
 //
 // "horizontal" also moves citations to the margin: each `@key`/`#cite`
 // marker keeps its normal inline form, and beside it a margin note carries
 // the full reference. The idea's References block is still emitted (a
 // citation with nothing to claim it is a Typst error) but hidden, since the
 // margin notes already show what it would have listed.
+//
+// `display-right-gutter:` is the document-wide default for the per-idea
+// `display-right-gutter` flag (`#idea`, idea.typ): `auto` (the default)
+// splits a card only when it holds a margin note; `true` splits every
+// top-level card regardless; `false` never splits, and that idea's
+// footnotes and citations fall back to the vertical blocks even under
+// "horizontal". `right-gutter:` sets the split's width as a fraction of the
+// card, e.g. `right-gutter: 40%` — `theme.typ`'s `--idea-right-gutter`.
 //
 // Defined last in this file because a `#let` closure captures the scope
 // visible AT DEFINITION time — `hyperlink` must already exist.
@@ -475,6 +505,7 @@
   pad: none,
   label-font: none,
   label-size: none,
+  right-gutter: none,
   refs: true,
   hyperlink-target-minted: true,
   syndicate: false,
@@ -489,12 +520,13 @@
   display-label: auto,
   display-tags: auto,
   display-title: auto,
+  display-right-gutter: auto,
   page-titles: "title",
   footnotes: "vertical",
   invisible-tags: (),
   doc,
 ) = {
-  // `rookery(..)` accepts all nine `_DISPLAY-KEYS` now — every one of them
+  // `rookery(..)` accepts all ten `_DISPLAY-KEYS` now — every one of them
   // has a document-wide tier, resolved below and published to its own state
   // (state.typ), and read back at the point a card, a window or a minted
   // page renders.
@@ -511,7 +543,7 @@
     (
       "context": display-context, backlinks: display-backlinks, background: display-background,
       date: display-date, frame: display-frame, name: display-name, label: display-label,
-      tags: display-tags, title: display-title,
+      tags: display-tags, title: display-title, "right-gutter": display-right-gutter,
     ),
     "#rookery's",
   )
@@ -520,6 +552,11 @@
   // down reads `auto` as "defer to something else". Each default matches the
   // built-in `#idea`/`#window` always applied — see `_display-background`
   // and its siblings, state.typ, for why only `date` and `tags` start off.
+  //
+  // `right-gutter` is the one key left OUT of this collapse: its `auto` is a
+  // real, per-idea outcome — "split only when the card holds a note" — not a
+  // placeholder for a built-in default, so the document-wide tier passes it
+  // through unresolved (state.typ's `_display-right-gutter` banner).
   let display = display + (
     "context": if display.context == auto { true } else { display.context },
     backlinks: if display.backlinks == auto { true } else { display.backlinks },
@@ -551,6 +588,7 @@
     display.label,
     display.tags,
     display.title,
+    display.at("right-gutter"),
     page-titles,
     footnotes,
     invisible-tags,
@@ -566,6 +604,7 @@
     pad,
     label-font,
     label-size,
+    right-gutter,
   )
 
 
@@ -607,6 +646,7 @@
   _display-label.update(display.label)
   _display-tags.update(display.tags)
   _display-title.update(display.title)
+  _display-right-gutter.update(display.at("right-gutter"))
   _page-titles.update(page-titles)
   _footnote-mode.update(footnotes)
   // Normalized to a flat array of NAMES here, once, so `_visible-tags` can do a

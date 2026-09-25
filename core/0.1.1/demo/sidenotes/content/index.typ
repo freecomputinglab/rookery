@@ -1,5 +1,9 @@
 #import "@rookery/core:0.1.1": footnote, idea, rookery, window
-#show: rookery.with(footnotes: "horizontal", bibliography: arguments(bytes(read("refs.bib"))))
+#show: rookery.with(
+  footnotes: "horizontal",
+  bibliography: arguments(bytes(read("refs.bib"))),
+  right-gutter: 40%,
+)
 
 = Rookery with horizontal footnotes
 
@@ -24,4 +28,23 @@
   A note whose body transcludes the note above, so its margin notes are
   replayed a second time under a different block number.
   #window(<margin-note>)
+]
+
+#idea("plain-wide", title: [Plain wide])[
+  A first paragraph with no footnotes or citations at all, so this card
+  keeps its full width.
+
+  A second paragraph, same reason.
+]
+
+#idea("forced-gutter", title: [Forced gutter], display-right-gutter: true)[
+  A card with no footnotes or citations, but `display-right-gutter: true`
+  splits it anyway.
+]
+
+#idea("no-gutter", title: [No gutter], display-right-gutter: false)[
+  A card with one footnote#footnote[Forced back to the vertical Footnotes
+  block by `display-right-gutter: false`, even though the document is in
+  horizontal mode.], which falls back to the vertical block instead of a
+  margin note.
 ]

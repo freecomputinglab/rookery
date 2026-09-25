@@ -87,6 +87,7 @@
   "pad": "--idea-pad",
   "label-font": "--idea-label-font",
   "label-size": "--idea-label-size",
+  "right-gutter": "--idea-right-gutter",
 )
 #let _theme = state("rheo-idea-theme", (:))
 

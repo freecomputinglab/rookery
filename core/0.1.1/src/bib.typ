@@ -115,13 +115,24 @@
 // notes already show every reference in full: Typst partitions citations
 // POSITIONALLY, so a citation with no bibliography following it is a hard
 // error, and this block is that bibliography.
-#let _refs-block(keys, id: none) = {
+//
+// `horizontal:` overrides `_footnote-mode` for this one call: `false` keeps
+// the block visible regardless of the document-wide mode, which is what an
+// idea with `display-right-gutter: false` needs — its citations render
+// inline only, so its references have nowhere else to be read. `auto` (the
+// default) defers to `_footnote-mode` as before.
+#let _refs-block(keys, id: none, horizontal: auto) = {
   if _bib.final() == none or keys.len() == 0 { return [] }
   if _target() == "html" or _target() == "epub" {
     context {
       let attrs = (class: _c("references"), data-rookery: "references")
       if id != none { attrs = attrs + (id: id) }
-      if _footnote-mode.final() == "horizontal" and _target() == "html" {
+      let mode-horizontal = if horizontal == auto {
+        _footnote-mode.final() == "horizontal"
+      } else {
+        horizontal
+      }
+      if mode-horizontal and _target() == "html" {
         attrs = attrs + (hidden: "hidden")
       }
       html.elem("div", attrs: attrs, _bib-call([References]))
@@ -214,7 +225,18 @@
 //
 // Returns `body` untouched when there is nothing to number, so `_fn-block` is
 // not stepped for an idea with no footnotes.
-#let _footnoted(body) = {
+//
+// `horizontal:` overrides `_footnote-mode` for this one call — `auto` (the
+// default) defers to it as before; `false` renders vertically regardless of
+// the document-wide mode. This is what `display-right-gutter: false` needs:
+// that idea's footnotes and citations fall back to the vertical blocks even
+// though the rest of the document is in horizontal mode.
+#let _footnoted(body, horizontal: auto) = {
+  let mode-horizontal = if horizontal == auto {
+    _footnote-mode.final() == "horizontal"
+  } else {
+    horizontal
+  }
   let notes = _footnotes(body)
   if notes.len() == 0 {
     // No footnotes to number, but citations still need `_margin-cite` under
@@ -222,7 +244,7 @@
     // citations. Reading `.final()` needs `context`, so this path is no
     // longer a bare pass-through of `body`.
     return context {
-      if _footnote-mode.final() == "horizontal" and _target() == "html" {
+      if mode-horizontal and _target() == "html" {
         show cite: _margin-cite
         body
       } else {
@@ -235,7 +257,7 @@
     let b = _fn-block.get().first()
     // Horizontal mode is HTML-only (see `_fn-side`'s CSS, core.css) — paged
     // and epub always get the vertical block below, regardless of the mode.
-    let horizontal = _footnote-mode.final() == "horizontal" and _target() == "html"
+    let horizontal = mode-horizontal and _target() == "html"
     if horizontal {
       show cite: _margin-cite
       _number-footnotes(body, 1, n => _fn-ref(b, n) + _fn-side(b, n, notes.at(n - 1))).node

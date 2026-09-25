@@ -65,9 +65,25 @@ for path in sys.argv[1:]:
               f"immediately after their own fn-ref marker")
         bad = 1
 
-    if 'data-rookery="footnotes"' in h:
-        print(f"FAIL: {path} carries a data-rookery=\"footnotes\" block — horizontal mode must not emit one")
-        bad = 1
+    # A `data-rookery="footnotes"` block is only legitimate inside the
+    # `no-gutter` card: `display-right-gutter: false` falls that one idea
+    # back to the vertical block on purpose, regardless of the document's
+    # horizontal mode. Every other occurrence is the bug this mode exists to
+    # avoid — checked by walking backward from each hit to its own card's
+    # opening `<div ... data-rookery="box">` tag and requiring
+    # `data-rookery-gutter="off"` there.
+    box_open = list(re.finditer(r'<div class="idea-box[^>]*data-rookery="box"[^>]*>', h))
+    for m in re.finditer(r'data-rookery="footnotes"', h):
+        card = None
+        for b in box_open:
+            if b.start() <= m.start():
+                card = b
+            else:
+                break
+        if card is None or 'data-rookery-gutter="off"' not in card.group(0):
+            print(f"FAIL: {path} carries a data-rookery=\"footnotes\" block outside the "
+                  f"no-gutter card — horizontal mode must not emit one anywhere else")
+            bad = 1
 
     if path.endswith("/index.html"):
         if len(blocks) < 2:

@@ -79,14 +79,15 @@
                                       this same variable, so retheming it keeps
                                       the card's corner shut. Defaults to
                                       `0.57rem`
-     --idea-sidenote-width            under `footnotes: "horizontal"`, how wide a
-                                      margin note is before the gutter clamp
-                                      narrows it (see `[data-rookery="sidenote"]`
-                                      below). No Typst param — set it in a
-                                      project's own stylesheet. Defaults to `14rem`
+     --idea-right-gutter  right-gutter under `footnotes: "horizontal"`, the
+                                      fraction of a split card's width given to
+                                      its right gutter — a UNITLESS number
+                                      (`0.4`, not `40%`; see `[data-rookery=
+                                      "box"]:has([data-rookery="sidenote"])`
+                                      below for why). Defaults to `0.3333`
      --idea-sidenote-gap              the clearance between a margin note and the
                                       text column beside it, under the same mode.
-                                      Defaults to `2rem`
+                                      Defaults to `1.5rem`
 
    DERIVED FROM `label-size`, and NOT for a project to set: three lengths the
    spacing rules share, so the same arithmetic is stated once here instead of at
@@ -851,6 +852,46 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
 [data-rookery="window"] {
   border-left: var(--idea-rule-width, 2px) solid var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12)));
   padding-left: var(--idea-pad, 0.5em);
+}
+
+/* `<length>` typed, NOT left as a bare token sequence: an untyped custom
+   property is substituted lazily, in the FONT-SIZE CONTEXT OF WHOEVER READS
+   IT — and `[data-rookery="sidenote"]` reads `--_inset` at its own
+   `font-size: 0.8em`, smaller than the card's. Without this, the `em` half
+   of `--idea-pad`'s default would resolve twice, once at each font-size,
+   and the sidenote's right edge would drift off the card's by however much
+   they disagree. Typing it forces the browser to resolve the `em` ONCE, at
+   the box where it is declared, and inherit the already-computed length. */
+@property --_inset {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+/* `--_inset` is the card's own left indent (the rule plus the padding it
+   sits behind), read by `[data-rookery="sidenote"]` above to size a margin
+   note against the PARAGRAPH's width rather than the card's. A window never
+   splits — its notes float into whichever card hosts it — so this is a box
+   property only; a bare box (no rule, no padding) reads it as `0px`. */
+[data-rookery="box"] {
+  --_inset: calc(var(--idea-pad, 0.5em) + var(--idea-rule-width, 2px));
+}
+[data-rookery="box"][data-rookery-bare] {
+  --_inset: 0px;
+}
+
+/* Which top-level cards split into a text column and a right gutter, under
+   `footnotes: "horizontal"`. `:has()` does the `display-right-gutter: auto`
+   detection: a card holding a margin note splits on its own; `idea.typ`'s
+   `data-rookery-gutter` attribute overrides that either way. TOP-LEVEL
+   ONLY — `:not([data-rookery="box"] *, [data-rookery="window"] *)` excludes
+   a card nested inside another card or a window, which never splits
+   independently; its notes float into whichever top-level card hosts it.
+   A window is never a candidate at all: it always renders its notes
+   in-flow within its host's gutter, never a gutter of its own. */
+[data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *):has([data-rookery="sidenote"]):not([data-rookery-gutter="off"]),
+[data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *)[data-rookery-gutter="on"] {
+  padding-right: calc(var(--idea-right-gutter, 0.3333) * 100%);
 }
 
 /* An idea's heading is an <h2>–<h6> (`#idea`'s `level:` + 1) and would
@@ -1690,19 +1731,33 @@ a[data-rookery="row-title"]:hover {
    makes a colliding note stack below the one above it instead of overlapping
    it — the one piece of "layout" this needs, and CSS already does it.
 
-   The width clamp assumes the text column is centred in the viewport:
-   `50vw - 50%` is the distance from the column's right edge to the viewport's
-   right edge, where `%` resolves against the width of the float's containing
-   block (the paragraph). A column that is NOT centred throws this off; a
-   reader who centres their column differently overrides `--idea-sidenote-width`
-   or `--idea-sidenote-gap` rather than this formula. */
+   THE GUTTER ITSELF is a top-level card's own `padding-right` (below), sized
+   as a fraction `f` of the card. A padding percentage resolves against the
+   PADDING BOX'S containing block — the card's `<figure>` — so
+   `padding-right: calc(f * 100%)` is exactly `f` of the card, however deep
+   the card is nested in the page. A float's own percentage, by contrast,
+   resolves against its CONTAINING BLOCK'S width — here the paragraph the
+   note sits in, which is narrower than the card by the split AND by the
+   card's left inset (`--_inset`: its `border-left` plus `padding-left`).
+   Given a card of width `C`, a paragraph of width `P = C * (1 - f) -
+   inset`, so in the note's own percentage terms (`100% = P`) the full
+   gutter `f * C` is:
+
+     _g = (100% + inset) * f / (1 - f)
+
+   which is what `--_g` below computes. The note's `width` is `_g` minus the
+   clearance to the text, and its `margin-right` is `-_g`, which lands its
+   right edge exactly on the card's right edge — the padding-right already
+   reserved that space. KNOWN IMPRECISION: a note inside a list item or
+   blockquote is narrower than this by that element's own indent, since
+   `--_inset` only accounts for the card's. */
 [data-rookery="sidenote"] {
   float: right;
   clear: right;
   display: block;
-  --_w: max(0px, min(var(--idea-sidenote-width, 14rem), calc(50vw - 50% - var(--idea-sidenote-gap, 2rem) - 1rem)));
-  width: var(--_w);
-  margin-right: calc(-1 * (var(--_w) + var(--idea-sidenote-gap, 2rem)));
+  --_g: calc((100% + var(--_inset, 0px)) * var(--idea-right-gutter, 0.3333) / (1 - var(--idea-right-gutter, 0.3333)));
+  width: calc(var(--_g) - var(--idea-sidenote-gap, 1.5rem));
+  margin-right: calc(-1 * var(--_g));
   margin-top: 0;
   margin-bottom: 0.6em;
   font-size: 0.8em;

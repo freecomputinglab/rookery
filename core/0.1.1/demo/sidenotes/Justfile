@@ -2,7 +2,10 @@ build:
     rheo compile .
 
 check: clean build
-    ./check.sh
+    ./check.sh && ./geom.sh
+
+geom:
+    ./geom.sh
 
 clean:
     rm -rf build
