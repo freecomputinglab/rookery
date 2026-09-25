@@ -37,13 +37,14 @@ note() { echo "FAIL: $*"; fail=1; }
 # in the markup either (core.css hides its sidenotes and shows its blocks).
 #
 # (d) A margin CITATION note (`data-rookery-cite="cite"`) exists and names
-# Knuth — the third paragraph's bare `@knuth1984`, once per rendering of
-# margin-note's body (its own card, and again inside host-note's `#window`
-# of it: 2 on index.html). Lamport (`@lamport1994`) is cited INSIDE the
-# fourth footnote's own body, so it appears twice per rendering — once in
-# that footnote's sidenote, once more where the Footnotes list repeats the
-# same footnote body — 4 on index.html, none of them a second, SEPARATE
-# margin note spawned outside the footnote's own.
+# Knuth — the third paragraph's bare `@knuth1984` AND the blockquote's own
+# bare `@knuth1984`, twice per rendering of margin-note's body (its own
+# card, and again inside host-note's `#window` of it: 4 on index.html).
+# Lamport (`@lamport1994`) is cited INSIDE the fourth footnote's own body,
+# so it appears twice per rendering — once in that footnote's sidenote, once
+# more where the Footnotes list repeats the same footnote body — 4 on
+# index.html, none of them a second, SEPARATE margin note spawned outside
+# the footnote's own.
 #
 # (e) No `data-rookery="references"` div anywhere carries `hidden` — Typst
 # never sets it now; only core.css ever hides that block.
@@ -127,6 +128,23 @@ for path in sys.argv[1:]:
         print(f"FAIL: {path}'s mode marker says {modes[0]!r}, expected \"horizontal\"")
         bad = 1
 
+    # (g) A minted note page (`ideas/<slug>.html`) wraps its body and its
+    # own References block in exactly one `[data-rookery="page-body"]`
+    # element, and that element's Footnotes block is INSIDE it — the own
+    # card standing core.css needs to show margin notes on the page at all.
+    if path.endswith("/ideas/margin-note.html"):
+        page_body_ms = list(re.finditer(r'<div class="[^"]*" data-rookery="page-body">', h))
+        if len(page_body_ms) != 1:
+            print(f"FAIL: {path} has {len(page_body_ms)} data-rookery=\"page-body\" element(s), "
+                  f"expected exactly 1")
+            bad = 1
+        else:
+            page_body_html = extract_div(h, page_body_ms[0].start())
+            if 'data-rookery="footnotes"' not in page_body_html:
+                print(f"FAIL: {path}'s data-rookery=\"page-body\" element carries no "
+                      f"data-rookery=\"footnotes\" block")
+                bad = 1
+
     if path.endswith("/index.html"):
         # (c) `host-note`'s window transclusion of `margin-note`: its own
         # sidenotes, its own Footnotes list matching them, and a References
@@ -141,9 +159,9 @@ for path in sys.argv[1:]:
                 print(f"FAIL: {path}'s window transclusion carries no sidenote")
                 bad = 1
             win_fn_items = re.findall(r'data-rookery="footnote"', window_html)
-            if len(win_fn_items) != 4:
+            if len(win_fn_items) != 6:
                 print(f"FAIL: {path}'s window transclusion has {len(win_fn_items)} Footnotes "
-                      f"list item(s), expected 4")
+                      f"list item(s), expected 6")
                 bad = 1
             if 'data-rookery="references"' not in window_html:
                 print(f"FAIL: {path}'s window transclusion has no data-rookery=\"references\" div")
@@ -156,19 +174,21 @@ for path in sys.argv[1:]:
         # implementation detail of a document-wide counter, so this checks
         # the multiset of shapes rather than a specific id.
         shapes = sorted(sorted(v) for v in sn_blocks.values())
-        if shapes != [[1], [1, 2, 3, 4], [1, 2, 3, 4]]:
+        if shapes != [[1], [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]]:
             print(f"FAIL: {path} has sidenote blocks shaped {shapes}, expected one "
-                  f"single-note block (no-gutter) and two four-note blocks "
-                  f"(margin-note's own card and host-note's window transclusion of it)")
+                  f"single-note block (no-gutter) and two six-note blocks "
+                  f"(margin-note's own card and host-note's window transclusion of it, each "
+                  f"carrying the blockquote's and the list item's own footnotes too)")
             bad = 1
 
         cite_spans = re.findall(
             r'<span class="[^"]*" data-rookery="sidenote" data-rookery-cite="cite">(.*?)</span>', h, re.S,
         )
         knuth = [s for s in cite_spans if "Knuth" in s]
-        if len(knuth) != 2:
-            print(f"FAIL: {path} has {len(knuth)} margin citation note(s) naming Knuth, expected 2 "
-                  f"— one per rendering of margin-note's body (its own card, and host-note's #window)")
+        if len(knuth) != 4:
+            print(f"FAIL: {path} has {len(knuth)} margin citation note(s) naming Knuth, expected 4 "
+                  f"— two per rendering of margin-note's body (the bare citation and the "
+                  f"blockquote's), across its own card and host-note's #window")
             bad = 1
         lamport = [s for s in cite_spans if "Lamport" in s]
         if len(lamport) != 4:
@@ -179,9 +199,10 @@ for path in sys.argv[1:]:
 if not bad:
     print("  sidenotes: every sidenote block matches its Footnotes list, sidenotes sit immediately "
           "after their own marker, host-note's #window of margin-note carries its own sidenotes and "
-          "Footnotes list, the Knuth and Lamport margin citations appear once per rendering of "
+          "Footnotes list, the Knuth and Lamport margin citations appear the right number of times per "
           "margin-note's body with Lamport's nested inside its footnote, no References div is ever "
-          "hidden, and every page carries exactly one horizontal mode marker")
+          "hidden, every page carries exactly one horizontal mode marker, and the minted margin-note "
+          "page wraps its body and Footnotes block in exactly one data-rookery=\"page-body\" element")
 sys.exit(bad)
 SIDENOTES
 

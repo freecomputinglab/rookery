@@ -369,60 +369,75 @@
       // above), so a `#window` written in its body shows in full here and a
       // window nested inside THAT one follows the document's `window-unfurl`.
       //
-      // Wrapped in `_footnoted` — the same wrapper `#idea` and `#window` use —
-      // so the note's footnote markers are claimed HERE and listed in a block
-      // of this page's own. A minted page is a separate `#document` at the
-      // bundle root, outside every vertebra, so `#show: rookery`'s
-      // document-wide fallback never reaches it: without this the markers were
-      // claimed by nothing and rendered as nothing, silently dropping the
-      // note's footnotes from its own page.
-      //
-      // It also puts the block between the body and the footer, which is where
-      // it belongs: the note's own apparatus stays attached to the note, and
-      // Context/Backlinks remain last as the navigational layer. Typst's stock
-      // endnote section would have landed BELOW the footer instead.
-      //
-      // Walks what it renders — `flat` rather than `rec.body` — so a window
-      // this page unfurls contributes its footnotes to its own block rather
-      // than being missed. A rendered window wraps its body in `_footnoted` of
-      // its own, and that inner wrapper claims its markers before this outer
-      // one sees them (the inner-rule-wins fact recorded at `_flatten`), so
-      // the two do not fight over a window's footnotes.
-      #_footnoted(flat)
-      // REFERENCES. A minted page renders the note's body, so it renders the
-      // note's citations — and until this existed it had no bibliography of its
-      // own. A citation with no bibliography FOLLOWING it does not error; it
-      // falls back to the nearest PRECEDING one. Minted pages are contributed
-      // at the bundle root, after the whole spine, so every minted-page
-      // citation was landing in the LAST bibliography on the last vertebra — a
-      // sweep block belonging to an unrelated page, which then listed an entry
-      // that no citation on that page pointed at. MEASURED.
-      //
-      // Walks what it renders (`flat`, not `rec.body`) so a window this page
-      // unfurls contributes its citations here too.
-      //
-      // `id` gives the block a stable cross-page address —
-      // `ideas/<slug>.html#refs-<slug>`. A plain HTML id, NOT a second
-      // declaration of the note's Typst label; see the note at the top of this
-      // file on why two elements must never share one label.
-      //
-      // Before the footer, deliberately: the note's own apparatus stays
-      // attached to the note, and Context/Backlinks stay last as the
-      // navigational layer.
-      // `windows-claim` follows the depth budget, and asks it the same question
-      // every comparison in `lib.typ` does — `> 1`, "is there a level left over
-      // for a window found in this body" (see `_window-depth`). At the default
-      // `minted-depth` is 2, so a window on this page renders, carries a
-      // References block of its own, and therefore claims the citations written
-      // after it. It was `_window-depth.final() > 0` while the body was built
-      // at `depth: auto` and had to change with it: leave it false and the page
-      // lists an entry for a citation that the window below it is already
-      // listing. The inverse error is the one the note above records — claiming
-      // for a window that collapsed, so the page emits no bibliography while
-      // still citing, and the citation lands on another minted page's block.
-      // MEASURED. At `window-unfurl: 0`, `minted-depth` is 1, the windows on
-      // this page collapse and claim nothing, and this correctly goes false.
-      #_refs-block(_own-cited-keys(flat, windows-claim: minted-depth > 1), id: "refs-" + slug)
+      // ONE WRAPPER around the body and its References block, carrying
+      // `[data-rookery="page-body"]` — the minted page's own standing as an
+      // "own card" for core.css: margin notes get somewhere to show, and the
+      // page gets a gutter to show them in, exactly as `#idea`'s
+      // `[data-rookery="box"]` does for a vertebra's own card (`idea.typ`).
+      // Emitted in BOTH footnote modes — Typst's output must not depend on
+      // the mode, only CSS reads it, because varying the markup itself costs
+      // convergence passes on a large, deeply windowed project (the same
+      // reasoning the split rule's own banner gives, core.css).
+      #html.elem(
+        "div",
+        attrs: (class: _c("page-body"), data-rookery: "page-body"),
+        {
+          // Wrapped in `_footnoted` — the same wrapper `#idea` and `#window` use —
+          // so the note's footnote markers are claimed HERE and listed in a block
+          // of this page's own. A minted page is a separate `#document` at the
+          // bundle root, outside every vertebra, so `#show: rookery`'s
+          // document-wide fallback never reaches it: without this the markers were
+          // claimed by nothing and rendered as nothing, silently dropping the
+          // note's footnotes from its own page.
+          //
+          // It also puts the block between the body and the footer, which is where
+          // it belongs: the note's own apparatus stays attached to the note, and
+          // Context/Backlinks remain last as the navigational layer. Typst's stock
+          // endnote section would have landed BELOW the footer instead.
+          //
+          // Walks what it renders — `flat` rather than `rec.body` — so a window
+          // this page unfurls contributes its footnotes to its own block rather
+          // than being missed. A rendered window wraps its body in `_footnoted` of
+          // its own, and that inner wrapper claims its markers before this outer
+          // one sees them (the inner-rule-wins fact recorded at `_flatten`), so
+          // the two do not fight over a window's footnotes.
+          _footnoted(flat)
+          // REFERENCES. A minted page renders the note's body, so it renders the
+          // note's citations — and until this existed it had no bibliography of its
+          // own. A citation with no bibliography FOLLOWING it does not error; it
+          // falls back to the nearest PRECEDING one. Minted pages are contributed
+          // at the bundle root, after the whole spine, so every minted-page
+          // citation was landing in the LAST bibliography on the last vertebra — a
+          // sweep block belonging to an unrelated page, which then listed an entry
+          // that no citation on that page pointed at. MEASURED.
+          //
+          // Walks what it renders (`flat`, not `rec.body`) so a window this page
+          // unfurls contributes its citations here too.
+          //
+          // `id` gives the block a stable cross-page address —
+          // `ideas/<slug>.html#refs-<slug>`. A plain HTML id, NOT a second
+          // declaration of the note's Typst label; see the note at the top of this
+          // file on why two elements must never share one label.
+          //
+          // Before the footer, deliberately: the note's own apparatus stays
+          // attached to the note, and Context/Backlinks stay last as the
+          // navigational layer.
+          // `windows-claim` follows the depth budget, and asks it the same question
+          // every comparison in `lib.typ` does — `> 1`, "is there a level left over
+          // for a window found in this body" (see `_window-depth`). At the default
+          // `minted-depth` is 2, so a window on this page renders, carries a
+          // References block of its own, and therefore claims the citations written
+          // after it. It was `_window-depth.final() > 0` while the body was built
+          // at `depth: auto` and had to change with it: leave it false and the page
+          // lists an entry for a citation that the window below it is already
+          // listing. The inverse error is the one the note above records — claiming
+          // for a window that collapsed, so the page emits no bibliography while
+          // still citing, and the citation lands on another minted page's block.
+          // MEASURED. At `window-unfurl: 0`, `minted-depth` is 1, the windows on
+          // this page collapse and claim nothing, and this correctly goes false.
+          _refs-block(_own-cited-keys(flat, windows-claim: minted-depth > 1), id: "refs-" + slug)
+        },
+      )
       #{
         let origin = rec.at("origin", default: none)
         let back = backlinks.at(id, default: ())

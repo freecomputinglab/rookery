@@ -12,7 +12,12 @@ note() { echo "FAIL: $*"; fail=1; }
 
 measure() {
   local page="$1" script="$2" label="$3"
-  local geom="$H/_geom-$page.html"
+  # Split on the LAST slash, not prepended across one — `page` can itself
+  # carry a directory (`ideas/margin-note`), and `_geom-ideas/foo.html`
+  # would name a file inside a directory named `_geom-ideas` that does not
+  # exist. The prefix lands on the basename instead, next to the original
+  # page, so its relative stylesheet link still resolves either way.
+  local geom="$H/$(dirname "$page")/_geom-$(basename "$page").html"
   [ -f "$H/$page.html" ] || { note "no $H/$page.html"; return 1; }
   # Copied NEXT TO the original so its relative stylesheet link still resolves.
   cp "$H/$page.html" "$geom"
@@ -36,7 +41,8 @@ PY
 
 INDEX_JS="$(mktemp)"
 BLOCKS_JS="$(mktemp)"
-trap 'rm -f "$INDEX_JS" "$BLOCKS_JS"' EXIT
+MARGIN_PAGE_JS="$(mktemp)"
+trap 'rm -f "$INDEX_JS" "$BLOCKS_JS" "$MARGIN_PAGE_JS"' EXIT
 
 cat > "$INDEX_JS" <<'JS'
 const r = el => el.getBoundingClientRect();
@@ -93,12 +99,30 @@ const windowMeasure = () => {
   return {right: b.right, paragraphRight: firstParagraphRight(windowBody)};
 };
 
+// The blockquote inside `margin-note`'s own card, and a link-deadness probe
+// on a footnote marker there (own card, always dead) and inside host-note's
+// window (never dead — a window keeps its blocks visible, see core.css).
+const marginNoteBox = byIdea("margin-note");
+const cardFnRefLink = marginNoteBox.querySelector('[data-rookery="fn-ref"] a');
+const windowFnRefLink = windowBody.querySelector('[data-rookery="fn-ref"] a');
+const linkProbe = a => a && {
+  pointerEvents: getComputedStyle(a).pointerEvents,
+  textDecorationLine: getComputedStyle(a).textDecorationLine,
+};
+const blockquoteMeasure = box => {
+  const bq = box.querySelector('blockquote');
+  return bq ? r(bq).right : null;
+};
+
 document.body.dataset.out = JSON.stringify({
   marginNote: measure(byIdea("margin-note")),
   plainWide: measure(byIdea("plain-wide")),
   forcedGutter: measure(byIdea("forced-gutter")),
   noGutter: measure(byIdea("no-gutter")),
   window: windowMeasure(),
+  blockquoteRight: blockquoteMeasure(marginNoteBox),
+  cardFnRef: linkProbe(cardFnRefLink),
+  windowFnRef: linkProbe(windowFnRefLink),
 });
 JS
 
@@ -129,14 +153,47 @@ before.stickyTop = r(pageGutter).top;
 document.body.dataset.out = JSON.stringify(before);
 JS
 
+cat > "$MARGIN_PAGE_JS" <<'JS'
+// Same probe as `INDEX_JS`'s `measure`, run against the minted page's
+// `[data-rookery="page-body"]` instead of an idea's `[data-rookery="box"]` —
+// the wrapper that gives a minted page the same "own card" standing.
+const r = el => el.getBoundingClientRect();
+const pageBody = document.querySelector('[data-rookery="page-body"]');
+const firstParagraphRight = box => {
+  const p = box.querySelector(':scope > p');
+  return p ? r(p).right : null;
+};
+const notes = [...pageBody.querySelectorAll('[data-rookery="sidenote"]')]
+  .filter(n => !n.closest('[data-rookery="footnotes"]'))
+  .filter(n => n.parentElement.closest('[data-rookery="sidenote"]') === null)
+  .map(n => ({right: r(n).right}));
+const bq = pageBody.querySelector('blockquote');
+const sidenoteSample = pageBody.querySelector('[data-rookery="sidenote"]');
+const footnotesBlock = pageBody.querySelector('[data-rookery="footnotes"]');
+const fnRefLink = pageBody.querySelector('[data-rookery="fn-ref"] a');
+
+document.body.dataset.out = JSON.stringify({
+  right: r(pageBody).right,
+  notes,
+  blockquoteRight: bq ? r(bq).right : null,
+  textColumnRight: firstParagraphRight(pageBody),
+  sidenoteDisplay: sidenoteSample ? getComputedStyle(sidenoteSample).display : null,
+  footnotesDisplay: footnotesBlock ? getComputedStyle(footnotesBlock).display : null,
+  fnRefPointerEvents: fnRefLink ? getComputedStyle(fnRefLink).pointerEvents : null,
+  fnRefTextDecorationLine: fnRefLink ? getComputedStyle(fnRefLink).textDecorationLine : null,
+});
+JS
+
 INDEX_OUT="$(measure index "$INDEX_JS" "index.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 BLOCKS_OUT="$(measure blocks "$BLOCKS_JS" "blocks.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
+MARGIN_PAGE_OUT="$(measure ideas/margin-note "$MARGIN_PAGE_JS" "ideas/margin-note.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 
-python3 - "$INDEX_OUT" "$BLOCKS_OUT" <<'PY'
+python3 - "$INDEX_OUT" "$BLOCKS_OUT" "$MARGIN_PAGE_OUT" <<'PY'
 import json, sys
 
 d = json.loads(sys.argv[1])
 b = json.loads(sys.argv[2])
+m = json.loads(sys.argv[3])
 TOL = 1
 bad = []
 
@@ -151,6 +208,25 @@ for n in mn["notes"]:
         bad.append(f"margin-note sidenote left {n['left']} < paragraph right {n['parentRight']}")
 if not close(mn["paddingRight"], 0.4 * mn["width"]):
     bad.append(f"margin-note padding-right {mn['paddingRight']} != 0.4 * width {mn['width']}")
+
+# The blockquote is exactly as wide as the text column (its first plain
+# paragraph's own right edge) — at most that edge, 1px tolerance either way.
+if mn["paragraphRight"] is not None and d["blockquoteRight"] is not None:
+    if d["blockquoteRight"] > mn["paragraphRight"] + TOL:
+        bad.append(
+            f"margin-note blockquote right {d['blockquoteRight']} > text column right "
+            f"{mn['paragraphRight']}"
+        )
+
+# A footnote marker's link is dead on the card (nothing to click, its
+# Footnotes block is hidden) and live inside host-note's window (its own
+# Footnotes block stays visible — see core.css).
+cfr = d["cardFnRef"]
+if cfr is None or cfr["pointerEvents"] != "none" or cfr["textDecorationLine"] != "none":
+    bad.append(f"margin-note card fn-ref link computes {cfr}, expected pointer-events/text-decoration none")
+wfr = d["windowFnRef"]
+if wfr is None or wfr["pointerEvents"] != "auto":
+    bad.append(f"host-note window fn-ref link computes {wfr}, expected pointer-events auto")
 
 pw = d["plainWide"]
 if pw["paragraphRight"] is None or not close(pw["paragraphRight"], pw["right"]):
@@ -212,6 +288,31 @@ if ogn["top"] < og["bottom"] - TOL:
 if not close(b["stickyTop"], 0):
     bad.append(f"blocks: sticky gutter top after scroll {b['stickyTop']} != 0")
 
+# The minted `ideas/margin-note.html` page: its `[data-rookery="page-body"]`
+# behaves exactly like the vertebra's own card above — every sidenote
+# (including the blockquote's and the list item's) flush on the page body's
+# right edge, the blockquote no wider than the text column, sidenotes
+# visible and the Footnotes block hidden, and a dead fn-ref link — because
+# it is the SAME "own card" standing core.css grants a page body.
+for n in m["notes"]:
+    if not close(n["right"], m["right"]):
+        bad.append(f"minted margin-note page sidenote right {n['right']} != page-body right {m['right']}")
+if m["textColumnRight"] is not None and m["blockquoteRight"] is not None:
+    if m["blockquoteRight"] > m["textColumnRight"] + TOL:
+        bad.append(
+            f"minted margin-note page blockquote right {m['blockquoteRight']} > text column right "
+            f"{m['textColumnRight']}"
+        )
+if m["sidenoteDisplay"] != "block":
+    bad.append(f"minted margin-note page sidenote computes display: {m['sidenoteDisplay']}, expected block")
+if m["footnotesDisplay"] != "none":
+    bad.append(f"minted margin-note page Footnotes block computes display: {m['footnotesDisplay']}, expected none")
+if m["fnRefPointerEvents"] != "none" or m["fnRefTextDecorationLine"] != "none":
+    bad.append(
+        f"minted margin-note page fn-ref link computes pointer-events: {m['fnRefPointerEvents']}, "
+        f"text-decoration-line: {m['fnRefTextDecorationLine']}, expected none/none"
+    )
+
 if bad:
     for line in bad:
         print("FAIL: " + line)
@@ -221,13 +322,19 @@ print(
     "  geom: margin-note's sidenotes sit flush on the card's right edge clear of "
     "its text, its padding-right is 0.4 of its width, plain-wide and no-gutter "
     "stay unsplit, no-gutter keeps a Footnotes block, forced-gutter splits with "
-    "no note, and the two same-line notes stack"
+    "no note, the two same-line notes stack, the blockquote stays within the text "
+    "column, and a footnote link is dead on the card and live inside a window"
 )
 print(
     "  geom: blocks.html's page-level gutter block aligns with after-panel's "
     "card and displaces its sidenote, own-block's gutter block aligns with its "
     "own card and displaces its sidenote, and the sticky block holds at the "
     "viewport top after scrolling"
+)
+print(
+    "  geom: the minted margin-note page's page-body carries the same own-card "
+    "standing — its sidenotes align, its blockquote stays in the text column, "
+    "sidenotes show, the Footnotes block hides, and its fn-ref links are dead"
 )
 PY
 

@@ -884,6 +884,22 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
 [data-rookery="box"][data-rookery-bare] {
   --_inset: 0px;
 }
+/* A minted page's own body (`.marrow.typ`'s `[data-rookery="page-body"]`)
+   stands as an own card too, but carries no rule and no padding of its own —
+   `0px` is its correct, not its fallback, value. */
+[data-rookery="page-body"] {
+  --_inset: 0px;
+}
+
+/* The same typing reasons as `--_inset` above: an indented container (a
+   `blockquote` or a `li`, below) declares how much narrower than its own
+   card it is, and this has to resolve ONCE at that element rather than
+   again at whatever font-size reads it. */
+@property --_indent {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
 
 /* Which top-level cards split into a text column and a right gutter, under
    `footnotes: "horizontal"`.
@@ -902,8 +918,12 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
    *)` excludes a card nested inside another card or a window, which never
    splits independently; its notes float into whichever top-level card
    hosts it. A window is never a candidate at all: it always renders its
-   notes in-flow within its host's gutter, never a gutter of its own. */
-:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) [data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *):has([data-rookery="sidenote"]):not([data-rookery-gutter="off"]),
+   notes in-flow within its host's gutter, never a gutter of its own.
+
+   A minted page's `[data-rookery="page-body"]` (`.marrow.typ`) is an own
+   card too, but it has no `data-rookery-gutter` attribute to opt out with —
+   there is only one body per page — so it joins the `:is(...)` unconditionally. */
+:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *):not([data-rookery-gutter="off"]), [data-rookery="page-body"]):has([data-rookery="sidenote"]),
 [data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *)[data-rookery-gutter="on"] {
   padding-right: calc(var(--idea-right-gutter, 0.3333) * 100%);
 }
@@ -1692,15 +1712,16 @@ a[data-rookery="row-title"]:hover {
   font-size: 0.85em;
 }
 
-/* Hidden on an own card under horizontal mode, where the margin notes
-   already show the same content beside the text — the same card and mode
-   condition the sidenote-visibility rule above uses, on the block instead of
-   the note. `:not([data-rookery="window"] *)` on the block itself, not only
-   on the card ancestor: without it a `#window` transcluded INTO this card
-   would have its own, always-vertical Footnotes block (below) swept up by
-   this rule too, since it is also a descendant of the same card. */
+/* Hidden on an own card, or a minted page's own body, under horizontal mode,
+   where the margin notes already show the same content beside the text —
+   the same condition the sidenote-visibility rule above uses, on the block
+   instead of the note. `:not([data-rookery="window"] *)` on the block
+   itself, not only on the card ancestor: without it a `#window` transcluded
+   INTO this card would have its own, always-vertical Footnotes block
+   (below) swept up by this rule too, since it is also a descendant of the
+   same card. */
 :where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *))
+  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
   [data-rookery="footnotes"]:not([data-rookery="window"] *) {
   display: none;
 }
@@ -1775,9 +1796,10 @@ a[data-rookery="row-title"]:hover {
    which is what `--_g` below computes. The note's `width` is `_g` minus the
    clearance to the text, and its `margin-right` is `-_g`, which lands its
    right edge exactly on the card's right edge — the padding-right already
-   reserved that space. KNOWN IMPRECISION: a note inside a list item or
-   blockquote is narrower than this by that element's own indent, since
-   `--_inset` only accounts for the card's.
+   reserved that space. A note inside a `blockquote` or a `li` is narrower
+   than this by that element's own indent too, so `--_g` also adds
+   `--_indent` — that element's own contribution, pinned where it is
+   declared (below) — alongside the card's `--_inset`.
 
    `display: none` by default: Typst emits this element in every mode (see
    the banner above the split rule), so vertical is CSS hiding what horizontal
@@ -1796,16 +1818,18 @@ a[data-rookery="row-title"]:hover {
   transition: color 0.2s, border-color 0.2s;
 }
 
-/* Shows a margin note on any idea's own card — nested or top-level — under
-   horizontal mode, as long as it is not inside a `#window` (below: a window
-   always renders vertically, whatever the project's mode) and has not opted
-   out with `data-rookery-gutter="off"` (left at the default, hidden, same as
-   vertical mode). `:where()` on the mode and card conditions keeps this
-   rule's specificity down to the bare attribute selector it ends in, which
-   is what lets the window rule below — a plain two-selector descendant rule —
-   outrank it for a note that is inside both. */
+/* Shows a margin note on any idea's own card — nested or top-level — or a
+   minted page's own body, under horizontal mode, as long as it is not
+   inside a `#window` (below: a window always renders vertically, whatever
+   the project's mode) and has not opted out with `data-rookery-gutter="off"`
+   (left at the default, hidden, same as vertical mode; a page body has no
+   such attribute to opt out with). `:where()` on the mode and card
+   conditions keeps this rule's specificity down to the bare attribute
+   selector it ends in, which is what lets the window rule below — a plain
+   two-selector descendant rule — outrank it for a note that is inside
+   both. */
 :where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *))
+  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
   [data-rookery="sidenote"] {
   display: block;
 }
@@ -1834,9 +1858,51 @@ a[data-rookery="row-title"]:hover {
    offset from the card's right edge. */
 [data-rookery="box"] [data-rookery="gutter"],
 [data-rookery="sidenote"] {
-  --_g: calc((100% + var(--_inset, 0px)) * var(--idea-right-gutter, 0.3333) / (1 - var(--idea-right-gutter, 0.3333)));
+  --_g: calc((100% + var(--_inset, 0px) + var(--_indent, 0px)) * var(--idea-right-gutter, 0.3333) / (1 - var(--idea-right-gutter, 0.3333)));
   width: calc(var(--_g) - var(--idea-sidenote-gap, 1.5rem));
   margin-right: calc(-1 * var(--_g));
+}
+
+/* Indented containers, under horizontal mode inside an own card or a minted
+   page's own body: a `blockquote` is forced to exactly the text column's
+   width, so its notes line up with every other note's right edge instead of
+   over- or under-shooting it, and it declares its own left inset
+   (`--_indent`) into the `--_g` algebra above. The border's colour stays
+   the site's own; only the box model is pinned here — including
+   `border-left-style`, because `--_indent` assumes the 2px it pins actually
+   renders, and `border-style: none` (the initial value, and every
+   plain browser default) computes ANY border-width back to 0 regardless of
+   what is set here. A site wanting a different style overrides this
+   declaration, not the one above it. Nested blockquotes and nested lists
+   are out of scope — `--_indent` takes the innermost declaration only. */
+:where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
+  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+  blockquote {
+  box-sizing: border-box;
+  width: auto;
+  max-width: 100%;
+  margin-inline: 0;
+  padding-right: 0;
+  padding-left: 1em;
+  border-left-style: solid;
+  border-left-width: 2px;
+  --_indent: calc(1em + 2px);
+}
+
+/* A list's own indent, same reasoning as the blockquote above:
+   `ul`/`ol` are forced to a fixed `padding-left` (rather than the host
+   site's own list indent, which `--_indent` cannot see), and each `li`
+   declares that same indent into the gutter algebra. */
+:where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
+  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+  :is(ul, ol) {
+  padding-left: 1.5em;
+  margin-inline: 0;
+}
+:where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
+  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+  li {
+  --_indent: 1.5em;
 }
 
 /* A `#gutter` transcluded inside a `#window` has no right gutter reserved
@@ -1886,15 +1952,31 @@ a[data-rookery="row-title"]:hover {
   font-weight: 600;
 }
 
-/* Hover couples the marker and its margin note in both directions, so either
-   one lights up the pair regardless of which the reader's pointer is on. */
-[data-rookery="fn-ref"]:hover + [data-rookery="sidenote"],
-[data-rookery="sidenote"]:hover {
+/* On an own card or a minted page's own body, under horizontal mode, a
+   footnote marker's and a citation's `<a>` point at a Footnotes or
+   References block that is hidden there (both rules above) — the margin
+   note already carries the same content. So the link goes dead: no pointer,
+   no underline, no hover, and the text colour it inherits rather than the
+   site's link colour. `:not([data-rookery="window"] *)` keeps a window's
+   links live, since a window always renders vertically with its blocks
+   visible (see the sidenote rule above), whatever the project's mode. */
+:where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
+  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+  :is([data-rookery="fn-ref"] a, a[role="doc-biblioref"]):not([data-rookery="window"] *) {
+  pointer-events: none;
+  cursor: text;
   color: inherit;
-  border-left-color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
+  text-decoration: none;
 }
-[data-rookery="fn-ref"]:has(+ [data-rookery="sidenote"]:hover) a {
-  text-decoration: underline;
+
+/* The footnote marker keeps its accent colour — the same variable
+   `[data-rookery="sidenote-number"]` uses — so the pairing with its margin
+   note stays legible even though the link beneath it no longer does
+   anything. */
+:where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
+  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+  [data-rookery="fn-ref"] a:not([data-rookery="window"] *) {
+  color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
 }
 
 /* ---- References — one bibliography per idea, and the page's own -----------
@@ -1935,7 +2017,7 @@ a[data-rookery="row-title"]:hover {
    bibliography following it is a hard error), never `hidden`; CSS is the
    only thing that ever hides it. */
 :where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *))
+  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
   [data-rookery="references"]:not([data-rookery="window"] *) {
   display: none;
 }

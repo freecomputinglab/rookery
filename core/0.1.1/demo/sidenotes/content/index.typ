@@ -19,6 +19,15 @@
   A fourth paragraph with a footnote whose body itself cites a
   work#footnote[Citing @lamport1994 here, so its full reference sits inline
   in this sidenote rather than spawning a second margin note.].
+
+  #quote(block: true)[
+    A blockquoted paragraph, citing @knuth1984 again and carrying its own
+    footnote#footnote[The fifth margin note, inside the blockquote — its
+    note still lines up with the card's gutter.].
+  ]
+
+  - A list item with a footnote#footnote[The sixth margin note, inside the
+    list item — same gutter, same alignment.].
 ]
 
 #idea("host-note", title: [Host note])[
