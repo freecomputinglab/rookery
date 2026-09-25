@@ -229,3 +229,15 @@ Everything above is `/tmp`-only, per the bird's constraints:
 
 No file in `/home/lox/code/_fcl/rookery` or `/home/lox/code/waterline` was
 touched.
+
+## Re-measured on a quiet machine, 2026-09-25: abandon
+
+Same binary before and after, only the operator's two idle `rheo watch` processes running, waterline at 4 convergence passes. The split still built byte-identical output.
+
+| edit | before | after |
+|---|---|---|
+| rheo's `watch-bench` vertebra edit (appends a new comment to waterline's `index.typ`, which calls `ideas()`) | 860ms median | 1900ms median |
+| first comment line appended to `writing/weeknotes/26w37.typ` in a session | 5.8s | 6.8s |
+| `touch`, and the bench's asset edit | flat | flat |
+
+Append to the weeknote again after undoing the first append, and the rebuild drops to ~400ms. That is not warm-up. The bytes are identical to a state already compiled, so the parse cache and comemo serve it. **Only an edit that produces bytes never compiled before measures a real edit**, which is why `watch-bench` writes a numbered comment each run. By that measure, the split makes a whole-registry reader about 2.2x slower and a note edit about 17% slower, with no case where it wins. The note edit's ~6s is not caused by the single registry state.
