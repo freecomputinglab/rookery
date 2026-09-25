@@ -68,7 +68,7 @@
   (if r.len() > 4096 { r.slice(0, 4096) } else { r }) + "#" + str(r.len())
 }
 
-#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-name: auto, display-label: auto, display-background: auto, display-context: auto, display-backlinks: auto, display-title: auto, display-right-gutter: auto, ..args) = {
+#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, handle: auto, display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-name: auto, display-label: auto, display-background: auto, display-context: auto, display-backlinks: auto, display-title: auto, display-right-gutter: auto, ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
   // below and further down at render time — str has no `.map`, so the error
@@ -102,6 +102,12 @@
     message: "@rookery/core: #idea's `tag` must be a single tag name as a "
       + "string — pass several as `base-tags: (\"a\", \"b\")` — got "
       + repr(tag),
+  )
+  assert(
+    handle == auto or type(handle) == str,
+    message: "@rookery/core: #idea's `handle` must be a string or `auto` — got "
+      + repr(handle) + " — bind it once on a project's own constructor, e.g. "
+      + "`idea.with(handle: rheo-context().handle)`, not per call.",
   )
   let display = _resolve-display(
     display,
@@ -374,14 +380,27 @@
       // pages — so "where was this written" has to be recorded at the call
       // site or it is gone.
       //
-      // `state("rheo-handle")` is published per page by rheo's own
-      // `rheo-page-init`. `.get()`, not `.final()`: the point is the handle
+      // `handle:` (the argument) FIRST, when the caller supplied one — a
+      // plain closure value, never introspected, so it costs nothing and is
+      // known from the very first pass. A project's own `idea` constructor is
+      // where this gets bound once per vertebra —
+      // `idea.with(handle: rheo-context().handle)` — so no call site here has
+      // to change. `state("rheo-handle")` is the fallback, for a caller that
+      // never bound one: it is published per page by rheo's own
+      // `rheo-page-init`, but reading it HERE, inside this `#context`, is what
+      // used to cost a whole extra introspection-convergence pass on every
+      // build — a citing note's Backlinks window, on another page,
+      // transcluding this note's body, had to wait a pass for this note's
+      // origin to settle. MEASURED. `handle:` above is the way out: it is
+      // resolved before layout even starts, so nothing here waits on it.
+      //
+      // `.get()`, not `.final()`, for the fallback: the point is the handle
       // HERE, at this position in the spine, not wherever the document ends.
-      // Non-str (a plain `typst compile`, where nothing publishes it) means no
-      // context to record — `.marrow.typ`, the only reader, does not run there
-      // anyway.
-      let handle = state("rheo-handle").get()
-      let origin = if type(handle) == str { handle } else { none }
+      // Non-str (a plain `typst compile`, where nothing publishes it, and no
+      // `handle:` was bound either) means no context to record — `.marrow.typ`,
+      // the only reader, does not run there anyway.
+      let resolved-handle = if handle != auto { handle } else { state("rheo-handle").get() }
+      let origin = if type(resolved-handle) == str { resolved-handle } else { none }
 
       // Store the FLATTENED body plus the title, resolved dates and origin, so
       // a #window is pure presentation and any number of windows cost nothing, and
@@ -539,15 +558,16 @@
         // Its `id` attribute is the note's in-page anchor, the destination of every
         // `@idea:etal` fragment link, so dropping the element would break them;
         // `h*.idea:empty` in the stylesheet is what keeps it from taking any space.
-        // Passes `handle` (already read above, for `origin`) straight into
-        // `_note-href` rather than letting the tab's own `_permalink` read
-        // `state("rheo-handle")` a second time from this same context — see
-        // `_note-href`'s own banner (urls.typ) for why the second read, not
-        // the id, was what `state("rheo-handle")` was reported unstable at.
-        // `page-href == none` mirrors `_permalink`'s own fallback exactly,
-        // since passing an explicit href bypasses that fallback.
+        // Passes `resolved-handle` (already resolved above, for `origin`)
+        // straight into `_note-href` rather than letting the tab's own
+        // `_permalink` read `state("rheo-handle")` a second time from this
+        // same context — see `_note-href`'s own banner (urls.typ) for why the
+        // second read, not the id, was what `state("rheo-handle")` was
+        // reported unstable at. `page-href == none` mirrors `_permalink`'s
+        // own fallback exactly, since passing an explicit href bypasses that
+        // fallback.
         let own-href = {
-          let page-href = _note-href(id, handle: handle)
+          let page-href = _note-href(id, handle: resolved-handle)
           if page-href == none { "#" + id } else { page-href }
         }
         let header = _head(
