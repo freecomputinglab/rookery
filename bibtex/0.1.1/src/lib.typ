@@ -11,8 +11,11 @@
 //             factory's own when omitted
 //   citation: (key, title: auto, tags: none, display-tags: true, ..) -> a note,
 //             titled from the entry unless `title:` overrides it
-//   all:      () -> mints every entry NOT already claimed by a hand-written
-//             `citation` call, once per document (see `claim.typ`)
+//   all:      (skip: none) -> mints every entry NOT already claimed by a
+//             hand-written `citation` call, once per document (see
+//             `claim.typ`). `skip:` names the claimed keys lexically —
+//             callers who already know them this way skip the late
+//             `_claimed.final()` read and its extra convergence pass.
 //
 // `src` may be a single string or an array of strings — several `.bib` exports
 // read as one bibliography, joined with a newline between members so a file
@@ -163,7 +166,12 @@
     // this very call makes and panic on the FIRST call too. `.get()` sees only
     // what ran before this point, so the guard fires on a genuine second call
     // and nothing else.
-    all: () => context {
+    //
+    // `skip:` gives the claimed keys lexically, bypassing `_claimed.final()`
+    // — a state read that only settles a pass after `citation`'s writes.
+    // Omit it to fall back to that read; `_claimed` still guards it against
+    // a caller who mixes `citation` with a lexical `skip:`.
+    all: (skip: none) => context {
       if _swept.get() > 0 {
         panic(
           "@rookery/bibtex: all() mints the whole bibliography and must be "
@@ -180,8 +188,9 @@
       } else {
         none
       }
+      let claimed = if skip != none { skip } else { _claimed.final() }
       for key in bib.keys().sorted() {
-        if key not in _claimed.final() {
+        if key not in claimed {
           // `[]`, an empty body, NOT omitted: core's `#idea` reads a single
           // positional argument as the note's BODY (idea.typ, the
           // `pos.len() == 1` branch), so `note(key)` alone would make the key
