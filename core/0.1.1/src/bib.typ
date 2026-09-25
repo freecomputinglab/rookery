@@ -128,7 +128,7 @@
       let attrs = (class: _c("references"), data-rookery: "references")
       if id != none { attrs = attrs + (id: id) }
       let mode-horizontal = if horizontal == auto {
-        _footnote-mode.final() == "horizontal"
+        _footnote-mode.final() == "horizontal" and _in-window.get() == 0
       } else {
         horizontal
       }
@@ -181,12 +181,18 @@
 // idless, unlike `_fn-side` — the inline marker beside it already identifies
 // which work it names, and two citations of the same work each get their own
 // note rather than being deduplicated.
+//
+// Also skipped inside a window (`_in-window.get()`, state.typ), and not only
+// via `_footnoted`'s own gate: a host card's `show cite: _margin-cite` rule
+// stays in scope for content a nested window renders inside it, since the
+// window installs no rule of its own when it falls back to vertical mode —
+// this is the guard that keeps such a citation out of the host's margin.
 #let _margin-cite(it) = {
   if it.form == "full" or it.form == none {
     return it
   }
   it + context {
-    if _in-sidenote.get() {
+    if _in-sidenote.get() or _in-window.get() > 0 {
       []
     } else {
       html.elem(
@@ -243,8 +249,18 @@
     // horizontal html — an idea with no footnotes still gets margin
     // citations. Reading `.final()` needs `context`, so this path is no
     // longer a bare pass-through of `body`.
+    //
+    // `_in-window.get()` is read INSIDE this context, not folded into the
+    // eager `mode-horizontal` above: this whole function runs synchronously
+    // inside whatever context its caller already established (`_window-
+    // content`'s, typically), a SINGLE fixed position, so a read taken there
+    // cannot see an `_in-window.update()` that is itself part of the very
+    // content this call is helping build. This `context` literal is
+    // returned as content and gets its OWN position once actually laid out
+    // — after the update, if the update sits earlier in the tree — which is
+    // what makes the read here correct.
     return context {
-      if mode-horizontal and _target() == "html" {
+      if mode-horizontal and _in-window.get() == 0 and _target() == "html" {
         show cite: _margin-cite
         body
       } else {
@@ -257,7 +273,9 @@
     let b = _fn-block.get().first()
     // Horizontal mode is HTML-only (see `_fn-side`'s CSS, core.css) — paged
     // and epub always get the vertical block below, regardless of the mode.
-    let horizontal = mode-horizontal and _target() == "html"
+    // `_in-window.get()` is read here for the same reason as the no-notes
+    // branch above.
+    let horizontal = mode-horizontal and _in-window.get() == 0 and _target() == "html"
     if horizontal {
       show cite: _margin-cite
       _number-footnotes(body, 1, n => _fn-ref(b, n) + _fn-side(b, n, notes.at(n - 1))).node

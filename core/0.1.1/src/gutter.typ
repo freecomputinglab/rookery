@@ -15,7 +15,12 @@
     message: "@rookery/core: `gutter`'s `sticky` must be true or false — got "
       + repr(sticky),
   )
-  if _target() == "html" {
+  // Inside a window (`_in-window.get()`, state.typ) there is no right gutter
+  // reserved for it — a transcluded body renders vertically throughout, with
+  // margin notes falling back to `_footnoted`'s Footnotes block — so a
+  // `#gutter` written in a note windowed elsewhere renders as an ordinary
+  // block in the flow rather than a floated one.
+  if _target() == "html" and _in-window.get() == 0 {
     html.elem(
       "div",
       attrs: (class: _c("gutter"), data-rookery: "gutter")

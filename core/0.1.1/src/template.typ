@@ -478,6 +478,11 @@
 // citation with nothing to claim it is a Typst error) but hidden, since the
 // margin notes already show what it would have listed.
 //
+// A note being TRANSCLUDED (`#window`, `#idea-body`) always renders its
+// footnotes and citations vertically, whatever this setting says — a
+// Footnotes block and a visible References block at the bottom of the
+// transcluded body, never margin notes.
+//
 // `display-right-gutter:` is the document-wide default for the per-idea
 // `display-right-gutter` flag (`#idea`, idea.typ): `auto` (the default)
 // splits a card only when it holds a margin note; `true` splits every

@@ -504,6 +504,18 @@
 // citation is in the margin already, so it stays inline there.
 #let _in-sidenote = state("rheo-idea-in-sidenote", false)
 
+// How many transcluded bodies (a `#window`, or `#idea-body`) enclose the
+// content being rendered right now. A DEPTH, not a flag, because windows
+// nest: a window's body can itself contain a window. `_footnoted`,
+// `_refs-block` and `_margin-cite` (bib.typ) treat any depth greater than
+// zero as "render vertically regardless of `_footnote-mode`" — a
+// transcluded note always gets its own Footnotes and References blocks,
+// never margin notes, since a page windowing several posts would otherwise
+// scatter one host card's margin notes across posts it does not own.
+// `#gutter` (gutter.typ) reads it the same way, to fall back to an ordinary
+// block instead of floating into a margin no window reserves.
+#let _in-window = state("rheo-idea-in-window", 0)
+
 // The margin note, used in place of `_fn-block-html` under `footnotes:
 // "horizontal"` (see `_footnoted`, bib.typ). Carries the SAME id `_fn-ref`
 // links to (`fn-{b}-{n}`), so the marker's `href` resolves whichever mode is

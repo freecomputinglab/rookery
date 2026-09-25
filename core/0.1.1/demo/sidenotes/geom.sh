@@ -72,11 +72,21 @@ const measure = box => {
   };
 };
 
+// `host-note`'s `#window` transclusion of `margin-note`: a transcluded body
+// never splits, so its paragraphs span its own body's full content width —
+// no gutter reserved, whatever the document's mode.
+const windowBody = document.querySelector('[data-rookery="window-body"]');
+const windowMeasure = () => {
+  const b = r(windowBody);
+  return {right: b.right, paragraphRight: firstParagraphRight(windowBody)};
+};
+
 document.body.dataset.out = JSON.stringify({
   marginNote: measure(byIdea("margin-note")),
   plainWide: measure(byIdea("plain-wide")),
   forcedGutter: measure(byIdea("forced-gutter")),
   noGutter: measure(byIdea("no-gutter")),
+  window: windowMeasure(),
 });
 JS
 
@@ -146,6 +156,13 @@ if not ng["hasFootnotes"]:
 fg = d["forcedGutter"]
 if not close(fg["paddingRight"], 0.4 * fg["width"]):
     bad.append(f"forced-gutter padding-right {fg['paddingRight']} != 0.4 * width {fg['width']}")
+
+win = d["window"]
+if win["paragraphRight"] is None or not close(win["paragraphRight"], win["right"]):
+    bad.append(
+        f"window paragraph right {win['paragraphRight']} != window body right "
+        f"{win['right']} — a transcluded body must span its full content width"
+    )
 
 # The margin-note card's second and third footnotes sit on the same line
 # (index.typ) — same-line markers stack their sidenotes rather than
