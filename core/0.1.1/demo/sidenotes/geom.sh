@@ -151,6 +151,11 @@ const before = {
 
 window.scrollTo(0, 1500);
 before.stickyTop = r(pageGutter).top;
+// The cover strip is the pinned block's own `::before`, growing up from its
+// top edge — its computed height should track `--idea-gutter-top`, and its
+// own top edge (the block's top minus that height) should sit at the
+// viewport top once the block is pinned there.
+before.coverHeight = parseFloat(getComputedStyle(pageGutter, '::before').height);
 
 document.body.dataset.out = JSON.stringify(before);
 JS
@@ -185,6 +190,16 @@ const footerContentRight = footer
   ? r(footer).right - parseFloat(getComputedStyle(footer).paddingRight)
   : null;
 
+// The theme (`content/lib.typ`'s `theme: (border-color: ..)`) reaches this
+// sidenote only if `.marrow.typ` themes the page body itself — its border
+// falls back to core's own default otherwise, whatever the project sets.
+const sidenoteBorderColor = sidenoteSample
+  ? getComputedStyle(sidenoteSample).borderLeftColor
+  : null;
+const pageBodyBorderColorVar = getComputedStyle(pageBody)
+  .getPropertyValue('--idea-border-color')
+  .trim();
+
 document.body.dataset.out = JSON.stringify({
   right: r(pageBody).right,
   paddingRight: parseFloat(getComputedStyle(pageBody).paddingRight),
@@ -198,6 +213,8 @@ document.body.dataset.out = JSON.stringify({
   h1Right: h1 ? r(h1).right : null,
   dateRight: dateEl ? r(dateEl).right : null,
   footerContentRight,
+  sidenoteBorderColor,
+  pageBodyBorderColorVar,
 });
 JS
 
@@ -317,9 +334,24 @@ if not close(og["right"], ob["right"]):
 if ogn["top"] < og["bottom"] - TOL:
     bad.append(f"blocks: own-block's sidenote top {ogn['top']} < own gutter bottom {og['bottom']}")
 
-# (d) After scrolling, the sticky block holds at the viewport top.
-if not close(b["stickyTop"], 0):
-    bad.append(f"blocks: sticky gutter top after scroll {b['stickyTop']} != 0")
+# (d) After scrolling, the sticky block holds at `--idea-gutter-top`
+# (content/demo.css sets it to 4rem == 64px), not the viewport top itself —
+# that gap is exactly what the cover strip below has to span.
+if not close(b["stickyTop"], 64):
+    bad.append(f"blocks: sticky gutter top after scroll {b['stickyTop']} != 64 (--idea-gutter-top: 4rem)")
+
+# (e) The cover strip (`::before`) spans exactly the gap `--idea-gutter-top`
+# leaves above the pinned block — its height tracks that variable
+# (content/demo.css sets it to 4rem == 64px at the default font size), and
+# its own top edge (the block's top minus its height) sits at the viewport
+# top once the block is pinned there.
+if not close(b["coverHeight"], 64):
+    bad.append(f"blocks: sticky gutter cover height {b['coverHeight']} != 64 (--idea-gutter-top: 4rem)")
+if not close(b["stickyTop"] - b["coverHeight"], 0):
+    bad.append(
+        f"blocks: sticky gutter cover top {b['stickyTop'] - b['coverHeight']} != 0 "
+        f"(block top {b['stickyTop']} minus cover height {b['coverHeight']})"
+    )
 
 # The minted `ideas/margin-note.html` page: its `[data-rookery="page-body"]`
 # behaves exactly like the vertebra's own card above — every sidenote
@@ -371,6 +403,17 @@ if close(pwp["paddingRight"], 0):
     bad.append(f"minted plain-wide page padding-right {pwp['paddingRight']} == 0, expected a reserved gutter")
 if not close(ngp["paddingRight"], 0):
     bad.append(f"minted no-gutter page padding-right {ngp['paddingRight']} != 0")
+
+# (e) The theme (content/lib.typ's `theme: (border-color: rgb("#cc3300"))`)
+# reaches the minted page body: a visible sidenote's border-left picks it up,
+# and the page body itself carries a non-empty `--idea-border-color`.
+if m["sidenoteBorderColor"] != "rgb(204, 51, 0)":
+    bad.append(
+        f"minted margin-note page sidenote border-left-color {m['sidenoteBorderColor']} "
+        f"!= rgb(204, 51, 0) — theme not reaching the page body"
+    )
+if not m["pageBodyBorderColorVar"]:
+    bad.append("minted margin-note page body's own --idea-border-color is empty")
 
 if bad:
     for line in bad:

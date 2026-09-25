@@ -11,6 +11,12 @@ formats = ["html"]
 [spine]
 exclude = ["lib.typ"]
 
+# Sets `--idea-gutter-top` to a non-zero height, standing in for a site's
+# sticky header, so the pinned gutter block in `content/blocks.typ` has an
+# actual strip above it for `geom.sh` to measure the cover against.
+[[html.assets]]
+css_stylesheet = "./content/demo.css"
+
 # Reads `@rookery/*` straight out of this repository's own tree rather than
 # the package cache — see `demo/rheo/rheo.toml`'s copy of this comment for
 # why. `path` is anchored to this file's own directory, four levels up from

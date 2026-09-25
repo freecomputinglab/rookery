@@ -1974,6 +1974,33 @@ a[data-rookery="row-title"]:hover {
   background: var(--idea-gutter-background, Canvas);
 }
 
+/* The pinned block's own background covers notes scrolling underneath IT,
+   but not the gap above it: while pinned, that gap is `--idea-gutter-top`
+   tall and a note scrolls through it before reaching the block. `::before`
+   spans exactly that gap, growing up from the block's own top edge (its
+   `bottom: 100%`), so it only covers what `--idea-gutter-top` leaves. */
+[data-rookery="gutter"][data-rookery-sticky]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: var(--idea-gutter-top, 0px);
+  background: var(--idea-gutter-background, Canvas);
+  pointer-events: none;
+}
+
+[data-rookery="gutter"][data-rookery-sticky]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 1.5rem;
+  background: linear-gradient(to bottom, var(--idea-gutter-background, Canvas), transparent);
+  pointer-events: none;
+}
+
 [data-rookery="sidenote-number"] {
   color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
   font-weight: 600;

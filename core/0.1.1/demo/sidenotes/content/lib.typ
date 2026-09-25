@@ -10,6 +10,9 @@
     bibliography: arguments(bytes(read("refs.bib"))),
     right-gutter: 40%,
     display-right-gutter: true,
+    // A distinctive theme so `geom.sh` can tell a themed sidenote border
+    // (this colour) apart from core's own default.
+    theme: (border-color: rgb("#cc3300"), link-color: rgb("#0055aa")),
   )
   doc
 }

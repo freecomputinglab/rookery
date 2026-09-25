@@ -144,6 +144,14 @@ for path in sys.argv[1:]:
                 print(f"FAIL: {path}'s data-rookery=\"page-body\" element carries no "
                       f"data-rookery=\"footnotes\" block")
                 bad = 1
+            # The page body is themed the same way the head and footer are
+            # (`.marrow.typ`'s `_themed(..)` on its attrs) — its own opening
+            # tag carries the theme's custom properties inline.
+            page_body_tag = h[page_body_ms[0].start():h.index(">", page_body_ms[0].start()) + 1]
+            if 'style="' not in page_body_tag or '--idea-border-color' not in page_body_tag:
+                print(f"FAIL: {path}'s data-rookery=\"page-body\" element carries no "
+                      f"style attribute with --idea-border-color")
+                bad = 1
 
     # `data-rookery-gutter` on the minted page's body mirrors the resolved
     # right-gutter flag, the same as an idea's own card (idea.typ) — the
