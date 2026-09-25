@@ -488,6 +488,12 @@
   }
 }
 
+// Whether the content being rendered right now sits inside a margin note.
+// `_margin-cite` (bib.typ) reads this to skip minting a second margin note
+// for a citation already written inside a footnote's sidenote — that
+// citation is in the margin already, so it stays inline there.
+#let _in-sidenote = state("rheo-idea-in-sidenote", false)
+
 // The margin note, used in place of `_fn-block-html` under `footnotes:
 // "horizontal"` (see `_footnoted`, bib.typ). Carries the SAME id `_fn-ref`
 // links to (`fn-{b}-{n}`), so the marker's `href` resolves whichever mode is
@@ -499,7 +505,10 @@
     "span",
     attrs: (class: _c("sidenote"), id: "fn-" + tag, data-rookery: "sidenote"),
     html.elem("span", attrs: (class: _c("sidenote-number"), data-rookery: "sidenote-number"), str(n))
-      + [ ] + body,
+      + [ ]
+      + _in-sidenote.update(true)
+      + body
+      + _in-sidenote.update(false),
   )
 }
 

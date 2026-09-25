@@ -14,8 +14,9 @@ note() { echo "FAIL: $*"; fail=1; }
 # (a)/(d) `margin-note`'s own card and `host-note`'s `#window` transclusion
 # of it both land on index.html, each under its own block number — the
 # fixture for the "which rendering is this footnote's" ambiguity a shared
-# counter would get wrong. Each block carries exactly the three sidenotes
-# 1, 2, 3, and there are at least two distinct blocks.
+# counter would get wrong. Each block carries exactly the four FOOTNOTE
+# sidenotes 1, 2, 3, 4 (the fourth's body itself cites @lamport1994), and
+# there are at least two distinct blocks.
 #
 # (b) Every `<sup ... data-rookery="fn-ref">` is IMMEDIATELY followed by its
 # `data-rookery="sidenote"` span — checked by requiring the SAME ids appear
@@ -23,6 +24,16 @@ note() { echo "FAIL: $*"; fail=1; }
 #
 # (c) `data-rookery="footnotes"` (the vertical block) appears nowhere: this
 # mode never emits it.
+#
+# (e) A margin CITATION note (`data-rookery-cite="cite"`) exists and names
+# Knuth — the third paragraph's bare `@knuth1984`.
+#
+# (f) No margin citation note names Lamport: `@lamport1994` is cited inside
+# the fourth footnote, so its full reference sits inline in that footnote's
+# own sidenote rather than spawning a second, separate margin note.
+#
+# (g) A `data-rookery="references"` div carries `hidden` — the block Typst's
+# positional partitioning still requires is present but not shown.
 python3 - "$H/index.html" "$H/ideas/margin-note.html" "$H/ideas/host-note.html" <<'SIDENOTES' || fail=1
 import re, sys
 bad = 0
@@ -39,8 +50,8 @@ for path in sys.argv[1:]:
     for b, n in sidenotes:
         blocks.setdefault(b, []).append(int(n))
     for b, ns in blocks.items():
-        if sorted(ns) != [1, 2, 3]:
-            print(f"FAIL: {path} block {b} has sidenotes numbered {sorted(ns)}, expected [1, 2, 3]")
+        if sorted(ns) != [1, 2, 3, 4]:
+            print(f"FAIL: {path} block {b} has sidenotes numbered {sorted(ns)}, expected [1, 2, 3, 4]")
             bad = 1
 
     pairs = re.findall(
@@ -63,9 +74,30 @@ for path in sys.argv[1:]:
             print(f"FAIL: {path} has only {len(blocks)} sidenote block(s), expected margin-note's "
                   f"own card and host-note's #window of it under different block numbers")
             bad = 1
+
+        cite_spans = re.findall(
+            r'<span class="[^"]*" data-rookery="sidenote" data-rookery-cite="cite">(.*?)</span>', h, re.S,
+        )
+        if not any("Knuth" in s for s in cite_spans):
+            print(f"FAIL: {path} has no margin citation note naming Knuth")
+            bad = 1
+        if any("Lamport" in s for s in cite_spans):
+            print(f"FAIL: {path} has a margin citation note naming Lamport — it should stay inline "
+                  f"inside its footnote's own sidenote instead")
+            bad = 1
+
+        # Attribute order aside, require BOTH `data-rookery="references"` and
+        # `hidden="hidden"` on the same div.
+        refs_hidden = re.search(
+            r'<div (?=[^>]*data-rookery="references")(?=[^>]*hidden="hidden")[^>]*>', h,
+        )
+        if refs_hidden is None:
+            print(f"FAIL: {path} has no hidden data-rookery=\"references\" div")
+            bad = 1
 if not bad:
-    print("  sidenotes: margin-note's card and its #window replay both carry three sidenotes each, "
-          "each immediately after its own marker, no Footnotes block anywhere")
+    print("  sidenotes: margin-note's card and its #window replay both carry four sidenotes each, "
+          "each immediately after its own marker, plus a Knuth margin citation, no Lamport margin "
+          "citation, a hidden References block, and no Footnotes block anywhere")
 sys.exit(bad)
 SIDENOTES
 

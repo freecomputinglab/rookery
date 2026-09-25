@@ -1760,6 +1760,14 @@ a[data-rookery="row-title"]:hover {
   font-size: 0.85em;
 }
 
+/* Horizontal footnote mode still emits this block (Typst partitions citations
+   positionally — one with no bibliography following it is a hard error) but
+   the margin notes beside each citation already show the full reference, so
+   it is hidden rather than removed. */
+[data-rookery="references"][hidden] {
+  display: none;
+}
+
 /* Typst emits an <h2>. Sized explicitly so a site's own heading scale cannot
    let "References" compete with the note's title above it — the same reason
    `[data-rookery="footnotes-title"]` is pinned. */

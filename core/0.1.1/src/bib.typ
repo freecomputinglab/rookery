@@ -110,12 +110,22 @@
 
 // One idea's references. Empty content when the idea cites nothing, so no
 // stray "References" heading appears — that is what `_own-cited-keys` is for.
+//
+// Emitted (but `hidden`, via CSS) even in horizontal mode, where the margin
+// notes already show every reference in full: Typst partitions citations
+// POSITIONALLY, so a citation with no bibliography following it is a hard
+// error, and this block is that bibliography.
 #let _refs-block(keys, id: none) = {
   if _bib.final() == none or keys.len() == 0 { return [] }
   if _target() == "html" or _target() == "epub" {
-    let attrs = (class: _c("references"), data-rookery: "references")
-    if id != none { attrs = attrs + (id: id) }
-    html.elem("div", attrs: attrs, _bib-call([References]))
+    context {
+      let attrs = (class: _c("references"), data-rookery: "references")
+      if id != none { attrs = attrs + (id: id) }
+      if _footnote-mode.final() == "horizontal" and _target() == "html" {
+        attrs = attrs + (hidden: "hidden")
+      }
+      html.elem("div", attrs: attrs, _bib-call([References]))
+    }
   } else {
     _bib-call([References])
   }
@@ -140,6 +150,44 @@
     html.elem("div", attrs: (class: _c("page-refs"), data-rookery: "page-refs"), _bib-call(none))
   } else {
     _bib-call(none)
+  }
+}
+
+// A `show cite` rule, applied only under horizontal html (`_footnoted`
+// below): beside every inline citation marker, mint a margin note carrying
+// the FULL reference — the same information the vertical Footnotes block's
+// References section would otherwise be the only place to find.
+//
+// `it.form == "full"` is the recursion guard: the full-form `cite` this rule
+// itself mints below re-enters the same show rule when it renders, and must
+// pass through unchanged rather than growing a margin note of its own.
+// `it.form == none` is defensive for the same reason, in case a caller ever
+// constructs a citation with no form set.
+//
+// Skipped entirely inside a sidenote (`_in-sidenote.get()`, state.typ): a
+// citation written inside a footnote is already in the margin, and stays
+// inline there rather than spawning a second margin note. Unnumbered and
+// idless, unlike `_fn-side` — the inline marker beside it already identifies
+// which work it names, and two citations of the same work each get their own
+// note rather than being deduplicated.
+#let _margin-cite(it) = {
+  if it.form == "full" or it.form == none {
+    return it
+  }
+  it + context {
+    if _in-sidenote.get() {
+      []
+    } else {
+      html.elem(
+        "span",
+        attrs: (
+          class: _c("sidenote") + " " + _c("sidenote-cite"),
+          data-rookery: "sidenote",
+          data-rookery-cite: "cite",
+        ),
+        cite(it.key, form: "full"),
+      )
+    }
   }
 }
 
@@ -168,7 +216,20 @@
 // not stepped for an idea with no footnotes.
 #let _footnoted(body) = {
   let notes = _footnotes(body)
-  if notes.len() == 0 { return body }
+  if notes.len() == 0 {
+    // No footnotes to number, but citations still need `_margin-cite` under
+    // horizontal html — an idea with no footnotes still gets margin
+    // citations. Reading `.final()` needs `context`, so this path is no
+    // longer a bare pass-through of `body`.
+    return context {
+      if _footnote-mode.final() == "horizontal" and _target() == "html" {
+        show cite: _margin-cite
+        body
+      } else {
+        body
+      }
+    }
+  }
   _fn-block.step()
   context {
     let b = _fn-block.get().first()
@@ -176,6 +237,7 @@
     // and epub always get the vertical block below, regardless of the mode.
     let horizontal = _footnote-mode.final() == "horizontal" and _target() == "html"
     if horizontal {
+      show cite: _margin-cite
       _number-footnotes(body, 1, n => _fn-ref(b, n) + _fn-side(b, n, notes.at(n - 1))).node
     } else {
       _number-footnotes(body, 1, n => _fn-ref(b, n)).node

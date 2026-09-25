@@ -12,8 +12,12 @@
   which stacks below the second rather than overlapping it.], exercising the
   clear/stacking behaviour.
 
-  A third paragraph with no footnotes at all, so the margin beside it is
-  empty.
+  A third paragraph with no footnotes at all, but citing @knuth1984 for
+  its own margin note.
+
+  A fourth paragraph with a footnote whose body itself cites a
+  work#footnote[Citing @lamport1994 here, so its full reference sits inline
+  in this sidenote rather than spawning a second margin note.].
 ]
 
 #idea("host-note", title: [Host note])[

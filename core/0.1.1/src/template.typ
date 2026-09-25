@@ -450,6 +450,12 @@
 // the CSS clamps their width to whatever gutter it finds rather than
 // widening the page for them.
 //
+// "horizontal" also moves citations to the margin: each `@key`/`#cite`
+// marker keeps its normal inline form, and beside it a margin note carries
+// the full reference. The idea's References block is still emitted (a
+// citation with nothing to claim it is a Typst error) but hidden, since the
+// margin notes already show what it would have listed.
+//
 // Defined last in this file because a `#let` closure captures the scope
 // visible AT DEFINITION time — `hyperlink` must already exist.
 #let rookery(
