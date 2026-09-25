@@ -224,36 +224,77 @@ for path in sys.argv[1:]:
                 print(f"FAIL: {path}'s window transclusion has no data-rookery=\"references\" div")
                 bad = 1
 
-        # `index.html` carries three blocks with footnotes — margin-note's
-        # own card, host-note's window transclusion of it, and no-gutter's
-        # card — two matching margin-note's four notes and one matching
-        # no-gutter's single note. Which block number lands on which is an
-        # implementation detail of a document-wide counter, so this checks
-        # the multiset of shapes rather than a specific id.
+        # `index.html` carries four blocks with footnotes — margin-note's own
+        # card, host-note's window transclusion of it, bib-group's window
+        # transclusion of it, and no-gutter's card — three matching
+        # margin-note's six notes and one matching no-gutter's single note.
+        # Which block number lands on which is an implementation detail of a
+        # document-wide counter, so this checks the multiset of shapes rather
+        # than a specific id.
         shapes = sorted(sorted(v) for v in sn_blocks.values())
-        if shapes != [[1], [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]]:
+        if shapes != [[1], [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]]:
             print(f"FAIL: {path} has sidenote blocks shaped {shapes}, expected one "
-                  f"single-note block (no-gutter) and two six-note blocks "
-                  f"(margin-note's own card and host-note's window transclusion of it, each "
-                  f"carrying the blockquote's and the list item's own footnotes too)")
+                  f"single-note block (no-gutter) and three six-note blocks "
+                  f"(margin-note's own card, host-note's window transclusion of it, and "
+                  f"bib-group's window transclusion of it, each carrying the blockquote's and "
+                  f"the list item's own footnotes too)")
             bad = 1
 
         cite_spans = re.findall(
             r'<span class="[^"]*" data-rookery="sidenote" data-rookery-cite="cite">(.*?)</span>', h, re.S,
         )
         knuth = [s for s in cite_spans if "Knuth" in s]
-        if len(knuth) != 6:
-            print(f"FAIL: {path} has {len(knuth)} margin citation note(s) naming Knuth, expected 6 "
+        if len(knuth) != 9:
+            print(f"FAIL: {path} has {len(knuth)} margin citation note(s) naming Knuth, expected 9 "
                   f"— two per rendering of margin-note's body (the bare citation and the "
-                  f"blockquote's), across its own card and host-note's #window, plus one each "
-                  f"from with-bib's and no-bib's own bare citation")
+                  f"blockquote's), across its own card, host-note's #window and bib-group's "
+                  f"#window, plus one each from with-bib's and no-bib's own bare citation")
             bad = 1
         lamport = [s for s in cite_spans if "Lamport" in s]
-        if len(lamport) != 4:
-            print(f"FAIL: {path} has {len(lamport)} margin citation note(s) naming Lamport, expected 4 "
-                  f"— two per rendering (the fourth footnote's own sidenote, and its repeat in that "
-                  f"rendering's Footnotes list)")
+        if len(lamport) != 6:
+            print(f"FAIL: {path} has {len(lamport)} margin citation note(s) naming Lamport, expected 6 "
+                  f"— two per rendering of margin-note's body (the fourth footnote's own sidenote, "
+                  f"and its repeat in that rendering's Footnotes list), across its own card, "
+                  f"host-note's #window and bib-group's #window")
             bad = 1
+
+        # `bib-group`'s `#window((<margin-note>, <with-bib>), display-bibliography:
+        # false)`: neither transcluded window carries a references block of its
+        # own — the group's one combined block, after the second window, claims
+        # both notes' citations instead. `data-rookery-bibliography="off"` sits on
+        # that combined block ITSELF (unlike an idea's own card, where the flag
+        # sits on the box), and core.css's own rule keys its hide off exactly that.
+        bg_start = h.find('id="idea:bib-group"')
+        if bg_start == -1:
+            print(f"FAIL: {path} has no idea:bib-group heading")
+            bad = 1
+        else:
+            bg_end = h.find('data-rookery="references"', bg_start)
+            if bg_end == -1:
+                print(f"FAIL: {path} has no references block after idea:bib-group")
+                bad = 1
+            else:
+                group_html = h[bg_start:bg_end]
+                if group_html.count('data-rookery="window"') != 2:
+                    print(f"FAIL: {path}'s bib-group does not carry exactly 2 windows before its "
+                          f"combined references block")
+                    bad = 1
+                combined_tag_end = h.index(">", bg_end) + 1
+                combined_tag = h[bg_end:combined_tag_end]
+                if 'data-rookery-bibliography="off"' not in combined_tag:
+                    print(f"FAIL: {path}'s bib-group combined references block carries no "
+                          f"data-rookery-bibliography=\"off\"")
+                    bad = 1
+                combined_section = extract_div(h, h.rfind('<div', 0, bg_end + 1))
+                if combined_section.count("Knuth, Donald E. 1984") != 1:
+                    print(f"FAIL: {path}'s bib-group combined references block does not list "
+                          f"Knuth exactly once, though both windows cite it — de-duplication "
+                          f"did not take")
+                    bad = 1
+                if combined_section.count("Lamport, Leslie") != 1:
+                    print(f"FAIL: {path}'s bib-group combined references block does not list "
+                          f"Lamport exactly once")
+                    bad = 1
 
         # `data-rookery-bibliography` mirrors the resolved flag on each
         # card's own box, exactly as `data-rookery-gutter` does — present

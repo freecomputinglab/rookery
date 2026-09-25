@@ -50,6 +50,23 @@ the only thing that produces a page backlink:
   #footnote[Repeated note.]#footnote[Repeated note.]
 ]
 
+// A CLEAN citation, for the group window below — `root-note`'s own
+// @knuth1984 is claimed by its nested `inner-note`/`#window(<sub-note>)`
+// before it ever reaches a transcluding window's own walk (`_own-cited-keys`
+// keeps only what follows the LAST nested claim), so a group pairing it with
+// `plain-note` would list Lamport alone. This note nests nothing, so its
+// citation survives to be claimed by whatever window shows it.
+#idea("knuth-note", title: [Knuth note])[
+  A note citing @knuth1984 directly, with no nested note or window of its own
+  to claim the citation first.
+]
+
+// GROUP `display-bibliography`, honoured on `#window`: `knuth-note` cites
+// @knuth1984 and `plain-note` cites @lamport1994 from inside a footnote, so
+// one combined References block, after both windows, lists both works —
+// neither window renders a block of its own.
+#window((<knuth-note>, <plain-note>), display-bibliography: true)
+
 // The syndication beacons, read back on a VERTEBRA. `#metadata` renders no HTML,
 // so a beacon is invisible to `check.sh`'s greps unless something puts its
 // payload on a page — and rendering it here is also the assertion that the

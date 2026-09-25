@@ -163,8 +163,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">52 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 52 ideas"
+  grep -q 'idea-index-count">53 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 53 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -862,6 +862,54 @@ for p in index.html ideas/plain-note.html; do
   grep -q 'data-rookery="mode" data-rookery-footnotes="vertical" data-rookery-citations="vertical" hidden="hidden"' "$H/$p" ||
     note "$p has no vertical data-rookery=\"mode\" marker"
 done
+
+# 17. GROUP `display-bibliography` ON `#window` (`content/index.typ`'s
+#     `#window((<knuth-note>, <plain-note>), display-bibliography: true)`).
+#     `knuth-note` cites @knuth1984 with no nested note or window of its own
+#     to claim the citation first; `plain-note`'s only citation
+#     (@lamport1994) sits inside a footnote. Neither transcluded window
+#     carries a references block of its own — the group's one combined block,
+#     after the second window, lists both works instead, de-duplicated and
+#     marked `data-rookery-bibliography="on"`.
+python3 - "$H/index.html" <<'GROUPBIB' || fail=1
+import re, sys
+h = open(sys.argv[1]).read()
+bad = 0
+
+start = h.find('id="idea:knuth-note"')
+combined = h.find('data-rookery="references" data-rookery-bibliography="on"', start)
+if start == -1 or combined == -1:
+    print("FAIL: index.html has no knuth-note heading or no combined references block after it")
+    sys.exit(1)
+
+# knuth-note's OWN card carries its own reference block (unaffected by the
+# group below it), so bound the "no per-window block" check to AFTER that —
+# from the first window figure of the group onward.
+group_start = h.find('data-rookery="window"', start)
+group = h[group_start:combined]
+if group.count('data-rookery="window"') != 2:
+    print(f"FAIL: index.html's group has {group.count('data-rookery=\"window\"')} windows before "
+          f"its combined references block, expected 2")
+    bad = 1
+if 'data-rookery="references"' in group:
+    print("FAIL: index.html's group has a references block inside one of its windows — "
+          "display-bibliography: true should suppress every per-window block")
+    bad = 1
+
+section_end = h.index("</section>", combined)
+section = h[combined:section_end]
+if section.count("Knuth, Donald E. 1984") != 1:
+    print("FAIL: index.html's group combined references block does not list Knuth exactly once")
+    bad = 1
+if section.count("Lamport, Leslie") != 1:
+    print("FAIL: index.html's group combined references block does not list Lamport exactly once")
+    bad = 1
+
+if not bad:
+    print("  group display-bibliography: knuth-note and plain-note's #window carries one combined "
+          "references block, not two, listing both cited works")
+sys.exit(bad)
+GROUPBIB
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"

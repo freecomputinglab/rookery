@@ -66,16 +66,21 @@
   folded: false,
   // The eleven-key display dictionary `#idea` also takes (`_resolve-display`,
   // pure.typ). `#window` declares all eleven as flags too, for parity with
-  // `#idea` and the `display:` dictionary, but only HONOURS six of them —
-  // `date`, `tags`, `frame`, `name`, `label`, `background`. `context`,
-  // `backlinks` and `title` describe a minted page, and a window is not one,
-  // so all three ride along unused inside the `display:` dictionary too.
-  // `right-gutter` rides along the same way, for a different reason: a
-  // window never splits — its notes always float into its host card's
-  // gutter (or, unwindowed, render vertically) — so the flag is accepted for
-  // parity and never read. `bibliography` rides along unhonoured too: it is
-  // declared for the same parity, but a window's own References always
-  // render as though it were `auto`.
+  // `#idea` and the `display:` dictionary, but only HONOURS seven of them —
+  // `date`, `tags`, `frame`, `name`, `label`, `background`, `bibliography`.
+  // `context`, `backlinks` and `title` describe a minted page, and a window
+  // is not one, so all three ride along unused inside the `display:`
+  // dictionary too. `right-gutter` rides along the same way, for a different
+  // reason: a window never splits — its notes always float into its host
+  // card's gutter (or, unwindowed, render vertically) — so the flag is
+  // accepted for parity and never read.
+  //
+  // `bibliography` is a GROUP setting, unlike the other six: `auto` (the
+  // default) leaves every rendered window with its own References block, as
+  // before. A concrete `true`/`false` instead collapses the whole selection
+  // to ONE combined block after the last window, `true` keeping it visible
+  // and `false` hiding it — see the loop below for why it is still emitted
+  // either way.
   display: (:),
   display-date: auto,
   display-tags: auto,
@@ -337,6 +342,21 @@
     _sort-ids(named + tagged, reg, sort)
   }
 
+  // `display-bibliography` is a GROUP setting on `#window`, resolved once for
+  // the whole call rather than per id: every rendered window shares the same
+  // `display` dictionary, so there is one answer for the whole selection.
+  // `auto` (the built-in and the document-wide default) changes nothing — each
+  // window keeps rendering its own References block, exactly as
+  // `_window-content` has always done. A concrete `true`/`false` instead
+  // suppresses every per-window block (`refs: false` below) and replaces them
+  // with one combined block after the last window, carrying every cited key
+  // the group's windows claimed, de-duplicated — `true` shows it, `false`
+  // still emits it (so a trailing citation has a bibliography to claim it) but
+  // marks it for CSS to hide.
+  let bib = _display-final(display, ("bibliography",)).at("bibliography")
+  let combine-bib = bib != auto
+  let bib-keys = ()
+
   for id in full-ids {
     let rec = reg.at(id)
 
@@ -397,14 +417,35 @@
     let body = _body-at(rec, depth: unfurl)
     let split = _truncate-split(body, limit)
 
+    // Combining: accumulate this window's own keys the same way
+    // `_window-content` would have, rather than rendering its block — the
+    // group's one combined block (after the loop) claims them instead.
+    if combine-bib {
+      bib-keys += if split.rest == none {
+        _own-cited-keys(split.shown, windows-claim: d > 1)
+      } else {
+        _own-cited-keys(split.shown + parbreak() + split.rest, windows-claim: d > 1)
+      }
+    }
+
     // Bracketed: the body being shown belongs to the note it came from, so
     // its links must not read as links from whatever page is showing it.
     _bracket(
       figure(kind: WK, supplement: none, [
-        #marker#_window-content(id, rec, split.shown, folded, display, foldable: foldable, reserve-title: reserve-title, windows-claim: d > 1, rest: split.rest)
+        #marker#_window-content(id, rec, split.shown, folded, display, foldable: foldable, reserve-title: reserve-title, windows-claim: d > 1, rest: split.rest, refs: not combine-bib)
       ]),
       WK,
     )
+  }
+
+  // ONE block for the whole group, after the LAST window — not one of the
+  // `figure(kind: WK)`s above, so it is never mistaken for a nested window's
+  // own. Empty when the group cited nothing, the same as any other
+  // `_refs-block` call. `bib` is a concrete bool here (`combine-bib` guards
+  // it), so the attribute is always the true/false CSS keys its hide rule on,
+  // never `auto`.
+  if combine-bib {
+    _refs-block(bib-keys.dedup(), attrs: (data-rookery-bibliography: if bib { "on" } else { "off" }))
   }
   }
 }

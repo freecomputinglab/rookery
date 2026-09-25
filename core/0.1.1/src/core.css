@@ -2127,6 +2127,15 @@ a[data-rookery="row-title"]:hover {
   display: none;
 }
 
+/* A `#window` GROUP's own combined References block carries
+   `data-rookery-bibliography` on ITSELF, not on an ancestor — it is a
+   standalone element after the group's last window, not a child of any
+   card. The rule above is a descendant selector and never matches it, so it
+   needs this one of its own. */
+[data-rookery="references"][data-rookery-bibliography="off"] {
+  display: none;
+}
+
 /* Typst emits an <h2>. Sized explicitly so a site's own heading scale cannot
    let "References" compete with the note's title above it — the same reason
    `[data-rookery="footnotes-title"]` is pinned. */

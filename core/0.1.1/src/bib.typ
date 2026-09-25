@@ -117,12 +117,18 @@
 // Typst partitions citations POSITIONALLY regardless of mode, so a citation
 // with no bibliography following it is a hard error, and this block is that
 // bibliography.
-#let _refs-block(keys, id: none) = {
+//
+// `attrs:` merges into the div, html/epub only — a caller emitting a block
+// that stands for a GROUP rather than for one idea, such as `#window`'s
+// combined References after several transcluded notes, carries its own
+// `data-rookery-bibliography` this way instead of `#idea`'s own, which sits
+// on the card's box rather than on this div (see `idea.typ`).
+#let _refs-block(keys, id: none, attrs: (:)) = {
   if _bib.final() == none or keys.len() == 0 { return [] }
   if _target() == "html" or _target() == "epub" {
-    let attrs = (class: _c("references"), data-rookery: "references")
-    if id != none { attrs = attrs + (id: id) }
-    html.elem("div", attrs: attrs, _bib-call([References]))
+    let elem-attrs = (class: _c("references"), data-rookery: "references") + attrs
+    if id != none { elem-attrs = elem-attrs + (id: id) }
+    html.elem("div", attrs: elem-attrs, _bib-call([References]))
   } else {
     _bib-call([References])
   }

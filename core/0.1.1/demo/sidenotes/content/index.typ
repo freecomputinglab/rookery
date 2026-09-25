@@ -65,3 +65,12 @@
   A paragraph citing @knuth1984, whose References block is hidden by
   `display-bibliography: false` in every mode.
 ]
+
+#idea("bib-group", title: [Bibliography group])[
+  A `#window((<margin-note>, <with-bib>), display-bibliography: false)` sits
+  below this paragraph: one combined References block for both notes, listing
+  Knuth once even though both cite it, and hidden by the group's own
+  `display-bibliography: false` rather than by the citations mode.
+
+  #window((<margin-note>, <with-bib>), display-bibliography: false)
+]

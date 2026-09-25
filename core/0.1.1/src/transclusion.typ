@@ -98,7 +98,16 @@
 // Must be called from inside a `context` block: `_permalink` reads the page
 // handle and the prefix state, and `_display-final` reads document-wide
 // state. Both callers already are.
-#let _window-content(id, rec, shown, folded, display, foldable: true, reserve-title: true, windows-claim: false, rest: none) = {
+//
+// `refs: false` omits this window's own References block entirely. `#window`
+// passes it when a GROUP call resolved `display-bibliography` to a concrete
+// `true`/`false` — the whole selection then gets one combined block after the
+// last window instead of one per window, and this flag is what keeps the
+// per-window block from also rendering. `_flatten`'s WK rule never passes it,
+// so a nested/expanded window keeps its own block regardless of what the
+// enclosing group decided — the group setting is a `#window` call-site
+// concern, not an expansion one.
+#let _window-content(id, rec, shown, folded, display, foldable: true, reserve-title: true, windows-claim: false, rest: none, refs: true) = {
   // Resolves `auto` against document-wide state — covers both `#window`
   // leaving a key unset and a WK marker from an older rookery version,
   // which carries no `display` key at all (`_flatten`'s WK rule passes
@@ -284,7 +293,7 @@
       html.elem(if foldable { "details" } else { "div" }, attrs: d-attrs,
         summary + html.elem("div", attrs: (class: _c("window-body"), data-rookery: "window-body"),
           if rest == none {
-            _footnoted(shown) + _refs-block(_own-cited-keys(shown, windows-claim: windows-claim))
+            _footnoted(shown) + if refs { _refs-block(_own-cited-keys(shown, windows-claim: windows-claim)) } else { [] }
           } else {
             html.elem("details", attrs: (class: _c("window-more"), data-rookery: "window-more"),
               html.elem(
@@ -294,7 +303,7 @@
                   + html.elem("span", attrs: (class: _c("window-ellipsis"), data-rookery: "window-ellipsis"), [ … ]),
               )
                 + _footnoted(shown + parbreak() + rest)
-                + _refs-block(_own-cited-keys(shown + parbreak() + rest, windows-claim: windows-claim)),
+                + if refs { _refs-block(_own-cited-keys(shown + parbreak() + rest, windows-claim: windows-claim)) } else { [] },
             )
           })))
   } else {
@@ -318,7 +327,8 @@
     // own, and a paged window's rendering matches a window with no `rest` to
     // speak of.
     let ellipsis = if rest == none { [] } else { [#text(gray)[ ... ]] }
-    align(start, block[#head#parbreak()#_footnoted(shown)#ellipsis#_refs-block(_own-cited-keys(shown, windows-claim: windows-claim))])
+    let own-refs = if refs { _refs-block(_own-cited-keys(shown, windows-claim: windows-claim)) } else { [] }
+    align(start, block[#head#parbreak()#_footnoted(shown)#ellipsis#own-refs])
   }
 }
 
