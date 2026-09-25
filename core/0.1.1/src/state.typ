@@ -314,6 +314,12 @@
 // included.
 #let _footnote-mode = state("rheo-idea-footnote-mode", "vertical")
 
+// "vertical" or "horizontal" for `@key`/`#cite` markers, same shape and same
+// reason as `_footnote-mode` above — `citations: auto` (template.typ)
+// resolves to `_footnote-mode`'s own value before this is published, so the
+// two only disagree when a project sets `citations:` explicitly.
+#let _citation-mode = state("rheo-idea-citation-mode", "vertical")
+
 //
 //   #show: rookery.with(invisible-tags: ("private",))
 //

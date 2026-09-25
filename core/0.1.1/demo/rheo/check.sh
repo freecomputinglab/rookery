@@ -849,15 +849,17 @@ grep -qi 'backlinks' "$H/ideas/tag-t-both.html" ||
 grep -q 'tag-windower' "$H/ideas/tag-t-both.html" ||
   note "ideas/tag-t-both.html does not mention tag-windower — a tag window inside a note's body stopped registering a note backlink"
 
-# 35. THIS PROJECT'S PAGE-TOP MODE MARKER names "vertical" — this project sets
-#     no `footnotes:` of its own, so it is checking the DEFAULT. `template.typ`
-#     emits it on an ordinary vertebra (`index.html`), `.marrow.typ` on a
-#     minted note page (`ideas/plain-note.html`) — the one remaining read of
-#     `_footnote-mode` in either file, kept out of everything else that
-#     renders a note's body (bib.typ/state.typ) so an html rendering never
-#     varies with the mode.
+# 35. THIS PROJECT'S PAGE-TOP MODE MARKER names "vertical" for BOTH
+#     attributes — this project sets no `footnotes:`/`citations:` of its
+#     own, so it is checking the DEFAULT (`citations: auto` follows
+#     `footnotes:`, unset here). `template.typ` emits it on an ordinary
+#     vertebra (`index.html`), `.marrow.typ` on a minted note page
+#     (`ideas/plain-note.html`) — the one remaining read of
+#     `_footnote-mode`/`_citation-mode` in either file, kept out of
+#     everything else that renders a note's body (bib.typ/state.typ) so an
+#     html rendering never varies with either mode.
 for p in index.html ideas/plain-note.html; do
-  grep -q 'data-rookery="mode" data-rookery-footnotes="vertical" hidden="hidden"' "$H/$p" ||
+  grep -q 'data-rookery="mode" data-rookery-footnotes="vertical" data-rookery-citations="vertical" hidden="hidden"' "$H/$p" ||
     note "$p has no vertical data-rookery=\"mode\" marker"
 done
 

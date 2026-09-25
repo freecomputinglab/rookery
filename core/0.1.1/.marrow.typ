@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.1": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _margin-cite
+#import "@rookery/core:0.1.1": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
@@ -215,13 +215,15 @@
   // this file mints.
   let minted-depth = _window-depth.final() + 1
 
-  // This page's footnote mode, read the same way: a minted page never calls
-  // `rookery()`, so it cannot see the `footnotes:` parameter template.typ's
-  // own emission reads directly, and reads `_footnote-mode.final()` instead
-  // — the one remaining state read on the html mode marker's value (see
+  // This page's footnote AND citation modes, read the same way: a minted
+  // page never calls `rookery()`, so it cannot see the `footnotes:`/
+  // `citations:` parameters template.typ's own emission reads directly, and
+  // reads `_footnote-mode.final()`/`_citation-mode.final()` instead — the
+  // one remaining state read on the html mode marker's value (see
   // template.typ's emission of the same element for why every other read of
-  // the mode is gone).
+  // either mode is gone).
   let footnote-mode = _footnote-mode.final()
+  let citation-mode = _citation-mode.final()
 
   // THE ONE `show cite: _margin-cite` INSTALLATION for every page this file
   // mints — see template.typ's own installation of the same rule for why a
@@ -258,11 +260,19 @@
     // project's template can wrap the WHOLE page — heading, body and footer —
     // and see exactly what a vertebra's own `#show:` would.
     let page = [
-      // Names this page's mode for CSS, same element and same
+      // Names this page's modes for CSS, same element and same
       // `data-rookery="mode"` selector template.typ's own pages carry — see
-      // `footnote-mode` above for why this one reads the state instead of a
-      // parameter.
-      #html.elem("div", attrs: (data-rookery: "mode", data-rookery-footnotes: footnote-mode, hidden: "hidden"))
+      // `footnote-mode`/`citation-mode` above for why this one reads the
+      // state instead of a parameter.
+      #html.elem(
+        "div",
+        attrs: (
+          data-rookery: "mode",
+          data-rookery-footnotes: footnote-mode,
+          data-rookery-citations: citation-mode,
+          hidden: "hidden",
+        ),
+      )
       // The per-tag theme, first thing on the page — see `tag-style` above for
       // why a minted page has to carry it itself. Empty when nothing is themed.
       #tag-style

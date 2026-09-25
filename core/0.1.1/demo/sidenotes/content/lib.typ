@@ -4,9 +4,16 @@
 // configuration across several vertebrae wraps it once here.
 #import "@rookery/core:0.1.1": rookery
 
-#let demo(doc) = {
+// `citations:` is a per-vertebra override, unlike everything else here: the
+// mode marker each page carries is emitted from `rookery()`'s PARAMETER, not
+// from document-wide state (template.typ), so passing a different value
+// through `demo.with(citations: ..)` on one vertebra is what lets that one
+// page's marker disagree with the others sharing this wrapper — `mixed.typ`
+// is the one page in this project that does.
+#let demo(citations: auto, doc) = {
   show: rookery.with(
     footnotes: "horizontal",
+    citations: citations,
     bibliography: arguments(bytes(read("refs.bib"))),
     right-gutter: 40%,
     display-right-gutter: true,

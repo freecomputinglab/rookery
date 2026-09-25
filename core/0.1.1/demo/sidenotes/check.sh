@@ -10,6 +10,7 @@ fail=0
 note() { echo "FAIL: $*"; fail=1; }
 
 [ -f "$H/index.html" ] || note "no $H/index.html"
+[ -f "$H/mixed.html" ] || note "no $H/mixed.html"
 
 # Typst emits the SAME shape in every mode now (bib.typ/state.typ): a
 # margin note beside every marker AND the bottom Footnotes block, on EVERY
@@ -50,8 +51,15 @@ note() { echo "FAIL: $*"; fail=1; }
 # never sets it now; only core.css ever hides that block.
 #
 # (f) Exactly one `data-rookery="mode"` marker per page, naming this
-# project's `data-rookery-footnotes="horizontal"` choice.
-python3 - "$H/index.html" "$H/ideas/margin-note.html" "$H/ideas/host-note.html" "$H/ideas/no-gutter.html" "$H/ideas/plain-wide.html" <<'SIDENOTES' || fail=1
+# project's `data-rookery-footnotes="horizontal"` choice. `index.html` also
+# names `data-rookery-citations="horizontal"` (the `citations: auto` default
+# following `footnotes:`) and `mixed.html` names
+# `data-rookery-citations="vertical"` (`content/mixed.typ`'s override) — the
+# one place this script checks a citations VALUE, since a minted note page's
+# own marker reads `_citation-mode.final()` (state.typ), the project's LAST
+# vertebra to apply `#show: rookery`, which need not agree with the note's
+# own vertebra (`.marrow.typ`'s banner on `citation-mode`).
+python3 - "$H/index.html" "$H/mixed.html" "$H/ideas/margin-note.html" "$H/ideas/host-note.html" "$H/ideas/no-gutter.html" "$H/ideas/plain-wide.html" <<'SIDENOTES' || fail=1
 import re, sys
 bad = 0
 
@@ -119,13 +127,24 @@ for path in sys.argv[1:]:
                   f"Typst must never set `hidden` now, only core.css")
             bad = 1
 
-    # (f) Exactly one mode marker, naming horizontal.
-    modes = re.findall(r'<div data-rookery="mode" data-rookery-footnotes="(\w+)" hidden="hidden">', h)
+    # (f) Exactly one mode marker, naming horizontal footnotes. Citations is
+    # checked by VALUE only on index.html/mixed.html below (see the banner
+    # above the python3 call for why not on a minted page).
+    modes = re.findall(
+        r'<div data-rookery="mode" data-rookery-footnotes="(\w+)" data-rookery-citations="(\w+)" hidden="hidden">',
+        h,
+    )
     if len(modes) != 1:
         print(f"FAIL: {path} has {len(modes)} data-rookery=\"mode\" marker(s), expected exactly 1")
         bad = 1
-    elif modes[0] != "horizontal":
-        print(f"FAIL: {path}'s mode marker says {modes[0]!r}, expected \"horizontal\"")
+    elif modes[0][0] != "horizontal":
+        print(f"FAIL: {path}'s mode marker says footnotes={modes[0][0]!r}, expected \"horizontal\"")
+        bad = 1
+    elif path.endswith("/index.html") and modes[0][1] != "horizontal":
+        print(f"FAIL: {path}'s mode marker says citations={modes[0][1]!r}, expected \"horizontal\"")
+        bad = 1
+    elif path.endswith("/mixed.html") and modes[0][1] != "vertical":
+        print(f"FAIL: {path}'s mode marker says citations={modes[0][1]!r}, expected \"vertical\"")
         bad = 1
 
     # (g) A minted note page (`ideas/<slug>.html`) wraps its body and its

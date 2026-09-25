@@ -42,7 +42,8 @@ PY
 INDEX_JS="$(mktemp)"
 BLOCKS_JS="$(mktemp)"
 MARGIN_PAGE_JS="$(mktemp)"
-trap 'rm -f "$INDEX_JS" "$BLOCKS_JS" "$MARGIN_PAGE_JS"' EXIT
+MIXED_JS="$(mktemp)"
+trap 'rm -f "$INDEX_JS" "$BLOCKS_JS" "$MARGIN_PAGE_JS" "$MIXED_JS"' EXIT
 
 cat > "$INDEX_JS" <<'JS'
 const r = el => el.getBoundingClientRect();
@@ -170,12 +171,21 @@ const firstParagraphRight = box => {
   const p = box.querySelector(':scope > p');
   return p ? r(p).right : null;
 };
-const notes = [...pageBody.querySelectorAll('[data-rookery="sidenote"]')]
+// FOOTNOTE notes only (`:not([data-rookery-cite])`) — a minted page's own
+// citation notes are excluded here because `.marrow.typ` reads
+// `_citation-mode.final()` (state.typ), the PROJECT'S last vertebra to
+// apply `#show: rookery`, which this project's `content/mixed.typ` sets to
+// "vertical" — so every minted page's own citation notes, margin-note's
+// included, follow THAT, independently of margin-note's own
+// footnotes:"horizontal" vertebra. check.sh's (d)/(e) probes citations only
+// on the two vertebrae that emit their own marker directly (index.html,
+// mixed.html), never a minted page, for the same reason.
+const notes = [...pageBody.querySelectorAll('[data-rookery="sidenote"]:not([data-rookery-cite])')]
   .filter(n => !n.closest('[data-rookery="footnotes"]'))
   .filter(n => n.parentElement.closest('[data-rookery="sidenote"]') === null)
   .map(n => ({right: r(n).right}));
 const bq = pageBody.querySelector('blockquote');
-const sidenoteSample = pageBody.querySelector('[data-rookery="sidenote"]');
+const sidenoteSample = pageBody.querySelector('[data-rookery="sidenote"]:not([data-rookery-cite])');
 const footnotesBlock = pageBody.querySelector('[data-rookery="footnotes"]');
 const fnRefLink = pageBody.querySelector('[data-rookery="fn-ref"] a');
 
@@ -218,13 +228,36 @@ document.body.dataset.out = JSON.stringify({
 });
 JS
 
+# `content/mixed.typ`'s own vertebra — `footnotes: "horizontal"` (the
+# project default) but `citations: "vertical"` (its own override), so its
+# footnote note shows and its citation note does not, the reverse of the
+# References/Footnotes pair below it, and its citation link stays live
+# (core.css's dead-link rule keys on `citations:`, not `footnotes:`).
+cat > "$MIXED_JS" <<'JS'
+const box = document.getElementById("idea:mixed-note").closest('[data-rookery="box"]');
+const footnoteNote = box.querySelector('[data-rookery="sidenote"]:not([data-rookery-cite])');
+const citeNote = box.querySelector('[data-rookery="sidenote"][data-rookery-cite]');
+const referencesBlock = box.querySelector('[data-rookery="references"]');
+const footnotesBlock = box.querySelector('[data-rookery="footnotes"]');
+const citeLink = box.querySelector('a[role="doc-biblioref"]');
+
+document.body.dataset.out = JSON.stringify({
+  footnoteNoteDisplay: footnoteNote ? getComputedStyle(footnoteNote).display : null,
+  citeNoteDisplay: citeNote ? getComputedStyle(citeNote).display : null,
+  referencesDisplay: referencesBlock ? getComputedStyle(referencesBlock).display : null,
+  footnotesDisplay: footnotesBlock ? getComputedStyle(footnotesBlock).display : null,
+  citeLinkPointerEvents: citeLink ? getComputedStyle(citeLink).pointerEvents : null,
+});
+JS
+
 INDEX_OUT="$(measure index "$INDEX_JS" "index.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 BLOCKS_OUT="$(measure blocks "$BLOCKS_JS" "blocks.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 MARGIN_PAGE_OUT="$(measure ideas/margin-note "$MARGIN_PAGE_JS" "ideas/margin-note.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 PLAIN_WIDE_PAGE_OUT="$(measure ideas/plain-wide "$MARGIN_PAGE_JS" "ideas/plain-wide.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 NO_GUTTER_PAGE_OUT="$(measure ideas/no-gutter "$MARGIN_PAGE_JS" "ideas/no-gutter.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
+MIXED_OUT="$(measure mixed "$MIXED_JS" "mixed.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 
-python3 - "$INDEX_OUT" "$BLOCKS_OUT" "$MARGIN_PAGE_OUT" "$PLAIN_WIDE_PAGE_OUT" "$NO_GUTTER_PAGE_OUT" <<'PY'
+python3 - "$INDEX_OUT" "$BLOCKS_OUT" "$MARGIN_PAGE_OUT" "$PLAIN_WIDE_PAGE_OUT" "$NO_GUTTER_PAGE_OUT" "$MIXED_OUT" <<'PY'
 import json, sys
 
 d = json.loads(sys.argv[1])
@@ -232,6 +265,7 @@ b = json.loads(sys.argv[2])
 m = json.loads(sys.argv[3])
 pwp = json.loads(sys.argv[4])
 ngp = json.loads(sys.argv[5])
+mx = json.loads(sys.argv[6])
 TOL = 1
 bad = []
 
@@ -415,6 +449,24 @@ if m["sidenoteBorderColor"] != "rgb(204, 51, 0)":
 if not m["pageBodyBorderColorVar"]:
     bad.append("minted margin-note page body's own --idea-border-color is empty")
 
+# `mixed.html` (`content/mixed.typ`): `citations: "vertical"` overrides the
+# project's `footnotes: "horizontal"` default, so the two modes land on
+# opposite sides of the split — a footnote note shows and a citation note
+# does not, a References block shows and the Footnotes block does not, and
+# the citation link stays live rather than going dead.
+if mx["footnoteNoteDisplay"] != "block":
+    bad.append(f"mixed-note footnote sidenote computes display: {mx['footnoteNoteDisplay']}, expected block")
+if mx["citeNoteDisplay"] != "none":
+    bad.append(f"mixed-note citation sidenote computes display: {mx['citeNoteDisplay']}, expected none")
+if mx["referencesDisplay"] == "none":
+    bad.append("mixed-note References block computes display: none, expected visible")
+if mx["footnotesDisplay"] != "none":
+    bad.append(f"mixed-note Footnotes block computes display: {mx['footnotesDisplay']}, expected none")
+if mx["citeLinkPointerEvents"] != "auto":
+    bad.append(
+        f"mixed-note doc-biblioref link computes pointer-events: {mx['citeLinkPointerEvents']}, expected auto"
+    )
+
 if bad:
     for line in bad:
         print("FAIL: " + line)
@@ -443,6 +495,11 @@ print(
     "<h1>, the footer and the hat's date inside the text column; and plain-wide's "
     "minted page reserves a gutter while no-gutter's reserves none, matching "
     "each one's own `data-rookery-gutter` attribute"
+)
+print(
+    "  geom: mixed.html's footnote note shows and citation note hides under its "
+    "citations: \"vertical\" override, its References block shows and its "
+    "Footnotes block hides, and its citation link stays live"
 )
 PY
 

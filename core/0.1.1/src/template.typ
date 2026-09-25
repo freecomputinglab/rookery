@@ -44,6 +44,7 @@
   display-right-gutter,
   page-titles,
   footnotes,
+  citations,
   invisible-tags,
 ) = {
   assert(
@@ -191,6 +192,12 @@
     message: "@rookery/core: `footnotes` must be \"vertical\" (a Footnotes block "
       + "under each idea) or \"horizontal\" (margin notes beside the text) — got "
       + repr(footnotes),
+  )
+  assert(
+    citations == auto or citations == "vertical" or citations == "horizontal",
+    message: "@rookery/core: `citations` must be auto, \"vertical\" (a References "
+      + "block under each idea) or \"horizontal\" (margin notes beside each "
+      + "marker) — got " + repr(citations),
   )
   // THROUGH `_assert-tags`, the same helper every other tag-shaped argument in
   // this package uses, so `invisible-tags: "private"` needs no array ceremony and
@@ -472,11 +479,15 @@
 // the notes float into — see `display-right-gutter:` and `right-gutter:`
 // below for the split and its width.
 //
-// "horizontal" also moves citations to the margin: each `@key`/`#cite`
-// marker keeps its normal inline form, and beside it a margin note carries
-// the full reference. The idea's References block is still emitted (a
-// citation with nothing to claim it is a Typst error) but hidden, since the
-// margin notes already show what it would have listed.
+// `citations:` picks the same thing for `@key`/`#cite` markers, independently
+// of `footnotes:`: `auto` (the default) follows `footnotes:`, so a project
+// setting only `footnotes:` keeps the old all-or-nothing behaviour. Set
+// explicitly, it lets a project mix the two — margin footnotes with a
+// vertical References block, or the reverse. Under "horizontal" each
+// `@key`/`#cite` marker keeps its normal inline form, and beside it a margin
+// note carries the full reference; the idea's References block is still
+// emitted (a citation with nothing to claim it is a Typst error) but hidden,
+// since the margin notes already show what it would have listed.
 //
 // A note being TRANSCLUDED (`#window`, `#idea-body`) always renders its
 // footnotes and citations vertically, whatever this setting says — a
@@ -536,6 +547,7 @@
   backlinks: true,
   page-titles: "title",
   footnotes: "vertical",
+  citations: auto,
   invisible-tags: (),
   doc,
 ) = {
@@ -613,6 +625,7 @@
     display.at("right-gutter"),
     page-titles,
     footnotes,
+    citations,
     invisible-tags,
   )
   let resolved = _resolve-theme(
@@ -672,6 +685,10 @@
   _display-right-gutter.update(display.at("right-gutter"))
   _page-titles.update(page-titles)
   _footnote-mode.update(footnotes)
+  // `auto` follows `footnotes:` — the whole point of the option is letting
+  // a project mix the two, not making every project restate one value twice.
+  let citations = if citations == auto { footnotes } else { citations }
+  _citation-mode.update(citations)
   // Normalized to a flat array of NAMES here, once, so `_visible-tags` can do a
   // plain `t not in hidden` on every call rather than re-deriving the shape.
   // `.update(value)` and never `.update(_ => value)` — an array is not a
@@ -731,18 +748,28 @@
       }
     }
   }
-  // NAMES this page's footnote mode for CSS, taken straight from the
-  // `footnotes:` parameter rather than through `_footnote-mode` — the whole
-  // point is that Typst's own OUTPUT never varies with the mode, so nothing
-  // here reads document-wide state: core.css keys the margin-note vs.
-  // bottom-block split off this element (`data-rookery="mode"`), never off
-  // anything Typst decided at layout time. The `context` below is for
+  // NAMES this page's footnote AND citation modes for CSS, taken straight
+  // from the resolved `footnotes`/`citations` values rather than through
+  // `_footnote-mode`/`_citation-mode` — the whole point is that Typst's own
+  // OUTPUT never varies with either mode, so nothing here reads
+  // document-wide state: core.css keys the margin-note vs. bottom-block
+  // split off this element's two attributes (`data-rookery="mode"`), never
+  // off anything Typst decided at layout time. The `context` below is for
   // `_target()` alone (`std.target()`'s own requirement without rheo), not
   // for the marker's value. `.marrow.typ`'s minted pages carry the same
-  // element, reading `_footnote-mode`'s finalized value instead, since a
-  // minted page never calls `rookery()` to receive the parameter directly.
+  // element, reading `_footnote-mode`'s/`_citation-mode`'s finalized values
+  // instead, since a minted page never calls `rookery()` to receive the
+  // parameters directly.
   context if _target() == "html" {
-    html.elem("div", attrs: (data-rookery: "mode", data-rookery-footnotes: footnotes, hidden: "hidden"))
+    html.elem(
+      "div",
+      attrs: (
+        data-rookery: "mode",
+        data-rookery-footnotes: footnotes,
+        data-rookery-citations: citations,
+        hidden: "hidden",
+      ),
+    )
   }
   // THE PAGE-LEVEL LINK BEACON, one per vertebra: which notes THIS page links to
   // in its own prose, for the page half of a minted page's backlink list. Read
