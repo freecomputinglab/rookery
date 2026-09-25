@@ -174,15 +174,21 @@
   if it.form == "full" or it.form == none {
     return it
   }
-  it + html.elem(
-    "span",
-    attrs: (
-      class: _c("sidenote") + " " + _c("sidenote-cite"),
-      data-rookery: "sidenote",
-      data-rookery-cite: "cite",
-    ),
-    cite(it.key, form: "full"),
-  )
+  // Gated on the target, not the mode: a paged export has no margin, and an
+  // `html.elem` inside a paragraph there is dropped with a warning.
+  context if _target() == "html" {
+    it + html.elem(
+      "span",
+      attrs: (
+        class: _c("sidenote") + " " + _c("sidenote-cite"),
+        data-rookery: "sidenote",
+        data-rookery-cite: "cite",
+      ),
+      cite(it.key, form: "full"),
+    )
+  } else {
+    it
+  }
 }
 
 // Wrap one idea box's body: number its markers locally, then append the block.
