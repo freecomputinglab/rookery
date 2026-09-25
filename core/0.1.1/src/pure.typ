@@ -979,7 +979,7 @@
 )
 
 // Merges a `display:` dictionary with a set of individual `display-*`
-// override flags into one dictionary carrying all nine `_DISPLAY-KEYS`,
+// override flags into one dictionary carrying all ten `_DISPLAY-KEYS`,
 // always. For each key, an override in `flags` that is not `auto` wins;
 // otherwise `dict`'s own value for that key is used, if present; otherwise
 // the result is `auto`.
