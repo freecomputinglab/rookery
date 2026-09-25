@@ -58,5 +58,6 @@
 // than the reading ones, which is where a reader will look for it.
 #import "row.typ": *
 #import "window.typ": *
+#import "gutter.typ": *
 #import "outline.typ": *
 #import "template.typ": *

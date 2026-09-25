@@ -1,9 +1,6 @@
-#import "@rookery/core:0.1.1": footnote, idea, rookery, window
-#show: rookery.with(
-  footnotes: "horizontal",
-  bibliography: arguments(bytes(read("refs.bib"))),
-  right-gutter: 40%,
-)
+#import "@rookery/core:0.1.1": footnote, idea, window
+#import "lib.typ": demo
+#show: demo
 
 = Rookery with horizontal footnotes
 

@@ -6,6 +6,11 @@ version = "0.6.2"
 content_dir = "content"
 formats = ["html"]
 
+# `lib.typ` is a library, not a page: it holds the `demo` wrapper both
+# vertebrae apply. Without this it would compile to its own `lib.html`.
+[spine]
+exclude = ["lib.typ"]
+
 # Reads `@rookery/*` straight out of this repository's own tree rather than
 # the package cache — see `demo/rheo/rheo.toml`'s copy of this comment for
 # why. `path` is anchored to this file's own directory, four levels up from

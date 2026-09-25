@@ -486,6 +486,13 @@
 // "horizontal". `right-gutter:` sets the split's width as a fraction of the
 // card, e.g. `right-gutter: 40%` — `theme.typ`'s `--idea-right-gutter`.
 //
+// `#gutter` (gutter.typ) places a block of its own at the top of that same
+// gutter — a contents panel before the ideas, an aside inside one idea's own
+// body — and pushes the notes that follow it down rather than under it.
+// `sticky: true` pins it to the viewport while the page scrolls past. A
+// page-level `#gutter` only reads correctly beside cards that split, so a
+// page using one should set `display-right-gutter: true` above.
+//
 // Defined last in this file because a `#let` closure captures the scope
 // visible AT DEFINITION time — `hyperlink` must already exist.
 #let rookery(

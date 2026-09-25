@@ -88,6 +88,11 @@
      --idea-sidenote-gap              the clearance between a margin note and the
                                       text column beside it, under the same mode.
                                       Defaults to `1.5rem`
+     --idea-gutter-top                a `sticky:` gutter block's distance from the
+                                      viewport top while it is pinned. Defaults to `0px`
+     --idea-gutter-background         a `sticky:` gutter block's background, opaque so
+                                      the notes scrolling underneath it stay hidden.
+                                      Defaults to `Canvas`, the system's own page colour
 
    DERIVED FROM `label-size`, and NOT for a project to set: three lengths the
    spacing rules share, so the same arithmetic is stated once here instead of at
@@ -1755,9 +1760,6 @@ a[data-rookery="row-title"]:hover {
   float: right;
   clear: right;
   display: block;
-  --_g: calc((100% + var(--_inset, 0px)) * var(--idea-right-gutter, 0.3333) / (1 - var(--idea-right-gutter, 0.3333)));
-  width: calc(var(--_g) - var(--idea-sidenote-gap, 1.5rem));
-  margin-right: calc(-1 * var(--_g));
   margin-top: 0;
   margin-bottom: 0.6em;
   font-size: 0.8em;
@@ -1766,6 +1768,47 @@ a[data-rookery="row-title"]:hover {
   border-left: 2px solid var(--idea-border-color, rgba(128, 0, 255, 0.12));
   padding-left: 0.5em;
   transition: color 0.2s, border-color 0.2s;
+}
+
+/* `#gutter` places a block at the top of the same gutter a margin note
+   floats into, so `[data-rookery="gutter"]` shares `--_g`'s width/margin
+   algebra with `[data-rookery="sidenote"]` above rather than recomputing it —
+   both are floats clearing into the identical column, at the identical
+   offset from the card's right edge. */
+[data-rookery="box"] [data-rookery="gutter"],
+[data-rookery="sidenote"] {
+  --_g: calc((100% + var(--_inset, 0px)) * var(--idea-right-gutter, 0.3333) / (1 - var(--idea-right-gutter, 0.3333)));
+  width: calc(var(--_g) - var(--idea-sidenote-gap, 1.5rem));
+  margin-right: calc(-1 * var(--_g));
+}
+
+/* At page level, before any card, `[data-rookery="gutter"]` has no `--_inset`
+   to correct for — its `100%` is already the page column, the same basis a
+   top-level card's own `padding-right` above uses — so its width is the
+   plain fraction minus the clearance to the text, with no negative margin
+   needed to reach the column edge. The rule above wins inside a card: two
+   attribute selectors outrank this one's single selector. A page-level
+   block only reads correctly beside cards that split into a text column and
+   a gutter of their own — a page carrying one should set
+   `display-right-gutter: true` project-wide, or the block sits beside
+   full-width text instead of a matching gutter. */
+[data-rookery="gutter"] {
+  float: right;
+  clear: right;
+  display: block;
+  margin-bottom: 0.6em;
+  box-sizing: border-box;
+  width: calc(var(--idea-right-gutter, 0.3333) * 100% - var(--idea-sidenote-gap, 1.5rem));
+}
+
+/* `sticky:` pins the block to the viewport while its containing block scrolls
+   past. Opaque so notes scrolling underneath it stay hidden rather than
+   showing through. */
+[data-rookery="gutter"][data-rookery-sticky] {
+  position: sticky;
+  top: var(--idea-gutter-top, 0px);
+  z-index: 5;
+  background: var(--idea-gutter-background, Canvas);
 }
 
 [data-rookery="sidenote-number"] {
