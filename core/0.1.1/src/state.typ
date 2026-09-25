@@ -208,6 +208,13 @@
 // binding/key naming split as `_display-context`, for the same reason.
 #let _display-backlinks = state("rheo-idea-show-backlinks", true)
 
+// Whether this vertebra harvests the backlink graph at all — each note's
+// outbound links at registration and the page's own links. `false` is
+// `rookery.with(backlinks: false)`: nothing is harvested, so `.marrow.typ`
+// has nothing to invert and no minted page gets a Backlinks section.
+// Stronger than `_display-backlinks`, which only hides the section.
+#let _backlinks = state("rheo-idea-backlinks", true)
+
 // Whether `.marrow.typ` should print the authored title as the `<h1>` on a
 // note's own minted page. Same DEFAULT ON reasoning as
 // `_display-context`/`_display-backlinks` above. Same binding/key naming

@@ -37,6 +37,9 @@ watch:
 # two files rather than one because `prefix:` is document-wide state — one
 # compile cannot cover both the default prefix and a non-default one.
 #
+# `backlinks-off.typ` is HTML ONLY too: it asserts only on the registry, not
+# on the paged target.
+#
 # Comments belong in THIS header, not inside the recipe body: `just` echoes a
 # `#` line in a body as if it were a command, so an explanation written there is
 # printed to the user on every build.
@@ -49,6 +52,7 @@ build:
     typst compile --features html --format html --root ../.. excluded.typ build/excluded.html
     typst compile --features html --format html --root ../.. --input rookery-include=private excluded.typ build/excluded-dev.html
     typst compile --features html --format html --root ../.. display-parity.typ build/display-parity.html
+    typst compile --features html --format html --root ../.. backlinks-off.typ build/backlinks-off.html
     typst compile --features html --format html --root ../.. naming.typ build/naming.html
     typst compile --features html --format html --root ../.. idea-key.typ build/idea-key.html
     typst compile --features html --format html --root ../.. idea-key-prefix.typ build/idea-key-prefix.html

@@ -405,18 +405,30 @@
         )
       }
 
+      // Whether this vertebra harvests the backlink graph at all — see
+      // `_backlinks`, state.typ. `false` means neither statement below walks
+      // the body; both come back empty.
+      let harvest = _backlinks.get()
+      assert(
+        harvest or display.backlinks != true,
+        message: "@rookery/core: `#idea(display-backlinks: true)` cannot show "
+          + "backlinks in a vertebra using `rookery.with(backlinks: false)`.",
+      )
+
       // Outbound links, filtered to real note ids and deduped, with a
       // self-link dropped — a note is not its own backlink. Walked from the
       // RAW body, before `_flatten`: flattening rewrites `#window` markers into
       // permalinks, which would turn every transclusion into an
       // indistinguishable `link` and lose the ones nested inside other notes.
-      let links = _outbound(body)
-        .filter(t => t.starts-with(_pfx()) and t != id)
-        .dedup()
+      let links = if harvest {
+        _outbound(body)
+          .filter(t => t.starts-with(_pfx()) and t != id)
+          .dedup()
+      } else { () }
 
       // Tag-selected windows in this note's body, deferred to `.marrow.typ`
       // for expansion once the registry is final — see `_outbound-tag-selectors`.
-      let tag-links = _outbound-tag-selectors(body)
+      let tag-links = if harvest { _outbound-tag-selectors(body) } else { () }
 
       // `raw` is the body BEFORE flattening, kept alongside the flattened one
       // so a `#window` with a nested-window budget can re-flatten at a smaller

@@ -533,6 +533,7 @@
   display-tags: auto,
   display-title: auto,
   display-right-gutter: auto,
+  backlinks: true,
   page-titles: "title",
   footnotes: "vertical",
   invisible-tags: (),
@@ -559,6 +560,15 @@
     ),
     "#rookery's",
   )
+  assert(
+    type(backlinks) == bool,
+    message: "@rookery/core: `backlinks` must be a boolean — got " + repr(backlinks),
+  )
+  assert(
+    backlinks or display.backlinks != true,
+    message: "@rookery/core: `display-backlinks: true` needs the backlink graph "
+      + "and cannot be combined with `backlinks: false`.",
+  )
   // The document-wide tier is the bottom of the stack, so here `auto` IS
   // resolved to a boolean — unlike in `#idea`/`#window`, nothing further
   // down reads `auto` as "defer to something else". Each default matches the
@@ -571,7 +581,7 @@
   // through unresolved (state.typ's `_display-right-gutter` banner).
   let display = display + (
     "context": if display.context == auto { true } else { display.context },
-    backlinks: if display.backlinks == auto { true } else { display.backlinks },
+    backlinks: if display.backlinks == auto { backlinks } else { display.backlinks },
     background: if display.background == auto { true } else { display.background },
     date: if display.date == auto { false } else { display.date },
     frame: if display.frame == auto { true } else { display.frame },
@@ -651,6 +661,7 @@
   _index-page.update(index-page)
   _display-context.update(display.context)
   _display-backlinks.update(display.backlinks)
+  _backlinks.update(backlinks)
   _display-background.update(display.background)
   _display-date.update(display.date)
   _display-frame.update(display.frame)
@@ -753,7 +764,10 @@
   //
   // Not gated on target: the beacon renders nothing anywhere, and the paged build
   // answers the same question about the same page.
-  context _page-links-beacon(doc)
+  //
+  // Skipped entirely under `backlinks: false` — no page ever needs this page's
+  // links when nothing harvests them.
+  if backlinks { context _page-links-beacon(doc) }
   // Two notes sharing a name, checked here rather than left to `.marrow.typ`,
   // because a project with no marrow (no rheo at all) never reaches that
   // file. Guarded on `_rheo-ctx()`: under rheo `.marrow.typ` already runs
