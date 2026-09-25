@@ -54,3 +54,14 @@
   horizontal mode.], which falls back to the vertical block instead of a
   margin note.
 ]
+
+#idea("with-bib", title: [With bibliography], display-bibliography: true)[
+  A paragraph citing @knuth1984, whose margin note shows as usual, but
+  `display-bibliography: true` also keeps this card's own References block
+  visible even though citations render horizontally.
+]
+
+#idea("no-bib", title: [No bibliography], display-bibliography: false)[
+  A paragraph citing @knuth1984, whose References block is hidden by
+  `display-bibliography: false` in every mode.
+]

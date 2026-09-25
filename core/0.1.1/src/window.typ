@@ -64,8 +64,8 @@
   ..args,
   limit: none,
   folded: false,
-  // The ten-key display dictionary `#idea` also takes (`_resolve-display`,
-  // pure.typ). `#window` declares all ten as flags too, for parity with
+  // The eleven-key display dictionary `#idea` also takes (`_resolve-display`,
+  // pure.typ). `#window` declares all eleven as flags too, for parity with
   // `#idea` and the `display:` dictionary, but only HONOURS six of them —
   // `date`, `tags`, `frame`, `name`, `label`, `background`. `context`,
   // `backlinks` and `title` describe a minted page, and a window is not one,
@@ -73,7 +73,9 @@
   // `right-gutter` rides along the same way, for a different reason: a
   // window never splits — its notes always float into its host card's
   // gutter (or, unwindowed, render vertically) — so the flag is accepted for
-  // parity and never read.
+  // parity and never read. `bibliography` rides along unhonoured too: it is
+  // declared for the same parity, but a window's own References always
+  // render as though it were `auto`.
   display: (:),
   display-date: auto,
   display-tags: auto,
@@ -113,6 +115,7 @@
   display-backlinks: auto,
   display-title: auto,
   display-right-gutter: auto,
+  display-bibliography: auto,
   // Whether this window COUNTS AS A LINK from wherever it sits to the note it
   // shows. `true` is right for an ordinary window written in a note's prose;
   // `false` is for a DERIVED view — a deck, an index, a preview — where the
@@ -170,7 +173,7 @@
       date: display-date, tags: display-tags, frame: display-frame,
       name: display-name, label: display-label, background: display-background,
       "context": display-context, backlinks: display-backlinks, title: display-title,
-      "right-gutter": display-right-gutter,
+      "right-gutter": display-right-gutter, "bibliography": display-bibliography,
     ),
     "#window's",
   )
@@ -196,7 +199,7 @@
       + " — every argument #window honours is a declared one; the display "
       + "flags are display-background, display-backlinks, display-context, "
       + "display-date, display-frame, display-name, display-label, display-tags, "
-      + "display-title and display-right-gutter.",
+      + "display-title, display-right-gutter and display-bibliography.",
   )
   assert(
     pos.len() <= 1,

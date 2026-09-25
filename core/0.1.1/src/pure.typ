@@ -969,13 +969,13 @@
     + "integer (the number of leading blocks to show) — got " + repr(v),
 )
 
-// The ten keys a `display:` dictionary and its matching `display-*`
+// The eleven keys a `display:` dictionary and its matching `display-*`
 // arguments may set. `#idea` and `#window` each use a different subset of
 // these — the union lives here once so the validation and the panic message
 // below share one list instead of drifting apart.
 #let _DISPLAY-KEYS = (
   "context", "backlinks", "background", "date", "frame",
-  "name", "label", "tags", "title", "right-gutter",
+  "name", "label", "tags", "title", "right-gutter", "bibliography",
 )
 
 // Merges a `display:` dictionary with a set of individual `display-*`

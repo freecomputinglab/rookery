@@ -83,6 +83,23 @@ def extract_div(h, start):
             j = nxt_close + 6
     return h[start:j]
 
+def box_for(h, name):
+    # Finds the `[data-rookery="box"]` div carrying a given idea's own
+    # `id="idea:<name>"` heading, by walking backward from that id to the
+    # nearest preceding box opening tag — the same nesting `byIdea` in
+    # geom.sh's JS reaches via `.closest()`.
+    marker = f'id="idea:{name}"'
+    mi = h.find(marker)
+    if mi == -1:
+        return None
+    start = h.rfind('<div class="', 0, mi)
+    while start != -1:
+        tag_end = h.index(">", start) + 1
+        if 'data-rookery="box"' in h[start:tag_end]:
+            return extract_div(h, start)
+        start = h.rfind('<div class="', 0, start)
+    return None
+
 for path in sys.argv[1:]:
     try:
         h = open(path).read()
@@ -225,10 +242,11 @@ for path in sys.argv[1:]:
             r'<span class="[^"]*" data-rookery="sidenote" data-rookery-cite="cite">(.*?)</span>', h, re.S,
         )
         knuth = [s for s in cite_spans if "Knuth" in s]
-        if len(knuth) != 4:
-            print(f"FAIL: {path} has {len(knuth)} margin citation note(s) naming Knuth, expected 4 "
+        if len(knuth) != 6:
+            print(f"FAIL: {path} has {len(knuth)} margin citation note(s) naming Knuth, expected 6 "
                   f"— two per rendering of margin-note's body (the bare citation and the "
-                  f"blockquote's), across its own card and host-note's #window")
+                  f"blockquote's), across its own card and host-note's #window, plus one each "
+                  f"from with-bib's and no-bib's own bare citation")
             bad = 1
         lamport = [s for s in cite_spans if "Lamport" in s]
         if len(lamport) != 4:
@@ -236,6 +254,30 @@ for path in sys.argv[1:]:
                   f"— two per rendering (the fourth footnote's own sidenote, and its repeat in that "
                   f"rendering's Footnotes list)")
             bad = 1
+
+        # `data-rookery-bibliography` mirrors the resolved flag on each
+        # card's own box, exactly as `data-rookery-gutter` does — present
+        # only for a concrete `true`/`false` (content/index.typ's
+        # `display-bibliography:` on with-bib and no-bib), absent on
+        # margin-note, which sets no override and stays `auto`.
+        for name, expect in (("with-bib", "on"), ("no-bib", "off")):
+            box_html = box_for(h, name)
+            if box_html is None:
+                print(f"FAIL: {path} has no box for idea:{name}")
+                bad = 1
+            else:
+                tag = box_html[:box_html.index(">") + 1]
+                attr = f'data-rookery-bibliography="{expect}"'
+                if attr not in tag:
+                    print(f"FAIL: {path}'s {name} box carries no {attr}")
+                    bad = 1
+        margin_box = box_for(h, "margin-note")
+        if margin_box is not None:
+            tag = margin_box[:margin_box.index(">") + 1]
+            if "data-rookery-bibliography" in tag:
+                print(f"FAIL: {path}'s margin-note box carries a "
+                      f"data-rookery-bibliography attribute, expected none")
+                bad = 1
 if not bad:
     print("  sidenotes: every sidenote block matches its Footnotes list, sidenotes sit immediately "
           "after their own marker, host-note's #window of margin-note carries its own sidenotes and "

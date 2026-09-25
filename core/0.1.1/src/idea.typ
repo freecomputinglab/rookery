@@ -43,21 +43,22 @@
 // permalink is the only way to discover; a titled note's id is the slug of
 // its own title, so it stays guessable without one.
 //
-// `display:` and the ten `display-*` flags are resolved together by
+// `display:` and the eleven `display-*` flags are resolved together by
 // `_resolve-display` (pure.typ) into one dictionary: an explicit flag wins
 // over the dictionary's own value for that key, which wins over `auto`. Every
-// flag defaults to `auto`, and every one of the ten STAYS `auto` here when
+// flag defaults to `auto`, and every one of the eleven STAYS `auto` here when
 // unset — this function substitutes no built-in default for any of them.
 // `context`, `backlinks` and `title` mean "use the document-wide
 // setting", resolved later on the minted page; `date`, `tags`, `frame`,
-// `name` and `right-gutter` mean the same thing one step earlier, resolved
-// against document-wide state (`_display-final`, state.typ) at the point
-// this note's own card renders, further down — `right-gutter`'s `auto`
-// alone can survive that resolution too, since "split only when the card
-// holds a note" is a real outcome for it, not a stand-in for a built-in
-// default. `label` and `background` are accepted here too but unused by the
-// card itself — they seed what a later `#window` falls back to when it does
-// not override them.
+// `name`, `right-gutter` and `bibliography` mean the same thing one step
+// earlier, resolved against document-wide state (`_display-final`,
+// state.typ) at the point this note's own card renders, further down —
+// `right-gutter`'s and `bibliography`'s `auto` alone can survive that
+// resolution too, since "split only when the card holds a note" and "follow
+// the citations mode" are real outcomes for them, not a stand-in for a
+// built-in default. `label` and `background` are accepted here too but
+// unused by the card itself — they seed what a later `#window` falls back
+// to when it does not override them.
 
 // The string a titleless, untitled note's id is digested from. CAPS the
 // hashed string: cost is linear in body size, measured at roughly 1.5 MB/s,
@@ -68,7 +69,7 @@
   (if r.len() > 4096 { r.slice(0, 4096) } else { r }) + "#" + str(r.len())
 }
 
-#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, handle: auto, display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-name: auto, display-label: auto, display-background: auto, display-context: auto, display-backlinks: auto, display-title: auto, display-right-gutter: auto, ..args) = {
+#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, handle: auto, display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-name: auto, display-label: auto, display-background: auto, display-context: auto, display-backlinks: auto, display-title: auto, display-right-gutter: auto, display-bibliography: auto, ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
   // below and further down at render time — str has no `.map`, so the error
@@ -115,6 +116,7 @@
       "context": display-context, backlinks: display-backlinks, background: display-background,
       date: display-date, frame: display-frame, name: display-name, label: display-label,
       tags: display-tags, title: display-title, "right-gutter": display-right-gutter,
+      "bibliography": display-bibliography,
     ),
     "#idea's",
   )
@@ -131,7 +133,7 @@
       + " — every argument #idea honours is a declared one; the display flags "
       + "are display-background, display-backlinks, display-context, "
       + "display-date, display-frame, display-name, display-label, display-tags, "
-      + "display-title and display-right-gutter.",
+      + "display-title, display-right-gutter and display-bibliography.",
   )
   // Variadic, not a plain positional: a positional parameter cannot carry a
   // default in Typst, and `#idea[body]` has to be callable with no name at
@@ -346,7 +348,7 @@
       // rendering, so it is the point of use `_display-final`'s banner
       // describes. `context`/`backlinks`/`title` are not resolved here: this
       // card never reads them, only `.marrow.typ`'s minted page does.
-      let rdisplay = _display-final(display, ("date", "tags", "frame", "name", "right-gutter"))
+      let rdisplay = _display-final(display, ("date", "tags", "frame", "name", "right-gutter", "bibliography"))
 
       // Resolution order, most specific first: the explicit created:
       // argument, then the containing document's own
@@ -616,6 +618,14 @@
         let gutter-attrs = if gutter == true { ("data-rookery-gutter": "on") }
           else if gutter == false { ("data-rookery-gutter": "off") }
           else { (:) }
+        // `data-rookery-bibliography` mirrors `data-rookery-gutter`'s own
+        // rule: only a concrete `true`/`false` adds the attribute, leaving
+        // an `auto` result to core.css's mode-keyed default (References
+        // shows exactly when citations are vertical).
+        let bib = rdisplay.at("bibliography")
+        let bib-attrs = if bib == true { ("data-rookery-bibliography": "on") }
+          else if bib == false { ("data-rookery-bibliography": "off") }
+          else { (:) }
         _bracket(
           html.elem(
             "div",
@@ -627,6 +637,7 @@
               (class: box-cls.join(" "), data-rookery: "box")
                 + (if rdisplay.frame { (:) } else { ("data-rookery-bare": "bare") })
                 + gutter-attrs
+                + bib-attrs
                 + _tags-attr(visible),
             ),
             header + _footnoted(body)

@@ -82,6 +82,11 @@ const measure = box => {
       return {left: nr.left, right: nr.right, top: nr.top, bottom: nr.bottom, parentRight: p.right};
     });
   const dateEl = box.querySelector('[data-rookery="date"]');
+  // The own card's References block, and its citation margin note if it has
+  // one — `display-bibliography`'s effect and `citations: "horizontal"`'s
+  // margin note are independent, so with-bib needs both checked together.
+  const refs = box.querySelector('[data-rookery="references"]');
+  const citeNote = box.querySelector('[data-rookery="sidenote"][data-rookery-cite]');
   return {
     right: b.right,
     width: b.width,
@@ -90,6 +95,8 @@ const measure = box => {
     hasFootnotes: !!box.querySelector('[data-rookery="footnotes"]'),
     paragraphRight: firstParagraphRight(box),
     dateRight: dateEl ? r(dateEl).right : null,
+    referencesDisplay: refs ? getComputedStyle(refs).display : null,
+    citeNoteDisplay: citeNote ? getComputedStyle(citeNote).display : null,
   };
 };
 
@@ -122,6 +129,8 @@ document.body.dataset.out = JSON.stringify({
   plainWide: measure(byIdea("plain-wide")),
   forcedGutter: measure(byIdea("forced-gutter")),
   noGutter: measure(byIdea("no-gutter")),
+  withBib: measure(byIdea("with-bib")),
+  noBib: measure(byIdea("no-bib")),
   window: windowMeasure(),
   blockquoteRight: blockquoteMeasure(marginNoteBox),
   cardFnRef: linkProbe(cardFnRefLink),
@@ -328,6 +337,24 @@ if not ng["hasFootnotes"]:
 fg = d["forcedGutter"]
 if not close(fg["paddingRight"], 0.4 * fg["width"]):
     bad.append(f"forced-gutter padding-right {fg['paddingRight']} != 0.4 * width {fg['width']}")
+
+# `display-bibliography` is independent of the split: with-bib's References
+# block stays visible under citations: "horizontal" (its own override) while
+# its citation margin note shows too, same as any other citing card;
+# no-bib's and margin-note's References stay hidden under the same mode,
+# margin-note carrying no override at all (`auto` following the mode).
+wb = d["withBib"]
+if wb["referencesDisplay"] == "none":
+    bad.append("with-bib References block computes display: none, expected visible")
+if wb["citeNoteDisplay"] != "block":
+    bad.append(f"with-bib citation sidenote computes display: {wb['citeNoteDisplay']}, expected block")
+
+nb = d["noBib"]
+if nb["referencesDisplay"] != "none":
+    bad.append(f"no-bib References block computes display: {nb['referencesDisplay']}, expected none")
+
+if mn["referencesDisplay"] != "none":
+    bad.append(f"margin-note References block computes display: {mn['referencesDisplay']}, expected none")
 
 win = d["window"]
 if win["paragraphRight"] is None or not close(win["paragraphRight"], win["right"]):

@@ -2107,10 +2107,23 @@ a[data-rookery="row-title"]:hover {
    show the full reference. Typst still emits this block in every mode
    (Typst partitions citations positionally — one with no bibliography
    following it is a hard error), never `hidden`; CSS is the only thing that
-   ever hides it. */
+   ever hides it.
+
+   `:not([data-rookery-bibliography="on"])` excludes a card or page body
+   whose `display-bibliography` resolved to `true` — References shows there
+   in every mode, the flag's own override of the citations mode. Kept inside
+   the `:where()` ancestor selector, so it changes what this rule matches
+   without changing its specificity. */
 :where(:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]):not([data-rookery-bibliography="on"])
   [data-rookery="references"]:not([data-rookery="window"] *) {
+  display: none;
+}
+
+/* `display-bibliography: false` hides References in every mode, vertical
+   included — unconditional, unlike the horizontal-mode rule above, because
+   there is no mode-keyed ancestor test to attach the exclusion to. */
+[data-rookery-bibliography="off"] [data-rookery="references"]:not([data-rookery="window"] *) {
   display: none;
 }
 

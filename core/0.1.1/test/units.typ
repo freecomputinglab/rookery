@@ -872,8 +872,8 @@
 
 // ---- _resolve-display — merges a `display:` dict with `display-*` flags ---
 //
-// All ten keys are always present, `auto` where nobody had an opinion.
-#assert.eq(_resolve-display((:), (:), "#t").len(), 10)
+// All eleven keys are always present, `auto` where nobody had an opinion.
+#assert.eq(_resolve-display((:), (:), "#t").len(), 11)
 #assert.eq(_resolve-display((:), (:), "#t").frame, auto)
 // The dictionary supplies a value.
 #assert.eq(_resolve-display((frame: false), (:), "#t").frame, false)

@@ -251,6 +251,11 @@
 // hand back `auto` for this one key.
 #let _display-right-gutter = state("rheo-idea-show-right-gutter", auto)
 
+// `bibliography`'s `auto` is a real outcome too, for the same reason:
+// "follow the citations mode" (vertical shows References, horizontal
+// hides it) is decided in CSS, not resolved to a boolean here.
+#let _display-bibliography = state("rheo-idea-show-bibliography", auto)
+
 // Every display key mapped to its own document-wide state, for
 // `_display-final` below — one table instead of a chain of per-key
 // comparisons at each call site.
@@ -265,6 +270,7 @@
   tags: _display-tags,
   title: _display-title,
   "right-gutter": _display-right-gutter,
+  "bibliography": _display-bibliography,
 )
 
 // Resolves `auto` in an already-merged `display` dictionary (`_resolve-display`,

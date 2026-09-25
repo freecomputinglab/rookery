@@ -404,14 +404,24 @@
       // footer's own `_themed(..)` calls, above and below), so the body
       // needs its own too, or it falls back to core.css's bare default
       // instead of the project's own width and no longer agrees with them.
+      // `data-rookery-bibliography` mirrors `data-rookery-gutter`'s own rule
+      // one paragraph up: only a concrete `true`/`false` result adds the
+      // attribute, leaving `auto` to core.css's mode-keyed default. Resolved
+      // the same way — the note's own override, falling back to the
+      // document-wide `rookery(display-bibliography:)` state.
       #{
-        let gutter = _display-final(rec.at("display", default: (:)), ("right-gutter",)).at("right-gutter")
+        let resolved = _display-final(rec.at("display", default: (:)), ("right-gutter", "bibliography"))
+        let gutter = resolved.at("right-gutter")
         let gutter-attrs = if gutter == true { ("data-rookery-gutter": "on") }
           else if gutter == false { ("data-rookery-gutter": "off") }
           else { (:) }
+        let bib = resolved.at("bibliography")
+        let bib-attrs = if bib == true { ("data-rookery-bibliography": "on") }
+          else if bib == false { ("data-rookery-bibliography": "off") }
+          else { (:) }
         html.elem(
           "div",
-          attrs: _themed((class: _c("page-body"), data-rookery: "page-body") + gutter-attrs),
+          attrs: _themed((class: _c("page-body"), data-rookery: "page-body") + gutter-attrs + bib-attrs),
           {
           // Wrapped in `_footnoted` — the same wrapper `#idea` and `#window` use —
           // so the note's footnote markers are claimed HERE and listed in a block

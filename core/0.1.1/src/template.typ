@@ -42,6 +42,7 @@
   display-tags,
   display-title,
   display-right-gutter,
+  display-bibliography,
   page-titles,
   footnotes,
   citations,
@@ -180,6 +181,13 @@
     display-right-gutter == auto or type(display-right-gutter) == bool,
     message: "@rookery/core: `display-right-gutter` must be auto, true or "
       + "false — got " + repr(display-right-gutter),
+  )
+  // Tri-state for the same reason as `display-right-gutter`: `auto` means
+  // "follow the citations mode" (state.typ's `_display-bibliography` banner).
+  assert(
+    display-bibliography == auto or type(display-bibliography) == bool,
+    message: "@rookery/core: `display-bibliography` must be auto, true or "
+      + "false — got " + repr(display-bibliography),
   )
   assert(
     page-titles == "title" or page-titles == "path",
@@ -509,6 +517,12 @@
 // page-level `#gutter` only reads correctly beside cards that split, so a
 // page using one should set `display-right-gutter: true` above.
 //
+// `display-bibliography:` is the document-wide default for the per-idea
+// `display-bibliography` flag (`#idea`, idea.typ): `auto` (the default)
+// shows an idea's References block exactly when citations render vertically
+// and hides it under "horizontal", where the margin notes already carry the
+// same information; `true` shows it in both modes; `false` hides it in both.
+//
 // Defined last in this file because a `#let` closure captures the scope
 // visible AT DEFINITION time — `hyperlink` must already exist.
 #let rookery(
@@ -544,6 +558,7 @@
   display-tags: auto,
   display-title: auto,
   display-right-gutter: auto,
+  display-bibliography: auto,
   backlinks: true,
   page-titles: "title",
   footnotes: "vertical",
@@ -551,7 +566,7 @@
   invisible-tags: (),
   doc,
 ) = {
-  // `rookery(..)` accepts all ten `_DISPLAY-KEYS` now — every one of them
+  // `rookery(..)` accepts all eleven `_DISPLAY-KEYS` now — every one of them
   // has a document-wide tier, resolved below and published to its own state
   // (state.typ), and read back at the point a card, a window or a minted
   // page renders.
@@ -569,6 +584,7 @@
       "context": display-context, backlinks: display-backlinks, background: display-background,
       date: display-date, frame: display-frame, name: display-name, label: display-label,
       tags: display-tags, title: display-title, "right-gutter": display-right-gutter,
+      "bibliography": display-bibliography,
     ),
     "#rookery's",
   )
@@ -587,10 +603,12 @@
   // built-in `#idea`/`#window` always applied — see `_display-background`
   // and its siblings, state.typ, for why only `date` and `tags` start off.
   //
-  // `right-gutter` is the one key left OUT of this collapse: its `auto` is a
-  // real, per-idea outcome — "split only when the card holds a note" — not a
-  // placeholder for a built-in default, so the document-wide tier passes it
-  // through unresolved (state.typ's `_display-right-gutter` banner).
+  // `right-gutter` and `bibliography` are the two keys left OUT of this
+  // collapse: each `auto` is a real, per-idea outcome — "split only when the
+  // card holds a note", "follow the citations mode" — not a placeholder for
+  // a built-in default, so the document-wide tier passes both through
+  // unresolved (state.typ's `_display-right-gutter` and
+  // `_display-bibliography` banners).
   let display = display + (
     "context": if display.context == auto { true } else { display.context },
     backlinks: if display.backlinks == auto { backlinks } else { display.backlinks },
@@ -623,6 +641,7 @@
     display.tags,
     display.title,
     display.at("right-gutter"),
+    display.at("bibliography"),
     page-titles,
     footnotes,
     citations,
@@ -683,6 +702,7 @@
   _display-tags.update(display.tags)
   _display-title.update(display.title)
   _display-right-gutter.update(display.at("right-gutter"))
+  _display-bibliography.update(display.at("bibliography"))
   _page-titles.update(page-titles)
   _footnote-mode.update(footnotes)
   // `auto` follows `footnotes:` — the whole point of the option is letting
