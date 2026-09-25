@@ -169,3 +169,78 @@ test("extractNote: leaves an empty href untouched (does not throw resolving agai
   const box = extractNote(doc, "https://example.org/site/ideas/etal.html");
   assert.equal(box.querySelector("a").getAttribute("href"), "");
 });
+
+test("extractNote: horizontal mode — margin notes become a vertical Footnotes list, citation notes drop, references unhidden", () => {
+  const doc = parse(`<!doctype html><body>
+    <div class="idea-head"><h1 class="idea">Title</h1></div>
+    <p>One<sup class="idea-fn-ref" id="fnref-1-1" data-rookery="fn-ref"><a href="#fn-1-1">1</a></sup><span class="idea-sidenote" id="fn-1-1" data-rookery="sidenote"><span class="idea-sidenote-number" data-rookery="sidenote-number">1</span> First body.</span>
+    and<sup class="idea-fn-ref" id="fnref-1-2" data-rookery="fn-ref"><a href="#fn-1-2">2</a></sup><span class="idea-sidenote" id="fn-1-2" data-rookery="sidenote"><span class="idea-sidenote-number" data-rookery="sidenote-number">2</span> Second body.</span>
+    citing<span class="idea-sidenote idea-sidenote-cite" data-rookery="sidenote" data-rookery-cite="cite">Full Reference.</span></p>
+    <div class="idea-references" data-rookery="references" hidden="hidden">References here</div>
+    <footer class="idea-footer">f</footer>
+  </body>`);
+  const box = extractNote(doc, "https://example.org/x.html");
+  const inner = box.querySelector(".idea-window-body");
+
+  assert.equal(inner.querySelectorAll('[data-rookery="sidenote"]').length, 0);
+
+  const footnotes = inner.querySelector('[data-rookery="footnotes"]');
+  assert.notEqual(footnotes, null);
+  const items = footnotes.querySelectorAll('[data-rookery="footnote"]');
+  assert.equal(items.length, 2);
+  assert.equal(items[0].id, "fn-1-1");
+  assert.equal(items[0].textContent.trim(), "^ First body.");
+  assert.equal(items[1].id, "fn-1-2");
+  assert.equal(items[1].textContent.trim(), "^ Second body.");
+  assert.equal(
+    items[0].querySelector('[data-rookery="fn-backlink"]').getAttribute("href"),
+    "#fnref-1-1",
+  );
+
+  const references = inner.querySelector('[data-rookery="references"]');
+  assert.equal(references.hasAttribute("hidden"), false);
+});
+
+test("extractNote: the Footnotes block precedes the References div", () => {
+  const doc = parse(`<!doctype html><body>
+    <div class="idea-head"><h1 class="idea">Title</h1></div>
+    <p>One<sup class="idea-fn-ref" id="fnref-1-1" data-rookery="fn-ref"><a href="#fn-1-1">1</a></sup><span class="idea-sidenote" id="fn-1-1" data-rookery="sidenote"><span class="idea-sidenote-number" data-rookery="sidenote-number">1</span> Body.</span></p>
+    <div class="idea-references" data-rookery="references" hidden="hidden">References here</div>
+    <footer class="idea-footer">f</footer>
+  </body>`);
+  const box = extractNote(doc, "https://example.org/x.html");
+  const inner = box.querySelector(".idea-window-body");
+  const all = Array.from(inner.querySelectorAll('[data-rookery="footnotes"], [data-rookery="references"]'));
+  assert.equal(all.length, 2);
+  assert.equal(all[0].dataset.rookery, "footnotes");
+  assert.equal(all[1].dataset.rookery, "references");
+});
+
+test("extractNote: a custom css-prefix's sidenote class produces matching footnotes/footnote-list classes", () => {
+  const doc = parse(`<!doctype html><body>
+    <div class="maths-head" data-rookery="head"><h1 class="maths" data-rookery="idea">Title</h1></div>
+    <p>One<sup class="maths-fn-ref" id="fnref-1-1" data-rookery="fn-ref"><a href="#fn-1-1">1</a></sup><span class="maths-sidenote" id="fn-1-1" data-rookery="sidenote"><span class="maths-sidenote-number" data-rookery="sidenote-number">1</span> Body.</span></p>
+    <div class="maths-references" data-rookery="references" hidden="hidden">References here</div>
+    <footer class="maths-footer" data-rookery="footer">f</footer>
+  </body>`);
+  const box = extractNote(doc, "https://example.org/x.html");
+  const inner = box.querySelector(".idea-window-body");
+  const footnotes = inner.querySelector('[data-rookery="footnotes"]');
+  assert.equal(footnotes.className, "maths-footnotes");
+  assert.equal(footnotes.querySelector('[data-rookery="footnotes-title"]').className, "maths-footnotes-title");
+  assert.equal(footnotes.querySelector('[data-rookery="footnote-list"]').className, "maths-footnote-list");
+  const item = footnotes.querySelector('[data-rookery="footnote"]');
+  assert.equal(item.className, "maths-footnote");
+  assert.equal(item.querySelector('[data-rookery="fn-backlink"]').className, "maths-fn-backlink");
+});
+
+test("extractNote: a vertical-mode note (no sidenote spans) comes out byte-identical", () => {
+  const body = `<p>One<sup class="idea-fn-ref" id="fnref-1-1" data-rookery="fn-ref"><a href="#fn-1-1">1</a></sup></p><div class="idea-footnotes" data-rookery="footnotes"><h4 class="idea-footnotes-title" data-rookery="footnotes-title">Footnotes</h4><ol class="idea-footnote-list" data-rookery="footnote-list"><li class="idea-footnote" id="fn-1-1" data-rookery="footnote"><a class="idea-fn-backlink" href="#fnref-1-1" data-rookery="fn-backlink">^</a> Body.</li></ol></div><div class="idea-references" data-rookery="references">References here</div>`;
+  const doc = parse(`<!doctype html><body>
+    <div class="idea-head"><h1 class="idea">Title</h1></div>
+    ${body}
+    <footer class="idea-footer">f</footer>
+  </body>`);
+  const box = extractNote(doc, "https://example.org/x.html");
+  assert.equal(box.querySelector(".idea-window-body").innerHTML, body);
+});
