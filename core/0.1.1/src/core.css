@@ -901,6 +901,19 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
   initial-value: 0px;
 }
 
+/* Below 769px (tablet portrait and phone) every rule in this file gated on
+   `data-rookery-footnotes="horizontal"` or `data-rookery-citations="horizontal"`
+   also requires `min-width: 769px`, so a narrow viewport falls back to the
+   same vertical Footnotes/References layout an unconfigured project gets,
+   whatever `footnotes:`/`citations:` say — there is no room for a readable
+   text column beside a readable margin column below that width. 769px reuses
+   this file's own `768px` `[data-rookery="row"]` breakpoint (further down in
+   this file) rather than its `600px` outline breakpoint, which that rule's
+   own comment scopes to phone only; here both tablet and phone must revert.
+   The one exception is the per-note `data-rookery-gutter="on"` override: an
+   explicit request independent of mode, so it keeps splitting at every
+   width. */
+
 /* Which top-level cards split into a text column and a right gutter, under
    `footnotes: "horizontal"` or `citations: "horizontal"`.
 
@@ -930,9 +943,15 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
    does — `.marrow.typ` resolves it from the note's own override, falling
    back to the document-wide `display-right-gutter` state, exactly as
    `#idea`'s card does. So it shares every branch below rather than only
-   the `:has(sidenote)` ones. */
-:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]):not([data-rookery-gutter="off"]):has([data-rookery="sidenote"]:not([data-rookery-cite])),
-:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]) :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]):not([data-rookery-gutter="off"]):has([data-rookery="sidenote"][data-rookery-cite]),
+   the `:has(sidenote)` ones. Below 769px this split reverts to vertical (see
+   the note above), the unconditional `[data-rookery-gutter="on"]` override
+   excepted. */
+@media (min-width: 769px) {
+  :root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]):not([data-rookery-gutter="off"]):has([data-rookery="sidenote"]:not([data-rookery-cite])),
+  :root:has([data-rookery="mode"][data-rookery-citations="horizontal"]) :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]):not([data-rookery-gutter="off"]):has([data-rookery="sidenote"][data-rookery-cite]) {
+    padding-right: calc(var(--idea-right-gutter, 0.3333) * 100%);
+  }
+}
 :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"])[data-rookery-gutter="on"] {
   padding-right: calc(var(--idea-right-gutter, 0.3333) * 100%);
 }
@@ -955,12 +974,18 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
    WHOLE rule invalid and silently unmatched — MEASURED, the head and footer
    stayed full width until this was rewritten around it. Split by kind, same
    `:not([data-rookery-cite])`/`[data-rookery-cite]` pair the split rule
-   above uses, so the same `:has()`-nesting rule applies here too. */
-:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) [data-rookery="head"]:has(~ [data-rookery="page-body"]:not([data-rookery-gutter="off"]) [data-rookery="sidenote"]:not([data-rookery-cite])),
-:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]) [data-rookery="head"]:has(~ [data-rookery="page-body"]:not([data-rookery-gutter="off"]) [data-rookery="sidenote"][data-rookery-cite]),
+   above uses, so the same `:has()`-nesting rule applies here too. Below
+   769px this reverts to vertical along with the split above, the
+   unconditional `[data-rookery-gutter="on"]` lines excepted. */
+@media (min-width: 769px) {
+  :root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) [data-rookery="head"]:has(~ [data-rookery="page-body"]:not([data-rookery-gutter="off"]) [data-rookery="sidenote"]:not([data-rookery-cite])),
+  :root:has([data-rookery="mode"][data-rookery-citations="horizontal"]) [data-rookery="head"]:has(~ [data-rookery="page-body"]:not([data-rookery-gutter="off"]) [data-rookery="sidenote"][data-rookery-cite]),
+  :root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) [data-rookery="page-body"]:not([data-rookery-gutter="off"]):has([data-rookery="sidenote"]:not([data-rookery-cite])) ~ [data-rookery="footer"],
+  :root:has([data-rookery="mode"][data-rookery-citations="horizontal"]) [data-rookery="page-body"]:not([data-rookery-gutter="off"]):has([data-rookery="sidenote"][data-rookery-cite]) ~ [data-rookery="footer"] {
+    padding-right: calc(var(--idea-right-gutter, 0.3333) * 100%);
+  }
+}
 [data-rookery="head"]:has(~ [data-rookery="page-body"][data-rookery-gutter="on"]),
-:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]) [data-rookery="page-body"]:not([data-rookery-gutter="off"]):has([data-rookery="sidenote"]:not([data-rookery-cite])) ~ [data-rookery="footer"],
-:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]) [data-rookery="page-body"]:not([data-rookery-gutter="off"]):has([data-rookery="sidenote"][data-rookery-cite]) ~ [data-rookery="footer"],
 [data-rookery="page-body"][data-rookery-gutter="on"] ~ [data-rookery="footer"] {
   padding-right: calc(var(--idea-right-gutter, 0.3333) * 100%);
 }
@@ -1756,11 +1781,14 @@ a[data-rookery="row-title"]:hover {
    itself, not only on the card ancestor: without it a `#window` transcluded
    INTO this card would have its own, always-vertical Footnotes block
    (below) swept up by this rule too, since it is also a descendant of the
-   same card. */
-:where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
-  [data-rookery="footnotes"]:not([data-rookery="window"] *) {
-  display: none;
+   same card. Applies only at 769px and up — see the note above the split
+   rule's own `@media` block. */
+@media (min-width: 769px) {
+  :where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    [data-rookery="footnotes"]:not([data-rookery="window"] *) {
+    display: none;
+  }
 }
 
 /* An <h4> for document-outline correctness, styled so it does not read as one.
@@ -1869,16 +1897,21 @@ a[data-rookery="row-title"]:hover {
    `[data-rookery="sidenote"]` plus the kind test) — one shy of the base
    `display: none` rule above being beaten by accident, and exactly tied
    with the window rule below, which wins that tie because it comes later
-   in this file. */
-:where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
-  [data-rookery="sidenote"]:not([data-rookery-cite]) {
-  display: block;
+   in this file. Both rules apply only at 769px and up — see the note above
+   the split rule's own `@media` block. */
+@media (min-width: 769px) {
+  :where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    [data-rookery="sidenote"]:not([data-rookery-cite]) {
+    display: block;
+  }
 }
-:where(:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
-  [data-rookery="sidenote"][data-rookery-cite] {
-  display: block;
+@media (min-width: 769px) {
+  :where(:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]))
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    [data-rookery="sidenote"][data-rookery-cite] {
+    display: block;
+  }
 }
 
 /* A window always renders vertically, whatever the project's mode — a page
@@ -1928,33 +1961,40 @@ a[data-rookery="row-title"]:hover {
    back to 0 regardless of what is set here. A site wanting a different
    style overrides this declaration, not the one above it. Nested
    blockquotes and nested lists are out of scope — `--_indent` takes the
-   innermost declaration only. */
-:where(:root:has([data-rookery="mode"]:is([data-rookery-footnotes="horizontal"], [data-rookery-citations="horizontal"])))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
-  blockquote {
-  box-sizing: border-box;
-  width: auto;
-  max-width: 100%;
-  margin-inline: 0;
-  padding-right: 0;
-  padding-left: 1em;
-  border-left-style: solid;
-  border-left-width: 2px;
-  --_indent: calc(1em + 2px);
+   innermost declaration only. Applies only at 769px and up — see the note
+   above the split rule's own `@media` block. */
+@media (min-width: 769px) {
+  :where(:root:has([data-rookery="mode"]:is([data-rookery-footnotes="horizontal"], [data-rookery-citations="horizontal"])))
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    blockquote {
+    box-sizing: border-box;
+    width: auto;
+    max-width: 100%;
+    margin-inline: 0;
+    padding-right: 0;
+    padding-left: 1em;
+    border-left-style: solid;
+    border-left-width: 2px;
+    --_indent: calc(1em + 2px);
+  }
 }
 
 /* A list's own indent, same reasoning as the blockquote above, including
-   the same OR (not split-by-kind) condition. */
-:where(:root:has([data-rookery="mode"]:is([data-rookery-footnotes="horizontal"], [data-rookery-citations="horizontal"])))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
-  :is(ul, ol) {
-  padding-left: 1.5em;
-  margin-inline: 0;
+   the same OR (not split-by-kind) condition, and the same 769px floor. */
+@media (min-width: 769px) {
+  :where(:root:has([data-rookery="mode"]:is([data-rookery-footnotes="horizontal"], [data-rookery-citations="horizontal"])))
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    :is(ul, ol) {
+    padding-left: 1.5em;
+    margin-inline: 0;
+  }
 }
-:where(:root:has([data-rookery="mode"]:is([data-rookery-footnotes="horizontal"], [data-rookery-citations="horizontal"])))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
-  li {
-  --_indent: 1.5em;
+@media (min-width: 769px) {
+  :where(:root:has([data-rookery="mode"]:is([data-rookery-footnotes="horizontal"], [data-rookery-citations="horizontal"])))
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    li {
+    --_indent: 1.5em;
+  }
 }
 
 /* A `#gutter` transcluded inside a `#window` has no right gutter reserved
@@ -2038,36 +2078,43 @@ a[data-rookery="row-title"]:hover {
    inherits rather than the site's link colour. `:not([data-rookery="window"]
    *)` keeps a window's links live, since a window always renders vertically
    with its blocks visible (see the sidenote rule above), whatever the
-   project's mode. */
-:where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
-  [data-rookery="fn-ref"] a:not([data-rookery="window"] *) {
-  pointer-events: none;
-  cursor: text;
-  color: inherit;
-  text-decoration: none;
+   project's mode. Applies only at 769px and up — see the note above the
+   split rule's own `@media` block. */
+@media (min-width: 769px) {
+  :where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    [data-rookery="fn-ref"] a:not([data-rookery="window"] *) {
+    pointer-events: none;
+    cursor: text;
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 /* The same deadening for a citation's `<a>`, keyed on `citations:
    "horizontal"` instead — its own References block is the one hidden under
-   THAT setting, independently of what `footnotes:` says. */
-:where(:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
-  a[role="doc-biblioref"]:not([data-rookery="window"] *) {
-  pointer-events: none;
-  cursor: text;
-  color: inherit;
-  text-decoration: none;
+   THAT setting, independently of what `footnotes:` says. Same 769px floor. */
+@media (min-width: 769px) {
+  :where(:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]))
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    a[role="doc-biblioref"]:not([data-rookery="window"] *) {
+    pointer-events: none;
+    cursor: text;
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 /* The footnote marker keeps its accent colour — the same variable
    `[data-rookery="sidenote-number"]` uses — so the pairing with its margin
    note stays legible even though the link beneath it no longer does
-   anything. */
-:where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
-  [data-rookery="fn-ref"] a:not([data-rookery="window"] *) {
-  color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
+   anything. Same 769px floor as the deadening rule above. */
+@media (min-width: 769px) {
+  :where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"])
+    [data-rookery="fn-ref"] a:not([data-rookery="window"] *) {
+    color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
+  }
 }
 
 /* ---- References — one bibliography per idea, and the page's own -----------
@@ -2113,11 +2160,14 @@ a[data-rookery="row-title"]:hover {
    whose `display-bibliography` resolved to `true` — References shows there
    in every mode, the flag's own override of the citations mode. Kept inside
    the `:where()` ancestor selector, so it changes what this rule matches
-   without changing its specificity. */
-:where(:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]))
-  :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]):not([data-rookery-bibliography="on"])
-  [data-rookery="references"]:not([data-rookery="window"] *) {
-  display: none;
+   without changing its specificity. Applies only at 769px and up — see the
+   note above the split rule's own `@media` block. */
+@media (min-width: 769px) {
+  :where(:root:has([data-rookery="mode"][data-rookery-citations="horizontal"]))
+    :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]):not([data-rookery-bibliography="on"])
+    [data-rookery="references"]:not([data-rookery="window"] *) {
+    display: none;
+  }
 }
 
 /* `display-bibliography: false` hides References in every mode, vertical

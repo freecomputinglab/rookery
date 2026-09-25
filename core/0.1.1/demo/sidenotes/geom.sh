@@ -11,7 +11,7 @@ fail=0
 note() { echo "FAIL: $*"; fail=1; }
 
 measure() {
-  local page="$1" script="$2" label="$3"
+  local page="$1" script="$2" label="$3" size="${4:-1400,900}"
   # Split on the LAST slash, not prepended across one — `page` can itself
   # carry a directory (`ideas/margin-note`), and `_geom-ideas/foo.html`
   # would name a file inside a directory named `_geom-ideas` that does not
@@ -29,7 +29,7 @@ js = "<script>" + open(script_path).read() + "</script>"
 open(p, "w").write(s.replace("</body>", js + "</body>"))
 PY
   local out
-  out=$(timeout 60 chromium --headless=new --disable-gpu --no-sandbox --window-size=1400,900 \
+  out=$(timeout 60 chromium --headless=new --disable-gpu --no-sandbox --window-size=$size \
     --dump-dom "$geom" 2>/dev/null \
     | grep -o 'data-out="[^"]*"' | sed 's/&quot;/"/g; s/^data-out="//; s/"$//')
   if [ -z "$out" ]; then
@@ -265,8 +265,13 @@ MARGIN_PAGE_OUT="$(measure ideas/margin-note "$MARGIN_PAGE_JS" "ideas/margin-not
 PLAIN_WIDE_PAGE_OUT="$(measure ideas/plain-wide "$MARGIN_PAGE_JS" "ideas/plain-wide.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 NO_GUTTER_PAGE_OUT="$(measure ideas/no-gutter "$MARGIN_PAGE_JS" "ideas/no-gutter.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 MIXED_OUT="$(measure mixed "$MIXED_JS" "mixed.html")" || { echo "demo/sidenotes geom FAILED"; exit 1; }
+# Below the 769px breakpoint (core.css) every idea reverts to vertical, whatever
+# footnotes:/citations: say — phone (375px) and tablet portrait (700px, still
+# under 769px) both check this.
+INDEX_NARROW_PHONE_OUT="$(measure index "$INDEX_JS" "index.html (375px)" 375,800)" || { echo "demo/sidenotes geom FAILED"; exit 1; }
+INDEX_NARROW_TABLET_OUT="$(measure index "$INDEX_JS" "index.html (700px)" 700,900)" || { echo "demo/sidenotes geom FAILED"; exit 1; }
 
-python3 - "$INDEX_OUT" "$BLOCKS_OUT" "$MARGIN_PAGE_OUT" "$PLAIN_WIDE_PAGE_OUT" "$NO_GUTTER_PAGE_OUT" "$MIXED_OUT" <<'PY'
+python3 - "$INDEX_OUT" "$BLOCKS_OUT" "$MARGIN_PAGE_OUT" "$PLAIN_WIDE_PAGE_OUT" "$NO_GUTTER_PAGE_OUT" "$MIXED_OUT" "$INDEX_NARROW_PHONE_OUT" "$INDEX_NARROW_TABLET_OUT" <<'PY'
 import json, sys
 
 d = json.loads(sys.argv[1])
@@ -275,6 +280,8 @@ m = json.loads(sys.argv[3])
 pwp = json.loads(sys.argv[4])
 ngp = json.loads(sys.argv[5])
 mx = json.loads(sys.argv[6])
+d_phone = json.loads(sys.argv[7])
+d_tablet = json.loads(sys.argv[8])
 TOL = 1
 bad = []
 
@@ -493,6 +500,35 @@ if mx["citeLinkPointerEvents"] != "auto":
     bad.append(
         f"mixed-note doc-biblioref link computes pointer-events: {mx['citeLinkPointerEvents']}, expected auto"
     )
+
+# Below core.css's 769px breakpoint, margin-note's sidenotes and its
+# Footnotes block revert to vertical, whatever `footnotes: "horizontal"`
+# says — at both phone (375px) and tablet portrait (700px) widths.
+#
+# margin-note's own padding-right is NOT part of this check: this project
+# sets `display-right-gutter: true` (content/lib.typ) for every idea, so
+# margin-note's own `data-rookery-gutter` resolves the same concrete "on"
+# `forced-gutter` gets from an explicit override, and core.css's Non-goal
+# keeps that unconditional split reserved at every width. So padding-right
+# stays 0.4 of the card's width below 769px too — checked here as a
+# regression guard, not as something this bird reverts.
+#
+# `notes` still returns 8 elements below 769px — `display: none` collapses
+# a box's geometry to zero rather than removing it from `querySelectorAll`,
+# so a hidden sidenote is checked by its collapsed rect, not by the array's
+# length.
+for label, dn in (("phone (375px)", d_phone), ("tablet (700px)", d_tablet)):
+    mn_n = dn["marginNote"]
+    if not close(mn_n["paddingRight"], 0.4 * mn_n["width"]):
+        bad.append(
+            f"margin-note {label} padding-right {mn_n['paddingRight']} != 0.4 * width "
+            f"{mn_n['width']} — the forced data-rookery-gutter=\"on\" split should stay reserved"
+        )
+    for n in mn_n["notes"]:
+        if not (close(n["left"], 0) and close(n["right"], 0) and close(n["top"], 0) and close(n["bottom"], 0)):
+            bad.append(f"margin-note {label} sidenote {n} is not collapsed, expected display: none below 769px")
+    if not mn_n["hasFootnotes"]:
+        bad.append(f"margin-note {label} has no data-rookery=\"footnotes\" block, expected the vertical fallback")
 
 if bad:
     for line in bad:
