@@ -187,6 +187,40 @@ for path in sys.argv[1:]:
         print(f"FAIL: {path}'s mode marker says citations={modes[0][1]!r}, expected \"vertical\"")
         bad = 1
 
+    # (h) `mixed.html`'s native-footnote fixture: a `#footnote[..]` written
+    # straight into an idea's body (no rookery `footnote` import) is claimed
+    # the same as rookery's own marker — no page-wide endnote section, and
+    # its own box carries an ordinary fn-ref/sidenote pair.
+    if path.endswith("/mixed.html"):
+        if 'role="doc-endnotes"' in h:
+            print(f"FAIL: {path} has a doc-endnotes section — a native "
+                  f"#footnote escaped instead of being claimed by its idea")
+            bad = 1
+        native_box = box_for(h, "native-note")
+        if native_box is None:
+            print(f"FAIL: {path} has no box for idea:native-note")
+            bad = 1
+        else:
+            sup_m = re.search(
+                r'<sup class="idea-fn-ref"[^>]*data-rookery="fn-ref">.*?</sup>', native_box, re.S,
+            )
+            if sup_m is None:
+                print(f"FAIL: {path}'s native-note box carries no fn-ref marker")
+                bad = 1
+            else:
+                tail = native_box[sup_m.end():]
+                span_m = re.match(r'<span class="idea-sidenote"[^>]*data-rookery="sidenote">', tail)
+                if span_m is None:
+                    print(f"FAIL: {path}'s native-note fn-ref is not immediately followed "
+                          f"by a data-rookery=\"sidenote\" span")
+                    bad = 1
+                else:
+                    sidenote_html = extract_span(tail, span_m.start())
+                    if "Written with std.footnote" not in sidenote_html:
+                        print(f"FAIL: {path}'s native-note sidenote does not contain "
+                              f"\"Written with std.footnote\"")
+                        bad = 1
+
     # (g) A minted note page (`ideas/<slug>.html`) wraps its body and its
     # own References block in exactly one `[data-rookery="page-body"]`
     # element, and that element's Footnotes block is INSIDE it — the own

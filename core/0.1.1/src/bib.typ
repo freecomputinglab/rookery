@@ -264,6 +264,12 @@
 #let _promote-cites(node, keys) = {
   if type(node) != content { return node }
   if node.func() == metadata { return node }
+  // `std.footnote`, explicitly — bib.typ's own scope may already see
+  // rookery's `footnote` (`lib.typ` imports this file), so the bare name is
+  // not safe to rely on here. A citation inside an author's own
+  // `#footnote[..]` is that note's own footnote's problem, not this idea's:
+  // promoting it here would mint a footnote inside a footnote.
+  if node.func() == std.footnote { return node }
   if node.func() == figure and node.at("kind", default: none) in (IK, WK) { return node }
   let mint(target, supplement) = {
     let c = if supplement == auto or supplement == none {

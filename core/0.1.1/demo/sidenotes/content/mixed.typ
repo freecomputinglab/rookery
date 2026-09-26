@@ -14,3 +14,8 @@
   footnote, so its full reference rides at the end of this margin note even
   though citations on this page are vertical.] carries a citation of its own.
 ]
+
+#idea("native-note", title: [Native footnote])[
+  A paragraph using Typst's own footnote#std.footnote[Written with
+  std.footnote, still claimed by this idea.] inside an idea.
+]

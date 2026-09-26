@@ -20,9 +20,10 @@
 // `_join` -> `_body-text` -> `_body-plain` -> `_derived-title` -> `_rec-label`,
 // and `IK`/`WK` above both footnote walkers.
 //
-// `_std-footnotes`'s `footnote` is TYPST'S BUILT-IN, deliberately: rookery
-// defines its own `#footnote` far down in `lib.typ` and nothing here shadows
-// the name. Do not import rookery's `footnote` into this file.
+// `_footnotes`'s and `_number-footnotes`'s `footnote` is TYPST'S BUILT-IN,
+// deliberately: rookery defines its own `#footnote` far down in `lib.typ`
+// and nothing here shadows the name. Do not import rookery's `footnote`
+// into this file.
 
 // Normalise a name (string or Typst label) to its bare string form, with no
 // prefix. Strips a leading "prefix:" when present, so the bare form
@@ -564,13 +565,20 @@
 // `#window` below) because `_flatten` needs both marker kinds and must be
 // defined before `#idea`, which calls it at registration time.
 
-// Typst's own `#footnote` CANNOT be intercepted. Its body is collected by the
-// HTML exporter through introspection, independently of show rules, so neither
-// `show footnote: it => ...` nor `show footnote: none` removes the entry from
-// the page's `<section role="doc-endnotes">` — MEASURED both ways on typst
-// 0.15.1. So rookery exports its own `#footnote` (below), which shadows
-// `std.footnote` at the author's import site and carries its body on an
-// invisible marker this package places itself.
+// Typst's own `#footnote` CANNOT be intercepted ONCE LAID OUT. Its body is
+// collected by the HTML exporter through introspection, independently of
+// show rules, so neither `show footnote: it => ...` nor `show footnote:
+// none` removes the entry from the page's `<section role="doc-endnotes">` —
+// MEASURED both ways on typst 0.15.1. An idea's body never reaches layout
+// in that raw form, though: `_footnotes`/`_number-footnotes` above rebuild
+// it first, replacing every native footnote node they find (as raw
+// content, before layout) the same way they replace rookery's own marker —
+// so a `#footnote[..]` written directly into an idea's body IS claimed.
+// Only one produced at layout time, inside a `context` block or a show
+// rule, or written outside any idea, still escapes this way. Rookery also
+// exports its own `#footnote` (below), which shadows `std.footnote` at the
+// author's import site and carries its body on an invisible marker this
+// package places itself — the two shapes converge on the same block.
 //
 // The marker is `metadata` + a label, NOT a `figure`. A figure is block-level
 // and forced `</p><p>` breaks around the reference, taking it out of its
@@ -581,16 +589,22 @@
 // and both `_flatten`'s IK rule and `#idea` itself need these.
 #let FNK = <rkfn>
 
-// Every footnote body in this content, in document order.
+// Every footnote body in this content, in document order — rookery's own
+// marker AND a native `#footnote[..]` written straight into the body, so an
+// author needs no `footnote` import to have one claimed. Only reaches a
+// native footnote sitting in the RAW content this walk sees; one produced at
+// layout time, inside a `context` block or by a show rule, is invisible here
+// and escapes to the page's own endnote section instead.
 //
 // STOPS at a nested IK or WK marker. A `#idea` written inside another's body
 // owns its footnotes and renders its own block for them; a nested `#window`
 // likewise. Without this the parent would list its children's footnotes as
 // well as its own, and every one would appear twice on the page.
 //
-// Does NOT descend into a metadata VALUE — only into content children — which
-// is what keeps the raw bodies that IK/WK markers carry as metadata payloads
-// out of the walk.
+// Does NOT descend into a metadata VALUE, nor into a native footnote's own
+// body — only into content children — which is what keeps the raw bodies
+// IK/WK markers carry as metadata payloads, and a citation or nested
+// footnote inside someone else's note, out of the walk.
 #let _footnotes(node) = {
   let out = ()
   if type(node) != content { return out }
@@ -600,6 +614,11 @@
     }
     return out
   }
+  // A native `#footnote[..]` written straight into the idea's body — claimed
+  // the same as rookery's own marker, so an author needs no `footnote` import
+  // at all. Its own body is not walked further: a citation or nested footnote
+  // inside it is that note's problem, not this idea's.
+  if node.func() == footnote { return (node.body,) }
   if node.func() == figure and node.at("kind", default: none) in (IK, WK) { return out }
   if node.has("children") { for k in node.children { out += _footnotes(k) } }
   else if node.has("body") { out += _footnotes(node.body) }
@@ -624,10 +643,11 @@
 // would be a cycle. `_footnoted` (bib.typ) is the caller and supplies
 // `n => _fn-ref(b, n)`.
 //
-// Mirrors `_footnotes`' own shape: the same two stops (a footnote's body is
-// a metadata PAYLOAD, never itself walked into; a nested IK/WK marker is
-// left untouched, since that note or window numbers its own footnotes when
-// IT renders) over the same three structural cases (children/body/child).
+// Mirrors `_footnotes`' own shape: the same three stops (rookery's marker
+// carries its body as a metadata PAYLOAD, never walked into; a native
+// `#footnote[..]`'s own body is likewise left alone; a nested IK/WK marker
+// is untouched, since that note or window numbers its own footnotes when IT
+// renders) over the same three structural cases (children/body/child).
 //
 // Reattaches `node`'s own label to `built`, when it had one. `.fields()`
 // carries a `label` entry for ANY labelled content, of ANY element type —
@@ -660,6 +680,9 @@
     }
     return (node: node, next: next)
   }
+  // Matches `_footnotes`'s native-footnote case above, node for node: the
+  // n-th body that walk collects is the n-th marker this one mints.
+  if node.func() == footnote { return (node: mint(next), next: next + 1) }
   if node.func() == figure and node.at("kind", default: none) in (IK, WK) {
     return (node: node, next: next)
   }
@@ -705,39 +728,6 @@
     return (node: _relabel((node.func())(r.node, node.styles), node), next: r.next)
   }
   (node: node, next: next)
-}
-
-// Typst's OWN footnotes in a body — the ones this package cannot claim.
-//
-// `#footnote` above shadows `std.footnote` only at the author's IMPORT SITE, and
-// Typst imports are per-file. A vertebra that writes `#footnote` without
-// importing it from this package gets the builtin, and the build SUCCEEDS while
-// putting the body somewhere else entirely: the page's endnote section,
-// numbered page-wide, with no Footnotes block on the idea. MEASURED:
-//
-//     no import   idea-footnotes block=False   page endnotes=True
-//     imported    idea-footnotes block=True    page endnotes=False
-//
-// `#idea` uses this to turn that silence into a build error. It cannot be fixed
-// any other way — REFUTED, do not attempt: a rule installed by `#show: rookery`
-// changes only how the marker renders, and the body is still collected into the
-// endnote section behind it, because the HTML exporter gathers footnotes by
-// introspection. MEASURED, the section was emitted and still contained the
-// body. There is no way to rebind a builtin document-wide either; `#let` is
-// file-scoped.
-//
-// Stops at a nested IK/WK marker for the same reason `_footnotes` does: a
-// nested idea runs this check when IT registers, and should report its own
-// violation rather than have its parent report it.
-#let _std-footnotes(node) = {
-  let out = ()
-  if type(node) != content { return out }
-  if node.func() == footnote { return (node,) }
-  if node.func() == figure and node.at("kind", default: none) in (IK, WK) { return out }
-  if node.has("children") { for k in node.children { out += _std-footnotes(k) } }
-  else if node.has("body") { out += _std-footnotes(node.body) }
-  else if node.has("child") { out += _std-footnotes(node.child) }
-  out
 }
 
 // Split a body into block-level chunks for `limit:` truncation. A naive

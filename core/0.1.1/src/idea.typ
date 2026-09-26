@@ -162,9 +162,9 @@
   // beside it. A note carrying an excluded tag is not hidden, it is ABSENT: no
   // figure, no metadata, no registry entry, no Typst label, no minted page, no
   // `ideas()` row, no search-index entry, no feeds beacon, no outline entry, no
-  // backlink. FIVE things walk for that marker STRUCTURALLY, before
+  // backlink. FOUR things walk for that marker STRUCTURALLY, before
   // realization — `_flatten`'s IK rule (transclusion.typ), `_outbound`
-  // (links.typ), `_std-footnotes` and `_footnotes` (pure.typ), and
+  // (links.typ), `_footnotes` (pure.typ), and
   // `_ideas-outline-data`'s `query()` (outline.typ) — so the marker must never
   // exist rather than exist and be suppressed, which is why the decision reads
   // no `#context`: `_resolve-excluded` (base.typ) takes `sys.inputs` and a
@@ -410,22 +410,6 @@
       // it. A duplicate EXPLICIT id only errors if something
       // observes the registry (e.g. #window or a ref) — an identical
       // re-insertion is a re-emission, not a collision.
-      // A Typst footnote in here is one this package cannot claim: its body
-      // would go to the page's endnote section instead of this idea's block,
-      // and the build would otherwise SUCCEED while doing it. Checked at
-      // registration rather than at render, so it runs once per idea however
-      // many windows transclude it, and so the error names the authoring
-      // mistake rather than firing from whatever page happens to window the
-      // note.
-      if _std-footnotes(body).len() > 0 {
-        panic(
-          "@rookery/core: `#footnote` inside an idea is Typst's, not rookery's — "
-            + "its body would land in the page's endnote section instead of this "
-            + "idea's Footnotes block. Add `footnote` to your import: "
-            + "`#import \"@rookery/core:0.1.1\": idea, footnote`.",
-        )
-      }
-
       // Whether this vertebra harvests the backlink graph at all — see
       // `_backlinks`, state.typ. `false` means neither statement below walks
       // the body; both come back empty.
