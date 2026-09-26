@@ -644,19 +644,23 @@ figure:has(> [data-rookery="page-list"]),
    when its depth budget runs out — and both name a place the reader can go, in the
    note's own words. So it takes the frame's own bar and the body's own size:
 
-   - `border-left` from `--idea-rule-width` and the `--idea-border-color` chain, so
-     it is the SAME bar an idea and a window draw down their left edge, and follows
-     a theme the way theirs do.
-   - `padding-left` from `--idea-pad`, so the text starts exactly where an open
-     idea's or window's text starts, at any screen width.
+   - a left-edge background strip sized from `--idea-rule-width` and coloured from
+     the `--idea-border-color` chain, so it is the SAME bar an idea and a window
+     draw down their left edge, and follows a theme the way theirs do.
+   - `padding-left` widened by `--idea-rule-width` on top of `--idea-pad`, so the
+     text starts exactly where an open idea's or window's text starts, at any
+     screen width, clear of the strip.
    - `font-size: 1rem`, NOT `1em`, and no colour of its own. `1em` is a no-op — it
      means "whatever I inherit", which inside `[data-rookery="footer"]` is that
      block's 0.85em, and `--idea-pad`'s `em`-based indent would then read against
      the wrong base font size. Root-relative fixes both at once: the row reads at
      body size and its indent is the same distance every frame uses. */
 [data-rookery="page-row"] {
-  border-left: var(--idea-rule-width, 2px) solid var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12)));
-  padding: 2px var(--idea-pad, 0.5em) 2px var(--idea-pad, 0.5em);
+  background-image: linear-gradient(var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12))), var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12))));
+  background-size: var(--idea-rule-width, 2px) 100%;
+  background-repeat: no-repeat;
+  background-position: left top;
+  padding: 2px var(--idea-pad, 0.5em) 2px calc(var(--idea-pad, 0.5em) + var(--idea-rule-width, 2px));
   margin-bottom: 0.4em;
   font-size: 1rem;
 }
@@ -878,8 +882,11 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
 
 [data-rookery="box"],
 [data-rookery="window"] {
-  border-left: var(--idea-rule-width, 2px) solid var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12)));
-  padding-left: var(--idea-pad, 0.5em);
+  background-image: linear-gradient(var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12))), var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12))));
+  background-size: var(--idea-rule-width, 2px) 100%;
+  background-repeat: no-repeat;
+  background-position: left top;
+  padding-left: calc(var(--idea-pad, 0.5em) + var(--idea-rule-width, 2px));
 }
 
 /* `<length>` typed, NOT left as a bare token sequence: an untyped custom
@@ -1140,7 +1147,7 @@ h6[data-rookery="idea"] {
    is the latter, and lives here rather than fighting the cascade from outside
    it. */
 [data-rookery="window"][data-rookery-plain] {
-  border-left: none;
+  background-image: none;
   padding: 0;
   border-radius: 0;
 }
@@ -1175,7 +1182,7 @@ h6[data-rookery="idea"] {
    that is right there — it is embedding a body inside someone else's box. */
 [data-rookery="box"][data-rookery-bare],
 [data-rookery="window"][data-rookery-bare] {
-  border-left: none;
+  background-image: none;
   padding-left: 0;
 }
 
@@ -1345,13 +1352,9 @@ h6[data-rookery="idea"] {
    `padding-right`. No radius on it: the folded window is square (see above), so
    the wash has no rounded corner to stay inside of.
 
-   SUB-PIXEL AT A FRACTIONAL `rule-width`, the same wart `[data-rookery="tab"]`'s
-   stub carries, from the same arithmetic: the `calc()` and the browser's own
-   rendered border width can round differently, landing the wash's left edge a
-   fraction of a pixel outside the frame. Invisible at 5% alpha, and it cannot be
-   fixed here without moving the wash onto `[data-rookery="window"]`, which is what the
-   hover paragraph above rules out. Whole-pixel widths — including the 2px
-   default — line up exactly. */
+   The left rule is a background strip, not a border, so nothing here rounds
+   against a rendered border width: the wash's left edge lands on the strip's
+   own inner edge at every `--idea-rule-width` and every device-pixel ratio. */
 [data-rookery="window-details"]:not([open]) > [data-rookery="window-summary"] {
   background-color: var(--idea-fold-color, rgba(0, 100, 255, 0.05));
   /* Back to the border's INNER edge, NOT its outer one — the rule's own width is
@@ -1877,7 +1880,7 @@ a[data-rookery="row-title"]:hover {
    the card is nested in the page. A float's own percentage, by contrast,
    resolves against its CONTAINING BLOCK'S width — here the paragraph the
    note sits in, which is narrower than the card by the split AND by the
-   card's left inset (`--_inset`: its `border-left` plus `padding-left`).
+   card's left inset (`--_inset`: its left rule's width plus `padding-left`).
    Given a card of width `C`, a paragraph of width `P = C * (1 - f) -
    inset`, so in the note's own percentage terms (`100% = P`) the full
    gutter `f * C` is:
@@ -2188,8 +2191,8 @@ a[data-rookery="row-title"]:hover {
 
    THAT ALIGNMENT IS NOT A RULE HERE, and nothing below should try to make it
    one. `#idea` emits this block as a CHILD of `[data-rookery="box"]` (see the note at the
-   `_bracket` call in `idea.typ`), so the card's own `border-left` and
-   `padding-left` reach it: the bar runs down beside the entries and they start
+   `_bracket` call in `idea.typ`), so the card's own left-rule background strip
+   and `padding-left` reach it: the bar runs down beside the entries and they start
    at the note's text margin, for free and by the same declarations the footnotes
    block above it takes. Giving this class a `border-left` or a `padding-left` of its own
    would draw a SECOND bar inside the card's, so do not: emission inside the card

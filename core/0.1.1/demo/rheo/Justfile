@@ -28,6 +28,9 @@ watch:
 check: clean build
     ./check.sh
 
+geom: build
+    ./geom.sh
+
 clean:
     rm -rf build
 
