@@ -611,7 +611,8 @@ figure:has(> [data-rookery="page-list"]),
   /* Neutral grey rather than black-at-low-alpha, so the rule stays visible on
      a dark page as well as a light one. */
   border-top: 1px solid rgba(128, 128, 128, 0.3);
-  font-size: 0.85em;
+  --_footer-scale: 0.85;
+  font-size: calc(var(--_footer-scale) * 1em);
 }
 
 /* Both sections have the same shape — a heading, then rows flowing down from
@@ -650,11 +651,16 @@ figure:has(> [data-rookery="page-list"]),
    - `padding-left` widened by `--idea-rule-width` on top of `--idea-pad`, so the
      text starts exactly where an open idea's or window's text starts, at any
      screen width, clear of the strip.
-   - `font-size: 1rem`, NOT `1em`, and no colour of its own. `1em` is a no-op — it
-     means "whatever I inherit", which inside `[data-rookery="footer"]` is that
-     block's 0.85em, and `--idea-pad`'s `em`-based indent would then read against
-     the wrong base font size. Root-relative fixes both at once: the row reads at
-     body size and its indent is the same distance every frame uses. */
+   - `font-size: 1em`, and no colour of its own. `1em` inherits the size of
+     whatever prose the row sits in, so the row reads at body size and
+     `--idea-pad`'s `em`-based indent resolves against that same size. `1rem`
+     is not used here: it is the ROOT size, not the body size, and the two
+     diverge on a site that scales its prose on a container rather than on
+     `:root`.
+   - inside `[data-rookery="footer"]`, which scales its own text down by
+     `--_footer-scale`, a plain `1em` would read at that smaller size. The
+     rule below divides `--_footer-scale` back out, so a page row reads at
+     body size there too. */
 [data-rookery="page-row"] {
   background-image: linear-gradient(var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12))), var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12))));
   background-size: var(--idea-rule-width, 2px) 100%;
@@ -662,7 +668,11 @@ figure:has(> [data-rookery="page-list"]),
   background-position: left top;
   padding: 2px var(--idea-pad, 0.5em) 2px calc(var(--idea-pad, 0.5em) + var(--idea-rule-width, 2px));
   margin-bottom: 0.4em;
-  font-size: 1rem;
+  font-size: 1em;
+}
+
+[data-rookery="footer"] [data-rookery="page-row"] {
+  font-size: calc(1em / var(--_footer-scale, 0.85));
 }
 
 /* A bottomed-out window's tab — pills and date above its link, when the window

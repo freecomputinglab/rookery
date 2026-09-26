@@ -149,4 +149,115 @@ done
 if [ "$fail" -ne 0 ]; then
   exit 1
 fi
+
+# Third check: a page row reads at the size of the prose it sits in, not the
+# root size. On $H/index.html (which has unfurl:0 rows), pin :root to 16px and
+# the row's nearest figure ancestor to 20px, then assert each row's computed
+# size matches its parent list's. On a minted idea page with a footer, assert
+# a footer page-row matches the size of whatever sits around the footer, since
+# the footer itself reads smaller.
+ROW_JS="$(mktemp)"
+ROW_GEOM="$H/_geom-rowsize.html"
+trap 'rm -f "$JS" "$GEOM" "$SUM_JS" "$ROW_JS" "$ROW_GEOM"' EXIT
+
+cat > "$ROW_JS" <<'JS'
+document.documentElement.style.fontSize = "16px";
+const rows = [...document.querySelectorAll(
+  'li[data-rookery="page-row"][data-rookery-window-link]'
+)];
+for (const row of rows) {
+  const fig = row.closest("figure");
+  if (fig) fig.style.fontSize = "20px";
+}
+const out = rows.map(row => ({
+  row: getComputedStyle(row).fontSize,
+  parent: getComputedStyle(row.parentElement).fontSize,
+}));
+document.body.dataset.out = JSON.stringify(out);
+JS
+
+[ -f "$H/index.html" ] || { echo "FAIL: no $H/index.html"; exit 1; }
+cp "$H/index.html" "$ROW_GEOM"
+python3 - "$ROW_GEOM" "$ROW_JS" <<'PY'
+import sys
+p, script_path = sys.argv[1], sys.argv[2]
+s = open(p).read()
+js = "<script>" + open(script_path).read() + "</script>"
+open(p, "w").write(s.replace("</body>", js + "</body>"))
+PY
+
+out=$(timeout 60 chromium --headless=new --disable-gpu --no-sandbox \
+  --window-size=1400,900 --dump-dom "$ROW_GEOM" 2>/dev/null \
+  | grep -o 'data-out="[^"]*"' | sed 's/&quot;/"/g; s/^data-out="//; s/"$//')
+if [ -z "$out" ]; then
+  echo "FAIL: rowsize: chromium produced no data-out attribute"
+  fail=1
+elif ! python3 - "$out" <<'PY'
+import json, sys
+out = sys.argv[1]
+rows = json.loads(out)
+bad = False
+for row in rows:
+    if row["row"] != "20px" or row["row"] != row["parent"]:
+        print(f"FAIL: rowsize index row={row['row']} parent={row['parent']}")
+        bad = True
+sys.exit(1 if bad else 0)
+PY
+then
+  fail=1
+fi
+rm -f "$ROW_GEOM"
+
+FOOTER_JS="$(mktemp)"
+FOOTER_GEOM="$H/_geom-footerrowsize.html"
+trap 'rm -f "$JS" "$GEOM" "$SUM_JS" "$ROW_JS" "$FOOTER_JS" "$FOOTER_GEOM"' EXIT
+
+FOOTER_PAGE=$(grep -l 'data-rookery="footer"' "$H"/ideas/*.html 2>/dev/null | head -n1 || true)
+if [ -z "$FOOTER_PAGE" ]; then
+  echo "FAIL: rowsize: no minted idea page under $H/ideas has a footer"
+  fail=1
+else
+  cat > "$FOOTER_JS" <<'JS'
+const footer = document.querySelector('[data-rookery="footer"]');
+const row = footer ? footer.querySelector('[data-rookery="page-row"]') : null;
+const out = (footer && row) ? {
+  row: getComputedStyle(row).fontSize,
+  parent: getComputedStyle(footer.parentElement).fontSize,
+} : null;
+document.body.dataset.out = JSON.stringify(out);
+JS
+
+  cp "$FOOTER_PAGE" "$FOOTER_GEOM"
+  python3 - "$FOOTER_GEOM" "$FOOTER_JS" <<'PY'
+import sys
+p, script_path = sys.argv[1], sys.argv[2]
+s = open(p).read()
+js = "<script>" + open(script_path).read() + "</script>"
+open(p, "w").write(s.replace("</body>", js + "</body>"))
+PY
+
+  out=$(timeout 60 chromium --headless=new --disable-gpu --no-sandbox \
+    --window-size=1400,900 --dump-dom "$FOOTER_GEOM" 2>/dev/null \
+    | grep -o 'data-out="[^"]*"' | sed 's/&quot;/"/g; s/^data-out="//; s/"$//')
+  if [ -z "$out" ] || [ "$out" = "null" ]; then
+    echo "FAIL: rowsize footer: no footer page-row found on $FOOTER_PAGE"
+    fail=1
+  elif ! python3 - "$out" <<'PY'
+import json, sys
+row = json.loads(sys.argv[1])
+r = float(row["row"].removesuffix("px"))
+p = float(row["parent"].removesuffix("px"))
+if abs(r - p) > 0.01:
+    print(f"FAIL: rowsize footer row={row['row']} parent={row['parent']}")
+    sys.exit(1)
+PY
+  then
+    fail=1
+  fi
+  rm -f "$FOOTER_GEOM"
+fi
+
+if [ "$fail" -ne 0 ]; then
+  exit 1
+fi
 echo "geom OK"
