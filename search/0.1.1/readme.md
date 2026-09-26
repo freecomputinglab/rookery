@@ -1672,6 +1672,9 @@ without this package the controls sit on the page inert. Importing
   own chrome, not `#filter-panel`'s, and stays exactly as small as core's markup.
 - The input and pills wear `#filter-panel`'s exact look and follow the same
   `--rookery-search-*` theming as its bar.
+- Clicking a tag chip in an entry's hat toggles the same filter as its pill —
+  pressing it again releases it, exactly like the pill. Only a chip whose tag
+  has a pill in this container reacts; any other chip stays inert.
 
 ## Keeping filter state in the URL: `sync:`
 

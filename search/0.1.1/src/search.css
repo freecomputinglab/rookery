@@ -976,6 +976,20 @@
      look — folded into `.panel-input` and `.panel-pill`'s own selector lists
      above rather than declared again here. */
 
+  /* A CHIP THAT HAS A PILL IS A SECOND BUTTON FOR IT. `window-filter.js` sets
+     `data-rookery-filter-chip` only on a `[data-rookery="tag"]` chip whose
+     tag matches a pill in this container — a chip for a tag the filter does
+     not offer stays unmarked and gets no rule here. `core.css` (unlayered)
+     makes a link row's whole area click through to the note via a stretched
+     `<a>::after` overlay sitting above the row's other children; lifting the
+     chip into its own stacking context puts it above that overlay so the
+     click reaches the chip instead of falling through to the link. */
+  [data-rookery="window-filter"] [data-rookery-filter-chip] {
+    position: relative;
+    z-index: 1;
+    cursor: pointer;
+  }
+
   /* NARROW: A PILL IN A ROW IS SMALL PRINT. @rookery/core's narrow block
      makes `#idea-row` a card — the date a hat at the top-left corner, the
      badge strip beside it on that line, the title indented underneath — and

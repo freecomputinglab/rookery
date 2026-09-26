@@ -82,9 +82,11 @@ export const wireWindowFilter = (container) => {
     input.addEventListener("input", apply);
   }
 
+  const pillByTag = new Map();
   for (const pill of container.querySelectorAll('[data-rookery="window-filter-pill"]')) {
     const tag = pill.getAttribute("data-rookery-filter-tag");
     if (!tag) continue;
+    pillByTag.set(tag, pill);
     pill.addEventListener("click", () => {
       if (pressed.has(tag)) pressed.delete(tag);
       else pressed.add(tag);
@@ -93,9 +95,46 @@ export const wireWindowFilter = (container) => {
     });
   }
 
+  // A tag chip in an entry's hat becomes that tag's pill's second button,
+  // but only when the pill exists — a chip for a tag the filter offers no
+  // pill for (e.g. `post` where every entry carries it) stays untouched and
+  // inert. Only DIRECT-CHILD figures are read, the same rule `describe`
+  // already follows, so a chip belonging to a window nested inside a
+  // transcluded body is left alone — filtering the outer window already
+  // hides it.
+  for (const figure of figures) {
+    for (const chip of figure.querySelectorAll('[data-rookery="tab"] > [data-rookery="tag"]')) {
+      const tag = chip.getAttribute("data-rookery-tags");
+      if (tag && pillByTag.has(tag)) chip.setAttribute("data-rookery-filter-chip", "");
+    }
+  }
+
+  // ONE delegated listener for every chip, rather than one per chip: a
+  // chip's matching pill already owns the toggle logic, so a chip click just
+  // replays that pill's own `.click()` — the two paths are literally one.
+  // `preventDefault`/`stopPropagation` come first because a click on a chip
+  // is otherwise swallowed two different ways: a link row's stretched
+  // overlay anchor still receives it beneath the chip (search.css lifts the
+  // chip above the overlay, but the browser still needs telling not to
+  // follow the link), and inside a full window the chip sits inside
+  // `<summary>`, so without `stopPropagation` the same click also toggles
+  // the window open or closed.
+  container.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-rookery-filter-chip]");
+    if (chip === null || !container.contains(chip)) return;
+    const tag = chip.getAttribute("data-rookery-tags");
+    const pill = tag ? pillByTag.get(tag) : undefined;
+    if (pill === undefined) return;
+    event.preventDefault();
+    event.stopPropagation();
+    pill.click();
+  });
+
   // Marked ready LAST, after every listener is bound and the first `apply()`
   // has run — the same order `wirePanel` marks `data-panel-ready`, so a
-  // container never reads as live before it actually is.
+  // container never reads as live before it actually is. The chip listener
+  // sits on the container itself, so this same early return also stops a
+  // second `wireWindowFilter` pass from binding it twice.
   container.setAttribute("data-rookery-ready", "ready");
   apply();
   return { container, apply };
