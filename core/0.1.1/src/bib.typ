@@ -184,24 +184,43 @@
 // (`[data-rookery="sidenote"] [data-rookery-cite]`, and every sidenote inside
 // `[data-rookery="window"]`) rather than Typst skipping it, so the span's
 // presence never depends on where in the tree it was rendered.
+//
+// UNDER `citations: "notes"`, a normal-form citation renders full-form with
+// NO margin span instead — the safety net for a citation `_promote-cites`
+// cannot reach: one written inside an author's own `#footnote`, or in prose
+// outside any `#idea`. `_promote-cites` already turned every OTHER one into
+// a footnote of its own, so this is what stops a citation surviving as a
+// bare normal-form `cite` anywhere, which under a note-class CSL would mint
+// a second, native footnote (see `_promote-cites`'s own banner). Checked on
+// both targets, not gated to html: a normal-form citation is exactly as
+// unwanted in a paged build under this mode.
 #let _margin-cite(it) = {
   if it.form == "full" or it.form == none {
     return it
   }
-  // Gated on the target, not the mode: a paged export has no margin, and an
-  // `html.elem` inside a paragraph there is dropped with a warning.
-  context if _target() == "html" {
-    it + html.elem(
-      "span",
-      attrs: (
-        class: _c("sidenote") + " " + _c("sidenote-cite"),
-        data-rookery: "sidenote",
-        data-rookery-cite: "cite",
-      ),
-      cite(it.key, form: "full"),
-    )
-  } else {
-    it
+  context {
+    if _citation-mode.get() == "notes" and it.form == "normal" {
+      let sup = it.at("supplement", default: auto)
+      if sup == auto or sup == none {
+        cite(it.key, form: "full")
+      } else {
+        cite(it.key, supplement: sup, form: "full")
+      }
+    } else if _target() == "html" {
+      // Gated on the target, not the mode: a paged export has no margin, and
+      // an `html.elem` inside a paragraph there is dropped with a warning.
+      it + html.elem(
+        "span",
+        attrs: (
+          class: _c("sidenote") + " " + _c("sidenote-cite"),
+          data-rookery: "sidenote",
+          data-rookery-cite: "cite",
+        ),
+        cite(it.key, form: "full"),
+      )
+    } else {
+      it
+    }
   }
 }
 
@@ -220,6 +239,70 @@
     }
   }
   seen
+}
+
+// Turns every normal-form citation naming a bibliography key into one of this
+// package's OWN footnotes — what `citations: "notes"` (template.typ) asks
+// for, so the citation's full reference then rides through `_footnoted`
+// exactly like a hand-written `#footnote`, instead of Typst minting a native
+// footnote under a note-class CSL (the `doc-noteref` a bare `@key` would
+// otherwise force, whose HTML-export link anchor never converges).
+//
+// Rebuilds `node` the same way `_number-footnotes` (pure.typ) does: the same
+// `children`/`body`/`child` cases, `_relabel` to reattach a label, and a stop
+// at a nested IK/WK marker — that note or window promotes its own citations
+// when ITS OWN `_footnoted` call runs, not here. Also does NOT descend into a
+// `metadata` node's VALUE, so an author's `#footnote[..]` payload is left
+// untouched — a citation written inside one is caught instead by
+// `_margin-cite`'s safety net, which renders it full-form with no native
+// footnote and no margin span.
+//
+// Builds the footnote marker directly — `[#metadata((rookery-fn: ..))#FNK]` —
+// rather than calling the package's own `#footnote`: that function lives in
+// `idea.typ`, which imports THIS file, so importing it back here would be a
+// cycle.
+#let _promote-cites(node, keys) = {
+  if type(node) != content { return node }
+  if node.func() == metadata { return node }
+  if node.func() == figure and node.at("kind", default: none) in (IK, WK) { return node }
+  let mint(target, supplement) = {
+    let c = if supplement == auto or supplement == none {
+      cite(target, form: "full")
+    } else {
+      cite(target, supplement: supplement, form: "full")
+    }
+    [#metadata((rookery-fn: c))#FNK]
+  }
+  if node.func() == ref and str(node.target) in keys {
+    return mint(node.target, node.at("supplement", default: auto))
+  }
+  if node.func() == cite and node.form == "normal" and str(node.key) in keys {
+    return mint(node.key, node.at("supplement", default: auto))
+  }
+  if node.has("children") {
+    let kids = node.children.map(k => _promote-cites(k, keys))
+    let built = if repr(node.func()) == "sequence" { (node.func())(kids) } else { (node.func())(..kids) }
+    return _relabel(built, node)
+  }
+  if node.has("body") {
+    let r = _promote-cites(node.body, keys)
+    let built = if node.func() == link {
+      link(node.dest, r)
+    } else if node.func() == enum.item {
+      if "number" in node.fields() { enum.item(node.number, r) } else { enum.item(r) }
+    } else {
+      let fields = node.fields()
+      let _ = fields.remove("body")
+      let _ = fields.remove("label", default: none)
+      (node.func())(r, ..fields)
+    }
+    return _relabel(built, node)
+  }
+  if node.has("child") {
+    let r = _promote-cites(node.child, keys)
+    return _relabel((node.func())(r, node.styles), node)
+  }
+  node
 }
 
 // Wrap one idea box's body: number its markers locally, then append the block.
@@ -266,7 +349,13 @@
 // statements for the same selector, only within a single one via its own
 // recursion guard (`_margin-cite`'s `it.form == "full"` check). One
 // page-wide installation has nothing else active to double against.
-#let _footnoted(body) = {
+// `notes-mode` is whether the page is running `citations: "notes"` (read by
+// `_footnoted` below, before this runs, since it also decides whether `body`
+// gets `_promote-cites`d first): a promoted citation footnote already IS the
+// full reference, so its sidenote gets no trailing `refs:` block of its own
+// — the one an author's own footnote gets when IT cites something
+// (`_footnote-cite-keys`).
+#let _footnoted-inner(body, notes-mode: false) = {
   let notes = _footnotes(body)
   if notes.len() == 0 { return body }
   // `_fn-block.step()` is a bare statement, not assigned or joined by a
@@ -289,9 +378,23 @@
       _number-footnotes(
         body,
         1,
-        n => _fn-ref(b, n) + _fn-side(b, n, notes.at(n - 1), refs: _footnote-cite-keys(notes.at(n - 1))),
+        n => _fn-ref(b, n) + _fn-side(
+          b, n, notes.at(n - 1),
+          refs: if notes-mode { () } else { _footnote-cite-keys(notes.at(n - 1)) },
+        ),
       ).node
       _fn-block-html(notes, b)
     }
   }
+}
+
+// Reads the page's citation mode and, under `"notes"`, promotes every
+// citation in `body` to one of this package's own footnotes before handing
+// off to `_footnoted-inner` — kept as a thin `context` wrapper so the inner
+// function's own `_fn-block.step()` stays the bare statement its comment
+// requires.
+#let _footnoted(body) = context {
+  let notes-mode = _citation-mode.get() == "notes"
+  let body = if notes-mode { _promote-cites(body, _bib-keys()) } else { body }
+  _footnoted-inner(body, notes-mode: notes-mode)
 }

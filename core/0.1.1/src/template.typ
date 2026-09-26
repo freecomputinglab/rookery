@@ -202,10 +202,12 @@
       + repr(footnotes),
   )
   assert(
-    citations == auto or citations == "vertical" or citations == "horizontal",
+    citations == auto or citations == "vertical" or citations == "horizontal"
+      or citations == "notes",
     message: "@rookery/core: `citations` must be auto, \"vertical\" (a References "
-      + "block under each idea) or \"horizontal\" (margin notes beside each "
-      + "marker) — got " + repr(citations),
+      + "block under each idea), \"horizontal\" (margin notes beside each "
+      + "marker) or \"notes\" (every citation becomes one of this package's own "
+      + "footnotes) — got " + repr(citations),
   )
   // THROUGH `_assert-tags`, the same helper every other tag-shaped argument in
   // this package uses, so `invisible-tags: "private"` needs no array ceremony and
@@ -489,8 +491,14 @@
 //
 // `citations:` picks the same thing for `@key`/`#cite` markers, independently
 // of `footnotes:`: `auto` (the default) is vertical — citations only go to
-// the margin when a project sets `citations: "horizontal"` explicitly. A
-// citation written inside a `#footnote` is part of that footnote and shows
+// the margin when a project sets `citations: "horizontal"` explicitly, unless
+// `style:` names one of Typst's built-in note-class CSLs (`_NOTE-STYLES`
+// above), in which case `auto` picks `"notes"` instead. Under `"notes"` every
+// normal-form citation becomes one of this package's OWN footnotes, holding
+// the full reference, so it follows `footnotes:` exactly as a hand-written
+// `#footnote` does. A project with its own note-class `.csl`, which this
+// package cannot detect from a style name, sets `citations: "notes"` itself.
+// A citation written inside a `#footnote` is part of that footnote and shows
 // its full reference at the end of the footnote's margin note whenever
 // `footnotes:` is horizontal, regardless of this setting. Set explicitly, it
 // lets a project mix the two — margin footnotes with a vertical References
@@ -526,6 +534,14 @@
 // and hides it under "horizontal", where the margin notes already carry the
 // same information; `true` shows it in both modes; `false` hides it in both.
 //
+// Typst's own built-in note-class CSL styles: each mints a native footnote
+// (`doc-noteref`) for a normal-form citation, which is what `citations: auto`
+// below detects to switch a project on to `"notes"` mode without being asked.
+#let _NOTE-STYLES = (
+  "chicago-notes", "chicago-shortened-notes", "chicago-fullnotes",
+  "turabian-fullnote-8", "modern-humanities-research-association",
+)
+
 // Defined last in this file because a `#let` closure captures the scope
 // visible AT DEFINITION time — `hyperlink` must already exist.
 #let rookery(
@@ -708,10 +724,22 @@
   _display-bibliography.update(display.at("bibliography"))
   _page-titles.update(page-titles)
   _footnote-mode.update(footnotes)
-  // `auto` means vertical: citations only go to the margin when a project
-  // asks for it. A citation written inside a footnote rides with that
-  // footnote regardless of this setting.
-  let citations = if citations == auto { "vertical" } else { citations }
+  // `auto` means vertical, UNLESS the configured bibliography style is one of
+  // Typst's own note-class CSLs (`_NOTE-STYLES` above) — there, a normal-form
+  // citation mints a native footnote whether this package wants one or not,
+  // so `auto` follows that and resolves to `"notes"` instead. A citation
+  // written inside a footnote rides with that footnote regardless of this
+  // setting. Explicit values (including "notes" on a project with its own
+  // note-class `.csl`) pass through unchanged.
+  let citations = if citations == auto {
+    if bib-args != none and bib-args.named().at("style", default: none) in _NOTE-STYLES {
+      "notes"
+    } else {
+      "vertical"
+    }
+  } else {
+    citations
+  }
   _citation-mode.update(citations)
   // Normalized to a flat array of NAMES here, once, so `_visible-tags` can do a
   // plain `t not in hidden` on every call rather than re-deriving the shape.

@@ -88,24 +88,15 @@ sometimes converges.
 ## What actually removes the convergence error, and what it breaks instead
 
 Finding 8 shows that state reads are harmless once the bibliography's
-arguments themselves do NOT come from state. To test that directly, I
-restructured a scratch copy of `core/0.1.1` (outside this repository) so
-`_refs-block` and `_sweep-block` — the two per-idea/per-window entry points
-that call `_bib.final()` — return empty unconditionally, leaving exactly one
-bibliography call: the template's own trailing one, rewritten to take
-`bib-args` as a plain local (computed once inside `rookery()`, no state
-read) rather than through `_bib.final()`. The convergence error vanished
-against a fuller demo (eight ideas, several citations, cross-idea windows),
-but revealed that collapsing to one page-level bibliography call is not a
-drop-in swap for today's per-idea `_refs-block`/`_sweep-block` calls — those
-also carry the per-idea References-block *visibility* (an idea's own
-citations, listed under its own card) and the full-form citation lookups
-that `_fn-side` uses for margin notes. A correct fix keeps exactly one
-*bibliography()* per page (the part whose arguments must NOT come from state
-to converge) while still deciding, separately, which idea's citations are
-*shown* under which heading — the visual per-idea split and the underlying
-single Typst bibliography call are two different concerns that today's code
-fuses into one `_bib.final()` read at every site.
+arguments themselves do NOT come from state — but finding 8 ALSO shows a
+narrower fix reaches the same result without restructuring `_bib.final()` at
+all: what actually fails to converge is a `Location`-typed footnote anchor
+Typst mints for a normal-form note-style citation, not the state-sourced
+bibliography call surrounding it. Once no such citation is left in the
+document — every one promoted to core's own footnote first — there is no
+footnote anchor left to fail, and `_refs-block`/`_sweep-block` keep reading
+`_bib.final()` exactly as they did before, once per idea and once per
+window, with no restructuring toward a single page-level call.
 
 ## The two problems that wait behind the compile error (confirmed, unchanged from filing)
 
@@ -120,16 +111,18 @@ fuses into one `_bib.final()` read at every site.
    beside a note-style citation**, duplicating text the citation's own
    auto-footnote already carries. Detecting a note style to skip this has no
    API surface on `cite`/`bibliography`; the only workable signal is
-   comparing the author's `style:` string against Typst's built-in
-   note-style names (`"chicago-notes"`, `"ieee"` in some variants,
-   `"chicago-note"`, etc. — the exact list Typst ships internally). A
-   project supplying its own `.csl` file cannot be classified this way at
-   all: nothing short of parsing the CSL XML's own `class="note"` attribute
-   would work, and core has no CSL parser. **Recommendation: an explicit
-   parameter** (e.g. `note-style: bool` or accepting a fourth value on
-   `citations:`), not name-sniffing — sniffing built-in names silently
-   mis-detects a custom CSL file either way, so nothing is lost by asking
-   the author to say so instead of guessing.
+   comparing the author's `style:` string against Typst's own built-in
+   note-style names (finding 11's list). A project supplying its own `.csl`
+   file cannot be classified this way at all: nothing short of parsing the
+   CSL XML's own `class="note"` attribute would work, and core has no CSL
+   parser. **Recommendation: both.** `citations:` gains a fourth value,
+   `"notes"`, that a project with its own note-class `.csl` sets explicitly;
+   `citations: auto` (the default) additionally detects a built-in note style
+   by name and resolves to `"notes"` on its own, since finding 11's list is
+   exhaustive for Typst's shipped styles and a false match on it is not
+   possible — a custom `.csl` never happens to share one of those five exact
+   name strings. Sniffing is therefore safe for the built-ins specifically;
+   it just cannot extend to a style this package cannot see inside.
 
 ## Which layer owns each part of the failure
 
@@ -142,16 +135,14 @@ fuses into one `_bib.final()` read at every site.
   identical failure reproduces with no rheo present. rheo's own docs already
   say where to look when a convergence budget runs out ("find which `query`
   is being fed") — `core` is the thing feeding it in this case.
-- **`@rookery/core`** owns the actual fix: preventing the bibliography's
-  arguments from coming from a state read is what allows Typst to converge —
-  the convergence budget is shared with every introspection-dependent element
-  on the page, and a `state(..).final()` read on the bibliography's own args
-  spends budget that a `Location`-typed footnote anchor needs. Core also owns
-  the decision whether Typst ever mints a native footnote for a citation at
-  all, via the `citations:` and `style:` parameters — moving note-style
-  citations into core's own footnote mechanism (finding 8) bypasses the
-  `Location`-typed anchor problem entirely, and core owns both the footnote
-  wrapping and margin-cite machinery that enable it.
+- **`@rookery/core`** owns the actual fix: whether Typst ever mints a native
+  footnote for a citation at all, via the `citations:` and `style:`
+  parameters. Moving a note-style citation into core's own footnote
+  mechanism (finding 8) removes the `Location`-typed footnote anchor from the
+  document entirely, rather than trying to make it converge — core's
+  existing state-sourced bibliography plumbing (`_bib-call`, `_refs-block`,
+  `_sweep-block`) is untouched and keeps reading `_bib.final()` exactly as it
+  did before, per idea and per window.
 
 ## Recommendation
 
@@ -170,11 +161,35 @@ bird: "Render note-style citations as core footnotes".
 
 ## Implementation
 
-**Render note-style citations as core footnotes.** When the configured `style:`
-is one of the note-class built-ins or `citations:` is explicitly set to
-`"notes"`, the citation resolver converts each `cite(..)` call into a core
-`#footnote` holding `cite(key, supplement: .., form: "full")` instead of
-emitting the citation inline and letting Typst mint its own footnote. The
-footnote then integrates with `footnotes:` mode like any other (margin notes
-or Footnotes block). The bibliography itself emits once, state-independently,
-at the page level; its arguments do not depend on any state read.
+**Render note-style citations as core footnotes.** `citations:` (template.typ)
+takes a fourth value, `"notes"`, and `auto` resolves to it when the
+configured `style:` names one of Typst's built-in note-class CSLs
+(`_NOTE-STYLES`); a project on its own note-class `.csl`, which core cannot
+detect by name, sets `citations: "notes"` itself.
+
+Under `"notes"`, `_footnoted` (bib.typ) reads the page's citation mode and
+runs `_promote-cites` over an idea's or window's body before numbering its
+footnotes. `_promote-cites` rebuilds the body exactly like the existing
+`_number-footnotes` walk (pure.typ) — the same structural cases, the same
+stop at a nested idea or window, which promotes its own citations when its
+own `_footnoted` call runs — replacing every normal-form citation naming a
+bibliography key with one of core's own footnote markers, holding
+`cite(key, supplement: .., form: "full")`. That marker then numbers and
+renders exactly like a hand-written `#footnote`: a margin note under
+`footnotes: "horizontal"`, a Footnotes-block entry under `"vertical"`. No
+native Typst footnote is ever minted, so there is no `Location`-typed anchor
+left to fail to converge.
+
+`_promote-cites` does not descend into an author's own `#footnote` body, so
+a citation written inside one is caught instead by a safety net in
+`_margin-cite`: under `"notes"`, a normal-form citation that reaches that
+show rule renders full-form with no margin span, rather than surviving as a
+bare citation that would mint a native footnote of its own.
+
+Known trade-off, unchanged from the recommendation above: `form: "full"`
+renders the bibliography-entry form, not the CSL's note-form text, because
+Typst offers no note-form rendering that avoids minting a footnote.
+
+Core's existing bibliography plumbing is untouched: `_bib-call`,
+`_refs-block` and `_sweep-block` still read `_bib.final()` per idea and per
+window, exactly as they did before this change.
