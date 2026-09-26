@@ -221,7 +221,15 @@
 // Defined HERE, above `_flatten`, for the reason `_blocks` and `_truncate` are: a
 // `#let` closure captures the scope visible AT DEFINITION time, and `_flatten` is one
 // of the two callers.
-#let _window-link(id, rec) = {
+//
+// `display` is the window's own dictionary, resolved here against the document
+// the way `_window-content` resolves it. `date` and `tags` put a tab above the
+// link — the same `_permalink-tab` a window's summary carries, pills then date —
+// so a list of links can say when each note was written and what it is filed
+// under. `name` is inert on this row: the title below IS the link to the note's
+// page, and an `[idea:x]` beside it would be a second link to the same place.
+#let _window-link(id, rec, display: (:)) = {
+  let display = _display-final(display, ("date", "tags"))
   // A LABEL, not the authored title: this row shows a name AS A LINK with no body
   // under it, so it names rather than headings (see `#idea`'s title-vs-label
   // banner). A bottomed-out window therefore names the note instead of showing a
@@ -235,10 +243,20 @@
   let name = _rec-label(rec, _ref-text(_registry.final()))
   let row = link(_resolve-dest(id, true), if name == none { id } else { name })
   if _target() == "html" or _target() == "epub" {
+    let date = if display.date and rec.at("created", default: none) != none {
+      rec.created.display("[year]-[month]-[day]")
+    } else { none }
+    // Flat tags only, as in `_window-content`'s summary.
+    let tags = if display.tags {
+      rec.at("tags", default: (:)).pairs().filter(((_, v)) => v == none).map(((k, _)) => k)
+    } else { () }
+    let tab = if date == none and _visible-tags(tags).len() == 0 { [] } else {
+      _permalink-tab(id, tags: tags, date: date, display-name: false)
+    }
     html.elem(
       "ul",
       attrs: _themed((class: _c("page-list"), data-rookery: "page-list")),
-      html.elem("li", attrs: (class: _c("page-row"), data-rookery: "page-row"), row),
+      html.elem("li", attrs: (class: _c("page-row"), data-rookery: "page-row"), tab + row),
     )
   } else {
     // `align(start)` for the reason `_window-content`'s paged branch uses it: a

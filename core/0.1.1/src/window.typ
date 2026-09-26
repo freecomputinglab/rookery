@@ -386,8 +386,9 @@
     ))
 
     // UNFURL 0 — A LINK, NOT A TRANSCLUSION. The note's title, linked to the
-    // note's own page, and nothing else: no summary row, no `<details>`, no
-    // body, so there is no `_window-content` on this path at all.
+    // note's own page: no summary row, no `<details>`, no body, so there is no
+    // `_window-content` on this path at all. `display.date`/`display.tags` still
+    // reach it, as a tab above the link (see `_window-link`).
     //
     // It wears the row shape a minted page already gives a PAGE it names —
     // `.idea-page-list`/`.idea-page-row`, built by `.marrow.typ`'s `page-list`
@@ -409,7 +410,7 @@
     // them intact — the budget belongs to the scope doing the expanding, and
     // that is as true of `unfurl: 0` as of any other value.
     if d <= 0 {
-      let shape = _window-link(id, rec)
+      let shape = _window-link(id, rec, display: display)
       _bracket(figure(kind: WK, supplement: none, [#marker#shape]), WK)
       continue
     }

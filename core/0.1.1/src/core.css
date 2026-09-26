@@ -661,6 +661,20 @@ figure:has(> [data-rookery="page-list"]),
   font-size: 1rem;
 }
 
+/* A bottomed-out window's tab — pills and date above its link, when the window
+   asks for `display-tags`/`display-date`. No stub: the row has no top edge for
+   one to be, and its left bar already runs past the tab. The date still takes
+   `margin-left: auto` from `[data-rookery="tab"] > [data-rookery="date"]`, so
+   it sits at the row's right edge as it does in a window's hat. */
+[data-rookery="page-row"] > [data-rookery="tab"] {
+  line-height: 1;
+  margin-bottom: 0.2em;
+}
+
+[data-rookery="page-row"] > [data-rookery="tab"]::before {
+  content: none;
+}
+
 /* Typst wraps every `#window` in a <figure>, and the browser default for that is
    `margin: 1em 40px` — which would push every backlink row 40px off the label
    above it, and off the page rows beside it, which carry no such margin.

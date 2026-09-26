@@ -491,7 +491,7 @@
     let v = m.value
     let id = v.rookery-window-id
     if depth <= 1 {
-      _window-link(id, _registry.final().at(id))
+      _window-link(id, _registry.final().at(id), display: v.at("display", default: (:)))
     } else {
       let rec = _registry.final().at(id)
       // The nested `#window` has already run in full by the time this rule
