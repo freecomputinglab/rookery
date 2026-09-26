@@ -1939,20 +1939,21 @@ a[data-rookery="row-title"]:hover {
 /* A footnote's inline citation note sits mid-sentence (the hidden nested
    span above), so the full references it stands for are gathered at the
    end of the footnote's own margin note instead (`_fn-side`, state.typ).
-   Typst emits this element in every mode; only `citations: "horizontal"`,
-   on an own card or page body outside a window, turns it on — the same
-   scope the split rule above uses. */
+   Typst emits this element in every mode; only `footnotes: "horizontal"`,
+   on an own card or page body outside a window, turns it on — the span is
+   part of the footnote's own margin note, so it follows footnote mode
+   rather than citation mode, the same scope the split rule above uses. */
 [data-rookery="sidenote-refs"] {
   display: none;
 }
 @media (min-width: 769px) {
-  :root:has([data-rookery="mode"][data-rookery-citations="horizontal"])
+  :root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"])
     :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
     [data-rookery="sidenote"] [data-rookery="sidenote-refs"] {
     display: block;
     margin-top: .35em;
   }
-  :root:has([data-rookery="mode"][data-rookery-citations="horizontal"])
+  :root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"])
     :is([data-rookery="box"]:not([data-rookery="box"] *, [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
     [data-rookery="sidenote"] [data-rookery="sidenote-ref"] {
     display: block;

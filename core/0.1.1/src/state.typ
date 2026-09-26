@@ -322,8 +322,9 @@
 
 // "vertical" or "horizontal" for `@key`/`#cite` markers, same shape and same
 // reason as `_footnote-mode` above — `citations: auto` (template.typ)
-// resolves to `_footnote-mode`'s own value before this is published, so the
-// two only disagree when a project sets `citations:` explicitly.
+// resolves to "vertical" before this is published; the two states are
+// independent, and a project sets `citations: "horizontal"` explicitly to
+// diverge from `_footnote-mode`.
 #let _citation-mode = state("rheo-idea-citation-mode", "vertical")
 
 //

@@ -52,13 +52,14 @@ note() { echo "FAIL: $*"; fail=1; }
 #
 # (f) Exactly one `data-rookery="mode"` marker per page, naming this
 # project's `data-rookery-footnotes="horizontal"` choice. `index.html` also
-# names `data-rookery-citations="horizontal"` (the `citations: auto` default
-# following `footnotes:`) and `mixed.html` names
-# `data-rookery-citations="vertical"` (`content/mixed.typ`'s override) — the
-# one place this script checks a citations VALUE, since a minted note page's
-# own marker reads `_citation-mode.final()` (state.typ), the project's LAST
-# vertebra to apply `#show: rookery`, which need not agree with the note's
-# own vertebra (`.marrow.typ`'s banner on `citation-mode`).
+# names `data-rookery-citations="horizontal"` (the demo wrapper's explicit
+# `citations: "horizontal"`, `content/lib.typ`) and `mixed.html` names
+# `data-rookery-citations="vertical"` (`content/mixed.typ`'s own `auto`,
+# which resolves to vertical) — the one place this script checks a
+# citations VALUE, since a minted note page's own marker reads
+# `_citation-mode.final()` (state.typ), the project's LAST vertebra to apply
+# `#show: rookery`, which need not agree with the note's own vertebra
+# (`.marrow.typ`'s banner on `citation-mode`).
 python3 - "$H/index.html" "$H/mixed.html" "$H/ideas/margin-note.html" "$H/ideas/host-note.html" "$H/ideas/no-gutter.html" "$H/ideas/plain-wide.html" <<'SIDENOTES' || fail=1
 import re, sys
 bad = 0

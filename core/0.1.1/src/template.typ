@@ -488,10 +488,13 @@
 // below for the split and its width.
 //
 // `citations:` picks the same thing for `@key`/`#cite` markers, independently
-// of `footnotes:`: `auto` (the default) follows `footnotes:`, so a project
-// setting only `footnotes:` keeps the old all-or-nothing behaviour. Set
-// explicitly, it lets a project mix the two — margin footnotes with a
-// vertical References block, or the reverse. Under "horizontal" each
+// of `footnotes:`: `auto` (the default) is vertical — citations only go to
+// the margin when a project sets `citations: "horizontal"` explicitly. A
+// citation written inside a `#footnote` is part of that footnote and shows
+// its full reference at the end of the footnote's margin note whenever
+// `footnotes:` is horizontal, regardless of this setting. Set explicitly, it
+// lets a project mix the two — margin footnotes with a vertical References
+// block, or the reverse. Under "horizontal" each
 // `@key`/`#cite` marker keeps its normal inline form, and beside it a margin
 // note carries the full reference; the idea's References block is still
 // emitted (a citation with nothing to claim it is a Typst error) but hidden,
@@ -705,9 +708,10 @@
   _display-bibliography.update(display.at("bibliography"))
   _page-titles.update(page-titles)
   _footnote-mode.update(footnotes)
-  // `auto` follows `footnotes:` — the whole point of the option is letting
-  // a project mix the two, not making every project restate one value twice.
-  let citations = if citations == auto { footnotes } else { citations }
+  // `auto` means vertical: citations only go to the margin when a project
+  // asks for it. A citation written inside a footnote rides with that
+  // footnote regardless of this setting.
+  let citations = if citations == auto { "vertical" } else { citations }
   _citation-mode.update(citations)
   // Normalized to a flat array of NAMES here, once, so `_visible-tags` can do a
   // plain `t not in hidden` on every call rather than re-deriving the shape.

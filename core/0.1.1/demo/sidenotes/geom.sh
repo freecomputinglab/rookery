@@ -276,8 +276,8 @@ document.body.dataset.out = JSON.stringify({
 JS
 
 # `content/mixed.typ`'s own vertebra — `footnotes: "horizontal"` (the
-# project default) but `citations: "vertical"` (its own override), so its
-# footnote note shows and its citation note does not, the reverse of the
+# project default) and `citations:` left at its own default (vertical), so
+# its footnote note shows and its citation note does not, the reverse of the
 # References/Footnotes pair below it, and its citation link stays live
 # (core.css's dead-link rule keys on `citations:`, not `footnotes:`).
 cat > "$MIXED_JS" <<'JS'
@@ -287,9 +287,9 @@ const citeNote = box.querySelector('[data-rookery="sidenote"][data-rookery-cite]
 const referencesBlock = box.querySelector('[data-rookery="references"]');
 const footnotesBlock = box.querySelector('[data-rookery="footnotes"]');
 const citeLink = box.querySelector('a[role="doc-biblioref"]');
-// No sidenote-refs span computes visible here — `citations: "vertical"`
-// (this page's own override) never turns the rule on, whichever card holds
-// one.
+// A footnote's sidenote-refs span follows `footnotes:`, not `citations:` —
+// this page's `footnotes: "horizontal"` turns the rule on for its Lamport
+// footnote, so the array below must be non-empty and every entry "block".
 const refsSpans = [...document.querySelectorAll('[data-rookery="sidenote-refs"]')]
   .map(el => getComputedStyle(el).display);
 
@@ -548,11 +548,11 @@ if m["sidenoteBorderColor"] != "rgb(204, 51, 0)":
 if not m["pageBodyBorderColorVar"]:
     bad.append("minted margin-note page body's own --idea-border-color is empty")
 
-# `mixed.html` (`content/mixed.typ`): `citations: "vertical"` overrides the
-# project's `footnotes: "horizontal"` default, so the two modes land on
-# opposite sides of the split — a footnote note shows and a citation note
-# does not, a References block shows and the Footnotes block does not, and
-# the citation link stays live rather than going dead.
+# `mixed.html` (`content/mixed.typ`) leaves `citations:` at its default
+# (vertical), against the project's `footnotes: "horizontal"`, so the two
+# modes land on opposite sides of the split — a footnote note shows and a
+# citation note does not, a References block shows and the Footnotes block
+# does not, and the citation link stays live rather than going dead.
 if mx["footnoteNoteDisplay"] != "block":
     bad.append(f"mixed-note footnote sidenote computes display: {mx['footnoteNoteDisplay']}, expected block")
 if mx["citeNoteDisplay"] != "none":
@@ -565,8 +565,8 @@ if mx["citeLinkPointerEvents"] != "auto":
     bad.append(
         f"mixed-note doc-biblioref link computes pointer-events: {mx['citeLinkPointerEvents']}, expected auto"
     )
-if any(dsp != "none" for dsp in mx["refsSpans"]):
-    bad.append(f"mixed.html has a sidenote-refs span computing display: {mx['refsSpans']}, expected none — citations: \"vertical\" never shows one")
+if not mx["refsSpans"] or any(dsp != "block" for dsp in mx["refsSpans"]):
+    bad.append(f"mixed.html sidenote-refs spans compute display: {mx['refsSpans']}, expected a non-empty list of block — a footnote's references follow footnotes:, not citations:")
 
 # Below core.css's 769px breakpoint, margin-note's sidenotes and its
 # Footnotes block revert to vertical, whatever `footnotes: "horizontal"`
@@ -641,7 +641,7 @@ print(
 )
 print(
     "  geom: mixed.html's footnote note shows and citation note hides under its "
-    "citations: \"vertical\" override, its References block shows and its "
+    "citations: default (vertical), its References block shows and its "
     "Footnotes block hides, and its citation link stays live"
 )
 PY

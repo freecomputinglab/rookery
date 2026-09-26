@@ -10,7 +10,7 @@
 // through `demo.with(citations: ..)` on one vertebra is what lets that one
 // page's marker disagree with the others sharing this wrapper — `mixed.typ`
 // is the one page in this project that does.
-#let demo(citations: auto, doc) = {
+#let demo(citations: "horizontal", doc) = {
   show: rookery.with(
     footnotes: "horizontal",
     citations: citations,

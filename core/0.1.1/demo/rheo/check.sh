@@ -851,8 +851,9 @@ grep -q 'tag-windower' "$H/ideas/tag-t-both.html" ||
 
 # 35. THIS PROJECT'S PAGE-TOP MODE MARKER names "vertical" for BOTH
 #     attributes — this project sets no `footnotes:`/`citations:` of its
-#     own, so it is checking the DEFAULT (`citations: auto` follows
-#     `footnotes:`, unset here). `template.typ` emits it on an ordinary
+#     own, so it is checking the DEFAULT (`footnotes:` defaults to
+#     "vertical" and `citations: auto` resolves to "vertical" too, unset
+#     here). `template.typ` emits it on an ordinary
 #     vertebra (`index.html`), `.marrow.typ` on a minted note page
 #     (`ideas/plain-note.html`) — the one remaining read of
 #     `_footnote-mode`/`_citation-mode` in either file, kept out of
