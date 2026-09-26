@@ -1,0 +1,11 @@
+# A KNOWN-FAILING fixture: `@rookery/core` with a note-style bibliography
+# (`style: "chicago-notes"`). `rheo compile .` here does not succeed — see
+# `docs/spikes/note-style-bibliography.md` for why and where the fix belongs.
+# Do not add a `check` recipe or wire this into CI; there is nothing yet to
+# check a passing build against.
+version = "0.6.2"
+content_dir = "content"
+formats = ["html"]
+
+[packages.rookery]
+path = "../../../.."
