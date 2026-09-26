@@ -81,6 +81,7 @@ js_scripts = [
   "src/bar.js",
   "src/modal.js",
   "src/panel.js",
+  "src/window-filter.js",
   "src/search.js",
 ]
 js_module = true
