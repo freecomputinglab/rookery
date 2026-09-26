@@ -1,0 +1,233 @@
+// Browser half of @rookery/todos: the dependency graph view.
+//
+// Finds every `.todo-graph` the Typst side emitted, reads the JSON payload
+// beside it, and replaces the no-JS fallback list with an SVG drawing. If this
+// never runs — JS disabled, a paged or EPUB target, a script error — the
+// fallback list stays exactly where it was and the page still says which todos
+// depend on which. That is why the fallback is markup rather than a spinner.
+
+import { GEOM, layer, place, rows } from "./layout.js";
+// Side-effect import: vite builds THIS file alone into one IIFE, so a module
+// nothing imports is simply not shipped. `#todos-search` wires itself up.
+import "./todo-search.js";
+
+// `@rheo/rehydrate`'s ensure-exactly-one-child guard. READ AT CALL TIME: script
+// execution order between two packages is whatever order a consuming project
+// imported them in, which neither package can see, so a module body that read
+// the global would be a coin toss. The fallback is the same remove-then-append
+// the helper performs, so a page that never received it still ends up with one
+// drawing rather than a stack of them.
+const only = (parent, selector, make) => {
+  const helper = globalThis.RheoRehydrate?.only;
+  if (helper) return helper(parent, selector, make);
+  parent.querySelectorAll(selector).forEach((node) => node.remove());
+  const made = make();
+  parent.append(made);
+  return made;
+};
+
+const SVG = "http://www.w3.org/2000/svg";
+
+function el(name, attrs, text) {
+  const n = document.createElementNS(SVG, name);
+  for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+// One node box. Status and priority ride as CLASSES, never as inline styles,
+// so a project restyles the graph from its own stylesheet without touching the
+// package — the same rule the list views follow.
+// Longest title that fits the box at the label's default font-size before
+// falling back to an ellipsis. Not derived from GEOM/font-size at runtime —
+// re-tune by hand if either changes.
+const MAX_TITLE_CHARS = 28;
+
+function drawNode(node, pt) {
+  const classes = ["todo-graph-box", `todo-graph-${node.status}`];
+  // MIRRORS rookery's own `idea-tag-<tag>` naming, so a project already theming
+  // one of these keys by name reaches the graph node too. `data-rookery-tags`
+  // rides alongside for the same reason `#idea-row`'s own badge (`@rookery/core`'s
+  // row.typ) carries one: a stable query hook that does not depend on the class.
+  const tags = [];
+  if (node.priority != null) {
+    classes.push(`idea-tag-todo-p${node.priority}`);
+    tags.push(`todo-p${node.priority}`);
+  }
+  if (node.type) {
+    classes.push(`idea-tag-todo-${node.type}`);
+    tags.push(`todo-${node.type}`);
+  }
+
+  const attrs = { class: classes.join(" ") };
+  if (tags.length > 0) attrs["data-rookery-tags"] = tags.join(" ");
+  const g = el("g", attrs);
+  const rect = el("rect", {
+    x: pt.x,
+    y: pt.y,
+    width: GEOM.w,
+    height: GEOM.h,
+    rx: 5,
+    class: "todo-graph-rect",
+  });
+
+  const label = el("text", {
+    x: pt.x + GEOM.w / 2,
+    y: pt.y + GEOM.h / 2,
+    class: "todo-graph-label",
+    "text-anchor": "middle",
+    "dominant-baseline": "central",
+  });
+  // Truncated to fit the box rather than clipped by it, so a long title
+  // degrades to an ellipsis instead of overflowing into its neighbour.
+  const text = node.title || node.name;
+  label.textContent =
+    text.length > MAX_TITLE_CHARS ? `${text.slice(0, MAX_TITLE_CHARS - 1)}…` : text;
+  label.appendChild(el("title", {}, text));
+
+  // The rect rides INSIDE the anchor alongside the label, so the whole box —
+  // not just the (often short) text — is the click target.
+  if (node.href) {
+    const a = el("a", { href: node.href, class: "todo-graph-link" });
+    a.appendChild(rect);
+    a.appendChild(label);
+    g.appendChild(a);
+  } else {
+    g.appendChild(rect);
+    g.appendChild(label);
+  }
+  return g;
+}
+
+// An edge leaves the bottom of the box that UNBLOCKS and arrives at the top of
+// the box waiting on it, so the arrow reads "upper unblocks lower".
+//
+// The curve runs from the bottom of `upper` to the top of `lower`, with
+// cubic control points at the midpoint of the two.
+function drawEdge(upper, lower, unresolved) {
+  const x1 = upper.x + GEOM.w / 2;
+  const y1 = upper.y + GEOM.h;
+  const x2 = lower.x + GEOM.w / 2;
+  const y2 = lower.y;
+  const mid = (y1 + y2) / 2;
+  return el("path", {
+    d: `M ${x1} ${y1} C ${x1} ${mid}, ${x2} ${mid}, ${x2} ${y2}`,
+    class: `todo-graph-edge${unresolved ? " todo-graph-edge-unresolved" : ""}`,
+    fill: "none",
+    "marker-end": "url(#todo-graph-arrow)",
+  });
+}
+
+function arrowDefs() {
+  const defs = el("defs");
+  const marker = el("marker", {
+    id: "todo-graph-arrow",
+    viewBox: "0 0 8 8",
+    refX: 7,
+    refY: 4,
+    markerWidth: 6,
+    markerHeight: 6,
+    orient: "auto-start-reverse",
+  });
+  marker.appendChild(el("path", { d: "M 0 0 L 8 4 L 0 8 z", class: "todo-graph-arrowhead" }));
+  defs.appendChild(marker);
+  return defs;
+}
+
+export function render(container) {
+  const script = container.querySelector("script.todo-graph-data");
+  if (!script) return;
+
+  let data;
+  try {
+    data = JSON.parse(script.textContent);
+  } catch {
+    // A malformed payload leaves the fallback list in place. Failing loudly
+    // here would replace readable markup with nothing.
+    return;
+  }
+  const nodes = data.nodes || [];
+  if (nodes.length === 0) return;
+
+  const edges = data.edges || [];
+  const layerOf = layer(nodes, edges);
+  const grid = rows(nodes, layerOf);
+  const { pos, width, height } = place(grid);
+
+  const svg = el("svg", {
+    class: "todo-graph-svg",
+    viewBox: `0 0 ${width} ${height}`,
+    width: "100%",
+    role: "img",
+    "aria-label": `Dependency graph of ${nodes.length} todos`,
+  });
+  svg.appendChild(arrowDefs());
+
+  // Edges first, so a box always paints over a line rather than under it.
+  //
+  // An edge is stored as (from: dependent, to: dependency) — a fact about the
+  // todos, and unchanged by any of this. The DEPENDENCY is what sits above, so
+  // the arrow leaves it and lands on the dependent below: "A unblocks B".
+  for (const e of edges) {
+    const upper = pos.get(e.to);
+    const lower = pos.get(e.from);
+    if (upper && lower) svg.appendChild(drawEdge(upper, lower, false));
+  }
+  for (const n of nodes) {
+    const pt = pos.get(n.name);
+    if (pt) svg.appendChild(drawNode(n, pt));
+  }
+
+  // IDEMPOTENT ON A SECOND PASS: rheo's dev server can re-run `render` after a
+  // morph (see the rehydrate registration below) rather than only once at boot,
+  // and a morph re-fetches the PRE-HYDRATION markup — fallback list present,
+  // no `.todo-graph-svg` — but does not GUARANTEE it strips a runtime-appended
+  // node it cannot match to anything in that markup. `only` replaces any prior
+  // SVG rather than trusting the morph to have removed it, which is what keeps
+  // a second pass from leaving two stacked drawings.
+  //
+  // The fallback list is a separate removal, not part of that guard: it comes
+  // BACK with every morph and has to go every time, whereas the SVG is
+  // something this function itself put there.
+  const fallback = container.querySelector(".todo-graph-fallback");
+  if (fallback) fallback.remove();
+  only(container, ".todo-graph-svg", () => svg);
+}
+
+function init() {
+  for (const c of document.querySelectorAll(".todo-graph")) render(c);
+}
+
+// GUARDED, though this file has no node suite that imports it the way
+// `todo-search.js` does (`test/todo-search.test.mjs` runs `wire` under
+// linkedom; `render` is only ever exercised through a real page —
+// `test/browser/graph.mjs`) — the guard is what lets the rehydrate
+// registration below sit in the same block as the boot it belongs beside,
+// rather than reading as a second, differently-guarded concern.
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+
+  // REHYDRATE AFTER A rheo MORPH. The dev server patches a content edit into
+  // the live DOM instead of reloading (`docs/contract.md`), re-running no
+  // script — so the SVG this file drew is gone from the refetched markup (it
+  // never existed in the build output) and the no-JS fallback list is back,
+  // exactly the pre-hydration state `render` already knows how to leave.
+  // `js_rehydrate = true` in `typst.toml` is the other half of the
+  // declaration: without it rheo reloads the page and never calls this.
+  //
+  // RE-RUNNING `init()` IS SAFE: `render` removes any prior `.todo-graph-svg`
+  // before appending a fresh one (see the comment above), so a second pass
+  // replaces the drawing rather than stacking a second one behind or beside
+  // it. Nothing here binds a listener that a re-run could double-fire — the
+  // graph carries none; only `todo-search.js`'s own hook, registered when its
+  // module-level code runs as part of this bundle, has that concern.
+  //
+  // `globalThis`, not `window`: the node suite supplies a document and no
+  // `window`, so reading one at module-evaluation time would throw there while
+  // working on every real page. They are the same object in a browser.
+  (globalThis.__rheoRehydrate ??= []).push(init);
+}

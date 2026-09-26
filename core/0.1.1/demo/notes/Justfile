@@ -1,0 +1,8 @@
+build:
+    rheo compile .
+
+check: clean build
+    ./check.sh
+
+clean:
+    rm -rf build
