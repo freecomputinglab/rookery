@@ -476,7 +476,7 @@
           // still citing, and the citation lands on another minted page's block.
           // MEASURED. At `window-unfurl: 0`, `minted-depth` is 1, the windows on
           // this page collapse and claim nothing, and this correctly goes false.
-          _refs-block(_own-cited-keys(flat, windows-claim: minted-depth > 1), id: "refs-" + slug)
+          _refs-block(_own-cited-keys(flat, windows-claim: minted-depth > 1), card: (bib: bib, gutter: gutter), id: "refs-" + slug)
         },
         )
       }

@@ -445,7 +445,7 @@
   // it), so the attribute is always the true/false CSS keys its hide rule on,
   // never `auto`.
   if combine-bib {
-    _refs-block(bib-keys.dedup(), attrs: (data-rookery-bibliography: if bib { "on" } else { "off" }))
+    _refs-block(bib-keys.dedup(), card: (bib: bib, gutter: none), attrs: (data-rookery-bibliography: if bib { "on" } else { "off" }))
   }
   }
 }

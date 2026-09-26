@@ -641,7 +641,7 @@
                 + _tags-attr(visible),
             ),
             header + _footnoted(body)
-              + _refs-block(_own-cited-keys(body)),
+              + _refs-block(_own-cited-keys(body), card: (bib: bib, gutter: gutter)),
           ),
           IK,
         )

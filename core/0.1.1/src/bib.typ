@@ -123,11 +123,19 @@
 // combined References after several transcluded notes, carries its own
 // `data-rookery-bibliography` this way instead of `#idea`'s own, which sits
 // on the card's box rather than on this div (see `idea.typ`).
-#let _refs-block(keys, id: none, attrs: (:)) = {
+//
+// `card:` is the card's resolved `(bib:, gutter:)`. Where core.css would hide
+// the block, its heading is `outlined: false`, so an outline or contents panel
+// lists no References section the reader cannot see. `none` means always shown.
+#let _refs-block(keys, card: none, id: none, attrs: (:)) = {
   if _bib.final() == none or keys.len() == 0 { return [] }
   if _target() == "html" or _target() == "epub" {
     let elem-attrs = (class: _c("references"), data-rookery: "references") + attrs
     if id != none { elem-attrs = elem-attrs + (id: id) }
+    let shown = if card == none or card.bib == true { true }
+      else if card.bib == false { false }
+      else { not (_citation-mode.get() == "horizontal" and card.gutter != false) }
+    show bibliography: set heading(outlined: shown)
     html.elem("div", attrs: elem-attrs, _bib-call([References]))
   } else {
     _bib-call([References])
