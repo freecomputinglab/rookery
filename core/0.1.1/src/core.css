@@ -2094,7 +2094,7 @@ a[data-rookery="row-title"]:hover {
 }
 
 [data-rookery="sidenote-number"] {
-  color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
+  color: var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12)));
   font-weight: 600;
 }
 
@@ -2132,15 +2132,16 @@ a[data-rookery="row-title"]:hover {
   }
 }
 
-/* The footnote marker keeps its accent colour — the same variable
-   `[data-rookery="sidenote-number"]` uses — so the pairing with its margin
-   note stays legible even though the link beneath it no longer does
-   anything. Same 769px floor as the deadening rule above. */
+/* The footnote marker keeps the border colour its margin note's number and
+   left rule use, so the pairing stays legible even though the link beneath
+   it no longer does anything. Not `--idea-link-color`: themes set that to a
+   translucent highlight fill, against which a bare numeral all but vanishes.
+   Same 769px floor as the deadening rule above. */
 @media (min-width: 769px) {
   :where(:root:has([data-rookery="mode"][data-rookery-footnotes="horizontal"]))
     :where([data-rookery="box"]:not([data-rookery-gutter="off"], [data-rookery="window"] *), [data-rookery="page-body"]:not([data-rookery="window"] *))
     [data-rookery="fn-ref"] a:not([data-rookery="window"] *) {
-    color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
+    color: var(--idea-border-color, var(--idea-link-color, rgba(128, 0, 255, 0.12)));
   }
 }
 
