@@ -1128,6 +1128,9 @@ h6[data-rookery="idea"] {
   padding-left: var(--idea-pad, 0.5em);
   margin-right: calc(-1 * var(--idea-pad, 0.5em));
   padding-right: var(--idea-pad, 0.5em);
+  /* Matches the closed summary's own `padding-bottom` below, so the header row
+     is the same height open or closed and does not jump on toggle. */
+  padding-bottom: 0.25em;
 }
 
 /* `#idea-body`'s wrapper carries this SECOND ATTRIBUTE to opt out of the box —
@@ -1376,7 +1379,10 @@ h6[data-rookery="idea"] {
      of the open window's own padding would give it.
      It goes on the SUMMARY, not on `[data-rookery="window"]`'s `padding-bottom`: the wash is
      the summary's background, so padding here is tinted and still meets the floor,
-     where window padding would reopen the untinted seam. */
+     where window padding would reopen the untinted seam.
+     The OPEN summary carries the same `0.25em`, so this padding is not only a
+     folded-row balance: the header row is one height whichever state the window
+     is in, and toggling it does not shrink or grow that row. */
   padding-bottom: 0.25em;
 }
 
