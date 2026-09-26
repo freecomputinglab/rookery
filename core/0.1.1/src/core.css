@@ -1892,6 +1892,9 @@ a[data-rookery="row-title"]:hover {
   color: var(--idea-name-color, gray);
   border-left: 2px solid var(--idea-border-color, rgba(128, 0, 255, 0.12));
   padding-left: 0.5em;
+  /* The shared column width below is a border-box width, so the note's rule
+     starts where a gutter block's does. */
+  box-sizing: border-box;
   transition: color 0.2s, border-color 0.2s;
 }
 
