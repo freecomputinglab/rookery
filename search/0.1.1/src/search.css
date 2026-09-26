@@ -818,7 +818,10 @@
     display: none;
   }
 
-  .panel-input {
+  /* SHARED WITH `@rookery/core`'s `#window(display-filter: ..)` INPUT: added to
+     this selector list rather than copied, so the two widgets cannot drift. */
+  .panel-input,
+  [data-rookery="window-filter-input"] {
     width: 100%;
     box-sizing: border-box;
     padding: 0.4em 0.6em;
@@ -829,7 +832,8 @@
     border-radius: var(--rookery-search-radius, 3px);
   }
 
-  .panel-input::placeholder {
+  .panel-input::placeholder,
+  [data-rookery="window-filter-input"]::placeholder {
     color: var(--rookery-search-muted, gray);
   }
 
@@ -929,8 +933,11 @@
      THE BORDER FOLLOWS BECAUSE IT IS `currentColor` by default, so a themed pill comes
      out as an outline in its own hue and needs no second rule. A project that has set
      `--rookery-search-border` has said it wants ONE border colour for every pill, and
-     still gets it. */
-  .panel-pill {
+     still gets it. SHARED WITH `@rookery/core`'s `#window(display-filter: ..)`
+     pill: added to this selector list rather than copied, so the two widgets
+     cannot drift. */
+  .panel-pill,
+  [data-rookery="window-filter-pill"] {
     font: inherit;
     font-size: 0.85em;
     line-height: 1.4;
@@ -946,18 +953,28 @@
      there is no theme to keep: brightening `accepted` to the body ink on hover would
      make the one pill whose colour was declared the one pill that loses it. The wash
      under a pressed pill is what says pressed in both cases. */
-  .panel-pill:hover {
+  .panel-pill:hover,
+  [data-rookery="window-filter-pill"]:hover {
     color: var(--idea-tag-color, var(--idea-tag-line, var(--rookery-search-fg, inherit)));
   }
 
   /* PRESSED IS THE STATE, and it is read off `aria-pressed` rather than a class
      the script would have to keep in step with it. One source of truth for
      "this filter is on", and it is the one assistive technology reads. */
-  .panel-pill[aria-pressed="true"] {
+  .panel-pill[aria-pressed="true"],
+  [data-rookery="window-filter-pill"][aria-pressed="true"] {
     color: var(--idea-tag-color, var(--idea-tag-line, var(--rookery-search-fg, inherit)));
     border-color: currentColor;
     background: var(--rookery-search-hover, rgba(127, 127, 127, 0.15));
   }
+
+  /* ---- #window filter ------------------------------------------------------
+     `@rookery/core`'s `#window(display-filter: true, display-filter-tags: (..))`
+     emits its own input and pills (`[data-rookery="window-filter-input"]`,
+     `[data-rookery="window-filter-pill"]`) rather than `#panel`'s markup, but
+     only this script wires them up, so they take the filter panel's exact
+     look — folded into `.panel-input` and `.panel-pill`'s own selector lists
+     above rather than declared again here. */
 
   /* NARROW: A PILL IN A ROW IS SMALL PRINT. @rookery/core's narrow block
      makes `#idea-row` a card — the date a hat at the top-left corner, the

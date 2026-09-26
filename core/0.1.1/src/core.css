@@ -2584,35 +2584,22 @@ a[data-rookery="row-title"]:hover {
   display: none;
 }
 
+/* CORE HIDES AND LAYS OUT; SEARCH LOOKS. The input sits on its own full-width
+   line, and the pills wrap in a row beneath it — layout only, no colour, no
+   border, no font. `@rookery/search`'s script is what makes these controls
+   work, so its stylesheet is what gives them a look, the same one `#panel`
+   already wears. */
 [data-rookery="window-filter-controls"] {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4em;
-  margin-bottom: 0.75em;
+  column-gap: 0.35rem;
+  row-gap: 0.5rem;
+  margin: 1rem 0;
 }
 
-/* THE PILL SHARES THE TAG CHIP'S SHAPE (see the chip rule above), plus the
-   handful of properties a `<button>` needs that a `<span>` chip never did:
-   no border, a pointer cursor, and a visibly different pressed state. */
-[data-rookery="window-filter-pill"] {
-  line-height: 1;
-  font-family: var(--idea-label-font, monospace);
-  letter-spacing: 0.03em;
-  border-radius: var(--idea-tag-radius, 999px);
-  padding: 0 0.5em;
-  white-space: nowrap;
-  font-size: var(--idea-tag-size, 0.85em);
-  color: var(--idea-tag-color, var(--idea-name-color, gray));
-  background-color: var(--idea-tag-bg, rgba(128, 128, 128, 0.18));
-  background-color: var(--idea-tag-bg, color-mix(in oklab, currentColor 14%, transparent));
-  border: none;
-  cursor: pointer;
-}
-
-[data-rookery="window-filter-pill"][aria-pressed="true"] {
-  outline: 2px solid var(--idea-tag-color, currentColor);
-  background-color: var(--idea-tag-bg, rgba(128, 128, 128, 0.32));
-  background-color: var(--idea-tag-bg, color-mix(in oklab, currentColor 28%, transparent));
+[data-rookery="window-filter-input"] {
+  flex: 1 0 100%;
+  box-sizing: border-box;
 }
 
 /* A FILTERED-OUT FIGURE. The script (`@rookery/search`) hides a `#window`'s
