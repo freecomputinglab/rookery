@@ -663,6 +663,19 @@
   if node.has("label") { [#built#(node.label)] } else { built }
 }
 
+// Rebuilds a `.children`-bearing node around `kids`, keeping its other
+// fields. `sequence` takes its children as ONE array argument; every other
+// such element (`grid`, `table`, `list`, ...) takes them variadically, and
+// its settings (a table's `columns`) must ride along by name or the rebuilt
+// table collapses to a single column.
+#let _rechild(node, kids) = {
+  if repr(node.func()) == "sequence" { return (node.func())(kids) }
+  let fields = node.fields()
+  let _ = fields.remove("children")
+  let _ = fields.remove("label", default: none)
+  (node.func())(..kids, ..fields)
+}
+
 // Reconstructs every intermediate node from `.fields()`, replacing only the
 // slot the recursion descended through — the same generic reconstruction
 // `_outbound` (links.typ) already relies on to walk through anything Typst
@@ -694,12 +707,7 @@
       kids.push(r.node)
       cur = r.next
     }
-    // `sequence` (plain markup concatenation) takes its children as ONE
-    // array argument; every OTHER `.children`-bearing element (`grid`,
-    // `table`, ...) is an ordinary constructor taking them variadically —
-    // MEASURED: `(node.func())(kids)` on one of those raised "expected
-    // content, found array".
-    let built = if repr(node.func()) == "sequence" { (node.func())(kids) } else { (node.func())(..kids) }
+    let built = _rechild(node, kids)
     return (node: _relabel(built, node), next: cur)
   }
   if node.has("body") {

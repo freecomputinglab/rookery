@@ -21,7 +21,7 @@
   _is-inline, _join, _merge-base-tags, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _derived-title-with, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
   _project, _split-tag-list, _tag-pred, _truncate, _truncate-split, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _id-slug, _name-slug, _h3, _b36, _ideate-tag-value, _ideate-name-value,
-  _resolve-display, _DISPLAY-KEYS,
+  _resolve-display, _DISPLAY-KEYS, _rechild,
   footnote, idea, idea-href, idea-path, slug,
   tag-index, window,
 )
@@ -890,3 +890,9 @@
 // harness cannot observe one (see this file's own header).
 // A dictionary value that is neither `true`, `false` nor `auto` panics the
 // same way, for the same reason.
+
+// ---- _rechild — a rebuilt table keeps its columns --------------------------
+// Rebuilding from `.children` alone dropped every other field, so a table
+// walked by `_promote-cites` or `_number-footnotes` came back one column wide.
+#let _t = table(columns: (1fr, auto), [a], [b])
+#assert.eq(_rechild(_t, _t.children).columns, (1fr, auto))

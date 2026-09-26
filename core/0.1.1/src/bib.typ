@@ -287,7 +287,7 @@
   }
   if node.has("children") {
     let kids = node.children.map(k => _promote-cites(k, keys))
-    let built = if repr(node.func()) == "sequence" { (node.func())(kids) } else { (node.func())(..kids) }
+    let built = _rechild(node, kids)
     return _relabel(built, node)
   }
   if node.has("body") {
