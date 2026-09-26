@@ -260,4 +260,95 @@ fi
 if [ "$fail" -ne 0 ]; then
   exit 1
 fi
+
+# Fourth check: on a minted idea page's footer, a Backlinks page row answers
+# the pointer over its whole row (cursor: pointer, and a point 90% across the
+# row resolves to the row's own anchor), while a Context page row does not
+# (plain cursor, and the same point resolves to no anchor at all) — showing
+# Context is untouched by this bird.
+TAGHAT="$H/ideas/tag-hat.html"
+[ -f "$TAGHAT" ] || { echo "FAIL: backlinkrow: no $TAGHAT"; exit 1; }
+
+BLROW_JS="$(mktemp)"
+BLROW_GEOM="$H/ideas/_geom-backlinkrow.html"
+trap 'rm -f "$JS" "$GEOM" "$SUM_JS" "$ROW_JS" "$BLROW_JS" "$BLROW_GEOM"' EXIT
+
+cat > "$BLROW_JS" <<'JS'
+function probe(row) {
+  if (!row) return null;
+  const r = row.getBoundingClientRect();
+  const x = r.left + r.width * 0.9;
+  const y = r.top + r.height / 2;
+  const el = document.elementFromPoint(x, y);
+  const anchor = el ? el.closest('a') : null;
+  const rowAnchor = row.querySelector(':scope > a');
+  return {
+    cursor: getComputedStyle(row).cursor,
+    hitOwnAnchor: anchor !== null && anchor === rowAnchor,
+  };
+}
+const backlinksRow = document.querySelector(
+  '[data-rookery="backlinks"] li[data-rookery="page-row"]'
+);
+const contextRow = document.querySelector(
+  '[data-rookery="context"] li[data-rookery="page-row"]'
+);
+document.body.dataset.out = JSON.stringify({
+  backlinks: probe(backlinksRow),
+  context: probe(contextRow),
+});
+JS
+
+cp "$TAGHAT" "$BLROW_GEOM"
+python3 - "$BLROW_GEOM" "$BLROW_JS" <<'PY'
+import sys
+p, script_path = sys.argv[1], sys.argv[2]
+s = open(p).read()
+js = "<script>" + open(script_path).read() + "</script>"
+open(p, "w").write(s.replace("</body>", js + "</body>"))
+PY
+
+out=$(timeout 60 chromium --headless=new --disable-gpu --no-sandbox \
+  --window-size=1400,900 --force-device-scale-factor=1 \
+  --dump-dom "$BLROW_GEOM" 2>/dev/null \
+  | grep -o 'data-out="[^"]*"' | sed 's/&quot;/"/g; s/^data-out="//; s/"$//')
+if [ -z "$out" ]; then
+  echo "FAIL: backlinkrow: chromium produced no data-out attribute"
+  fail=1
+elif ! python3 - "$out" <<'PY'
+import json, sys
+out = json.loads(sys.argv[1])
+bad = False
+bl = out.get("backlinks")
+ctx = out.get("context")
+if bl is None:
+    print("FAIL: backlinkrow: no Backlinks page row found")
+    bad = True
+else:
+    if bl["cursor"] != "pointer":
+        print(f"FAIL: backlinkrow: cursor={bl['cursor']} want pointer")
+        bad = True
+    if not bl["hitOwnAnchor"]:
+        print("FAIL: backlinkrow: 90% point did not resolve to the row's own anchor")
+        bad = True
+if ctx is None:
+    print("FAIL: backlinkrow: no Context page row found")
+    bad = True
+else:
+    if ctx["cursor"] == "pointer":
+        print(f"FAIL: backlinkrow: context cursor={ctx['cursor']} want not pointer")
+        bad = True
+    if ctx["hitOwnAnchor"]:
+        print("FAIL: backlinkrow: context 90% point unexpectedly resolved to an anchor")
+        bad = True
+sys.exit(1 if bad else 0)
+PY
+then
+  fail=1
+fi
+rm -f "$BLROW_GEOM"
+
+if [ "$fail" -ne 0 ]; then
+  exit 1
+fi
 echo "geom OK"

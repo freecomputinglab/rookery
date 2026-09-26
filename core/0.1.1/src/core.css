@@ -689,27 +689,42 @@ figure:has(> [data-rookery="page-list"]),
   content: none;
 }
 
-/* A page-row that's a bottomed-out WINDOW (`data-rookery-window-link`) answers
-   the pointer the way a folded window's box does: hover anywhere on the row
-   for the tint, click anywhere on the row to follow the title link. The
-   marker keeps this off the plain page-rows `.marrow.typ` emits for a minted
-   note's Context and Backlinks lists, which carry no marker and no `::after`
-   stretch. `background-color` only, never the `background` shorthand — the
-   row's own left rule above is a `background-image` gradient, and the
-   shorthand would overwrite it. */
-[data-rookery="page-row"][data-rookery-window-link] {
+/* A row that names a place answers the pointer the way a folded window's box
+   does: hover anywhere on the row for the tint, click anywhere on the row to
+   follow the title link. Two shapes qualify: a page-row that's a bottomed-out
+   WINDOW (`data-rookery-window-link`), and a page backlink in a minted note's
+   Backlinks list (`[data-rookery="backlinks"] [data-rookery="page-row"]` with
+   an anchor). A Context row is deliberately not included — it names the row's
+   OWN place, not somewhere to go — and neither is a note backlink, which is a
+   window, not a page-row. `background-color` only, never the `background`
+   shorthand — the row's own left rule above is a `background-image` gradient,
+   and the shorthand would overwrite it. */
+[data-rookery="page-row"][data-rookery-window-link],
+[data-rookery="backlinks"] [data-rookery="page-row"]:has(> a) {
   position: relative;
   cursor: pointer;
 }
 
-[data-rookery="page-row"][data-rookery-window-link] > a::after {
+[data-rookery="page-row"][data-rookery-window-link] > a::after,
+[data-rookery="backlinks"] [data-rookery="page-row"]:has(> a) > a::after {
   content: "";
   position: absolute;
   inset: 0;
 }
 
-[data-rookery="page-row"][data-rookery-window-link]:not([data-rookery-no-bg]):hover {
+[data-rookery="page-row"][data-rookery-window-link]:not([data-rookery-no-bg]):hover,
+[data-rookery="backlinks"] [data-rookery="page-row"]:has(> a):hover {
   background-color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
+}
+
+/* The row's own tint (just above) already fills the row on hover. Without
+   this, the anchor hover rule below (`[data-rookery="footer"] a:not(…):hover`)
+   or the window's own anchor hover rule paints a second, redundant fill on
+   top of the row's — visible as a seam where the anchor's box sits inside the
+   row's. Transparent, not omitted, so it wins over both by specificity. */
+[data-rookery="page-row"][data-rookery-window-link]:hover > a,
+[data-rookery="backlinks"] [data-rookery="page-row"]:has(> a):hover > a {
+  background-color: transparent;
 }
 
 /* Typst wraps every `#window` in a <figure>, and the browser default for that is
