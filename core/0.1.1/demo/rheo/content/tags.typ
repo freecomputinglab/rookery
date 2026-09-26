@@ -40,6 +40,17 @@
 #window(tagged: ("todo", "phd"), match: "all")
 #window(tagged: ("todo", "phd"))
 
+// `display-filter` — a text box and one toggle pill per tag, above the
+// figures this call would have emitted. Hidden until `@rookery/search`'s
+// script marks the container ready; here there is no such script, so the
+// controls stay invisible and this exercises only the markup and its CSS.
+#window(
+  tagged: ("todo", "phd"),
+  unfurl: 0,
+  display-filter: true,
+  display-filter-tags: ("todo", "phd"),
+)
+
 // display-tags: true, alongside display-date: true — both a row of tag pills AND
 // the date render in the same hat. Under rheo, the minted page for this note
 // also renders its tags UNCONDITIONALLY, which no `demo/pure` root can show.

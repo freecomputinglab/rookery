@@ -97,6 +97,17 @@
   // For a window that RENDERS a note rather than referring to it — see
   // `_window-content`'s own comment on `name`.
   display-label: auto,
+  // Wraps everything this call emits (HTML/EPUB only — a paged target ignores
+  // this) in one container and puts a text box above the windows, plus one
+  // toggle pill per `display-filter-tags`. Hidden until a script marks the
+  // container ready — `@rookery/core` ships no JavaScript, so a page without
+  // that script must never show controls that do nothing. A PLAIN named
+  // argument, not a `display:` dictionary key: it is not a document-wide
+  // setting.
+  display-filter: false,
+  // The tags to give a toggle pill, in call order. Only meaningful with
+  // `display-filter: true` — see the assert below.
+  display-filter-tags: (),
   // `false` renders this window with NO disclosure at all — no `<details>`,
   // no `<summary>`, nothing to click and nothing that can hide the body. For
   // a window that IS the thing being read, not a reference to it: a
@@ -162,6 +173,21 @@
     type(reserve-title) == bool,
     message: "@rookery/core: #window's `reserve-title` must be a bool — got "
       + repr(reserve-title),
+  )
+  assert(
+    type(display-filter) == bool,
+    message: "@rookery/core: #window's `display-filter` must be a bool — got "
+      + repr(display-filter),
+  )
+  assert(
+    type(display-filter-tags) == array and display-filter-tags.all(t => type(t) == str),
+    message: "@rookery/core: #window's `display-filter-tags` must be an array of "
+      + "strings — got " + repr(display-filter-tags),
+  )
+  assert(
+    display-filter or display-filter-tags.len() == 0,
+    message: "@rookery/core: #window's `display-filter-tags` needs `display-filter: "
+      + "true` — got " + repr(display-filter-tags) + " with `display-filter: false`.",
   )
   assert(
     sort == auto or sort == "date" or sort == "lexicographic",
@@ -357,6 +383,11 @@
   let combine-bib = bib != auto
   let bib-keys = ()
 
+  // Bound to one value, rather than emitted straight into the context block,
+  // so the `display-filter` branch below can wrap it in the controls
+  // container without duplicating the loop or the trailing bibliography
+  // block.
+  let out = {
   for id in full-ids {
     let rec = reg.at(id)
 
@@ -447,6 +478,44 @@
   // never `auto`.
   if combine-bib {
     _refs-block(bib-keys.dedup(), card: (bib: bib, gutter: none), attrs: (data-rookery-bibliography: if bib { "on" } else { "off" }))
+  }
+  }
+
+  // HTML/EPUB only — a paged target has no script to ever mark the container
+  // ready, so `display-filter` does nothing there and the windows render
+  // exactly as they would without it.
+  if display-filter and (_target() == "html" or _target() == "epub") {
+    html.elem(
+      "div",
+      attrs: _themed((class: _c("window-filter"), data-rookery: "window-filter")),
+      html.elem(
+        "div",
+        attrs: (class: _c("window-filter-controls"), data-rookery: "window-filter-controls"),
+        html.elem(
+          "input",
+          attrs: (
+            type: "search",
+            data-rookery: "window-filter-input",
+            placeholder: "Filter",
+            "aria-label": "Filter",
+          ),
+        )
+          + display-filter-tags.map(t => html.elem(
+            "button",
+            attrs: (
+              type: "button",
+              class: _c("tag") + " " + _c("tag-" + t),
+              data-rookery: "window-filter-pill",
+              data-rookery-filter-tag: t,
+              "aria-pressed": "false",
+            ),
+            t,
+          )).join()
+      )
+        + out,
+    )
+  } else {
+    out
   }
   }
 }

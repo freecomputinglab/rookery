@@ -937,6 +937,21 @@ if not bad:
 sys.exit(bad)
 GROUPBIB
 
+# 37. `display-filter` ON `#window` (`content/tags.typ`'s
+#     `#window(tagged: ("todo", "phd"), unfurl: 0, display-filter: true,
+#     display-filter-tags: ("todo", "phd"))`). Markup only — no script runs in
+#     this demo, so the controls stay hidden by core.css's own rule; this
+#     checks that the container, the input, and one pill per tag land in the
+#     built page.
+grep -q 'data-rookery="window-filter"' "$H/tags.html" ||
+  note "tags.html has no data-rookery=\"window-filter\" container"
+grep -q 'data-rookery="window-filter-input"' "$H/tags.html" ||
+  note "tags.html has no data-rookery=\"window-filter-input\" text box"
+for t in todo phd; do
+  grep -q "data-rookery-filter-tag=\"$t\"" "$H/tags.html" ||
+    note "tags.html has no data-rookery-filter-tag=\"$t\" pill"
+done
+
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"
   exit 1

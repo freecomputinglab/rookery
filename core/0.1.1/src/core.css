@@ -2546,3 +2546,54 @@ a[data-rookery="row-title"]:hover {
     margin-right: 0.25em;
   }
 }
+
+/* ============================================
+   `#window`'s `display-filter` controls (`src/window.typ`)
+   ============================================ */
+
+/* HIDDEN UNTIL A SCRIPT MARKS THE CONTAINER READY. `@rookery/core` ships no
+   JavaScript by design, so a page with these controls but no script to wire
+   them must never show a text box and pills that do nothing — the script
+   (from `@rookery/search`) sets `data-rookery-ready` once it has attached. */
+[data-rookery="window-filter"]:not([data-rookery-ready]) > [data-rookery="window-filter-controls"] {
+  display: none;
+}
+
+[data-rookery="window-filter-controls"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  margin-bottom: 0.75em;
+}
+
+/* THE PILL SHARES THE TAG CHIP'S SHAPE (see the chip rule above), plus the
+   handful of properties a `<button>` needs that a `<span>` chip never did:
+   no border, a pointer cursor, and a visibly different pressed state. */
+[data-rookery="window-filter-pill"] {
+  line-height: 1;
+  font-family: var(--idea-label-font, monospace);
+  letter-spacing: 0.03em;
+  border-radius: var(--idea-tag-radius, 999px);
+  padding: 0 0.5em;
+  white-space: nowrap;
+  font-size: var(--idea-tag-size, 0.85em);
+  color: var(--idea-tag-color, var(--idea-name-color, gray));
+  background-color: var(--idea-tag-bg, rgba(128, 128, 128, 0.18));
+  background-color: var(--idea-tag-bg, color-mix(in oklab, currentColor 14%, transparent));
+  border: none;
+  cursor: pointer;
+}
+
+[data-rookery="window-filter-pill"][aria-pressed="true"] {
+  outline: 2px solid var(--idea-tag-color, currentColor);
+  background-color: var(--idea-tag-bg, rgba(128, 128, 128, 0.32));
+  background-color: var(--idea-tag-bg, color-mix(in oklab, currentColor 28%, transparent));
+}
+
+/* A FILTERED-OUT FIGURE. The script (`@rookery/search`) hides a `#window`'s
+   figures by the `hidden` attribute rather than its own inline style, so this
+   is the one rule that turns that into "gone" rather than "invisible but
+   still taking up room". */
+[data-rookery="window-filter"] figure[hidden] {
+  display: none;
+}
