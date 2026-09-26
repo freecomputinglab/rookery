@@ -229,7 +229,7 @@
 // under. `name` is inert on this row: the title below IS the link to the note's
 // page, and an `[idea:x]` beside it would be a second link to the same place.
 #let _window-link(id, rec, display: (:)) = {
-  let display = _display-final(display, ("date", "tags"))
+  let display = _display-final(display, ("date", "tags", "background"))
   // A LABEL, not the authored title: this row shows a name AS A LINK with no body
   // under it, so it names rather than headings (see `#idea`'s title-vs-label
   // banner). A bottomed-out window therefore names the note instead of showing a
@@ -253,10 +253,23 @@
     let tab = if date == none and _visible-tags(tags).len() == 0 { [] } else {
       _permalink-tab(id, tags: tags, date: date, display-name: false)
     }
+    // A window's row carries the note's tag data and a marker of its own
+    // (`data-rookery-window-link`) so it can be styled to react like a folded
+    // window's box — hover tint, whole-row click — without also catching the
+    // Context/Backlinks rows `.marrow.typ` emits with the same
+    // `data-rookery="page-row"`, which carry no such marker.
+    let visible = _visible-tags(rec.at("tags", default: (:)).keys())
+    let li-cls = (_c("page-row"),) + visible.map(t => _c("tag-" + t))
     html.elem(
       "ul",
       attrs: _themed((class: _c("page-list"), data-rookery: "page-list")),
-      html.elem("li", attrs: (class: _c("page-row"), data-rookery: "page-row"), tab + row),
+      html.elem(
+        "li",
+        attrs: (class: li-cls.join(" "), data-rookery: "page-row", data-rookery-window-link: "link")
+          + (if display.background { (:) } else { ("data-rookery-no-bg": "none") })
+          + _tags-attr(visible),
+        tab + row,
+      ),
     )
   } else {
     // `align(start)` for the reason `_window-content`'s paged branch uses it: a

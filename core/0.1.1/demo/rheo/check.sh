@@ -391,6 +391,12 @@ if not re.search(
 ):
     print("FAIL: sub/deeper/page.html's unfurl: 0 window is not a bare link row with no body")
     bad = 1
+# The row is a bottomed-out WINDOW, not a plain page-row like the Context/
+# Backlinks lists `.marrow.typ` emits — it must carry the marker those don't,
+# so it can be styled (and later scripted) as a window rather than a link.
+if not re.search(r'<li[^>]*data-rookery-window-link[^>]*>', h):
+    print("FAIL: sub/deeper/page.html's unfurl: 0 window row has no data-rookery-window-link marker")
+    bad = 1
 # w-inner's own body renders once as its own card, plus once per place a
 # window actually unfurls it rather than collapsing it to a bare permalink.
 # MEASURED at 6 with the unfurl: 2 call in place — removing that one call

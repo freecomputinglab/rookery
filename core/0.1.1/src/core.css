@@ -679,6 +679,29 @@ figure:has(> [data-rookery="page-list"]),
   content: none;
 }
 
+/* A page-row that's a bottomed-out WINDOW (`data-rookery-window-link`) answers
+   the pointer the way a folded window's box does: hover anywhere on the row
+   for the tint, click anywhere on the row to follow the title link. The
+   marker keeps this off the plain page-rows `.marrow.typ` emits for a minted
+   note's Context and Backlinks lists, which carry no marker and no `::after`
+   stretch. `background-color` only, never the `background` shorthand — the
+   row's own left rule above is a `background-image` gradient, and the
+   shorthand would overwrite it. */
+[data-rookery="page-row"][data-rookery-window-link] {
+  position: relative;
+  cursor: pointer;
+}
+
+[data-rookery="page-row"][data-rookery-window-link] > a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+[data-rookery="page-row"][data-rookery-window-link]:not([data-rookery-no-bg]):hover {
+  background-color: var(--idea-link-color, rgba(128, 0, 255, 0.12));
+}
+
 /* Typst wraps every `#window` in a <figure>, and the browser default for that is
    `margin: 1em 40px` — which would push every backlink row 40px off the label
    above it, and off the page rows beside it, which carry no such margin.
