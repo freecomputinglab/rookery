@@ -296,6 +296,8 @@
       link(node.dest, r)
     } else if node.func() == enum.item {
       if "number" in node.fields() { enum.item(node.number, r) } else { enum.item(r) }
+    } else if node.func() == html.elem {
+      html.elem(node.tag, attrs: node.at("attrs", default: (:)), r)
     } else {
       let fields = node.fields()
       let _ = fields.remove("body")

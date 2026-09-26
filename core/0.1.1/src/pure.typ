@@ -712,6 +712,9 @@
       // this item an explicit number — `number` is present in `.fields()`
       // only then.
       if "number" in node.fields() { enum.item(node.number, r.node) } else { enum.item(r.node) }
+    } else if node.func() == html.elem {
+      // `html.elem(tag, body)` — `tag` is positional too, and first.
+      html.elem(node.tag, attrs: node.at("attrs", default: (:)), r.node)
     } else {
       let fields = node.fields()
       let _ = fields.remove("body")
