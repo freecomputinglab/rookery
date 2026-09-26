@@ -34,6 +34,6 @@ itself for the note it transcludes to gain its backlink from this page.
 
 // Transcludes the FIRST of `same-title-pair.typ`'s two same-titled notes,
 // from a different vertebra than the one that authored it — re-laying-out
-// its mint block a second time. `check.sh` asserts this replay does not
+// its mint block a second time. `check.sh` asserts that this replay does not
 // grow `idea:same-title`'s slug into a `same-title-3`.
 #window("same-title", folded: true)

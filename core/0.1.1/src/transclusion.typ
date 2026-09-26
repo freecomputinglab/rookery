@@ -355,6 +355,100 @@
 // 1` throughout, and `depth: 1` (the default, and what registration flattens a
 // body at) is the collapse. See the scale at `_window-depth`.
 //
+// `labelled`'s own discriminator: the `kind` a marker figure carries so
+// `_strip-labelled` can find and drop exactly the figures `labelled` built,
+// and nothing an author placed by any other means.
+#let _LK-labelled = "rheo-labelled"
+
+// The way to put a referenceable label inside an idea body. A plain
+// `<label>` written straight into a body breaks the moment that body is
+// placed twice in one compile (the minted page, a `#window`) — Typst then
+// reports the label as occurring multiple times, because `_flatten` is what
+// places every copy but the canonical one, and a label cannot tell those
+// copies apart on its own.
+//
+// `labelled` does NOT decide this the way `_window-depth` or the WK/IK show
+// rules do — reading a `context`-held signal at the position the label
+// would attach — because THAT decision feeds straight into whether a
+// referenceable label exists at all, and a reference resolving across a
+// mint boundary already needs several of Typst's own introspection passes
+// to settle; stacking a second introspective decision on top of it is what
+// the demo under `demo/rheo` actually measures does not always converge
+// within Typst's own fixed attempt budget (`MAX_ITERS = 5`,
+// typst-library/src/introspection/convergence.rs — the same ceiling
+// `outline.typ`'s own banner on `_page-outbound` names for the same
+// reason). `_promote-cites`/`_number-footnotes` (bib.typ, pure.typ) sidestep
+// exactly this by rewriting the CONTENT TREE once, at construction time,
+// rather than asking a `context` question at layout time — `labelled`
+// follows that same, already-proven approach instead.
+//
+// So `labelled` always emits `it` immediately followed by an invisible
+// marker figure (kind `_LK-labelled`, hidden by a LOCALLY scoped `show`,
+// same trick as `#idea`'s own hidden anchor in `idea.typ`) carrying the
+// real label. That marker survives into whatever `body` `#idea` places
+// directly — the canonical site, which never goes through `_flatten` — so
+// the canonical placement keeps its label with no further work. Every
+// COPY does go through `_flatten`, which now rewrites its `body` with
+// `_strip-labelled` before placing it: a plain, deterministic tree walk
+// (modelled on `_promote-cites`) that finds this exact marker and removes
+// it, so a copy carries `it` with no label at all — never introspection,
+// so no convergence question to fail.
+//
+// `name` is a GLOBAL label, exactly like any other Typst label — it is not
+// scoped to the idea `it` sits inside. A body of any length should prefix
+// its names (e.g. with the idea's own id) to keep them from colliding with
+// another idea's.
+//
+// Figure numbers are NOT kept in sync between the canonical body and its
+// copies — a copy's figure claims the next number in the shared counter, so
+// the same figure can read "Figure 1" in situ and "Figure 2" on a minted
+// page. That is existing, out-of-scope behaviour of the one-compile bundle.
+#let labelled(name, it) = {
+  it
+  show figure.where(kind: _LK-labelled): none
+  [#figure([], kind: _LK-labelled, supplement: none) #label(name)]
+}
+
+// Rebuilds `node`, dropping every `labelled`-marker figure it finds — the
+// same `children`/`body`/`child` cases and `_relabel`/`_rechild` reuse
+// `_promote-cites` (bib.typ) already established for this exact shape of
+// walk. Stops at a nested IK/WK marker, like `_promote-cites` does, for the
+// same reason: that note or window strips its OWN `labelled` markers when
+// ITS OWN `_flatten` call runs, not here — descending into it here would
+// just repeat that work (harmlessly, since the marker would already be
+// intact) but the boundary is kept anyway to mirror the established pattern
+// exactly.
+#let _strip-labelled(node) = {
+  if type(node) != content { return node }
+  if node.func() == figure and node.at("kind", default: none) == _LK-labelled { return [] }
+  if node.func() == figure and node.at("kind", default: none) in (IK, WK) { return node }
+  if node.has("children") {
+    let kids = node.children.map(_strip-labelled)
+    return _rechild(node, kids)
+  }
+  if node.has("body") {
+    let r = _strip-labelled(node.body)
+    let built = if node.func() == link {
+      link(node.dest, r)
+    } else if node.func() == enum.item {
+      if "number" in node.fields() { enum.item(node.number, r) } else { enum.item(r) }
+    } else if node.func() == html.elem {
+      html.elem(node.tag, attrs: node.at("attrs", default: (:)), r)
+    } else {
+      let fields = node.fields()
+      let _ = fields.remove("body")
+      let _ = fields.remove("label", default: none)
+      (node.func())(r, ..fields)
+    }
+    return _relabel(built, node)
+  }
+  if node.has("child") {
+    let r = _strip-labelled(node.child)
+    return _relabel((node.func())(r, node.styles), node)
+  }
+  node
+}
+
 #let _flatten(body, depth: 1) = {
   // `show ref: hyperlink` is installed by `#show: rookery` on the VERTEBRA,
   // and a minted page is a separate `#document` that `.marrow.typ`
@@ -529,7 +623,7 @@
       )
     }
   }
-  body
+  _strip-labelled(body)
 }
 
 // A note's body at a given nested-window budget. `auto` takes the

@@ -163,8 +163,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">53 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 53 ideas"
+  grep -q 'idea-index-count">54 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 54 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -863,6 +863,25 @@ for p in index.html ideas/plain-note.html; do
   grep -q 'data-rookery="mode" data-rookery-footnotes="vertical" data-rookery-citations="vertical" hidden="hidden"' "$H/$p" ||
     note "$p has no vertical data-rookery=\"mode\" marker"
 done
+
+# 36. `labelled` (`content/labelled.typ`). A label attached straight to a
+#     figure inside an idea body would occur twice once that body is minted
+#     — once here, once on `ideas/labelled-note.html` — and Typst would
+#     refuse the whole build the moment anything referenced it. `labelled`
+#     attaches the label only at this page, the canonical placement, so
+#     the mint and the `#window` copy both carry the figure with no label at
+#     all.
+grep -q 'id="lbl-eg"' "$H/labelled.html" || note "labelled.html has no id=\"lbl-eg\""
+if [ "$(grep -o 'id="lbl-eg"' "$H/labelled.html" | wc -l)" -ne 1 ]; then
+  note "labelled.html carries id=\"lbl-eg\" more than once"
+fi
+[ -f "$H/ideas/labelled-note.html" ] || note "no minted page at ideas/labelled-note.html"
+if grep -q 'id="lbl-eg"' "$H/ideas/labelled-note.html" 2>/dev/null; then
+  note "ideas/labelled-note.html carries id=\"lbl-eg\" — the mint should be unlabelled"
+fi
+grep -q 'href="\.\./labelled\.html#lbl-eg"' "$H/ideas/labelled-note.html" 2>/dev/null ||
+  note "ideas/labelled-note.html has no href=\"../labelled.html#lbl-eg\" back to the canonical figure"
+grep -q 'id="lbl-plain"' "$H/labelled.html" || note "labelled.html has no id=\"lbl-plain\""
 
 # 17. GROUP `display-bibliography` ON `#window` (`content/index.typ`'s
 #     `#window((<knuth-note>, <plain-note>), display-bibliography: true)`).
