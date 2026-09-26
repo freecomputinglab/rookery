@@ -1652,6 +1652,25 @@ and a project that has themed `.idea-tag-<tag>` for a note's hat has already the
 the chips here. What this package styles is the panel's own chrome around them: the
 input, the pills, the count and the scroll box.
 
+## Filtering a `#window`
+
+`@rookery/core`'s `#window` takes `display-filter: true` and `display-filter-tags:
+(..)` and draws a text box and a pill per tag — but core ships no JavaScript, so
+without this package the controls sit on the page inert. Importing
+`@rookery/search` is what wires them:
+
+```typst
+#import "@rookery/core:0.1.1": window
+#window(tagged: ("todo", "meeting"), unfurl: 0, display-filter: true, display-filter-tags: ("todo", "meeting"))
+```
+
+- Typing narrows to windows whose title contains the text (case-insensitive).
+- Pressing a pill narrows to windows carrying it; pressing a second **widens** —
+  the same "any" rule `#filter-panel`'s pills use, not an intersection.
+- Text and pills compose with AND.
+- There is no `pill-match: "all"` and no `sync:` — this widget is `#window`'s
+  own chrome, not `#filter-panel`'s, and stays exactly as small as core's markup.
+
 ## Keeping filter state in the URL: `sync:`
 
 A page reload starts every panel from a clean slate — an empty box, no pill

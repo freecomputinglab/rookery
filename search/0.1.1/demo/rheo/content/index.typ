@@ -66,6 +66,20 @@ the only thing that produces a page backlink:
 
 #ideas-outline()
 
+// ---- #window(display-filter: true) — core's markup, this package's wiring ---
+//
+// core (`@rookery/core`) draws the input and the pills but wires nothing;
+// `@rookery/search`'s `window-filter.js` is what makes them do anything at
+// all. `unfurl: 0` renders each match as a link row rather than a full
+// window, which is the shape the fixture's OTHER `#window` call above does
+// not exercise. `tagged:` is rookery-wide, so this reaches the `demo-a`/
+// `demo-b` notes declared further down the page (`filter-me`, `filter-one`)
+// without tagging fresh ones for it, and reads them regardless of where in
+// the document it sits. PLACED AHEAD OF THE FIRST `.panel` div deliberately:
+// `check.sh`'s panel scan segments the page by that class, and a window's own
+// tag chips landing inside a segment would read as that panel's.
+#window(tagged: ("demo-a", "demo-b"), unfurl: 0, display-filter: true, display-filter-tags: ("demo-a", "demo-b"))
+
 // ---- @rookery/search — the three public entry points -----------------
 //
 // This is what the fixture exists for. `#search-index` emits the JSON island

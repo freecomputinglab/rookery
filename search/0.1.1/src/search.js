@@ -30,6 +30,7 @@ import { readIndex, loadIndex } from "./island.js";
 import { wire } from "./bar.js";
 import { wireModal } from "./modal.js";
 import { initPanels, wirePanel } from "./panel.js";
+import { initWindowFilters } from "./window-filter.js";
 // IMPORTED AS WELL AS RE-EXPORTED. `export { x } from "./y.js"` forwards `x`
 // without binding it here, so the global at the bottom — which names these
 // values — needs the import too. The `export` lines below stay exactly as they
@@ -52,6 +53,7 @@ export { splitQuery, parseTagQuery, evalTagQuery, evalClauses, positiveAtoms, po
 export { score, bodyScore, search } from "./score.js";
 export { readIndex, loadIndex } from "./island.js";
 export { initPanels, wirePanel } from "./panel.js";
+export { initWindowFilters } from "./window-filter.js";
 export { readSync, writeSync, readParam, writeParam, commit, claimKey, resetKeys, debounce } from "./urlstate.js";
 export { initUrlSync, wireRadioGroup } from "./urlsync.js";
 
@@ -103,6 +105,9 @@ export const init = async () => {
   // must not silently disable the other two.
   try { initPanels(); } catch (err) {
     console.error("@rookery/search: panels could not be initialised.", err);
+  }
+  try { initWindowFilters(); } catch (err) {
+    console.error("@rookery/search: window filters could not be initialised.", err);
   }
   try { initUrlSync(signal); } catch (err) {
     console.error("@rookery/search: URL sync could not be initialised.", err);
@@ -230,6 +235,7 @@ if (typeof document !== "undefined") {
     loadIndex,
     initPanels,
     wirePanel,
+    initWindowFilters,
     readSync,
     writeSync,
     readParam,

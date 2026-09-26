@@ -20,3 +20,4 @@ export { selection } from "../src/selection.js";
 export { extractNote } from "../src/preview.js";
 export { renderRow } from "../src/row.js";
 export { passesTags } from "../src/panel.js";
+export { wireWindowFilter, initWindowFilters } from "../src/window-filter.js";
