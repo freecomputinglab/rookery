@@ -300,6 +300,15 @@
   display: flow-root;
 }
 
+/* A minted page's head has no card around it and no lifted tab, so it needs
+   none of that. As a block it overlaps a gutter floated before it (a site's
+   `wrap:`ped contents panel) rather than shrinking beside it, which leaves
+   the split's `padding-right` below as the one thing narrowing it — and so
+   its date and title end on the text column's edge, not a gutter short. */
+[data-rookery="head"]:has(~ [data-rookery="page-body"]) {
+  display: block;
+}
+
 /* THE HAT'S GEOMETRY, named once. Every lift, clearance and gap below is one of
    these three lengths, or one plus another; see the header for what each means.
 
