@@ -327,6 +327,12 @@
 // diverge from `_footnote-mode`.
 #let _citation-mode = state("rheo-idea-citation-mode", "vertical")
 
+// The CSL (as bytes) a promoted citation's footnote renders in under
+// `citations: "notes"` — `none` renders the full bibliography entry instead.
+// It must be an IN-TEXT style: a note-class one would mint a native footnote
+// inside this package's own.
+#let _note-style = state("rheo-idea-note-style", none)
+
 //
 //   #show: rookery.with(invisible-tags: ("private",))
 //

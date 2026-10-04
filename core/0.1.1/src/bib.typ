@@ -164,14 +164,19 @@
   }
 }
 
-// A full-form citation with its supplement (a page number, say) appended.
-// Typst renders `form: "full"` as the bibliography entry and drops the
-// supplement, so it has to be added back by hand.
-#let _full-cite(key, supplement) = {
-  if supplement == auto or supplement == none {
+// A promoted citation's footnote text. Under a `note-style:` it is that
+// style's own normal-form citation, supplement and all. Without one it is the
+// full bibliography entry, which Typst renders without the supplement (a page
+// number, say), so that is appended by hand.
+#let _full-cite(key, supplement) = context {
+  let style = _note-style.get()
+  let sup = if supplement == auto { none } else { supplement }
+  if style != none {
+    cite(key, supplement: sup, style: style)
+  } else if sup == none {
     cite(key, form: "full")
   } else {
-    cite(key, form: "full") + [, ] + supplement
+    cite(key, form: "full") + [, ] + sup
   }
 }
 
@@ -211,7 +216,9 @@
   }
   context {
     if _citation-mode.get() == "notes" and it.form == "normal" {
-      _full-cite(it.key, it.at("supplement", default: auto))
+      // A citation carrying its own style is `_full-cite`'s note-style one,
+      // already the text of a footnote.
+      if it.style == auto { _full-cite(it.key, it.at("supplement", default: auto)) } else { it }
     } else if _target() == "html" {
       // Gated on the target, not the mode: a paged export has no margin, and
       // an `html.elem` inside a paragraph there is dropped with a warning.

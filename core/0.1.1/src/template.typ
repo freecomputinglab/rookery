@@ -46,6 +46,7 @@
   page-titles,
   footnotes,
   citations,
+  note-style,
   invisible-tags,
 ) = {
   assert(
@@ -208,6 +209,11 @@
       + "block under each idea), \"horizontal\" (margin notes beside each "
       + "marker) or \"notes\" (every citation becomes one of this package's own "
       + "footnotes) — got " + repr(citations),
+  )
+  assert(
+    note-style == none or type(note-style) == bytes,
+    message: "@rookery/core: `note-style` must be none or an in-text CSL style "
+      + "read as bytes — got " + repr(type(note-style)),
   )
   // THROUGH `_assert-tags`, the same helper every other tag-shaped argument in
   // this package uses, so `invisible-tags: "private"` needs no array ceremony and
@@ -498,6 +504,10 @@
 // the full reference, so it follows `footnotes:` exactly as a hand-written
 // `#footnote` does. A project with its own note-class `.csl`, which this
 // package cannot detect from a style name, sets `citations: "notes"` itself.
+// `note-style:` is the text of those footnotes: an IN-TEXT CSL, as bytes, whose
+// normal-form citation each note renders (a copy of a note-class style with
+// its `class` changed gives that style's short notes). `none`, the default, is
+// the full bibliography entry with any supplement appended.
 // A citation written inside a `#footnote` is part of that footnote and shows
 // its full reference at the end of the footnote's margin note whenever
 // `footnotes:` is horizontal, regardless of this setting. Set explicitly, it
@@ -582,6 +592,7 @@
   page-titles: "title",
   footnotes: "vertical",
   citations: auto,
+  note-style: none,
   invisible-tags: (),
   doc,
 ) = {
@@ -664,6 +675,7 @@
     page-titles,
     footnotes,
     citations,
+    note-style,
     invisible-tags,
   )
   let resolved = _resolve-theme(
@@ -741,6 +753,7 @@
     citations
   }
   _citation-mode.update(citations)
+  _note-style.update(note-style)
   // Normalized to a flat array of NAMES here, once, so `_visible-tags` can do a
   // plain `t not in hidden` on every call rather than re-deriving the shape.
   // `.update(value)` and never `.update(_ => value)` — an array is not a
