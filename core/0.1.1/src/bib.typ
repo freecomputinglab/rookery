@@ -164,6 +164,17 @@
   }
 }
 
+// A full-form citation with its supplement (a page number, say) appended.
+// Typst renders `form: "full"` as the bibliography entry and drops the
+// supplement, so it has to be added back by hand.
+#let _full-cite(key, supplement) = {
+  if supplement == auto or supplement == none {
+    cite(key, form: "full")
+  } else {
+    cite(key, form: "full") + [, ] + supplement
+  }
+}
+
 // A `show cite` rule, installed exactly once per page (template.typ's
 // `rookery()`, `.marrow.typ` — never here, see `_footnoted`'s banner for
 // why a second installation double-wraps a window's citations): beside
@@ -200,12 +211,7 @@
   }
   context {
     if _citation-mode.get() == "notes" and it.form == "normal" {
-      let sup = it.at("supplement", default: auto)
-      if sup == auto or sup == none {
-        cite(it.key, form: "full")
-      } else {
-        cite(it.key, supplement: sup, form: "full")
-      }
+      _full-cite(it.key, it.at("supplement", default: auto))
     } else if _target() == "html" {
       // Gated on the target, not the mode: a paged export has no margin, and
       // an `html.elem` inside a paragraph there is dropped with a warning.
@@ -272,12 +278,7 @@
   if node.func() == std.footnote { return node }
   if node.func() == figure and node.at("kind", default: none) in (IK, WK) { return node }
   let mint(target, supplement) = {
-    let c = if supplement == auto or supplement == none {
-      cite(target, form: "full")
-    } else {
-      cite(target, supplement: supplement, form: "full")
-    }
-    [#metadata((rookery-fn: c))#FNK]
+    [#metadata((rookery-fn: _full-cite(target, supplement)))#FNK]
   }
   if node.func() == ref and str(node.target) in keys {
     return mint(node.target, node.at("supplement", default: auto))
