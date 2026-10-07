@@ -1,0 +1,36 @@
+default:
+    @echo "rookery: pure Typst package, entrypoint is src/lib.typ directly — nothing to build"
+
+# Unit fixture for the pure helpers. No runner: `assert.eq` inside `test/units.typ`
+# fails the compile with a line number, and a passing compile is the green light.
+#
+# `--root .` so the fixture's `#import "/src/lib.typ"` resolves against THIS
+# package (not the `../..` that `demo/pure` needs — that file sits two levels
+# down, this one sits at the package root). `--features html` is mandatory
+# regardless of output format: `std.target` is gated by the feature, and
+# `src/lib.typ` reads it at import time. `--format pdf` with a `/dev/null`
+# output because typst cannot infer a format from that path, and nothing here
+# is rendered — only asserted.
+#
+# TWO FIXTURES, and the second one exists because of `--input`. `sys.inputs` is
+# fixed for a whole compile, so varying it means varying the INVOCATION — the
+# `rookery-exclude`/`rookery-include` cases cannot live in `units.typ`, which is
+# compiled with no inputs at all (and must stay that way: it is the fixture that
+# proves an unparameterised build sees the declared list and nothing else).
+# `test/inputs.typ` asserts against exactly the two values passed below, so the
+# flags here and the assertions there are one unit — change either and change
+# both.
+#
+# `demo/pure/ligaments.typ` (LIGAMENTS) sits under `demo/pure`,
+# not `test/`, because it needs `query`/`context` convergence — out of scope
+# for `test/units.typ`'s own banner — but it is run from HERE too, not only
+# from `demo/pure`'s own `just build`, because this recipe is the one this
+# package's VERIFY steps name. `--root .`, matching the two fixtures above:
+# typst resolves `ligaments.typ`'s own RELATIVE import against the file's own
+# directory regardless of invocation cwd, so this works the same as `cd
+# demo/pure && typst compile --root ../..`.
+test:
+    typst compile --features html --root . --format pdf test/units.typ /dev/null
+    typst compile --features html --root . --format pdf --input rookery-exclude=c --input rookery-include=a test/inputs.typ /dev/null
+    typst compile --features html --root . --format html demo/pure/ligaments.typ /dev/null
+    @echo "units OK"

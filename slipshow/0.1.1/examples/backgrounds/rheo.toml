@@ -1,0 +1,18 @@
+# `@rookery/slipshow`'s three background forms and its fullscreen layout —
+# copy `examples/_template/` for the comments explaining `version`,
+# `[spine]`, and the `[packages.rookery]` override below.
+#
+# `formats` carries `pdf`, unlike most examples here: every background this
+# package renders is an HTML-only concern (`src/slipshow.typ`'s own header —
+# "no background of any kind, image included, is emitted for that target at
+# all") and only a PDF build proves that none of the three forms below
+# reaches paged output.
+version = "0.6.2"
+content_dir = "content"
+formats = ["html", "pdf"]
+
+[spine]
+exclude = ["lib.typ"]
+
+[packages.rookery]
+path = "../../../.."

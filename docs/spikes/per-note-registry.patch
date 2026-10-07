@@ -1,0 +1,264 @@
+diff -ruN -x build -x '*.html' -x '*.pdf' rookery-clean-before/core/0.1.1/.marrow.typ rookery-spike/core/0.1.1/.marrow.typ
+--- rookery-clean-before/core/0.1.1/.marrow.typ	2026-09-25 16:40:51.206849270 +0200
++++ rookery-spike/core/0.1.1/.marrow.typ	2026-09-25 16:32:53.118856721 +0200
+@@ -89,7 +89,7 @@
+ // any package) sourcing `ideas(tags:, match:)` straight into feeds's
+ // `items()` is the primary one; this exists for what that route cannot
+ // reach, e.g. a hand-authored page syndicating itself.
+-#import "@rookery/core:0.1.1": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _margin-cite
++#import "@rookery/core:0.1.1": _registry, _note-rec, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _margin-cite
+ 
+ #context {
+   // Two notes sharing a name, checked once here at bundle root rather than
+@@ -245,7 +245,11 @@
+     // wrapper around it, and the citation walk. `_flatten` is pure, so a
+     // second call would only repeat the work; sharing one value also makes it
+     // impossible for the walks to disagree with what is on the page.
+-    let flat = _body-at(rec, depth: minted-depth)
++    // SPIKE SPLIT: `_body-at` now takes `id` and reads the per-note state
++    // internally, so this call depends on ONLY this note's own body edits,
++    // not on any other note's — `rec` (from the light `registry`) no longer
++    // carries `raw`/`body` at all.
++    let flat = _body-at(id, depth: minted-depth)
+     // PER-NOTE OVERRIDE, same shape as `use-context`/`use-backlinks` further
+     // down: `rec.display.title` is `auto` unless `#idea(display: (title: ..))`
+     // or `#idea(display-title: ..)` set one, and `auto` falls back to the
+@@ -645,7 +649,12 @@
+       // (the registration-time projection) gives a `ref`.
+       title: {
+         let reg = _registry.final()
+-        let l = _rec-label(rec, _ref-text(reg))
++        // SPIKE SPLIT: gated on the title being empty, so a titled note (the
++        // common case) never touches its per-note state here.
++        let raw = if rec.at("title", default: none) == none {
++          _note-rec(id).final().at("raw", default: none)
++        } else { none }
++        let l = _rec-label(rec, _ref-text(reg), raw: raw)
+         if l == none or l == "" { slug } else { l }
+       },
+       if tpl == none { page } else { tpl(id: id, note: rec, page) },
+diff -ruN -x build -x '*.html' -x '*.pdf' rookery-clean-before/core/0.1.1/src/data.typ rookery-spike/core/0.1.1/src/data.typ
+--- rookery-clean-before/core/0.1.1/src/data.typ	2026-09-25 16:40:17.054088595 +0200
++++ rookery-spike/core/0.1.1/src/data.typ	2026-09-25 16:32:12.627494512 +0200
+@@ -320,6 +320,10 @@
+   ids
+     .map(id => {
+       let rec = reg.at(id)
++      // SPIKE SPLIT: `ideas()` already reads every survivor's per-note state
++      // for `body:` below (it needs bodies unconditionally, as documented),
++      // so `label:` reuses that one read rather than paying a second.
++      let raw = _note-rec(id).final().at("raw", default: none)
+       (
+         id: id,
+         name: _norm(id),
+@@ -347,7 +351,7 @@
+         // `_rec-label` (pure.typ) IS THAT CHAIN, shared with every other place a
+         // note gets named — a reference's link text, a window's summary, an
+         // outline entry — so the five of them cannot answer differently.
+-        label: _rec-label(rec, ref-text, fallback: _norm(id)),
++        label: _rec-label(rec, ref-text, fallback: _norm(id), raw: raw),
+         // TAG NAMES ONLY, as a flat array of every key — valued tags included.
+         // The VALUES are deliberately kept off this row, and that is load-
+         // bearing rather than tidiness: `@rookery/search` puts this field
+@@ -363,7 +367,10 @@
+         // `#idea("draft")[Write @idea:nz-man post]` has to match the words a
+         // reader can see in that row, and typing "New Zealand" is how they
+         // would look for it.
+-        body: _body-plain-with(rec.at("raw", default: none), ref-text),
++        // `raw` no longer lives on the light registry entry — `ideas()` still
++        // needs every note's body text (see the spike report's `bodies:`
++        // option), so it reads the per-note state for each survivor (above).
++        body: _body-plain-with(raw, ref-text),
+         href: _note-href(id, handle: handle),
+         page: _note-path(id),
+         created: rec.at("created", default: none),
+diff -ruN -x build -x '*.html' -x '*.pdf' rookery-clean-before/core/0.1.1/src/hyperlink.typ rookery-spike/core/0.1.1/src/hyperlink.typ
+--- rookery-clean-before/core/0.1.1/src/hyperlink.typ	2026-09-25 16:40:42.485028707 +0200
++++ rookery-spike/core/0.1.1/src/hyperlink.typ	2026-09-25 16:31:38.406031673 +0200
+@@ -102,7 +102,12 @@
+         // name goes inside a `link`, and content carrying a reference of its own
+         // would nest one link inside another.
+         let rec = reg.at(id, default: none)
+-        let named = if rec == none { none } else { _rec-label(rec, _ref-text(reg)) }
++        // SPIKE SPLIT: `raw` gated on the title being empty, so a titled
++        // target (the common case) never touches its per-note state here.
++        let raw = if rec != none and rec.at("title", default: none) == none {
++          _note-rec(id).final().at("raw", default: none)
++        } else { none }
++        let named = if rec == none { none } else { _rec-label(rec, _ref-text(reg), raw: raw) }
+         let shown = if it.supplement != auto {
+           it.supplement
+         } else if named != none {
+diff -ruN -x build -x '*.html' -x '*.pdf' rookery-clean-before/core/0.1.1/src/idea.typ rookery-spike/core/0.1.1/src/idea.typ
+--- rookery-clean-before/core/0.1.1/src/idea.typ	2026-09-25 16:39:59.783462710 +0200
++++ rookery-spike/core/0.1.1/src/idea.typ	2026-09-25 16:27:13.494096478 +0200
+@@ -458,9 +458,13 @@
+         // alone.
+         display: display,
+       )
+-      _registry.update(r => {
+-        let existing = r.at(id, default: none)
+-        if id in r and existing != rec {
++      // SPIKE SPLIT: the duplicate-id check moves to the per-note state's
++      // updater, since it is the only place left holding the FULL record
++      // (light fields plus `raw`/`body`) to compare against. The light index
++      // insert below has nothing left to compare — an id collision with a
++      // genuinely different record always panics here first.
++      _note-rec(id).update(existing => {
++        if existing != none and existing != rec {
+           panic(
+             "@rookery/core: duplicate note id " + id + " — already registered"
+               + (if existing.origin != none { " in " + existing.origin } else { "" })
+@@ -471,7 +475,20 @@
+               + " notes, or pin the derived one explicitly with #idea(<some-name>, title: [..]).",
+           )
+         }
+-        r.insert(id, rec)
++        rec
++      })
++      let light = (
++        title: title,
++        label: note-label,
++        created: resolved-created,
++        origin: origin,
++        links: links,
++        tag-links: tag-links,
++        tags: tags,
++        display: display,
++      )
++      _registry.update(r => {
++        r.insert(id, light)
+         r
+       })
+ 
+diff -ruN -x build -x '*.html' -x '*.pdf' rookery-clean-before/core/0.1.1/src/permalink.typ rookery-spike/core/0.1.1/src/permalink.typ
+--- rookery-clean-before/core/0.1.1/src/permalink.typ	2026-09-25 16:40:42.502645829 +0200
++++ rookery-spike/core/0.1.1/src/permalink.typ	2026-09-25 16:31:45.759916400 +0200
+@@ -232,7 +232,12 @@
+   // registration-time `label` cannot resolve a reference, there being no registry
+   // yet when it is computed. `none` only for a note with no name at all — an
+   // empty body and no title — which the `id` branch below still covers.
+-  let name = _rec-label(rec, _ref-text(_registry.final()))
++  // SPIKE SPLIT: gated on the title being empty, so a titled note (the
++  // common case) never touches its per-note state here.
++  let raw = if rec.at("title", default: none) == none {
++    _note-rec(id).final().at("raw", default: none)
++  } else { none }
++  let name = _rec-label(rec, _ref-text(_registry.final()), raw: raw)
+   let row = link(_resolve-dest(id, true), if name == none { id } else { name })
+   if _target() == "html" or _target() == "epub" {
+     html.elem(
+diff -ruN -x build -x '*.html' -x '*.pdf' rookery-clean-before/core/0.1.1/src/pure.typ rookery-spike/core/0.1.1/src/pure.typ
+--- rookery-clean-before/core/0.1.1/src/pure.typ	2026-09-25 16:40:10.017137087 +0200
++++ rookery-spike/core/0.1.1/src/pure.typ	2026-09-25 16:31:23.039272253 +0200
+@@ -550,10 +550,17 @@
+ // payload carries no id. Nothing here needs one — the only caller wanting an id
+ // as its last resort is `ideas()`, which has it and passes it as the fallback.
+ // A payload carrying no `raw` either simply skips the body rung.
+-#let _rec-label(rec, ref-text, fallback: none) = {
++// SPIKE SPLIT: `rec` (a light registry entry) no longer carries `raw` at all,
++// so `rec.at("raw", ..)` would always miss now. Kept PURE, per this file's own
++// rule — `raw:` is an explicit parameter instead of a lookup, so a caller
++// that has the note's id reads its per-note state itself (gated on the title
++// actually being empty, so a titled note, the common case, costs nothing) and
++// hands the content in; a caller with no id (the outline's metadata-payload
++// case) passes none, same as when `rec` carried no `raw` before.
++#let _rec-label(rec, ref-text, fallback: none, raw: none) = {
+   let t = _plain-with(rec.at("title", default: none), ref-text)
+   if t != none and t != "" { return t }
+-  let d = _derived-title-with(rec.at("raw", default: none), ref-text)
++  let d = _derived-title-with(raw, ref-text)
+   if d != none and d != "" { return d }
+   let l = rec.at("label", default: none)
+   if l == none or l == "" { fallback } else { l }
+diff -ruN -x build -x '*.html' -x '*.pdf' rookery-clean-before/core/0.1.1/src/state.typ rookery-spike/core/0.1.1/src/state.typ
+--- rookery-clean-before/core/0.1.1/src/state.typ	2026-09-25 16:39:50.583871110 +0200
++++ rookery-spike/core/0.1.1/src/state.typ	2026-09-25 16:27:00.795285123 +0200
+@@ -374,8 +374,18 @@
+ // referenceable anchor, an HTML heading (only when `title` is given)
+ // carrying that id and an `idea`/`idea-tag-<tag>` class list, and a
+ // registry entry other beads (#window, #hyperlink) read from.
++// LIGHT INDEX: same shape as before, minus `raw`/`body`. Every reader that
++// only needs a label, a tag, a link or existence reads this — see the per-note
++// state below for a note's own body.
+ #let _registry = state("rheo-ideas", (:))
+ 
++// SPIKE: one state PER NOTE, holding the FULL record (light fields plus
++// `raw`/`body`) — the duplicate-id check lives on this state's updater (see
++// `idea.typ`), since it is the one place that still holds the whole
++// comparison surface. A body reader calls `_note-rec(id).final()` and depends
++// on nothing else's edits; `_registry` above never carries `raw`/`body` at all.
++#let _note-rec(id) = state("rheo-idea-rec:" + id, none)
++
+ //
+ // A title-derived slug that collides with an earlier one gets a numeric
+ // `-<n>` suffix, counted in document order, and this dict is what counts it:
+diff -ruN -x build -x '*.html' -x '*.pdf' rookery-clean-before/core/0.1.1/src/transclusion.typ rookery-spike/core/0.1.1/src/transclusion.typ
+--- rookery-clean-before/core/0.1.1/src/transclusion.typ	2026-09-25 16:40:35.311484374 +0200
++++ rookery-spike/core/0.1.1/src/transclusion.typ	2026-09-25 16:31:54.196784041 +0200
+@@ -145,7 +145,12 @@
+   // registry to resolve against.
+   let name = if display.label {
+     let reg = _registry.final()
+-    _rec-label(rec, _ref-text(reg))
++    // SPIKE SPLIT: gated on the title being empty, so a titled note (the
++    // common case) never touches its per-note state here.
++    let raw = if rec.at("title", default: none) == none {
++      _note-rec(id).final().at("raw", default: none)
++    } else { none }
++    _rec-label(rec, _ref-text(reg), raw: raw)
+   } else {
+     rec.at("title", default: none)
+   }
+@@ -495,9 +500,11 @@
+       //
+       // `depth == 2` reuses the record's already-flattened body rather than
+       // re-flattening at the same budget: `rec.body` IS `_flatten(raw)` at
+-      // depth 1, computed once at registration.
+-      let inner = if depth == 2 { rec.body } else {
+-        _flatten(rec.raw, depth: depth - 1)
++      // depth 1, computed once at registration. SPIKE SPLIT: body/raw come
++      // from the per-note state now, not from `rec` (the light entry).
++      let full = _note-rec(id).final()
++      let inner = if depth == 2 { full.body } else {
++        _flatten(full.raw, depth: depth - 1)
+       }
+       let split = _truncate-split(inner, v.limit)
+       // `.at(..., default: (:))`: a WK marker from an older rookery version
+@@ -536,8 +543,13 @@
+ // own default), and depth 0 transcludes nothing at all, so neither has any
+ // nested window to unfurl. See the scale at `_window-depth`.
+ //
++// SPIKE SPLIT: takes `id` rather than `rec` now, since `rec` (the light
++// registry entry) no longer carries `raw`/`body` — this is what makes a
++// single-note body read depend on ONLY that note's own per-note state.
++//
+ // Must be called from inside `context`: `.final()` on both states.
+-#let _body-at(rec, depth: auto) = {
++#let _body-at(id, depth: auto) = {
+   let d = if depth == auto { _window-depth.final() } else { depth }
+-  if d <= 1 { rec.body } else { _flatten(rec.raw, depth: d) }
++  let full = _note-rec(id).final()
++  if d <= 1 { full.body } else { _flatten(full.raw, depth: d) }
+ }
+diff -ruN -x build -x '*.html' -x '*.pdf' rookery-clean-before/core/0.1.1/src/window.typ rookery-spike/core/0.1.1/src/window.typ
+--- rookery-clean-before/core/0.1.1/src/window.typ	2026-09-25 16:40:21.840700515 +0200
++++ rookery-spike/core/0.1.1/src/window.typ	2026-09-25 16:28:08.600803875 +0200
+@@ -391,7 +391,7 @@
+       continue
+     }
+ 
+-    let body = _body-at(rec, depth: unfurl)
++    let body = _body-at(id, depth: unfurl)
+     let split = _truncate-split(body, limit)
+ 
+     // Bracketed: the body being shown belongs to the note it came from, so
+@@ -496,7 +496,7 @@
+     panic("@rookery/core: #idea-body unknown note '" + id + "'")
+   }
+   let rec = reg.at(id)
+-  let body = _body-at(rec, depth: unfurl)
++  let body = _body-at(id, depth: unfurl)
+   let shown = _truncate(body, limit)
+   let inner = _footnoted(shown) + _refs-block(_own-cited-keys(shown, windows-claim: unfurl > 1))
+   if _target() == "html" or _target() == "epub" {

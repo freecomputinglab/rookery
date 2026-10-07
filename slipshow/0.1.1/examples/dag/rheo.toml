@@ -1,0 +1,36 @@
+# The shape every example under `examples/` copies. `version` matches the
+# `min_version` this package's `typst.toml` declares and the rheo version
+# `.github/workflows/check.yml` installs — do not raise it here; the point of
+# the floor is that the declared floor is the one tested.
+#
+# An example adds `formats = ["html", "pdf"]` only where it asserts something
+# about paged output (a `#slipshow` compiled outside HTML renders
+# transparently — see `src/slipshow.typ`) — a PDF build doubles the compile
+# for no gain in the rest.
+version = "0.6.2"
+content_dir = "content"
+formats = ["html"]
+
+[spine]
+# `lib.typ` holds the show rule every page applies, not a page of its own —
+# without this it would compile to its own `lib.html`.
+exclude = ["lib.typ"]
+
+# The Typst package cache's `rookery` namespace is a per-machine symlink, and
+# on a machine checking out this repository more than once (several jj
+# workspaces, a second clone) it can point at a DIFFERENT checkout than the
+# one this example lives in — silently building against whatever code sits
+# there instead of the code next to it. This override reads `@rookery/*`
+# straight out of THIS repository's tree instead, the same fix
+# `demo/rheo/rheo.toml` applies to this package's own fixture and for the
+# same reason. `path` is anchored to this file's own directory, four levels
+# up from `<name>/<version>/`.
+#
+# An example is also meant to be COPIED OUT of this repo, where a relative
+# path four levels up no longer resolves to anything. A copy taken elsewhere
+# needs this block replaced with however that project already resolves
+# `@rookery` — a `releases`/`repo` source (see this repo's own CLAUDE.md,
+# "Local development against a live rheo project") — or dropped entirely if
+# the package cache already has it.
+[packages.rookery]
+path = "../../../.."

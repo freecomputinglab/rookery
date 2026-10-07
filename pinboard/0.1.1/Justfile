@@ -1,0 +1,20 @@
+default:
+    @just --list
+
+# Bundles `src/` into `dist/lib.js`. `typst.toml` names `dist/` for the
+# release path, so this must run before a project compiling against a
+# released copy of this package sees an edit.
+build:
+    pnpm install
+    pnpm run build
+
+# The halves that need no browser: the flow layout, the drag arithmetic, the
+# collapse state, the store.
+test-js:
+    node --test test/*.test.mjs
+
+# Asserts on the OUTPUT: a board compiles and every card carries the id
+# its position will later be pinned to.
+check: build
+    rheo compile demo/rheo
+    ./demo/rheo/check.sh
