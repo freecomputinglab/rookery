@@ -120,12 +120,20 @@
   [#metadata((handle: handle, targets: targets)) <rookery-page-links>]
 }
 
-#let _page-links() = {
+// `ligaments: auto` reads the real `sys.inputs` (every production call —
+// `.marrow.typ` — passes nothing); a concrete value is for
+// `demo/pure/ligaments.typ`'s read-side tests alone, same reason `_lig-get`
+// and friends take one (`_reg-final` itself stays zero-argument — see its
+// own comment — so this goes through `_reg-merge` directly instead).
+#let _page-links(ligaments: auto) = {
   let out = (:)
   // Resolved once for the whole pass, not per marker: the tag-selection walk
   // below reads it for every window carrying a `tagged:` selector, and
   // `.final()` is a document-wide resolution each time it is called.
-  let reg = _registry.final()
+  //
+  // LIGAMENTS: `_reg-merge` — a tag-selector window can match a note
+  // belonging to a vertebra that did not run this pass.
+  let reg = _reg-merge(_ligaments(override: ligaments))
 
   // A `#window` announces its named ids in a `<rookery-window-mark>` metadata
   // element, and those are collected HERE rather than by the content walk that
@@ -191,6 +199,32 @@
       if t not in seen { seen.push(t) }
     }
     out.insert(handle, seen)
+  }
+
+  // LIGAMENTS: both loops above are `query()`-only, so on a narrowed compile
+  // they see ONLY the vertebra (or vertebrae) that actually ran this pass —
+  // a page-level link from any other vertebra is invisible to them, and
+  // `.marrow.typ`'s PAGE BACKLINKS section (built off this function's
+  // return) would silently go stale for it. `backlinks:<x>` (the reverse-edge
+  // vocabulary `_idea-ligaments`, state.typ, attaches on the LINKING note's
+  // own owning page) reconstructs those missing edges instead: for every id this
+  // compile knows about (`reg`, already `_reg-final()`-merged above), fold
+  // in every `(page, _)` ligament hit as one more entry in that page's
+  // target list. Entries the live loops already found are left as-is — the
+  // `seen` dedupe below is the same one those loops use, so a live edge is
+  // never duplicated by a ligament entry describing the same thing.
+  if _ligaments(override: ligaments) != none {
+    for id in reg.keys() {
+      let hits = _lig-get(_LIG-BACKLINKS + id, override: ligaments)
+      if hits == none { continue }
+      for e in hits {
+        let handle = e.at("page", default: none)
+        if type(handle) != str { continue }
+        let seen = out.at(handle, default: ())
+        if id not in seen { seen.push(id) }
+        out.insert(handle, seen)
+      }
+    }
   }
   out
 }
@@ -303,7 +337,9 @@
   // entry: it is what lets a reference inside a note's title read as the name of
   // the note it points at (see `_rec-label` below), and a per-entry
   // `_registry.final()` would be one state resolution per note on the page.
-  let ref-text = _ref-text(_registry.final())
+  // LIGAMENTS: `_reg-final()` — a page's own title/outline entries may
+  // reference a note belonging to a vertebra that did not run this pass.
+  let ref-text = _ref-text(_reg-final())
   let out = ()
   for el in query(selector(<rookery-edge>).or(selector(figure.where(kind: IK)))) {
     let f = el.func()

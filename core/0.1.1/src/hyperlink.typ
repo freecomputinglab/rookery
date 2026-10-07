@@ -88,43 +88,83 @@
     // Typst hands us the resolved `ref` element itself.
     let it = pos.at(0)
     context {
-      let e = it.element
-      if e != none and e.func() == figure and e.kind == "rheo-idea-anchor" {
-        let id = str(it.target)
-        let reg = _registry.final()
-        // A NAME: a reference NAMES the note it points at, so `@idea:x` renders
-        // the note's title, or its opening words when it has none, instead of
-        // falling through to a bare id. `_rec-label` (pure.typ) is that name and
-        // is the same one `ideas()` puts in a row, so a reference and a search
-        // hit call one note by one name — including when the target's own title
-        // references a third note, which its registration-time `label` cannot
-        // resolve and this can. A STRING rather than the title's content: the
-        // name goes inside a `link`, and content carrying a reference of its own
-        // would nest one link inside another.
+      let id = str(it.target)
+      // LIGAMENTS: `it.element` RESOLVES the label the moment it is touched
+      // — a bare `@idea:x`/`link(label(x))` to a label genuinely absent from
+      // THIS compile hard-fails there with "label does not exist", exactly
+      // as it always has, measured against a minimal reproduction. On a
+      // narrowed compile a ligament-known note's own vertebra may not have
+      // run this pass, so its label is absent here even though the note is
+      // real — `query(label(id))` is the safe existence test instead: it
+      // returns an empty array for a missing label rather than panicking,
+      // so it can be asked BEFORE committing to `it.element` at all. A
+      // label that DOES exist here takes the untouched branch below,
+      // byte-for-byte what this rule has always done.
+      if query(label(id)).len() == 0 {
+        // LIGAMENTS: `_reg-final()`, not the live registry — this id may
+        // belong to a vertebra that did not run this pass.
+        let reg = _reg-final()
         let rec = reg.at(id, default: none)
-        let named = if rec == none { none } else { _rec-label(rec, _ref-text(reg)) }
-        let shown = if it.supplement != auto {
-          it.supplement
-        } else if named != none {
-          named
+        if rec == none {
+          // Neither resolvable here nor known to ligaments: fall through to
+          // `it.element`, which reproduces Typst's ordinary "label does not
+          // exist" panic for a genuine typo, unchanged from before ligament
+          // support.
+          it.element
         } else {
-          raw(id)
-        }
-        let linked = link(_resolve-dest(id, minted), shown)
-        // Wrapped so `@idea:other` is reachable from CSS and carries the
-        // theme. A SPAN around Typst's own `link()`, not a hand-rolled
-        // `<a>`: the label-fallback branch has no href to hand-roll WITH,
-        // since only Typst can resolve a label to the `#loc-N` it ends up
-        // at. And the wrapper has to carry the theme itself — a reference
-        // sits in ordinary prose, with no `.idea-box`/`.idea-window`
-        // ancestor to inherit from.
-        if _target() == "html" or _target() == "epub" {
-          html.elem("span", attrs: _themed((class: _c("ref"), data-rookery: "ref")), linked)
-        } else {
-          linked
+          let named = _rec-label(rec, _ref-text(reg))
+          let shown = if it.supplement != auto {
+            it.supplement
+          } else if named != none {
+            named
+          } else {
+            raw(id)
+          }
+          let linked = link(_resolve-dest(id, minted), shown)
+          if _target() == "html" or _target() == "epub" {
+            html.elem("span", attrs: _themed((class: _c("ref"), data-rookery: "ref")), linked)
+          } else {
+            linked
+          }
         }
       } else {
-        it
+        let e = it.element
+        if e != none and e.func() == figure and e.kind == "rheo-idea-anchor" {
+          let reg = _reg-final()
+          // A NAME: a reference NAMES the note it points at, so `@idea:x` renders
+          // the note's title, or its opening words when it has none, instead of
+          // falling through to a bare id. `_rec-label` (pure.typ) is that name and
+          // is the same one `ideas()` puts in a row, so a reference and a search
+          // hit call one note by one name — including when the target's own title
+          // references a third note, which its registration-time `label` cannot
+          // resolve and this can. A STRING rather than the title's content: the
+          // name goes inside a `link`, and content carrying a reference of its own
+          // would nest one link inside another.
+          let rec = reg.at(id, default: none)
+          let named = if rec == none { none } else { _rec-label(rec, _ref-text(reg)) }
+          let shown = if it.supplement != auto {
+            it.supplement
+          } else if named != none {
+            named
+          } else {
+            raw(id)
+          }
+          let linked = link(_resolve-dest(id, minted), shown)
+          // Wrapped so `@idea:other` is reachable from CSS and carries the
+          // theme. A SPAN around Typst's own `link()`, not a hand-rolled
+          // `<a>`: the label-fallback branch has no href to hand-roll WITH,
+          // since only Typst can resolve a label to the `#loc-N` it ends up
+          // at. And the wrapper has to carry the theme itself — a reference
+          // sits in ordinary prose, with no `.idea-box`/`.idea-window`
+          // ancestor to inherit from.
+          if _target() == "html" or _target() == "epub" {
+            html.elem("span", attrs: _themed((class: _c("ref"), data-rookery: "ref")), linked)
+          } else {
+            linked
+          }
+        } else {
+          it
+        }
       }
     }
   } else {
@@ -143,7 +183,11 @@
     metadata((rookery-link: n))
     context {
       let id = _pfx() + n
-      if id not in _registry.final() {
+      // LIGAMENTS: `_reg-final()` — a note known only to ligaments (its
+      // vertebra did not run this pass) is not "unknown": `_resolve-dest`
+      // below resolves its destination from the id alone and never needs
+      // the label to exist here (see urls.typ).
+      if id not in _reg-final() {
         // EXCLUDED IS NOT MISSING — the same distinction `#window` and
         // `#idea-body` draw, through the same `_excluded-ids` state, for the
         // same reason: a build that drops a tag must not fail wherever a

@@ -318,7 +318,9 @@
   )) <rookery-window-mark>]
 
   context {
-  let reg = _registry.final()
+  // LIGAMENTS: `_reg-final()` — a named/tagged window may point at a note
+  // whose vertebra did not run this pass; see state.typ's own banner.
+  let reg = _reg-final()
 
   // Named ids first, in call-site order, and the only ones that can be wrong:
   // a tag scan reads the registry it filters, so it cannot name a missing note.
@@ -446,7 +448,7 @@
       continue
     }
 
-    let body = _body-at(rec, depth: unfurl)
+    let body = _body-at(id, rec, depth: unfurl)
     let split = _truncate-split(body, limit)
 
     // Combining: accumulate this window's own keys the same way
@@ -602,7 +604,8 @@
   )
   _assert-limit(limit, "#idea-body's")
   let id = _pfx() + _norm(name)
-  let reg = _registry.final()
+  // LIGAMENTS: `_reg-final()`, same reason as `#window` above.
+  let reg = _reg-final()
   if id not in reg {
     // EXCLUDED IS NOT MISSING, as above: an excluded note renders as nothing;
     // a typo still panics.
@@ -610,7 +613,7 @@
     panic("@rookery/core: #idea-body unknown note '" + id + "'")
   }
   let rec = reg.at(id)
-  let body = _body-at(rec, depth: unfurl)
+  let body = _body-at(id, rec, depth: unfurl)
   let shown = _truncate(body, limit)
   let inner = _footnoted(shown) + _refs-block(_own-cited-keys(shown, windows-claim: unfurl > 1))
   if _target() == "html" or _target() == "epub" {

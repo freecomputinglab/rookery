@@ -45,10 +45,31 @@
 // attaches labels syntactically, so only rheo, synthesizing bundle source in
 // Rust, can mint the real anchor. REQUIRES the rheo that rewrites this
 // scheme; an older rheo ships the literal `rheo-page:…` string.
+// LIGAMENTS: `query(label(id))` is a SAFE existence test, unlike touching
+// `it.element` (hyperlink.typ) or laying out `link(label(id))` itself — a
+// label genuinely absent from this compile returns an empty match here
+// rather than panicking "label does not exist". Must be called from inside
+// `context`, same as `_resolve-dest` itself.
+#let _label-exists(id) = query(label(id)).len() > 0
+
 #let _resolve-dest(id, hyperlink-target-minted) = {
-  if not hyperlink-target-minted { return label(id) }
   let c = _rheo-ctx()
-  if c == none or c.at("ext", default: none) == none { return label(id) }
+  let minted-route = c != none and c.at("ext", default: none) != none
+  if not hyperlink-target-minted {
+    // LIGAMENTS: the caller asked for the in-context anchor specifically,
+    // but on a narrowed compile a ligament-known note's anchor may not
+    // exist in THIS compile at all — its vertebra did not run, so
+    // `label(id)` would hard-fail the moment it is laid out. The minted-page
+    // route is the only destination ligaments can still resolve, so fall
+    // back to it rather than handing back an unresolvable label. Unchanged
+    // for a note whose anchor IS present here (the ordinary case, and every
+    // full build): `label(id)` still wins.
+    if minted-route and not _label-exists(id) {
+      return "rheo-page:" + _dir() + ":" + id.trim(_pfx(), at: start)
+    }
+    return label(id)
+  }
+  if not minted-route { return label(id) }
   "rheo-page:" + _dir() + ":" + id.trim(_pfx(), at: start)
 }
 //   #context idea-key("etal")   // -> "idea:etal"

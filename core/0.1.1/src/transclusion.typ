@@ -153,7 +153,9 @@
   // label of "Meeting with " and nothing more, computed before there was a
   // registry to resolve against.
   let name = if display.label {
-    let reg = _registry.final()
+    // LIGAMENTS: `_reg-final()` — the title being resolved may reference a
+    // note belonging to a vertebra that did not run this pass.
+    let reg = _reg-final()
     _rec-label(rec, _ref-text(reg))
   } else {
     rec.at("title", default: none)
@@ -584,10 +586,12 @@
     let m = it.body.children.find(c => c.func() == metadata)
     let v = m.value
     let id = v.rookery-window-id
+    // LIGAMENTS: `_reg-final()` — the nested window's target may belong to a
+    // vertebra that did not run this pass.
     if depth <= 1 {
-      _window-link(id, _registry.final().at(id), display: v.at("display", default: (:)))
+      _window-link(id, _reg-final().at(id), display: v.at("display", default: (:)))
     } else {
-      let rec = _registry.final().at(id)
+      let rec = _reg-final().at(id)
       // The nested `#window` has already run in full by the time this rule
       // sees its figure — including building a body at ITS budget, which is
       // then thrown away for the one built here at the ENCLOSING budget. That
@@ -599,8 +603,23 @@
       //
       // `depth == 2` reuses the record's already-flattened body rather than
       // re-flattening at the same budget: `rec.body` IS `_flatten(raw)` at
-      // depth 1, computed once at registration.
-      let inner = if depth == 2 { rec.body } else {
+      // depth 1, computed once at registration. NOT a call to `_body-at`
+      // (defined further down this file, after `_flatten` — and `_body-at`
+      // itself calls `_flatten`, so the two cannot reference each other
+      // without a `#let` forward-reference, which a `#let` closure's
+      // definition-time scope capture does not allow; see lib.typ's own
+      // ordering banner) — the same two-way branch instead, inlined, and
+      // LIGAMENT-AWARE the same way: ligaments never carry `raw` (see
+      // `_body-at`'s own comment), so a ligament-sourced note (no `body`/
+      // `raw` key on `rec` at all) nested deeper than depth 2 falls back to
+      // its flattened `idea-body:<id>` ligament rather than re-flattening
+      // from scratch — a note transcluded from an unvisited vertebra does
+      // not unfurl its OWN nested windows any further than depth 1.
+      let inner = if "body" not in rec and "raw" not in rec {
+        _ligament-body(id)
+      } else if depth == 2 {
+        rec.body
+      } else {
         _flatten(rec.raw, depth: depth - 1)
       }
       let split = _truncate-split(inner, v.limit)
@@ -641,7 +660,31 @@
 // nested window to unfurl. See the scale at `_window-depth`.
 //
 // Must be called from inside `context`: `.final()` on both states.
-#let _body-at(rec, depth: auto) = {
+//
+// `id` is new: a ligament-sourced `rec` (state.typ's `_reg-final()`) carries
+// neither `body` nor `raw` — fetching a ligament-sourced note's body is
+// deliberately NOT done inside `_reg-final()` itself, so every caller that
+// never renders a note's body never pays for fetching it; this is the one
+// place that actually does need it, so it is the one place that fetches it,
+// via `_ligament-body(id)`. No ligament-carried `raw` exists at all (the
+// LIGAMENTS section of .marrow.typ / `_idea-ligaments` in state.typ attach
+// only the already-flattened body), so a ligament-sourced
+// note returns that SAME flattened body AT ANY DEPTH — there is nothing to
+// re-`_flatten`, which is equivalent to that note's OWN nested windows not
+// unfurling any further than depth 1, regardless of the enclosing scope's
+// budget. A live `rec` (body/raw both present) is completely unaffected:
+// this whole branch is never reached for one, and takes the ordinary
+// depth-gated path below exactly as it always has.
+// `ligaments: auto` forwards to `_ligament-body` for the same reason it
+// exists there — `auto` (every production call site) reads the real
+// `sys.inputs`; a concrete value is `demo/pure/ligaments.typ`'s READ-SIDE
+// tests alone.
+#let _body-at(id, rec, depth: auto, ligaments: auto) = {
   let d = if depth == auto { _window-depth.final() } else { depth }
-  if d <= 1 { rec.body } else { _flatten(rec.raw, depth: d) }
+  let body = rec.at("body", default: none)
+  let raw = rec.at("raw", default: none)
+  if body == none and raw == none {
+    return _ligament-body(id, override: ligaments)
+  }
+  if d <= 1 { body } else { _flatten(raw, depth: d) }
 }

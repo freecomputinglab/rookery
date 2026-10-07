@@ -320,7 +320,11 @@
       message: "@rookery/core: `index:` must be a value built by `tag-index(..)` — got " + repr(index),
     )
   }
-  let reg = _registry.final()
+  // LIGAMENTS: `_reg-final()`, not `_registry.final()` — on a narrowed
+  // compile this is the merge of whatever this pass registered live plus
+  // every other note reconstructed from ligaments, so `#ideas()` keeps
+  // enumerating the WHOLE corpus regardless of which vertebra is recompiling.
+  let reg = _reg-final()
   // ONE read of the CURRENT page's own handle for the whole walk, not one per
   // row — every row's `href` (below) is relative to the SAME calling page, so
   // there is exactly one value here regardless of how many rows follow.
@@ -390,10 +394,23 @@
         // reader can see in that row, and typing "New Zealand" is how they
         // would look for it.
         //
-        // ABSENT, not computed and discarded, when `body: false` — see this
-        // function's own banner ("EMIT IDEAS AS LIGAMENTS") for the `idea-body:`
-        // ligament key this field's presence is meant to track.
-        ..if body { (body: _body-plain-with(rec.at("raw", default: none), ref-text)) } else { (:) },
+        // ABSENT, not computed and discarded, when `body: false` — see the
+        // LIGAMENTS section of .marrow.typ (and `_idea-ligaments` in
+        // state.typ) for the `idea-body:` ligament key this field's presence
+        // is meant to track.
+        // LIGAMENTS: a ligament-sourced record carries no `raw` at all (only
+        // its owning vertebra ever had it) — `_ligament-body(id)` substitutes
+        // the ALREADY-FLATTENED `idea-body:<id>` attach instead. Plain-text
+        // extraction over the flattened form is a close approximation, not
+        // identical to walking `raw` (a nested window already collapsed to
+        // its permalink reads as that permalink, not its own body) — accepted
+        // rather than also shipping `raw` through ligaments, which
+        // `_idea-ligaments` (state.typ) does not do.
+        ..if body {
+          let r = rec.at("raw", default: none)
+          let r = if r != none { r } else { _ligament-body(id) }
+          (body: _body-plain-with(r, ref-text))
+        } else { (:) },
         href: _note-href(id, handle: handle),
         page: _note-path(id),
         created: rec.at("created", default: none),
@@ -442,8 +459,8 @@
 // is not itself a context function, because a context function can only return
 // content and the whole point here is to return data.
 #let tag-data() = {
-  _registry
-    .final()
+  // LIGAMENTS: `_reg-final()`, same reason as `#ideas()` above.
+  _reg-final()
     .pairs()
     .map(((id, rec)) => (id, rec.at("tags", default: (:))))
     .to-dict()

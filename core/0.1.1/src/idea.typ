@@ -695,8 +695,10 @@
 // is not itself a context function, because a context function may only
 // return content and the whole point here is to return data.
 #let idea-tag-names(name) = {
+  // LIGAMENTS: `_reg-final()`, so a note belonging to a vertebra that did
+  // not run this pass still answers correctly on a narrowed compile.
   let id = _pfx() + _norm(name)
-  _registry.final().at(id, default: (:)).at("tags", default: (:)).keys()
+  _reg-final().at(id, default: (:)).at("tags", default: (:)).keys()
 }
 
 // One tag's VALUE on one note:
@@ -715,8 +717,9 @@
 //
 // Must be called INSIDE a `#context` block, same as `idea-tag-names`.
 #let idea-tag-value(name, key, default: none) = {
+  // LIGAMENTS: `_reg-final()`, same reason as `idea-tag-names` above.
   let id = _pfx() + _norm(name)
-  _registry.final().at(id, default: (:)).at("tags", default: (:)).at(key, default: default)
+  _reg-final().at(id, default: (:)).at("tags", default: (:)).at(key, default: default)
 }
 
 // Import it alongside `#idea` and write footnotes exactly as before:

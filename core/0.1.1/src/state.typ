@@ -607,6 +607,111 @@
   _bind(_LIG-BACKLINKS + id, page: origin)
 }
 
+// LIGAMENTS — the READ side, built against `_idea-ligaments`'s vocabulary
+// above. Package code cannot import rheo's `/typ/rheo.typ`
+// (`rheo-ligament-get` lives there — see that file's own comment), so these
+// read the raw `sys.inputs.rheo-ligaments` shape directly, exactly as
+// docs/contract.md's "Feeding ligaments back through sys.inputs" spells out
+// for package code.
+//
+// `none` distinct from `(:)`/`()` throughout: `none` means no ligaments were
+// supplied at all — an ordinary full build, or `[watch] narrow` off — and
+// `_reg-final()` below must then behave EXACTLY as `_registry`'s own
+// `.final()` always has. Anything else means ligaments WERE supplied, even where a
+// particular key attached nothing.
+// `override: auto` throughout this section reads the real `sys.inputs` —
+// every production call site (window.typ, data.typ, outline.typ,
+// transclusion.typ, .marrow.typ) passes no argument and gets exactly that.
+// A concrete value is for `demo/pure/ligaments-read.typ` alone: `rheo
+// watch`'s harvest is Rust-side and feeds a NATIVE Typst dictionary into
+// `sys.inputs` no `typst compile` invocation can reproduce (`--input` is
+// strings only, and `rheo-ligaments` is rejected from it outright, the same
+// as `rheo-context` — see docs/contract.md), so a test supplies one directly
+// as a value instead of depending on a real rheo watch session. This is NOT
+// a user-facing toggle on rookery's own API — nothing public threads it.
+#let _ligaments(override: auto) = {
+  if override != auto { return override }
+  sys.inputs.at("rheo-ligaments", default: none)
+}
+
+// One key's attaches: `()` when ligaments were supplied but nothing was
+// attached under this key, `none` when ligaments were not supplied at all.
+#let _lig-get(key, override: auto) = {
+  let l = _ligaments(override: override)
+  if l == none { return none }
+  l.at("attaches", default: (:)).at(key, default: ())
+}
+
+// One note's body, reconstructed from its `idea-body:<id>` attach alone —
+// `none` when ligaments carry nothing under that key. First entry only: a
+// note attaches its own body exactly once, on its one owning vertebra. Kept
+// SEPARATE from `_ligament-rec` below so a caller that never renders a
+// ligament-sourced note's body (a tag listing, a title-only row) never pays
+// for fetching it.
+#let _ligament-body(id, override: auto) = {
+  let hits = _lig-get(_LIG-IDEA-BODY + id, override: override)
+  if hits == none or hits.len() == 0 { none } else { hits.first().value }
+}
+
+// One note's record, reconstructed from one `(page: .., value: ..)` entry of
+// `rheo-ligament-get("ideas")` (or an equivalent `idea:<id>` entry — same
+// value shape). `value` is `_idea-ligaments`'s `lig-rec`: a live record minus
+// `raw`/`body`, plus an explicit `id` field added only so `"ideas"` could be
+// enumerated — stripped back out here so a reconstructed record cannot be
+// told apart from a live one by key set alone. No `body`/`raw` key at all;
+// see `_ligament-body` for why that is separate rather than fetched here.
+#let _ligament-rec(entry) = {
+  let rec = entry.value
+  let _ = rec.remove("id", default: none)
+  rec
+}
+
+// Drop-in replacement for `_registry`'s own `.final()` everywhere a reader
+// wants every note THIS COMPILE knows about, whether or not its vertebra
+// actually ran this pass. This is a MERGE, never an all-or-nothing swap:
+// live records win over ligament-sourced ones because they are freshest,
+// and swapping wholesale would drop every note registered this pass down to
+// a ligament-only view on any narrowed compile.
+//
+//   - No ligaments supplied: returns the live registry unchanged (see
+//     `_reg-merge` below). An ordinary full build (or narrowing turned off)
+//     is completely unaffected — this branch is the whole reason a package
+//     author never has to care whether narrowing exists.
+//   - Ligaments supplied: starts from `live`, the live registry — whatever
+//     this compile's own vertebra (or vertebrae) actually registered THIS
+//     pass, which on a narrowed compile is real and non-empty for the
+//     vertebra that is recompiling. For every id `rheo-ligament-get("ideas")`
+//     knows about that is NOT already a key in `live`, inserts a
+//     `_ligament-rec` reconstruction. An id present in `live` is NEVER
+//     overwritten by a ligament entry — the live, just-evaluated version
+//     always wins, since it is the freshest.
+//
+// `_registry.update(..)` (idea.typ) keeps writing unconditionally either
+// way — this function only ever reads, never gates that write.
+//
+// Split into `_reg-merge` (the actual merge, a pure function of an already-
+// resolved `ligaments` value) and `_reg-final` (the zero-argument production
+// entrypoint every real reader calls) so `demo/pure/ligaments.typ`'s
+// read-side tests can hand `_reg-merge` a hand-built dictionary directly —
+// the same reason `_ligaments`/`_lig-get`/`_ligament-body` take an
+// `override:` — without `_reg-final` itself taking a parameter no production
+// call site ever passes.
+#let _reg-merge(ligaments) = {
+  let live = _registry.final()
+  if ligaments == none { return live }
+  let merged = live
+  let hits = ligaments.at("attaches", default: (:)).at(_LIG-IDEAS, default: ())
+  for entry in hits {
+    let id = entry.value.id
+    if id not in merged {
+      merged.insert(id, _ligament-rec(entry))
+    }
+  }
+  merged
+}
+
+#let _reg-final() = _reg-merge(_ligaments())
+
 // Stepped ONCE per rendered idea box. It exists only so two renderings of the
 // SAME body on one output page (its own `#idea`, plus a `#window` on it) get
 // distinct HTML ids. Document-wide and monotonic — uniqueness within a page is

@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.1": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY
+#import "@rookery/core:0.1.1": _registry, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
@@ -306,7 +306,7 @@
     // wrapper around it, and the citation walk. `_flatten` is pure, so a
     // second call would only repeat the work; sharing one value also makes it
     // impossible for the walks to disagree with what is on the page.
-    let flat = _body-at(rec, depth: minted-depth)
+    let flat = _body-at(id, rec, depth: minted-depth)
     // PER-NOTE OVERRIDE, same shape as `use-context`/`use-backlinks` further
     // down: `rec.display.title` is `auto` unless `#idea(display: (title: ..))`
     // or `#idea(display-title: ..)` set one, and `auto` falls back to the
@@ -769,7 +769,10 @@
       // points at here too, instead of contributing the empty string `_plain`
       // (the registration-time projection) gives a `ref`.
       title: {
-        let reg = _registry.final()
+        // LIGAMENTS: `_reg-final()` — `rec`'s own title may reference a
+        // note on a vertebra that did not run this pass, same reason every
+        // other `_ref-text(..)` call site in this package switched.
+        let reg = _reg-final()
         let l = _rec-label(rec, _ref-text(reg))
         if l == none or l == "" { slug } else { l }
       },
