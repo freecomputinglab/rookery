@@ -20,7 +20,17 @@ default:
 # `test/inputs.typ` asserts against exactly the two values passed below, so the
 # flags here and the assertions there are one unit — change either and change
 # both.
+#
+# `demo/pure/ligaments.typ` (LIGAMENTS) sits under `demo/pure`,
+# not `test/`, because it needs `query`/`context` convergence — out of scope
+# for `test/units.typ`'s own banner — but it is run from HERE too, not only
+# from `demo/pure`'s own `just build`, because this recipe is the one this
+# package's VERIFY steps name. `--root .`, matching the two fixtures above:
+# typst resolves `ligaments.typ`'s own RELATIVE import against the file's own
+# directory regardless of invocation cwd, so this works the same as `cd
+# demo/pure && typst compile --root ../..`.
 test:
     typst compile --features html --root . --format pdf test/units.typ /dev/null
     typst compile --features html --root . --format pdf --input rookery-exclude=c --input rookery-include=a test/inputs.typ /dev/null
+    typst compile --features html --root . --format html demo/pure/ligaments.typ /dev/null
     @echo "units OK"

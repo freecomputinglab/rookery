@@ -111,6 +111,12 @@
     let full = if t.starts-with(pfx) { t } else { pfx + t }
     if full not in targets { targets.push(full) }
   }
+  // NOT a ligament-bind site: adding any per-vertebra in-flow element here
+  // MEASURED the same 5-pass convergence failure in-flow emission caused in
+  // `idea.typ` (see that file's LIGAMENTS banner). `.marrow.typ` reads this
+  // very beacon (`<rookery-page-links>`, queried at bundle root, already
+  // final) and binds `idea:<x>` off it there instead — see its own
+  // LIGAMENTS section.
   [#metadata((handle: handle, targets: targets)) <rookery-page-links>]
 }
 

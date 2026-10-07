@@ -492,6 +492,24 @@
         r
       })
 
+      // LIGAMENTS does NOT emit from here any more. It WAS, as a
+      // `#context`-time `_attach`/`_bind` call at exactly this point, same
+      // as the hidden anchor below — but ANY added per-note element here,
+      // even a content-free dummy `#metadata(..)`, broke Typst's 5-pass
+      // introspection convergence: on `demo/notes` (note-style citations)
+      // and on the real waterline build (1767 pages) — "document did not
+      // converge within five attempts" / "failed to resolve cross-link" on
+      // `template.typ`'s `show FNK: ...`. Every note's card sits inside a
+      // `figure(kind: IK, ..)` that `_flatten` specially walks for
+      // nested/transcluded rendering, and this package's
+      // footnote-promotion machinery (`_sweep-block`/`_footnoted`,
+      // bib.typ) is already at that convergence edge — one more queryable
+      // element per note, regardless of its content, tips it over.
+      // `.marrow.typ` emits all of this instead, once per record, from the
+      // final registry at bundle root: no per-note in-flow element, so no
+      // interaction with per-note convergence. See its own LIGAMENTS
+      // section.
+
       // Hidden referenceable anchor. VERIFIED: a locally scoped
       // `show ...: none` still hides it while leaving it referenceable, in-page
       // AND cross-page; it exports as <span id="loc-N">, and typst's own bundle

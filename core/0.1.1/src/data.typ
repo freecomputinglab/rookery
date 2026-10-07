@@ -275,7 +275,33 @@
 // Must be called INSIDE a `#context` block (it reads `_registry.final()`); it
 // is not itself a context function, because a context function can only return
 // content and the whole point here is to return data.
-#let ideas(tagged: none, match: "any", filter: none, sort: auto, index: none, values: false) = {
+//
+// `body: false` drops the `body:` field below off every row, and the row's
+// construction never reads the note's raw body to build it at all — the
+// switch a listing page (titles, tags, dates — never prose) takes to stop
+// depending on `idea-body:<id>`'s value, so a prose-only edit anywhere in
+// the corpus does not recompile it. `values:` is unrelated (`tags-dict:`
+// only) and must not gate this.
+//
+// LIGAMENTS — WHY THIS FUNCTION DOES NOT ALSO BIND. `ideas()` binding the
+// flat `"ideas"` key (no `tagged:`) or `tag:<t>` per named tag (with
+// `tagged:`), plus `idea-body:<id>` per surviving row unless `body: false`,
+// on the calling page, alongside returning its rows, cannot be built: this
+// function returns an array (rows), and a Typst code block cannot join a
+// content value with an array — MEASURED, `cannot join content with
+// array`/`cannot join array with content` from a minimal reproduction, in
+// either statement order. A `#metadata(..)<rheo-ligament:bind>` (or any
+// `state.update(..)`) only takes effect once its content return value is
+// itself part of the realized document tree — also MEASURED: assigning
+// either call's result to a dropped `let` compiles cleanly but leaves zero
+// hits on a later `query()`/`.final()` read. So nothing short of changing
+// `ideas()`'s return into something no longer a plain array (breaking every
+// `.filter()`/`.map()` caller) can make this function itself emit a bind.
+// The `idea:`/`idea-body:`/`tag:`/`backlinks:`/`"ideas"` binds and attaches
+// everywhere else (idea.typ's registration, outline.typ's page-links beacon,
+// `.marrow.typ`'s tag-link expansion and minted pages) are unaffected and
+// implemented — only this function's own bind is missing.
+#let ideas(tagged: none, match: "any", filter: none, sort: auto, index: none, values: false, body: true) = {
   _assert-tags(tagged, "#ideas'", what: "tagged")
   _assert-match(match, "#ideas'")
   assert(
@@ -363,7 +389,11 @@
         // `#idea("draft")[Write @idea:nz-man post]` has to match the words a
         // reader can see in that row, and typing "New Zealand" is how they
         // would look for it.
-        body: _body-plain-with(rec.at("raw", default: none), ref-text),
+        //
+        // ABSENT, not computed and discarded, when `body: false` — see this
+        // function's own banner ("EMIT IDEAS AS LIGAMENTS") for the `idea-body:`
+        // ligament key this field's presence is meant to track.
+        ..if body { (body: _body-plain-with(rec.at("raw", default: none), ref-text)) } else { (:) },
         href: _note-href(id, handle: handle),
         page: _note-path(id),
         created: rec.at("created", default: none),

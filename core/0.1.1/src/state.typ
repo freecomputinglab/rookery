@@ -497,6 +497,116 @@
 // reason: a note may be excluded in one file and linked from another.
 #let _excluded-ids = state("rheo-ideas-excluded", ())
 
+//
+// Ligament key vocabulary this package emits (rheo's generic ligament
+// protocol, docs/contract.md's "Ligaments" section in the rheo repository —
+// rheo assigns no meaning to a key, these are rookery's own choice). Fixed
+// here, once, rather than repeated as literals at every attach/bind site:
+// `idea:<id>` a note's own record (minus body), `idea-body:<id>` its raw
+// body alone, `tag:<t>` one tag, `backlinks:<x>` an outbound edge recorded
+// on the LINKING note (so the target can later bind it to read its own
+// backlinks), and `ideas` the flat aggregate every note also attaches under
+// — its only purpose is letting a reader enumerate every note id that
+// exists anywhere in the corpus, since ligaments have no prefix/wildcard
+// lookup.
+#let _LIG-IDEA = "idea:"
+#let _LIG-IDEA-BODY = "idea-body:"
+#let _LIG-TAG = "tag:"
+#let _LIG-BACKLINKS = "backlinks:"
+#let _LIG-IDEAS = "ideas"
+
+// Raw ligament emission. Package code cannot reach rheo's own
+// `rheo-ligament-attach`/`rheo-ligament-bind` (crates/core/src/typ/rheo.typ
+// in the rheo repository): those live in rheo's virtual `/typ/rheo.typ`,
+// visible automatically only at bundle-root (marrow) scope, and a package
+// import cannot reach that file at all. So these emit the same raw
+// `<rheo-ligament:attach>`/`<rheo-ligament:bind>` metadata shape directly —
+// label-compatible with rheo's own helpers, since rheo's Rust-side harvest
+// reads the label, not which Typst function produced it.
+//
+// `page: auto` resolves to `state("rheo-handle").get()` — valid only when
+// the CALLER is already inside a `#context` block, same discipline as
+// `_page-links-beacon` (outline.typ) above: no `#context` of its own here,
+// so no needless nested context at call sites already in one. `.marrow.typ`
+// runs outside any vertebra's own context and has no state to read there,
+// so it always passes `page:` explicitly.
+#let _attach(key, value, page: auto) = {
+  let p = if page != auto { page } else { state("rheo-handle").get() }
+  [#metadata((page: p, key: key, value: value)) <rheo-ligament:attach>]
+}
+#let _bind(key, page: auto) = {
+  let p = if page != auto { page } else { state("rheo-handle").get() }
+  [#metadata((page: p, key: key)) <rheo-ligament:bind>]
+}
+
+// One record's whole ligament emission — every `idea:`/`idea-body:`/`tag:`/
+// `backlinks:` attach and bind this package makes for a single registry
+// entry, PLUS its own minted page's `backlinks:<id>` bind. Factored out of
+// `.marrow.typ`'s per-record loop so this ONE function is both what marrow
+// calls and what a test can call directly with a hand-built record — no
+// second, drifting copy of the logic. `page: rec.origin` throughout: the
+// OWNING VERTEBRA's handle, never a note id and never a minted page's own
+// handle (a minted page is never a member of rheo's `known_handles` — see
+// `.marrow.typ`'s own LIGAMENTS banner for how that was MEASURED — so a
+// minted page's bind is attributed to the vertebra that is rebuilt
+// alongside it instead).
+//
+// `none` when `rec.origin` is `none` — a note registered outside any rheo
+// compile has no vertebra to page a ligament on.
+//
+// NOT called from `#idea`'s own registration: this is the whole reason it
+// is a separate, bundle-root-only call rather than inline in `idea.typ` —
+// see that file's LIGAMENTS banner for the convergence failure that moved
+// it here.
+#let _idea-ligaments(id, rec) = {
+  let origin = rec.at("origin", default: none)
+  if origin == none { return }
+  let lig-rec = (..rec, id: id)
+  // `.remove()` RETURNS the removed value — MEASURED the hard way: two bare
+  // (unassigned) `.remove()` calls here, each returning CONTENT (the note's
+  // `raw`/`body`), were themselves bare statements in a content-producing
+  // block, so Typst JOINED those removed bodies right back into whatever
+  // this function's caller shows — silently re-emitting a note's own prose
+  // a second time whichever page calls this. That is what actually broke
+  // convergence on the real waterline build, not placement or convergence
+  // fragility as such: `let _ = ..` discards the return instead.
+  let _ = lig-rec.remove("raw")
+  let _ = lig-rec.remove("body")
+  _attach(_LIG-IDEA + id, lig-rec, page: origin)
+  _attach(_LIG-IDEAS, lig-rec, page: origin)
+  // The raw body, its own key, so a prose-only edit changes only this.
+  _attach(_LIG-IDEA-BODY + id, rec.at("body", default: none), page: origin)
+  // One `tag:<t>` attach per tag this note carries.
+  for t in rec.at("tags", default: (:)).keys() {
+    _attach(_LIG-TAG + t, id, page: origin)
+  }
+  // One `backlinks:<x>` attach per outbound target — the forward half of a
+  // backlink: the LINKING note attaches it, the target's own page binds it
+  // later to read its backlinks. Also binds `idea:<x>` AND `idea-body:<x>`
+  // on `origin` for the same target: `_outbound` (the walk that built
+  // `links` at registration, links.typ) cannot cheaply tell a transclusion
+  // from a plain link/ref apart, so both are bound rather than guessed —
+  // an over-bind only costs an unneeded recompile later, never a
+  // correctness bug.
+  for x in rec.at("links", default: ()) {
+    _attach(_LIG-BACKLINKS + x, id, page: origin)
+    _bind(_LIG-IDEA + x, page: origin)
+    _bind(_LIG-IDEA-BODY + x, page: origin)
+  }
+  // A deferred tag-selector window (`tag-links`) binds the tags it selects
+  // on, from the page holding the window (`origin`) — so a note
+  // gaining/losing that tag recompiles it. `.marrow.typ`'s own expansion of
+  // the selector (once the registry is final) additionally binds the
+  // matched notes' bodies — see its own NOTE-backlinks loop.
+  for sel in rec.at("tag-links", default: ()) {
+    for t in _norm-tags(sel.tagged).keys() {
+      _bind(_LIG-TAG + t, page: origin)
+    }
+  }
+  // This note's own minted page is where its backlinks render.
+  _bind(_LIG-BACKLINKS + id, page: origin)
+}
+
 // Stepped ONCE per rendered idea box. It exists only so two renderings of the
 // SAME body on one output page (its own `#idea`, plus a `#window` on it) get
 // distinct HTML ids. Document-wide and monotonic — uniqueness within a page is

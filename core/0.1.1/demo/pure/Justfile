@@ -40,6 +40,10 @@ watch:
 # `backlinks-off.typ` is HTML ONLY too: it asserts only on the registry, not
 # on the paged target.
 #
+# `ligaments.typ` (LIGAMENTS) is HTML ONLY too: it asserts
+# only on `query(<rheo-ligament:attach>)`/`query(<rheo-ligament:bind>)`,
+# nothing about the paged target.
+#
 # Comments belong in THIS header, not inside the recipe body: `just` echoes a
 # `#` line in a body as if it were a command, so an explanation written there is
 # printed to the user on every build.
@@ -56,6 +60,7 @@ build:
     typst compile --features html --format html --root ../.. naming.typ build/naming.html
     typst compile --features html --format html --root ../.. idea-key.typ build/idea-key.html
     typst compile --features html --format html --root ../.. idea-key-prefix.typ build/idea-key-prefix.html
+    typst compile --features html --format html --root ../.. ligaments.typ build/ligaments.html
     @just check
 
 # Greps on what `build` produced. The assertions live here rather than as

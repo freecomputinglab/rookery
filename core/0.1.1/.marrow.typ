@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.1": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite
+#import "@rookery/core:0.1.1": _registry, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
@@ -141,6 +141,48 @@
     if rules == none { [] } else { html.elem("style", rules) }
   }
 
+  // LIGAMENTS (rheo's generic dependency-graph protocol, docs/contract.md's
+  // "Ligaments" in the rheo repository — rheo assigns no meaning to a key).
+  // The per-record emission (`_idea-ligaments`, state.typ — every
+  // attach/bind decision is documented there, once, rather than duplicated
+  // here) is called once per record below, inside each note's own MINTED
+  // PAGE content (`let page = [ .. ]`, further down) — NOT bare at this
+  // bundle-root scope, and NOT per-note in-flow in `#idea`'s own
+  // registration either:
+  //
+  //   - In-flow in `#idea`'s registration: ANY added per-note element
+  //     there, even a content-free dummy `#metadata(..)`, broke Typst's
+  //     5-pass introspection convergence — on `demo/notes` (note-style
+  //     citations) and on the real waterline build (1767 pages, "document
+  //     did not converge within five attempts" / "failed to resolve
+  //     cross-link" on `template.typ`'s `show FNK: ..`).
+  //   - Bare at this bundle-root scope: every ligament value this package
+  //     attaches carries real content (a note's `title`, `body`) inside its
+  //     dict, and Typst refuses any content — even nested inside an
+  //     otherwise-inert `#metadata(..)` dict — directly at bundle root:
+  //     "text/ref/smartquote/elem is not allowed at the top-level in
+  //     bundle export", the same constraint `dup-warnings` above works
+  //     around by staying pure data up here and rendering only once a real
+  //     page exists. So each record's ligaments are emitted inside THAT
+  //     record's own minted page — a genuine `#document` (`rheo-document`,
+  //     below) — not bare at bundle root, and not inside the original
+  //     vertebra's own rendering.
+  //
+  // `page:` throughout `_idea-ligaments` is `rec.origin` — the OWNING
+  // VERTEBRA's handle, never a note id and never THIS minted page's own
+  // handle. Confirmed against `_handle-title(origin, ..)`'s use further
+  // down in this file (expects a vertebra handle) and against rheo's own
+  // harvest (`crates/core/src/build.rs`'s `known_handles`, built from
+  // `virtual_spine.vertebrae` ONLY — a marrow-minted page is never a
+  // member, so a ligament keyed on a minted page's own handle is silently
+  // dropped as "malformed", MEASURED via the harvest's own `dropped=N`
+  // warning). A minted page is rebuilt alongside the vertebra that wrote
+  // its note, so attributing its ligaments to `rec.origin` is correct, not
+  // a compromise — and it is why this can still live in the MINTED page's
+  // markup while naming a DIFFERENT page (`rec.origin`) as `page:`: nothing
+  // requires the element doing the emitting to sit on the page it emits
+  // for.
+
   // NOTE backlinks: the inverse of every note's recorded outbound links.
   let backlinks = (:)
   for (src, rec) in registry.pairs() {
@@ -163,6 +205,14 @@
         if not pred(trec.at("tags", default: (:))) { continue }
         let seen = backlinks.at(target, default: ())
         if src not in seen { backlinks.insert(target, seen + (src,)) }
+        // LIGAMENTS: a matched note's body is transcluded
+        // into the window this selector expanded, so the vertebra HOLDING
+        // the window (`rec.origin` — the note's own OWNING page, never
+        // `src`, a note id) depends on that body. `page:` explicit, since
+        // marrow runs outside any vertebra's own `#context`.
+        if rec.origin != none {
+          _bind(_LIG-IDEA-BODY + target, page: rec.origin)
+        }
       }
     }
   }
@@ -178,6 +228,15 @@
       if target not in registry { continue }
       let seen = page-backlinks.at(target, default: ())
       if handle not in seen { page-backlinks.insert(target, seen + (handle,)) }
+      // LIGAMENTS: `_page-links()` reads the
+      // `<rookery-page-links>` beacon outline.typ's `_page-links-beacon`
+      // already publishes per vertebra, final here — so this is the SAME
+      // vertebra-level outbound-link data the beacon carries, picked up at
+      // bundle root rather than bound in-flow on the vertebra's own page
+      // (which MEASURED the same convergence failure the long banner above
+      // describes). One `idea:<x>` bind per target, on the vertebra that
+      // carries the link.
+      _bind(_LIG-IDEA + target, page: handle)
     }
   }
 
@@ -260,6 +319,15 @@
     // project's template can wrap the WHOLE page — heading, body and footer —
     // and see exactly what a vertebra's own `#show:` would.
     let page = [
+      // LIGAMENTS: this record's whole emission (`idea:<id>`, `ideas`,
+      // `idea-body:<id>`, `tag:<t>`, `backlinks:<x>` attaches, their
+      // matching binds, and this note's own `backlinks:<id>` bind) — all
+      // keyed `page: rec.origin`, the OWNING VERTEBRA, never this minted
+      // page's own handle. See the LIGAMENTS banner above the NOTE-backlinks
+      // loop for why it is emitted HERE, inside this record's own minted
+      // page, rather than bare at bundle root or in-flow on the vertebra's
+      // own rendering.
+      #_idea-ligaments(id, rec)
       // Names this page's modes for CSS, same element and same
       // `data-rookery="mode"` selector template.typ's own pages carry — see
       // `footnote-mode`/`citation-mode` above for why this one reads the
