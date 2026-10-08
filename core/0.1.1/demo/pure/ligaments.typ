@@ -32,13 +32,18 @@
 // output):
 //   typst compile --features html --format html --root ../.. ligaments.typ build/ligaments.html
 
-#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _ligament-rec, _ligament-body, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view
+#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _ligament-rec, _ligament-body, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window
 
+// `raw`/`body` deliberately DIFFER — `#idea`'s own `body: _flatten(raw)`
+// never produces identical content to its input, but a fixture where both
+// happen to read the same would not catch an attach that quietly carried
+// `body` instead of `raw`. The `idea-body:` assertion below checks against
+// `raw` by value for exactly that reason.
 #let etal = (
   title: [Etal],
   label: "etal",
   raw: [Etal body text.],
-  body: [Etal body text.],
+  body: [Etal body text. (flattened)],
   created: none,
   origin: "page-a",
   links: (),
@@ -99,7 +104,10 @@
   // edit changes this value, not the record `idea:<id>`/`ideas` carry.
   let body-etal = by-key(attaches, "idea-body:idea:etal")
   assert.eq(body-etal.len(), 1)
-  assert.eq(type(body-etal.first().value), content)
+  assert.eq(
+    body-etal.first().value, etal.raw,
+    message: "idea-body: must carry raw, not the flattened body",
+  )
 
   // One `tag:<t>` attach per tag a note carries, valued with the note's id.
   assert.eq(by-key(attaches, "tag:post").len(), 1)
@@ -233,6 +241,52 @@
 // one.
 #idea("ligament-note")[Placeholder.]
 
+// A REAL `#window` nested inside a ligament-sourced `raw`, proving `_body-at`
+// re-`_flatten`s at whatever depth it is asked for now that `raw` ships
+// through ligaments — rather than, as before this change, returning the
+// SAME flattened body at any depth because ligaments never carried `raw` at
+// all. `win-nested-target` is a live idea so the nested `#window` has a real
+// record to resolve; `nested-host` is never itself live-registered, only
+// reconstructed by `_reg-merge` from a hand-built `idea-body:` attach, the
+// same way `idea:b` is below.
+#idea("win-nested-target")[Target prose. <nested-target-marker>]
+
+#let nested-host-ligaments = (
+  attaches: (
+    ideas: (
+      (page: "other-vertebra", value: (
+        title: [Nested Host],
+        label: "nested-host",
+        created: none,
+        origin: "other-vertebra",
+        links: (),
+        tags: (:),
+        tag-links: (),
+        display: (:),
+        id: "idea:nested-host",
+      )),
+    ),
+    "idea-body:idea:nested-host": (
+      (page: "other-vertebra", value: [Outer prose. #window("win-nested-target")]),
+    ),
+  ),
+)
+
+// Displayed here, OUTSIDE the assertion `#context` below, for the reason
+// `ideas-view`'s own scenarios already carry a banner for: querying what a
+// statement just realized, in the SAME `#context` pass that realizes it,
+// sees a not-yet-converged result (MEASURED there). `<nested-target-marker>`
+// is asserted on, by count, once both depths below have had a chance to
+// converge.
+#context {
+  let nested-host-rec = _reg-merge(nested-host-ligaments).at("idea:nested-host")
+  // depth 1: collapses to a link — the target's body is never embedded.
+  _body-at("idea:nested-host", nested-host-rec, depth: 1)
+  // depth 3: budget to spare — the target's body (and its marker) is
+  // embedded in full.
+  _body-at("idea:nested-host", nested-host-rec, depth: 3)
+}
+
 #context {
   // (a) EQUIVALENCE: ligaments supplied but describing no notes at all must
   // leave an ordinary build completely unaffected — the branch every
@@ -279,7 +333,7 @@
         (page: "other-vertebra", value: stale-a),
         (page: "other-vertebra", value: ligament-b),
       ),
-      "idea-body:idea:b": ((page: "other-vertebra", value: [B's flattened body.]),),
+      "idea-body:idea:b": ((page: "other-vertebra", value: [B's raw prose.]),),
     ),
   )
   let merged = _reg-merge(ligaments)
@@ -291,40 +345,43 @@
   assert.eq(merged.at("idea:b").title, [B, known only to ligaments])
   // `_ligament-rec` strips the `id` field `_idea-ligaments`'s `lig-rec` added
   // for `"ideas"` enumeration — a reconstructed record must not be tellable
-  // apart from a live one by key set alone.
+  // apart from a live one by key set alone, except that it now carries
+  // `raw` (folded in from the SEPARATE `idea-body:<id>` attach) where a live
+  // record would too.
   assert("id" not in merged.at("idea:b"), message: "_ligament-rec must strip the id field back out")
-  // Neither `raw` nor `body` ship through ligaments (see state.typ's own
-  // banner on `_ligament-rec`) — a reconstructed record carries neither key
-  // at all, until a caller that actually needs the body fetches it.
+  assert.eq(
+    merged.at("idea:b").raw, [B's raw prose.],
+    message: "_ligament-rec must fold the idea-body: attach back in as raw",
+  )
+  // No cached `body`: deriving the flattened form needs `_flatten`
+  // (transclusion.typ), which state.typ cannot import — see `_ligament-rec`'s
+  // own banner. A caller that needs it flattens `raw` itself (`_body-at`,
+  // below).
   assert("body" not in merged.at("idea:b"))
-  assert("raw" not in merged.at("idea:b"))
 
-  // `_ligament-body` — fetched SEPARATELY, only when asked for.
-  assert.eq(_ligament-body("idea:b", override: ligaments), [B's flattened body.])
+  // `_ligament-body` — fetches the SAME raw value, on its own.
+  assert.eq(_ligament-body("idea:b", override: ligaments), [B's raw prose.])
   assert.eq(
     _ligament-body("idea:nowhere", override: ligaments),
     none,
     message: "a key ligaments carry nothing under must answer none, not panic or ()",
   )
 
-  // `_body-at` — the one place that actually fetches a ligament-sourced
-  // body, and only there. `depth <= 1` returns it as-is; `depth > 1` has no
-  // `raw` to re-`_flatten` for a ligament-sourced note (ligaments never
-  // carry it), so it falls back to the SAME flattened body rather than
-  // crashing — this package's one accepted limitation for a note
-  // transcluded from a vertebra that did not run this pass: that note's OWN
-  // nested windows do not unfurl any further than depth 1.
-  let rec-no-body = merged.at("idea:b")
-  assert.eq(_body-at("idea:b", rec-no-body, depth: 1, ligaments: ligaments), [B's flattened body.])
-  assert.eq(
-    _body-at("idea:b", rec-no-body, depth: 3, ligaments: ligaments),
-    [B's flattened body.],
-    message: "depth > 1 with no ligament-carried raw must fall back to the flattened body, not panic",
-  )
   // A LIVE record (body/raw both present, from `#idea` above) is completely
-  // unaffected by any of this — the ligament fallback is never reached.
+  // unaffected by any of this.
   let live-a = reg-no-ligaments.at("idea:a")
   assert.eq(_body-at("idea:a", live-a, depth: 1), live-a.body)
+
+  // `_body-at` at two different depths over a ligament-sourced `raw`
+  // containing a nested `#window`, displayed above: `win-nested-target`'s
+  // own direct `#idea(..)` rendering puts the marker in the document once;
+  // the depth-1 display adds no more (link only); the depth-3 display adds
+  // exactly one more (the window actually expanded). Two, not one or
+  // three, is the only count consistent with the two depths differing.
+  assert.eq(
+    query(<nested-target-marker>).len(), 2,
+    message: "a nested window inside a ligament-sourced raw must expand only at a depth that allows it",
+  )
 
   // `_page-links()`: on a narrowed compile the live beacon/mark
   // queries see only THIS pass's own vertebra, so a page-level outbound edge
@@ -358,9 +415,10 @@
     message: "a label nothing in this compile carries must answer false, not panic",
   )
 
-  // (c) A TRANSCLUDED BODY CARRYING ITS OWN HEADING AND LABEL, reconstructed
-  // from ligaments (no `raw`, only a flattened `body`) and rendered through
-  // `_window-content` exactly as a real `#window` on a ligament-only note
+  // (c) A TRANSCLUDED BODY CARRYING ITS OWN HEADING AND LABEL — a hand-built
+  // body passed straight to `_window-content` (not reconstructed via
+  // `_reg-merge`, so `raw`/`body` are beside the point here) — rendered
+  // exactly as a real `#window` on a ligament-only note
   // would — alongside ANOTHER heading alias sharing the same label name, to
   // provoke the heading/label collision directly rather than assume its
   // behavior. REPORTED, not asserted: see the paragraph following this

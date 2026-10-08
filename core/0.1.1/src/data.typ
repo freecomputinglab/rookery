@@ -398,18 +398,12 @@
         // LIGAMENTS section of .marrow.typ (and `_idea-ligaments` in
         // state.typ) for the `idea-body:` ligament key this field's presence
         // is meant to track.
-        // LIGAMENTS: a ligament-sourced record carries no `raw` at all (only
-        // its owning vertebra ever had it) — `_ligament-body(id)` substitutes
-        // the ALREADY-FLATTENED `idea-body:<id>` attach instead. Plain-text
-        // extraction over the flattened form is a close approximation, not
-        // identical to walking `raw` (a nested window already collapsed to
-        // its permalink reads as that permalink, not its own body) — accepted
-        // rather than also shipping `raw` through ligaments, which
-        // `_idea-ligaments` (state.typ) does not do.
+        // LIGAMENTS: a ligament-sourced record now carries `raw` the same
+        // way a live one does (`_ligament-rec`, state.typ) — the
+        // `idea-body:<id>` attach IS `raw`, not the flattened form, so
+        // walking it here reads identically to a live row's.
         ..if body {
-          let r = rec.at("raw", default: none)
-          let r = if r != none { r } else { _ligament-body(id) }
-          (body: _body-plain-with(r, ref-text))
+          (body: _body-plain-with(rec.raw, ref-text))
         } else { (:) },
         href: _note-href(id, handle: handle),
         page: _note-path(id),

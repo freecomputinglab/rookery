@@ -602,23 +602,20 @@
       // nothing but the work.
       //
       // `depth == 2` reuses the record's already-flattened body rather than
-      // re-flattening at the same budget: `rec.body` IS `_flatten(raw)` at
-      // depth 1, computed once at registration. NOT a call to `_body-at`
-      // (defined further down this file, after `_flatten` — and `_body-at`
-      // itself calls `_flatten`, so the two cannot reference each other
-      // without a `#let` forward-reference, which a `#let` closure's
-      // definition-time scope capture does not allow; see lib.typ's own
-      // ordering banner) — the same two-way branch instead, inlined, and
-      // LIGAMENT-AWARE the same way: ligaments never carry `raw` (see
-      // `_body-at`'s own comment), so a ligament-sourced note (no `body`/
-      // `raw` key on `rec` at all) nested deeper than depth 2 falls back to
-      // its flattened `idea-body:<id>` ligament rather than re-flattening
-      // from scratch — a note transcluded from an unvisited vertebra does
-      // not unfurl its OWN nested windows any further than depth 1.
-      let inner = if "body" not in rec and "raw" not in rec {
-        _ligament-body(id)
-      } else if depth == 2 {
-        rec.body
+      // re-flattening at the same budget, where there is one: a LIVE
+      // record's `rec.body` IS `_flatten(raw)` at depth 1, computed once at
+      // registration. A ligament-sourced record carries `raw` but no cached
+      // `body` (see `_ligament-rec`, state.typ — deriving it there needs
+      // `_flatten`, which state.typ cannot import without a cyclic import),
+      // so it flattens fresh here instead — the one place that needs it,
+      // the one place that pays for it. NOT a call to `_body-at` (defined
+      // further down this file, after `_flatten` — and `_body-at` itself
+      // calls `_flatten`, so the two cannot reference each other without a
+      // `#let` forward-reference, which a `#let` closure's definition-time
+      // scope capture does not allow; see lib.typ's own ordering banner) —
+      // the same two-way branch instead, inlined.
+      let inner = if depth == 2 {
+        rec.at("body", default: _flatten(rec.raw))
       } else {
         _flatten(rec.raw, depth: depth - 1)
       }
@@ -661,30 +658,20 @@
 //
 // Must be called from inside `context`: `.final()` on both states.
 //
-// `id` is new: a ligament-sourced `rec` (state.typ's `_reg-final()`) carries
-// neither `body` nor `raw` — fetching a ligament-sourced note's body is
-// deliberately NOT done inside `_reg-final()` itself, so every caller that
-// never renders a note's body never pays for fetching it; this is the one
-// place that actually does need it, so it is the one place that fetches it,
-// via `_ligament-body(id)`. No ligament-carried `raw` exists at all (the
-// LIGAMENTS section of .marrow.typ / `_idea-ligaments` in state.typ attach
-// only the already-flattened body), so a ligament-sourced
-// note returns that SAME flattened body AT ANY DEPTH — there is nothing to
-// re-`_flatten`, which is equivalent to that note's OWN nested windows not
-// unfurling any further than depth 1, regardless of the enclosing scope's
-// budget. A live `rec` (body/raw both present) is completely unaffected:
-// this whole branch is never reached for one, and takes the ordinary
-// depth-gated path below exactly as it always has.
-// `ligaments: auto` forwards to `_ligament-body` for the same reason it
-// exists there — `auto` (every production call site) reads the real
-// `sys.inputs`; a concrete value is `demo/pure/ligaments.typ`'s READ-SIDE
-// tests alone.
+// A ligament-sourced `rec` (state.typ's `_reg-final()`) carries `raw` the
+// same way a live one does (`_ligament-rec`, state.typ) — just no cached
+// `body`, since deriving it there would need `_flatten`, which state.typ
+// cannot import without a cyclic import (this file already imports
+// state.typ). So this is the one place that fetches/derives it: `d <= 1`
+// falls back to flattening `raw` fresh when there is no cache to reuse,
+// which is `_flatten(raw, depth: 1)` either way — same answer a live
+// record's cached `body` already holds, just computed here instead of at
+// registration. `id`/`ligaments` are unused now that every `rec` reaching
+// this function (via `_reg-final()`) already carries its own `raw` —
+// kept on the signature for call-site stability (window.typ,
+// `demo/pure/ligaments.typ`).
 #let _body-at(id, rec, depth: auto, ligaments: auto) = {
   let d = if depth == auto { _window-depth.final() } else { depth }
-  let body = rec.at("body", default: none)
-  let raw = rec.at("raw", default: none)
-  if body == none and raw == none {
-    return _ligament-body(id, override: ligaments)
-  }
-  if d <= 1 { body } else { _flatten(raw, depth: d) }
+  let raw = rec.raw
+  if d <= 1 { rec.at("body", default: _flatten(raw)) } else { _flatten(raw, depth: d) }
 }

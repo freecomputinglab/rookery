@@ -597,8 +597,12 @@
   let _ = lig-rec.remove("body")
   _attach(_LIG-IDEA + id, lig-rec, page: origin)
   _attach(_LIG-IDEAS, lig-rec, page: origin)
-  // The raw body, its own key, so a prose-only edit changes only this.
-  _attach(_LIG-IDEA-BODY + id, rec.at("body", default: none), page: origin)
+  // The raw body, its own key, so a prose-only edit changes only this —
+  // RAW, not the flattened `body`, so a narrowed compile's nested windows
+  // can re-flatten at whatever depth the enclosing scope asks for, exactly
+  // as a live record's `raw` already lets them (see `_body-at`,
+  // transclusion.typ).
+  _attach(_LIG-IDEA-BODY + id, rec.at("raw", default: none), page: origin)
   // One `tag:<t>` attach per tag this note carries.
   for t in rec.at("tags", default: (:)).keys() {
     _attach(_LIG-TAG + t, id, page: origin)
@@ -665,12 +669,20 @@
   l.at("attaches", default: (:)).at(key, default: ())
 }
 
-// One note's body, reconstructed from its `idea-body:<id>` attach alone —
-// `none` when ligaments carry nothing under that key. First entry only: a
-// note attaches its own body exactly once, on its one owning vertebra. Kept
-// SEPARATE from `_ligament-rec` below so a caller that never renders a
-// ligament-sourced note's body (a tag listing, a title-only row) never pays
-// for fetching it.
+// One note's RAW body, reconstructed from its `idea-body:<id>` attach alone
+// — `none` when ligaments carry nothing under that key. First entry only: a
+// note attaches its own raw exactly once, on its one owning vertebra. Also
+// called from `_ligament-rec` below, which folds the result into `raw` on
+// every merged record — cheap (one more dict lookup on an already-resolved
+// ligaments value), unlike flattening it, which no caller pays for until it
+// actually asks for a body.
+//
+// RAW, not flattened: `_idea-ligaments` now attaches `rec.raw`, so this
+// returns the same value a live record's own `raw` field holds, and a
+// caller that needs the flattened form derives it with `_flatten` itself
+// (transclusion.typ, where that function lives — state.typ cannot import
+// it without a cyclic import, since transclusion.typ already imports
+// state.typ).
 #let _ligament-body(id, override: auto) = {
   let hits = _lig-get(_LIG-IDEA-BODY + id, override: override)
   if hits == none or hits.len() == 0 { none } else { hits.first().value }
@@ -681,11 +693,20 @@
 // value shape). `value` is `_idea-ligaments`'s `lig-rec`: a live record minus
 // `raw`/`body`, plus an explicit `id` field added only so `"ideas"` could be
 // enumerated — stripped back out here so a reconstructed record cannot be
-// told apart from a live one by key set alone. No `body`/`raw` key at all;
-// see `_ligament-body` for why that is separate rather than fetched here.
-#let _ligament-rec(entry) = {
+// told apart from a live one by key set alone, except for `raw`: that comes
+// back from the SEPARATE `idea-body:<id>` attach, via `_ligament-body`, and
+// is folded in here so a caller of `_reg-final()`/`_reg-merge` gets a record
+// whose `raw` reads the same way whether it came from this pass or a
+// ligament. No `body` key: deriving the flattened form needs `_flatten`
+// (transclusion.typ), which state.typ cannot import without a cyclic import
+// (transclusion.typ already imports state.typ) — so a caller that needs the
+// flattened body flattens `raw` itself, exactly where `_flatten` already
+// lives (see `_body-at`, transclusion.typ).
+#let _ligament-rec(entry, ligaments) = {
   let rec = entry.value
+  let id = rec.id
   let _ = rec.remove("id", default: none)
+  rec.raw = _ligament-body(id, override: ligaments)
   rec
 }
 
@@ -727,7 +748,7 @@
   for entry in hits {
     let id = entry.value.id
     if id not in merged {
-      merged.insert(id, _ligament-rec(entry))
+      merged.insert(id, _ligament-rec(entry, ligaments))
     }
   }
   merged
