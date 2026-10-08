@@ -162,6 +162,9 @@
 // `body: false` on the unfiltered scenario keeps it from also binding every
 // id in the corpus — otherwise it would collide with the `body: false`
 // scenario's own absence check below.
+// `_ideas-binds` emits nothing without a page handle, which rheo sets per
+// vertebra; stand one in.
+#state("rheo-handle").update("iv-page")
 #context ideas-view(body: false, rows => [Unfiltered marker. <iv-marker-a>])
 // `tagged:` narrows to a `tag:<t>` bind, never the aggregate, and still
 // binds the surviving row's body under the default `body: true`.
@@ -186,6 +189,10 @@
   assert.eq(
     binds.filter(b => b.key == "idea-body:idea:iv-nobody").len(), 0,
     message: "body: false must bind no idea-body key at all",
+  )
+  assert(
+    binds.any(b => b.key == "idea:idea:iv-nobody"),
+    message: "a query binds each returned row's record, body or not",
   )
 
   // `fn`'s own content is actually present in the realized document, not

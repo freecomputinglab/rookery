@@ -128,7 +128,7 @@
 // same way: a PDF prints every slip, `reveal:` or not, since there is no
 // camera there to have arrived at one.
 
-#import "@rookery/core:0.1.1": window
+#import "@rookery/core:0.1.1": window, _ideas-binds
 #import "tags.typ": *
 #import "select.typ": *
 
@@ -475,6 +475,22 @@
     edges: edges,
   )
 
+  // Named `slips:` go through an unfiltered registry read, and `where:` or a
+  // function `tags:` is an opaque predicate: all three bind the aggregate.
+  let ids = entries.filter(e => e.kind == "row").map(e => e.row.id)
+  let named-slips = slips != none and slips.any(s => type(s) == str or type(s) == label)
+  let binds = if slips == none {
+    if type(tags) == function or where != none {
+      _ideas-binds(filter: if where != none { where } else { tags }, ids: ids)
+    } else {
+      _ideas-binds(tagged: tags, ids: ids)
+    }
+  } else if named-slips {
+    _ideas-binds(ids: ids)
+  } else {
+    []
+  }
+
   if target() != "html" {
     // PAGED (PDF): no camera, no deck, nothing to click — the ideas render
     // exactly as they would outside a slipshow, in the resolved order.
@@ -502,6 +518,7 @@
       "data-reveal": if reveal { "progressive" } else { "all" },
     ),
     {
+      binds
       // This deck's own name-to-id map, built ONCE rather than per section:
       // `_edge-ids` needs it for every slide, and only `"row"` entries can be
       // pointed at — a `"content"` entry has no registry row and therefore no

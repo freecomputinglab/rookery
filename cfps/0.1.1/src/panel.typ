@@ -13,7 +13,7 @@
 // package meet on that one key.
 
 #import "cfp.typ": *
-#import "@rookery/core:0.1.1": ideas
+#import "@rookery/core:0.1.1": ideas, _ideas-binds
 #import "@rookery/timeline:0.1.1": deadline-of, scheduled-of
 #import "@rookery/todos:0.1.1": priority-of, priority-rung
 
@@ -145,6 +145,10 @@
     // non-zero priorities among these rows, largest (most important) first.
     let scale = rows.map(r => r.priority).filter(p => p > 0).dedup().sorted().rev()
 
+    // The unfiltered `all` read binds the `ideas` aggregate, which covers the
+    // tagged read too.
+    let binds = _ideas-binds(ids: rows.map(r => r.id))
+
     // PAGED: no anchor to click and no grid to align, so the rows become a plain
     // Typst list.
     if target() != "html" {
@@ -163,7 +167,7 @@
     }
 
     if rows.len() == 0 {
-      return html.elem("p", attrs: (class: "round-empty"), empty)
+      return html.elem("p", attrs: (class: "round-empty"), empty) + binds
     }
 
     // The state rides on the list because one rule needs it: the first row's date
@@ -287,7 +291,7 @@
           },
         ))
         .join(),
-    )
+    ) + binds
   }
   panel
 }

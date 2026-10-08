@@ -541,17 +541,21 @@
 
 // The binds one `ideas-view` query implies. `filter`/`index` are opaque
 // predicates, so they bind the `ideas` aggregate like an unfiltered query;
-// `tagged` binds `tag:<t>` per tag under either `match`. Each returned row
-// also binds its `idea-body:<id>` unless `body: false`.
+// `tagged` binds `tag:<t>` per tag under either `match` — membership only, so
+// each returned row also binds `idea:<id>` (title, tag values) and, unless
+// `body: false`, `idea-body:<id>`. Off a vertebra (a paged build) there is no
+// page handle to bind on, so this emits nothing.
 // An empty array's `.join()` is `none`, not empty content.
 #let _join-content(arr) = if arr.len() == 0 { [] } else { arr.join() }
 #let _ideas-binds(tagged: none, filter: none, index: none, ids: (), body: true, page: auto) = {
   let p = if page != auto { page } else { state("rheo-handle").get() }
+  if type(p) != str { return [] }
   let out = if filter != none or index != none or tagged == none {
     _bind(_LIG-IDEAS, page: p)
   } else {
     _join-content(_norm-tags(tagged).keys().map(t => _bind(_LIG-TAG + t, page: p)))
   }
+  out += _join-content(ids.map(id => _bind(_LIG-IDEA + id, page: p)))
   if body {
     out += _join-content(ids.map(id => _bind(_LIG-IDEA-BODY + id, page: p)))
   }

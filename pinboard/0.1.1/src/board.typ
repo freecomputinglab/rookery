@@ -13,7 +13,7 @@
 // rule-width:, border-color:, ..)` — core emits those onto the window itself.
 // This package draws only the shell that puts the window somewhere on the
 // board.
-#import "@rookery/core:0.1.1": ideas, window
+#import "@rookery/core:0.1.1": ideas, window, _ideas-binds
 
 // `id:` names THIS board, becoming `data-pinboard="<id>"` on the container —
 // the storage key a saved layout keys on. `notes:` is an explicit array of
@@ -40,7 +40,11 @@
     layout == "stack" or layout == "flow",
     message: "@rookery/pinboard: `layout:` must be \"stack\" or \"flow\", got " + repr(layout),
   )
+  // Only the fallback below runs its own `ideas()` query and is bound here —
+  // a caller passing `notes:` explicitly already ran its own query and binds
+  // it at its own call site.
   let rows = if notes != none { notes } else { ideas() }
+  let binds = if notes == none { _ideas-binds(ids: rows.map(r => r.id)) } else { [] }
   html.elem(
     "div",
     attrs: (class: "pinboard", "data-pinboard": id, "data-pinboard-layout": layout),
@@ -56,5 +60,5 @@
         )
       }
     },
-  )
+  ) + binds
 }

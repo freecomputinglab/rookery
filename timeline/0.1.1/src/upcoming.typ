@@ -49,7 +49,7 @@
 // and nothing else here imports rookery at all. Keep the three in step: a spec
 // naming a version the cache cannot resolve fails with a bare "package not found"
 // that says nothing about which file asked for it.
-#import "@rookery/core:0.1.1": idea-row, ideas
+#import "@rookery/core:0.1.1": idea-row, ideas, _ideas-binds
 
 // ---- when-of — which entry dates a row -------------------------------------
 //
@@ -298,6 +298,8 @@
     within: within,
     limit: limit,
   )
+  // `shown` is the name/label only, so no body is bound.
+  let binds = _ideas-binds(tagged: tags, filter: filter, ids: rows.map(r => r.id), body: false)
 
   // PAGED FIRST. A PDF or EPUB page has no anchor to click and no grid to align, so
   // the same rows render as an ordinary Typst list — the same fallback every view in
@@ -334,10 +336,11 @@
   }
 
   if rows.len() == 0 {
-    return html.elem("p", attrs: (class: "upcoming-empty"), empty)
+    return html.elem("p", attrs: (class: "upcoming-empty"), empty) + binds
   }
 
   html.elem("div", attrs: (class: "upcoming"), {
+    binds
     // A `<div>`, NOT AN `<hN>`, and that is the point of it: this labels the list
     // sitting under it and must claim no place in the page's outline, where it would
     // outrank the real headings around it.

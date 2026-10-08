@@ -19,7 +19,7 @@
 // `_panel-shell` — the chrome this widget and `#panel` share. `lib.typ` imports
 // `panel.typ` ahead of this file, but a module resolves its own imports.
 #import "panel.typ": *
-#import "@rookery/core:0.1.1": idea-row, ideas
+#import "@rookery/core:0.1.1": idea-row, ideas, _ideas-binds
 
 // SHORT AND NUMERIC, matching @rookery/timeline's own `_fmt-day` exactly —
 // `27.8.26`, unpadded — so a site running both packages' lists on one page does not
@@ -229,6 +229,10 @@
 
   let hay = if haystack != none { haystack } else { _row-haystack }
 
+  // Only the fallback below runs its own `ideas()` query and is bound here —
+  // a caller passing `rows:` explicitly already ran its own query and binds
+  // it at its own call site.
+  let used-own-query = rows == none
   let rows = if rows != none { rows } else { ideas(tagged: tag, values: true) }
 
   // THE ORDER `order:` NAMES, UNDATED LAST EITHER WAY — see that argument for why this
@@ -243,6 +247,8 @@
   let dated = (if order == "soonest" { asc } else { asc.rev() }).map(e => e.row)
   let undated = stamped.filter(e => e.stamp == none).map(e => e.row)
   let rows = dated + undated
+  // `data-panel-text` below renders the row's body text, so this binds it too.
+  let binds = if used-own-query { _ideas-binds(tagged: tag, ids: rows.map(r => r.id)) } else { [] }
 
   // DERIVED OR AUTHORED, and after this line the rest of the function cannot tell:
   // `auto` is the sorted union of what the listed rows carry (sorted for build
@@ -379,5 +385,5 @@
     noun: noun,
     empty: empty,
     sync: sync,
-  )
+  ) + binds
 }
