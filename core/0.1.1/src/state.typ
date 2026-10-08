@@ -539,6 +539,25 @@
   [#metadata((page: p, key: key)) <rheo-ligament:bind>]
 }
 
+// The binds one `ideas-view` query implies. `filter`/`index` are opaque
+// predicates, so they bind the `ideas` aggregate like an unfiltered query;
+// `tagged` binds `tag:<t>` per tag under either `match`. Each returned row
+// also binds its `idea-body:<id>` unless `body: false`.
+// An empty array's `.join()` is `none`, not empty content.
+#let _join-content(arr) = if arr.len() == 0 { [] } else { arr.join() }
+#let _ideas-binds(tagged: none, filter: none, index: none, ids: (), body: true, page: auto) = {
+  let p = if page != auto { page } else { state("rheo-handle").get() }
+  let out = if filter != none or index != none or tagged == none {
+    _bind(_LIG-IDEAS, page: p)
+  } else {
+    _join-content(_norm-tags(tagged).keys().map(t => _bind(_LIG-TAG + t, page: p)))
+  }
+  if body {
+    out += _join-content(ids.map(id => _bind(_LIG-IDEA-BODY + id, page: p)))
+  }
+  out
+}
+
 // One record's whole ligament emission — every `idea:`/`idea-body:`/`tag:`/
 // `backlinks:` attach and bind this package makes for a single registry
 // entry, PLUS its own minted page's `backlinks:<id>` bind. Factored out of

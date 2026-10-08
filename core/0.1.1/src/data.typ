@@ -434,6 +434,20 @@
     })
 }
 
+// `ideas-view` — `ideas()` plus the binds its query implies, which `ideas()`
+// cannot emit itself (see the LIGAMENTS comment above it). `fn` renders the
+// rows; its content and the binds return together. Pass `fn` positionally.
+#let ideas-view(tagged: none, match: "any", filter: none, sort: auto, index: none, values: false, body: true, fn) = {
+  let rows = ideas(tagged: tagged, match: match, filter: filter, sort: sort, index: index, values: values, body: body)
+  fn(rows) + _ideas-binds(
+    tagged: tagged,
+    filter: filter,
+    index: index,
+    ids: rows.map(r => r.id),
+    body: body,
+  )
+}
+
 //   #context tag-data()   // -> ("idea:etal": (phd: none, priority: 1), ..)
 //
 // The whole tag dictionary of every registered note, keyed by full note id.

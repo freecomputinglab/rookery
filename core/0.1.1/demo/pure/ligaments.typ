@@ -32,7 +32,7 @@
 // output):
 //   typst compile --features html --format html --root ../.. ligaments.typ build/ligaments.html
 
-#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _ligament-rec, _ligament-body, _body-at, _page-links, _label-exists, _window-content, idea
+#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _ligament-rec, _ligament-body, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view
 
 #let etal = (
   title: [Etal],
@@ -137,6 +137,64 @@
   assert.eq(binds.filter(x => "idea:no-origin" in repr(x)).len(), 0)
 
   [ligaments: #attaches.len() attach(es), #binds.len() bind(s)]
+}
+
+// `ideas-view` (data.typ) — proves it joins `fn`'s rendered content with the
+// binds the query implies. Three disjoint ids/tags, one per scenario, so one
+// scenario's binds are never mistaken for another's below: `_bind`'s own
+// metadata carries only a key and a page, never which caller emitted it, so
+// isolating scenarios by key/tag is the only way to tell them apart. Uses
+// real `#idea(..)` registrations and `ideas-view`'s own `_reg-final()` query
+// path, not the hand-built `_idea-ligaments` records above.
+#idea("iv-unfiltered", tags: ("iv-unfiltered-tag",))[IV unfiltered body.]
+#idea("iv-tagged", tags: ("iv-filter-tag",))[IV tagged body.]
+#idea("iv-nobody", tags: ("iv-nobody-tag",))[IV no-body body.]
+
+// Each scenario emits its own content as its own top-level `#context` call,
+// same shape as `#_idea-ligaments(..)` above — NOT computed inside the one
+// `#context` that queries them below. A bind only exists for `query()` once
+// its content is actually realized in the document, and realizing it in the
+// SAME context invocation that then immediately queries it is one pass
+// behind: MEASURED, folding emission and query into one `#context` block
+// here made the very first assertion below fail on an early, not-yet-
+// converged pass, panicking before Typst's later passes could stabilize.
+//
+// `body: false` on the unfiltered scenario keeps it from also binding every
+// id in the corpus — otherwise it would collide with the `body: false`
+// scenario's own absence check below.
+#context ideas-view(body: false, rows => [Unfiltered marker. <iv-marker-a>])
+// `tagged:` narrows to a `tag:<t>` bind, never the aggregate, and still
+// binds the surviving row's body under the default `body: true`.
+#context ideas-view(tagged: "iv-filter-tag", rows => [Tagged marker. <iv-marker-b>])
+// `body: false` on a tagged query binds no `idea-body:` key at all.
+#context ideas-view(tagged: "iv-nobody-tag", body: false, rows => [No-body marker.])
+
+#context {
+  let binds = query(<rheo-ligament:bind>).map(e => e.value)
+  assert.eq(
+    binds.filter(b => b.key == "ideas").len(), 1,
+    message: "unfiltered ideas-view must bind the aggregate ideas key exactly once",
+  )
+  assert.eq(
+    binds.filter(b => b.key == "tag:iv-filter-tag").len(), 1,
+    message: "tagged ideas-view must bind tag:<t>",
+  )
+  assert.eq(
+    binds.filter(b => b.key == "idea-body:idea:iv-tagged").len(), 1,
+    message: "a tagged query with body: true must bind the surviving row's own body",
+  )
+  assert.eq(
+    binds.filter(b => b.key == "idea-body:idea:iv-nobody").len(), 0,
+    message: "body: false must bind no idea-body key at all",
+  )
+
+  // `fn`'s own content is actually present in the realized document, not
+  // just computed and discarded — the same trap the LIGAMENTS banner above
+  // `_ideas-binds` warns about for a dropped `_bind` call.
+  assert.eq(query(<iv-marker-a>).len(), 1, message: "ideas-view's return must carry fn's own content")
+  assert.eq(query(<iv-marker-b>).len(), 1, message: "ideas-view's return must carry fn's own content")
+
+  [ideas-view tests: OK]
 }
 
 // ---- THE READ SIDE: `_reg-final()` / `_reg-merge()` (src/state.typ) -------
