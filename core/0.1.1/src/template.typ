@@ -31,6 +31,8 @@
   bibliography,
   hyperlink-target-minted,
   syndicate,
+  show-parent-tag,
+  show-child-tag,
   index-page,
   display-context,
   display-backlinks,
@@ -136,6 +138,14 @@
   assert(
     type(syndicate) == bool,
     message: "@rookery/core: `syndicate` must be a boolean — got " + repr(syndicate),
+  )
+  assert(
+    type(show-parent-tag) == bool,
+    message: "@rookery/core: `show-parent-tag` must be a boolean — got " + repr(show-parent-tag),
+  )
+  assert(
+    type(show-child-tag) == bool,
+    message: "@rookery/core: `show-child-tag` must be a boolean — got " + repr(show-child-tag),
   )
   assert(
     type(index-page) == bool,
@@ -585,6 +595,8 @@
   refs: true,
   hyperlink-target-minted: true,
   syndicate: false,
+  show-parent-tag: true,
+  show-child-tag: true,
   index-page: true,
   display: (:),
   display-context: auto,
@@ -675,6 +687,8 @@
     bibliography,
     hyperlink-target-minted,
     syndicate,
+    show-parent-tag,
+    show-child-tag,
     index-page,
     display.context,
     display.backlinks,
@@ -738,6 +752,8 @@
   // `_ => f`, not `f` — see `_idea-page-template`.
   _idea-page-template.update(_ => idea-page-template)
   _syndicate.update(syndicate)
+  _show-parent-tag.update(show-parent-tag)
+  _show-child-tag.update(show-child-tag)
   _index-page.update(index-page)
   _display-context.update(display.context)
   _display-backlinks.update(display.backlinks)

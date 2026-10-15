@@ -107,7 +107,7 @@
 // so a nested/expanded window keeps its own block regardless of what the
 // enclosing group decided — the group setting is a `#window` call-site
 // concern, not an expansion one.
-#let _window-content(id, rec, shown, folded, display, foldable: true, reserve-title: true, windows-claim: false, rest: none, refs: true) = {
+#let _window-content(id, rec, shown, folded, display, foldable: true, reserve-title: true, windows-claim: false, rest: none, refs: true, relation: none) = {
   // Resolves `auto` against document-wide state — covers both `#window`
   // leaving a key unset and a WK marker from an older rookery version,
   // which carries no `display` key at all (`_flatten`'s WK rule passes
@@ -206,6 +206,7 @@
         } else { () },
         date: date,
         display-name: display.name,
+        relation: relation,
       ) + title-span,
     )
     // `open` is a BOOLEAN html attribute: present means present and there is no

@@ -142,6 +142,7 @@
   // that note's Backlinks with pages nobody wrote a link on. It does NOT stop
   // the announce marker being emitted — see the marker itself below.
   backlink: true,
+  relation: none,
   unfurl: auto,
   tagged: none,
   match: "any",
@@ -151,6 +152,8 @@
   filter: none,
   sort: auto,
 ) = {
+  assert(relation in (none, "parent", "child"),
+    message: "@rookery/core: #window's `relation` must be none, \"parent\" or \"child\" — got " + repr(relation))
   assert(
     unfurl == auto or (type(unfurl) == int and unfurl >= 0),
     message: "@rookery/core: #window's `unfurl` must be auto or a non-negative "
@@ -472,7 +475,7 @@
     // its links must not read as links from whatever page is showing it.
     _bracket(
       figure(kind: WK, supplement: none, [
-        #marker#_window-content(id, rec, split.shown, folded, display, foldable: foldable, reserve-title: reserve-title, windows-claim: d > 1, rest: split.rest, refs: not combine-bib)
+        #marker#_window-content(id, rec, split.shown, folded, display, foldable: foldable, reserve-title: reserve-title, windows-claim: d > 1, rest: split.rest, refs: not combine-bib, relation: relation)
       ]),
       WK,
     )

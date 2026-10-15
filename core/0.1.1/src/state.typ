@@ -210,12 +210,17 @@
 
 // Whether `.marrow.typ` should pull a note's `from:` parents, and the ideas
 // produced from it (the inverse of `from:`), into its Backlinks list on each
-// minted note page, each marked with a "parent"/"child" chip. Same DEFAULT ON
-// reasoning and binding/key naming split as `_display-context`/
-// `_display-backlinks` above — two more answers to "what sits beside this
-// note in the graph", not a separate feature with different defaults.
+// minted note page. Same DEFAULT ON reasoning and binding/key naming split as
+// `_display-context`/`_display-backlinks` above — two more answers to "what
+// sits beside this note in the graph", not a separate feature with different
+// defaults.
 #let _display-parents = state("rheo-idea-show-parents", true)
 #let _display-children = state("rheo-idea-show-children", true)
+
+// Whether a parent/child window in a minted note's Backlinks wears a
+// "parent"/"child" pill in its hat. Default on, like the rows themselves.
+#let _show-parent-tag = state("rheo-idea-show-parent-tag", true)
+#let _show-child-tag = state("rheo-idea-show-child-tag", true)
 
 // Whether this vertebra harvests the backlink graph at all — each note's
 // outbound links at registration and the page's own links. `false` is

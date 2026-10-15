@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.1": _registry, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-parents, _display-children, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _norm-tags, _excluded-ids, _fn-block
+#import "@rookery/core:0.1.1": _registry, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-parents, _display-children, _display-title, _show-parent-tag, _show-child-tag, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _norm-tags, _excluded-ids, _fn-block
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
@@ -112,6 +112,8 @@
   let display-parents = _display-parents.final()
   let display-children = _display-children.final()
   let display-title = _display-title.final()
+  let show-parent-tag = _show-parent-tag.final()
+  let show-child-tag = _show-child-tag.final()
   // Resolved HERE, in the one context that already resolves every other
   // document-wide key, and handed to `_handle-title` as a plain string — that
   // function is package scope with no context of its own (see its banner).
@@ -711,8 +713,9 @@
 
         // Parents and Children are a SPECIAL KIND OF BACKLINK, not an
         // ordinary one — a `from:` antagonism, not a link written in prose —
-        // so they are listed first within Backlinks, each marked with a
-        // "parent"/"child" chip, rather than argued into ordinary backlinks
+        // so they are listed first within Backlinks, each window wearing a
+        // "parent"/"child" pill in its hat (when `show-parent-tag`/
+        // `show-child-tag` allow), rather than argued into ordinary backlinks
         // by coincidence of also being linked in prose. Parents answers "what
         // was this produced out of": the ids `#idea`'s own `from:` resolved,
         // read straight off this note's record. Children answers the inverse
@@ -732,17 +735,16 @@
         let plain-back = if not use-backlinks { () } else { back.filter(b => b not in marked) }
         let gated-back-pages = if not use-backlinks { () } else { back-pages }
 
-        let marker(role) = html.elem(
-          "span", attrs: (class: _c("relation") + " " + _c("relation-" + role), data-rookery: "relation"), role)
-        let relation-row(bare-id, role) = html.elem(
-          "div", attrs: (class: _c("relation-row"), data-rookery: "relation-row", data-relation: role),
-          marker(role) + window((bare-id,), folded: true, unfurl: 1))
+        let relation-window(bare-id, role) = window(
+          (bare-id,), folded: true, unfurl: 1,
+          relation: if (role == "parent" and show-parent-tag) or (role == "child" and show-child-tag) { role } else { none },
+        )
 
         let backlinks-part = if (
           parents.len() == 0 and children.len() == 0 and plain-back.len() == 0 and gated-back-pages.len() == 0
         ) { [] } else {
-          let parent-rows = parents.map(p => relation-row(p.trim(_pfx(), at: start), "parent")).join()
-          let child-rows = children.map(c => relation-row(c.trim(_pfx(), at: start), "child")).join()
+          let parent-rows = parents.map(p => relation-window(p.trim(_pfx(), at: start), "parent")).join()
+          let child-rows = children.map(c => relation-window(c.trim(_pfx(), at: start), "child")).join()
           // FOLDED and `unfurl: 1`, always: a backlink list is an index of what
           // points here, and a reader following one wants to see which notes
           // those are before reading any of them in full. `unfurl` is pinned

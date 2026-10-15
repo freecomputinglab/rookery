@@ -157,7 +157,7 @@
 // out EMPTY, and `[data-rookery="tab"]:empty` in that stylesheet is what stops
 // an empty one taking up a line — the same trick `h*.idea:empty` plays for a
 // titleless note's heading.
-#let _permalink-tab(id, href: auto, tags: (), date: none, display-name: true) = html.elem(
+#let _permalink-tab(id, href: auto, tags: (), date: none, display-name: true, relation: none) = html.elem(
   "span",
   attrs: (class: _c("tab"), data-rookery: "tab"),
   {
@@ -174,6 +174,9 @@
             attrs: (class: _c("tag") + " " + _c("tag-" + t), data-rookery: "tag") + _tags-attr((t,)),
             t,
           )).join()
+        })
+        + (if relation == none { [] } else {
+          html.elem("span", attrs: (class: _c("relation") + " " + _c("relation-" + relation), data-rookery: "relation"), relation)
         })
         + (if date == none { [] } else { html.elem("span", attrs: (class: _c("date"), data-rookery: "date"), date) })
     )
