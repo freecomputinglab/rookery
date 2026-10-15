@@ -713,6 +713,12 @@
 // (transclusion.typ already imports state.typ) — so a caller that needs the
 // flattened body flattens `raw` itself, exactly where `_flatten` already
 // lives (see `_body-at`, transclusion.typ).
+//
+// Takes the whole ligaments dictionary as an argument, so Typst hashes it in
+// full (every note's raw body included) to memoise the call — fine for
+// `_reg-merge`'s explicit-override path below, which runs at most once per
+// compile, but ruinous called once per note from a hot path with the real
+// `sys.inputs.rheo-ligaments`: `_LIG-RECS` inlines this same lookup instead.
 #let _ligament-rec(entry, ligaments) = {
   let rec = entry.value
   let id = rec.id
@@ -730,16 +736,26 @@
 // branch below; otherwise a dictionary `id -> record`, built from the
 // `ideas` aggregate the same way `_reg-merge` walks it, duplicate ids
 // keeping the FIRST occupant — the same `if id not in merged` rule.
+//
+// The loop inlines `_ligament-rec`/`_ligament-body`'s lookups instead of
+// calling them, so neither ever takes the whole ligaments dictionary as an
+// argument: a call like that hashes every note's raw body to memoise it, on
+// every one of about 1,100 notes.
 #let _LIG-RECS = {
   let ligaments = sys.inputs.at("rheo-ligaments", default: none)
   if ligaments == none {
     none
   } else {
+    let attaches = ligaments.at("attaches", default: (:))
     let recs = (:)
-    for entry in ligaments.at("attaches", default: (:)).at(_LIG-IDEAS, default: ()) {
-      let id = entry.value.id
+    for entry in attaches.at(_LIG-IDEAS, default: ()) {
+      let rec = entry.value
+      let id = rec.id
       if id not in recs {
-        recs.insert(id, _ligament-rec(entry, ligaments))
+        let _ = rec.remove("id", default: none)
+        let hits = attaches.at(_LIG-IDEA-BODY + id, default: ())
+        rec.raw = if hits.len() == 0 { none } else { hits.first().value }
+        recs.insert(id, rec)
       }
     }
     recs
