@@ -582,23 +582,23 @@ figure:has(> [data-rookery="page-list"]),
 }
 
 /* ---- The footer of a minted note page ------------------------------------
-   Up to four sections of equal standing, any of which may be absent:
+   Up to two sections of equal standing, either of which may be absent:
 
      data-rookery="context"    the page the note was written in, linked to the
                                note's own anchor there — the way back to the
                                argument it was written inside, which a minted
                                page strips away;
-     data-rookery="backlinks"  the notes that point AT this one, as folded windows;
-     data-rookery="parents"    the ideas this one was produced `from:`, as folded
-                               windows — a `from:` antagonism, not an ordinary
-                               link, so it gets its own section rather than
-                               folding into Backlinks;
-     data-rookery="children"   the inverse of Parents: the ideas produced FROM
-                               this one.
+     data-rookery="backlinks"  everything that points at this note: its
+                               `from:` parents first, then the ideas produced
+                               FROM it, each as a folded window marked with a
+                               "parent"/"child" chip (`data-rookery="relation"`),
+                               then every ordinary backlink (a note or page
+                               linking here in prose) not already listed as a
+                               parent or child.
 
    They share a markup shape (heading first, then content) and every rule
-   below, because they are four answers to the same question about where a
-   note sits, not one main thing and three afterthoughts.
+   below, because they are two answers to the same question about where a
+   note sits, not one main thing and an afterthought.
 
    Ruled off and set small: apparatus, not part of the note. The date colour is
    reused rather than given a knob of its own, since both are the same kind of
@@ -679,6 +679,53 @@ figure:has(> [data-rookery="page-list"]),
 
 [data-rookery="footer"] [data-rookery="page-row"] {
   font-size: calc(1em / var(--_footer-scale, 0.85));
+}
+
+/* A marked Backlinks entry (a `from:` parent or child, see `[data-rookery="relation"]`
+   below): the chip sits on the window's own summary line rather than above
+   it, so the row reads as one line naming both the relation and the note.
+   `align-items: baseline` lines the chip's text up with the summary's text
+   rather than its box. The window takes the remaining width so its own
+   summary can still ellipsis/wrap the way an unmarked entry's does. */
+[data-rookery="relation-row"] {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+}
+
+/* The chip sits inside Typst's own wrapping `<p>` (the inline content before
+   the block-level window), which otherwise brings its own margin. */
+[data-rookery="relation-row"] > p {
+  margin: 0;
+}
+
+/* The window itself sits in its own `<figure>` (Typst's own wrapping of a
+   block element following inline content), not as a direct child of the row
+   — this targets that figure rather than `[data-rookery="window"]` itself. */
+[data-rookery="relation-row"] > figure {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+/* The "parent"/"child" chip itself: the same pill shape a tag wears
+   (`[data-rookery="tag"]`, above), through its own `--idea-relation-*`
+   properties so a project can retint the chip without retinting every tag —
+   each falls back to the matching `--idea-tag-*` property, so a project that
+   never touches the new properties gets a chip that matches its tags. Muted
+   like a window's date rather than coloured per-target: the chip answers
+   "what kind of pointer is this", not "which note does it point to". Text is
+   emitted lowercase ("parent"/"child") and shown as emitted, no transform. */
+[data-rookery="relation"] {
+  display: inline-block;
+  line-height: 1;
+  font-family: var(--idea-relation-font, var(--idea-label-font, monospace));
+  letter-spacing: 0.03em;
+  border-radius: var(--idea-relation-radius, var(--idea-tag-radius, 999px));
+  padding: var(--idea-relation-pad, 0 0.5em);
+  font-size: var(--idea-relation-size, var(--idea-tag-size, 0.85em));
+  color: var(--idea-date-color, gray);
+  white-space: nowrap;
 }
 
 /* A bottomed-out window's tab — pills and date above its link, when the window

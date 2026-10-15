@@ -709,7 +709,40 @@
             page-list((link(context-dest, _handle-title(origin, mode: page-titles)),)))
         }
 
-        let backlinks-part = if not use-backlinks or (back.len() == 0 and back-pages.len() == 0) { [] } else {
+        // Parents and Children are a SPECIAL KIND OF BACKLINK, not an
+        // ordinary one — a `from:` antagonism, not a link written in prose —
+        // so they are listed first within Backlinks, each marked with a
+        // "parent"/"child" chip, rather than argued into ordinary backlinks
+        // by coincidence of also being linked in prose. Parents answers "what
+        // was this produced out of": the ids `#idea`'s own `from:` resolved,
+        // read straight off this note's record. Children answers the inverse
+        // — "what was produced out of this" — from `produced-from`, built
+        // above next to `backlinks`.
+        let parents = if not use-parents { () } else { rec.at("from", default: ()) }
+        let children = if not use-children { () } else { produced-from.at(id, default: ()) }
+        // One id per group, kept in its first (highest) group: a note that is
+        // both a parent and an ordinary backlink (its body also links here in
+        // prose) is listed once, as a parent — `from:` is the more specific
+        // claim about the relationship.
+        let marked = parents + children.filter(c => c not in parents)
+        // `use-backlinks` gates ONLY the ordinary, unmarked half of this
+        // section — a parent or child still appears with `display-backlinks:
+        // false`, because that flag answers "does this note's body get
+        // backlinked", not "does its `from:` graph get shown".
+        let plain-back = if not use-backlinks { () } else { back.filter(b => b not in marked) }
+        let gated-back-pages = if not use-backlinks { () } else { back-pages }
+
+        let marker(role) = html.elem(
+          "span", attrs: (class: _c("relation") + " " + _c("relation-" + role), data-rookery: "relation"), role)
+        let relation-row(bare-id, role) = html.elem(
+          "div", attrs: (class: _c("relation-row"), data-rookery: "relation-row", data-relation: role),
+          marker(role) + window((bare-id,), folded: true, unfurl: 1))
+
+        let backlinks-part = if (
+          parents.len() == 0 and children.len() == 0 and plain-back.len() == 0 and gated-back-pages.len() == 0
+        ) { [] } else {
+          let parent-rows = parents.map(p => relation-row(p.trim(_pfx(), at: start), "parent")).join()
+          let child-rows = children.map(c => relation-row(c.trim(_pfx(), at: start), "child")).join()
           // FOLDED and `unfurl: 1`, always: a backlink list is an index of what
           // points here, and a reader following one wants to see which notes
           // those are before reading any of them in full. `unfurl` is pinned
@@ -727,8 +760,8 @@
           // inside it, which is exactly what the pinned `0` meant before. `0`
           // now means "no transclusion at all", which would turn this whole
           // list into bare links — the regression to watch for here.
-          let note-rows = if back.len() == 0 { [] } else {
-            window(back.map(b => b.trim(_pfx(), at: start)), folded: true, unfurl: 1)
+          let note-rows = if plain-back.len() == 0 { [] } else {
+            window(plain-back.map(b => b.trim(_pfx(), at: start)), folded: true, unfurl: 1)
           }
           // Pages come after the notes: a note is the more specific answer to
           // "what points here", and a page entry means only that the link was
@@ -741,43 +774,23 @@
           // `index.html` from `ideas/rookery.html`, one level short. A nested
           // context resolves after `rheo-document` has published this page's
           // own handle, which is why `#window`'s permalinks were right all along.
-          let page-rows = if back-pages.len() == 0 { [] } else {
-            page-list(back-pages.map(handle => context {
+          let page-rows = if gated-back-pages.len() == 0 { [] } else {
+            page-list(gated-back-pages.map(handle => context {
               let href = _page-href(handle, here: page-at.handle)
               let shown = _handle-title(handle, mode: page-titles)
               if href == none { shown } else { link(href, shown) }
             }))
           }
-          section(_c("backlinks"), "backlinks", [Backlinks], note-rows + page-rows)
+          section(_c("backlinks"), "backlinks", [Backlinks], parent-rows + child-rows + note-rows + page-rows)
         }
 
-        // Parents and Children are a SPECIAL KIND OF BACKLINK, not an
-        // ordinary one — a `from:` antagonism, not a link written in prose —
-        // so each gets its own section beside Backlinks rather than folding
-        // into it. Parents answers "what was this produced out of": the
-        // ids `#idea`'s own `from:` resolved, read straight off this note's
-        // record. Children answers the inverse — "what was produced out of
-        // this" — from `produced-from`, built above next to `backlinks`.
-        // Both render exactly like Backlinks' own note list: folded,
-        // `unfurl: 1`, for the same reason given there.
-        let parents = rec.at("from", default: ())
-        let parents-part = if not use-parents or parents.len() == 0 { [] } else {
-          section(_c("parents"), "parents", [Parents],
-            window(parents.map(p => p.trim(_pfx(), at: start)), folded: true, unfurl: 1))
-        }
-        let children = produced-from.at(id, default: ())
-        let children-part = if not use-children or children.len() == 0 { [] } else {
-          section(_c("children"), "children", [Children],
-            window(children.map(c => c.trim(_pfx(), at: start)), folded: true, unfurl: 1))
-        }
-
-        if context-part != [] or backlinks-part != [] or parents-part != [] or children-part != [] {
+        if context-part != [] or backlinks-part != [] {
           html.elem(
             "footer",
             // Themed in its own right: the footer is a SIBLING of the <h1>
             // above, not a descendant, so it inherits nothing from it.
             attrs: _themed((class: _c("footer"), data-rookery: "footer")),
-            context-part + backlinks-part + parents-part + children-part,
+            context-part + backlinks-part,
           )
         }
       }

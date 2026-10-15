@@ -208,9 +208,9 @@
 // binding/key naming split as `_display-context`, for the same reason.
 #let _display-backlinks = state("rheo-idea-show-backlinks", true)
 
-// Whether `.marrow.typ` should render the Parents section (the ideas this one
-// was produced `from:`) and the Children section (the ideas produced from
-// this one, the inverse of `from:`) on each minted note page. Same DEFAULT ON
+// Whether `.marrow.typ` should pull a note's `from:` parents, and the ideas
+// produced from it (the inverse of `from:`), into its Backlinks list on each
+// minted note page, each marked with a "parent"/"child" chip. Same DEFAULT ON
 // reasoning and binding/key naming split as `_display-context`/
 // `_display-backlinks` above — two more answers to "what sits beside this
 // note in the graph", not a separate feature with different defaults.

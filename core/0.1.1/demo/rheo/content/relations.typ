@@ -59,7 +59,8 @@ A transcluded window of the same note:
 #idea(<negative-mathematics>, title: [Negative Mathematics],
   from: (<vienna-circle>, <frankfurt-school>))[
   Produced from the tension between the Vienna Circle's formal unity of
-  science and the Frankfurt School's critique of instrumental reason.
+  science and the Frankfurt School's critique of instrumental reason, picking
+  up the thread again after @idea:vienna-circle.
 ]
 
 #idea(<vienna-circle>, title: [The Vienna Circle])[

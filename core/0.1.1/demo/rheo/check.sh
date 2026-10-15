@@ -952,31 +952,39 @@ for t in todo phd; do
     note "tags.html has no data-rookery-filter-tag=\"$t\" pill"
 done
 
-# 38. `from:` — a produced idea's Parents section, its parents' Children
-#     section (the inverse map), and the absence of either section on a page
-#     with no `from:` relation at all. `content/relations.typ`'s
+# 38. `from:` — a produced idea's parents and its parents' children are
+#     merged into Backlinks, each marked with a `data-relation` chip, deduped
+#     against an ordinary prose backlink, and absent entirely on a page with
+#     no `from:` relation at all. `content/relations.typ`'s
 #     `negative-mathematics` is produced from `vienna-circle` and
 #     `frankfurt-school`, written before both — a forward reference `idea-key`
-#     must still resolve.
-grep -q '>Parents</h2>' "$H/ideas/negative-mathematics.html" ||
-  note "ideas/negative-mathematics.html has no Parents section"
+#     must still resolve — and its body also links `vienna-circle` in prose,
+#     so that parent must appear exactly once.
+footer() { sed -n '/<footer/,/<\/footer>/p' "$1"; }
 for parent in vienna-circle frankfurt-school; do
-  grep -qE "data-rookery=\"parents\">.*href=\"[^\"]*$parent\.html\"" "$H/ideas/negative-mathematics.html" ||
-    note "ideas/negative-mathematics.html's Parents section does not link $parent.html"
+  footer "$H/ideas/negative-mathematics.html" | grep -qE "data-relation=\"parent\">.*href=\"[^\"]*$parent\.html\"" ||
+    note "ideas/negative-mathematics.html's Backlinks has no parent row linking $parent.html"
 done
+# `vienna-circle` is both a `from:` parent and (now) an ordinary prose
+# backlink of `negative-mathematics` — the footer must list it once, as the
+# parent, not twice.
+count=$(footer "$H/ideas/negative-mathematics.html" | grep -c 'href="[^"]*vienna-circle\.html"')
+[ "$count" -eq 1 ] ||
+  note "ideas/negative-mathematics.html's footer links vienna-circle.html $count times, expected 1"
 for parent in vienna-circle frankfurt-school; do
-  grep -q '>Children</h2>' "$H/ideas/$parent.html" ||
-    note "ideas/$parent.html has no Children section"
-  grep -qE 'data-rookery="children">.*href="[^"]*negative-mathematics\.html"' "$H/ideas/$parent.html" ||
-    note "ideas/$parent.html's Children section does not link negative-mathematics.html"
+  footer "$H/ideas/$parent.html" | grep -qE 'data-relation="child">.*href="[^"]*negative-mathematics\.html"' ||
+    note "ideas/$parent.html's Backlinks has no child row linking negative-mathematics.html"
 done
-# `pinned` carries no `from:` relation in either direction, so neither section
-# should be emitted at all — not emitted blank.
-for section in Parents Children; do
-  if grep -q ">$section</h2>" "$H/ideas/pinned.html"; then
-    note "ideas/pinned.html has a $section section with no from: relation to show"
+for page in negative-mathematics vienna-circle frankfurt-school; do
+  if grep -qE '>Parents</h2>|>Children</h2>' "$H/ideas/$page.html"; then
+    note "ideas/$page.html still has a separate Parents or Children section"
   fi
 done
+# `pinned` carries no `from:` relation in either direction, so Backlinks (if
+# emitted at all) has no relation row.
+if grep -q 'data-rookery="relation-row"' "$H/ideas/pinned.html"; then
+  note "ideas/pinned.html has a relation row with no from: relation to show"
+fi
 
 if [ "$fail" -ne 0 ]; then
   echo "demo/rheo: FAILED"
