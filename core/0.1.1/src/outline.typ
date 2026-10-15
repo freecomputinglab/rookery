@@ -231,6 +231,27 @@
   out
 }
 
+// Every page-level window's tag selector, keyed by the vertebra holding the
+// window: `handle -> array of (tagged: .., filtered: bool)`. Walks the same
+// `<rookery-window-mark>` query as `_page-links` above, but keeps
+// `backlink: false` markers — a derived view still renders the notes its
+// selector matches, so it still needs the bind `.marrow.typ` builds from this.
+#let _page-tag-selectors() = {
+  let out = (:)
+  for el in query(<rookery-window-mark>) {
+    let v = el.value
+    if type(v) != dictionary { continue }
+    let tagged = v.at("tagged", default: none)
+    if tagged == none { continue }
+    let handle = state("rheo-handle").at(el.location())
+    if type(handle) != str or not _is-vertebra(handle) { continue }
+    let seen = out.at(handle, default: ())
+    seen.push((tagged: tagged, filtered: v.at("filtered", default: false)))
+    out.insert(handle, seen)
+  }
+  out
+}
+
 // Typst's own `#outline()` can't see ideas: it lists `heading` elements, and
 // an idea only ever becomes one on the PAGED target (`heading(depth: level,
 // ...)`, inside `#idea`'s `else` branch) — never on html/epub, where the

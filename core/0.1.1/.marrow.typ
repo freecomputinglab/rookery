@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.1": _registry, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY
+#import "@rookery/core:0.1.1": _registry, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _norm-tags
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
@@ -235,8 +235,28 @@
       // bundle root rather than bound in-flow on the vertebra's own page
       // (which MEASURED the same convergence failure the long banner above
       // describes). One `idea:<x>` bind per target, on the vertebra that
-      // carries the link.
+      // carries the link. Also binds `idea-body:<target>`: a plain link and a
+      // transclusion look identical here, so both are bound rather than
+      // guessed — the same over-bind `_idea-ligaments` makes for a note-level
+      // link (state.typ).
       _bind(_LIG-IDEA + target, page: handle)
+      _bind(_LIG-IDEA-BODY + target, page: handle)
+    }
+  }
+
+  // A page-level window's tag selector binds the tags it selects, so a note
+  // gaining or losing one recompiles the page: `tag:<t>` per selected tag, or
+  // the `ideas` aggregate for a `filtered` selector, whose predicate nobody
+  // can inspect from here.
+  for (handle, selectors) in _page-tag-selectors() {
+    for sel in selectors {
+      if sel.filtered {
+        _bind(_LIG-IDEAS, page: handle)
+      } else {
+        for t in _norm-tags(sel.tagged).keys() {
+          _bind(_LIG-TAG + t, page: handle)
+        }
+      }
     }
   }
 
