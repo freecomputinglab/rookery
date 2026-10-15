@@ -407,6 +407,11 @@
         } else { (:) },
         href: _note-href(id, handle: handle),
         page: _note-path(id),
+        // The OWNING VERTEBRA's handle, `none` outside a rheo compile — see
+        // `origin` in idea.typ. Unconditional, like every field above:
+        // `@rookery/search`'s bundle-root marrow attaches a row's cached
+        // terms under this handle so a narrowed rebuild can find them again.
+        origin: rec.at("origin", default: none),
         created: rec.at("created", default: none),
         // The projection's own fields, merged LAST so a spec cannot silently
         // shadow a row field — `tag-index` refuses those names outright, and

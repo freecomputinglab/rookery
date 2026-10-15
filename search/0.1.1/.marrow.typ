@@ -23,10 +23,30 @@
 // compresses inline as it always did. A miss there is only slower, never
 // different; a missing asset is why `mode: "asset"` needs rheo at all.
 #import "@rookery/search:0.1.1": (
-  _compress-corpus, _corpus-cache, _corpus-key, _date-stamp, _index-asset-path,
-  _rows-cache,
+  _cached-tokens, _compress-ranked, _corpus-cache, _corpus-key, _date-stamp,
+  _index-asset-path, _rows-cache,
 )
-#import "@rookery/core:0.1.1": ideas
+#import "@rookery/core:0.1.1": (ideas, _attach, _join-content, _lig-get)
+
+// This package's own ligament key, same vocabulary rules as
+// `@rookery/core`'s (`state.typ`'s `_LIG-*` banner): `search-row:<id>`, one
+// per note, carrying this build's compressed terms for that note AND the
+// plain-text `body` they were compressed from. `page:` is the row's own
+// `origin` (the OWNING VERTEBRA), never this file's own — bundle-root marrow
+// code has no page of its own to attach under.
+//
+// WHY A ROW CARRIES ITS OWN `body` ALONGSIDE `tokens`: `_tokenize` is a pure
+// function of a note's body alone, so this cache is sound ONLY while the
+// cached body still matches what `ideas()` returns for that id THIS compile
+// — and a note's body is not purely a function of its own raw text: it is
+// flattened against the WHOLE corpus's resolved titles (`_ref-text`, data.typ),
+// so a note that references another note whose title changed gets a
+// DIFFERENT body even though nothing in `rec.origin == id`'s own vertebra
+// moved. Comparing the actual materialized body string — not a `page:
+// matches the round's live vertebra` guess — catches that case for free: a
+// mismatch retokenizes, a match reuses. See the LIGAMENTS banner below for
+// why no cheaper, still-correct signal exists.
+#let _LIG-SEARCH-ROW = "search-row:"
 
 #context {
   // `page`, not `href`: `#note-path` is the site-root-relative output path and
@@ -44,11 +64,33 @@
     // Typst's convergence cannot be trusted to settle.
     let body-terms = 48
     let df-ceiling = 40
-    let terms = _compress-corpus(
-      rows.map(e => e.body),
-      body-terms: body-terms,
-      df-ceiling: df-ceiling,
-    )
+
+    // LIGAMENTS — the whole optimization this cache exists for: skip
+    // RE-TOKENIZING a note whose body this compile produces byte-identical
+    // to the one `search-row:<id>` cached last time it was attached. The
+    // df/tf-idf WEIGHTING below still runs over every note's tokens every
+    // compile (`_compress-ranked`, corpus-wide by construction — a changed
+    // note's terms can shift another note's document frequency, so that
+    // pass cannot be narrowed without risking a different index.json for an
+    // unrelated note). Only the regex-driven tokenize pass, which is a pure
+    // function of one note's own body, is skippable this way.
+    //
+    // `_lig-get` returns `none` on an ordinary full build (no ligaments
+    // supplied at all) or `()` on a narrowed compile where this id was never
+    // attached before (a brand-new note) — both fall through to a fresh
+    // `_tokenize`, exactly a full build's own behaviour.
+    let toks = rows.map(row => _cached-tokens(row.body, _lig-get(_LIG-SEARCH-ROW + row.id)))
+    let terms = _compress-ranked(toks, body-terms: body-terms, df-ceiling: df-ceiling)
+
+    // Re-attach every row's body and tokens under its own id, for the NEXT
+    // compile to read back. A row with no `origin` (no rheo compile, or a
+    // minted artifact with no owning vertebra) is skipped — there is no page
+    // to attribute the attach to, same guard `_idea-ligaments` applies.
+    _join-content(rows.enumerate().map(((i, row)) => {
+      if row.origin == none { return [] }
+      _attach(_LIG-SEARCH-ROW + row.id, (body: row.body, tokens: toks.at(i)), page: row.origin)
+    }))
+
     let by-id = (:)
     for (i, e) in rows.enumerate() { by-id.insert(e.id, terms.at(i)) }
     _corpus-cache.update(c => {

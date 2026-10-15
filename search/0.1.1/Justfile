@@ -16,7 +16,12 @@ parity:
 #
 # Assumes an already-installed tree, kept fast for the inner loop — `check`
 # is the recipe that guarantees the install first.
+#
+# `typst compile` for `test/units.typ` first: it has no JS dependency and
+# fails with a line number on its own, same contract as `@rookery/core`'s
+# `test:`. `--root .` so `/src/lib.typ` resolves against this package.
 test:
+    typst compile --features html --root . --format pdf test/units.typ /dev/null
     node --test test/*.test.mjs
 
 # Guarantees `pnpm install` before verification runs, unlike `test` above,
@@ -24,5 +29,6 @@ test:
 # checkout. Runs the unit suite and parity together, since both are
 # verification rather than a build step.
 check: build
+    typst compile --features html --root . --format pdf test/units.typ /dev/null
     node --test test/*.test.mjs
     node test/parity.mjs

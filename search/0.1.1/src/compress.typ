@@ -128,8 +128,45 @@
 // field this needs. DO NOT widen it back to rows: nothing fails, no test goes
 // red, and the build time is silently multiplied by the page count.
 #let _compress-corpus(bodies, body-terms: 48, df-ceiling: 40) = {
-  let n = bodies.len()
-  let toks = bodies.map(_tokenize)
+  _compress-ranked(bodies.map(_tokenize), body-terms: body-terms, df-ceiling: df-ceiling)
+}
+
+// The narrowed-rebuild cache decision, pure and independent of `sys.inputs`/
+// ligaments so a fixture can pin it directly: `hits` is whatever
+// `_lig-get("search-row:<id>")` returned for one note (`none` — no ligaments
+// supplied at all — or an array of `(page:, value:)` hits, `()` when this id
+// was never attached before). `body` is what `ideas()` returns for that id
+// THIS compile.
+//
+// Reuses the cached tokens ONLY when the cached `body` byte-matches `body`
+// exactly — not a `this id's vertebra wasn't recompiled this round` guess,
+// which `.marrow.typ`'s own banner explains is not sound on its own (a note's
+// body is flattened against the whole corpus's resolved titles, so a note
+// that never itself changed can still get a different body when something it
+// references does). Comparing the actual materialized string is what makes
+// this correct regardless of why the body changed or stayed the same:
+// `_tokenize` is a pure function of `body` alone, so an exact match means the
+// cached tokens are the ones a fresh `_tokenize(body)` would produce, and a
+// mismatch (or no cache at all) falls through to computing them for real.
+#let _cached-tokens(body, hits) = {
+  let cached = if hits == none or hits.len() == 0 { none } else { hits.first().value }
+  if cached != none and cached.at("body", default: none) == body {
+    cached.at("tokens")
+  } else {
+    _tokenize(body)
+  }
+}
+
+// The weighting half of `_compress-corpus`, split out so a caller holding
+// ALREADY-TOKENIZED bodies (a narrowed rebuild reusing a prior round's
+// `_tokenize` output for notes whose body did not change — see
+// `.marrow.typ`'s ligament cache) can skip `_tokenize` without skipping the
+// df/tf-idf pass, which is NOT per-note: `df` below is counted across every
+// `toks` entry, so this still has to see the WHOLE corpus's token lists every
+// call. `_compress-corpus` above is this function with the tokenize step
+// re-attached, unchanged in behaviour for every existing caller.
+#let _compress-ranked(toks, body-terms: 48, df-ceiling: 40) = {
+  let n = toks.len()
 
   // Document frequency: how many NOTES hold the term, counted once per note, not
   // once per occurrence — a `seen` set per note is what makes it a document
