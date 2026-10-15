@@ -687,9 +687,10 @@ figure:has(> [data-rookery="page-list"]),
    above), through its own `--idea-relation-*` properties so a project can
    retint the pill without retinting every tag — each falls back to the
    matching `--idea-tag-*` property, so a project that never touches the new
-   properties gets a pill that matches its tags. Muted like a window's date
-   rather than coloured per-target: the pill answers "what kind of pointer is
-   this", not "which note does it point to". Text is emitted lowercase
+   properties gets a pill that matches its tags' shape. White on black by
+   default (`--idea-relation-color`/`--idea-relation-bg`) rather than tinted
+   per tag, so it stands apart from the tag pills beside it: the pill answers
+   "what kind of pointer is this", not "which note does it point to". Text is emitted lowercase
    ("parent"/"child") and shown as emitted, no transform. Sized and clipped
    like the hat's own tag pills (`[data-rookery="tab"] > [data-rookery="tag"]`
    above) so it holds the hat's one-line height on a narrow viewport. */
@@ -701,7 +702,8 @@ figure:has(> [data-rookery="page-list"]),
   border-radius: var(--idea-relation-radius, var(--idea-tag-radius, 999px));
   padding: var(--idea-relation-pad, 0 0.5em);
   font-size: var(--idea-relation-size, var(--idea-tag-size, var(--idea-label-size, 0.57rem)));
-  color: var(--idea-date-color, gray);
+  color: var(--idea-relation-color, white);
+  background-color: var(--idea-relation-bg, black);
   white-space: nowrap;
   min-width: 0;
   overflow: hidden;
