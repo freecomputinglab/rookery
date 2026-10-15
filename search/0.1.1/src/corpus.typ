@@ -2,6 +2,7 @@
 // index, or the index itself inline — and the build-once cache the inline form
 // leans on.
 
+#import "@rookery/core:0.1.1": _ideas-binds
 #import "base.typ": *
 #import "compress.typ": *
 #import "lookup.typ": *
@@ -285,7 +286,10 @@
     })
     let island = json.encode(rows, pretty: false)
     _island-budget-report(island.len(), rows.len())
+    // Binds the notes this page just embedded, so a narrowed rebuild
+    // recompiles it when one of their records changes.
     return html.elem("script", attrs: (type: "application/json", id: elem-id), island)
+      + _ideas-binds(ids: pre.map(r => r.id), body: body-search)
   }
 
   let selected = search-ideas("", tags: tags, match: match).filter(e => e.href != none)
@@ -353,5 +357,8 @@
   if rows.len() == 0 { return }
   let island = json.encode(rows, pretty: false)
   _island-budget-report(island.len(), selected.len())
+  // Binds the selection this page just embedded (tag-scoped or not), so a
+  // narrowed rebuild recompiles it when one of those records changes.
   html.elem("script", attrs: (type: "application/json", id: elem-id), island)
+    + _ideas-binds(tagged: tags, ids: selected.map(e => e.id), body: body-search)
 }
