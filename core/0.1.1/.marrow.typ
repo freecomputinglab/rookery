@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.1": _registry, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-parents, _display-children, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _norm-tags, _excluded-ids
+#import "@rookery/core:0.1.1": _registry, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-parents, _display-children, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _norm-tags, _excluded-ids, _fn-block
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
@@ -852,7 +852,10 @@
         let l = _rec-label(rec, _ref-text(reg))
         if l == none or l == "" { slug } else { l }
       },
-      if tpl == none { page } else { tpl(id: id, note: rec, page) },
+      // Restarts the footnote/sidenote block counter (`_fn-block`, state.typ)
+      // at the start of this page, so a narrowed rebuild assigns the same ids
+      // a full build would.
+      _fn-block.update(0) + if tpl == none { page } else { tpl(id: id, note: rec, page) },
     )
   }
 
@@ -974,7 +977,10 @@
       handle: _dir() + ":index",
       format: "html",
       title: "Ideas",
-      if tpl == none { page } else { tpl(id: none, note: (:), page) },
+      // Restarts the footnote/sidenote block counter (`_fn-block`, state.typ)
+      // at the start of this page, so a narrowed rebuild assigns the same ids
+      // a full build would.
+      _fn-block.update(0) + if tpl == none { page } else { tpl(id: none, note: (:), page) },
     )
   }
 }

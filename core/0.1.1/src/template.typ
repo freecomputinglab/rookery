@@ -909,6 +909,10 @@
   // inside this one would double-wrap every citation in it — MEASURED, see
   // `_footnoted`'s banner. Inert (renders nothing) wherever `html.elem`
   // itself is, i.e. every non-html target, so this needs no target guard.
+  // Restarts the footnote/sidenote block counter at the start of this page
+  // (see `_fn-block`, state.typ) so a narrowed rebuild of a few pages assigns
+  // the same ids as a full build would.
+  _fn-block.update(0)
   show cite: _margin-cite
   if refs {
     show ref: hyperlink.with(hyperlink-target-minted: hyperlink-target-minted)

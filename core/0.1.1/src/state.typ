@@ -816,8 +816,11 @@
 
 // Stepped ONCE per rendered idea box. It exists only so two renderings of the
 // SAME body on one output page (its own `#idea`, plus a `#window` on it) get
-// distinct HTML ids. Document-wide and monotonic — uniqueness within a page is
-// all that is asked of it, so it never resets.
+// distinct HTML ids — uniqueness within a page is all that is asked of it.
+// Restarted to 0 at the start of every output page (the `rookery(..)` template
+// in template.typ, and both `rheo-document(..)` bodies in .marrow.typ), so a
+// narrowed rebuild of a few pages produces the same ids as a full build: each
+// page starts counting from the same place either way.
 #let _fn-block = counter("rheo-idea-fn-block")
 
 // There is no counter of any kind for the visible footnote number: it is not
