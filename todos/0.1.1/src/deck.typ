@@ -25,8 +25,10 @@
 // todos a single parent releases share a row in both.
 
 #import "@rookery/slipshow:0.1.1": slipshow
+#import "@rookery/core:0.1.1": _ideas-binds
 #import "graph.typ": *
 #import "tags.typ": *
+#import "target.typ": *
 
 // Zero-pads `s` with leading zeros to width `w`. Typst has no string-repeat
 // operator, and without this a deck of more than nine slips breaks `order`'s
@@ -179,5 +181,8 @@
   // `row:`/`order:`/`class:`/`edges:` overrides the derived one, and two
   // separate `..keys, ..named` spreads would instead be a duplicate-argument
   // error the moment a caller named any of the same keys.
-  slipshow(..(keys + named))
+  //
+  // `#slipshow` already binds what it queried; the graph's own order and
+  // edges come from the whole corpus, so the aggregate is bound here too.
+  slipshow(..(keys + named)) + (if _is-markup() { _ideas-binds(body: false) } else { [] })
 }

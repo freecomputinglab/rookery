@@ -17,7 +17,7 @@
 //     the whole project. @rookery/timeline resolves `today:` against the
 //     document date and panics when neither is available.
 
-#import "@rookery/core:0.1.1": window
+#import "@rookery/core:0.1.1": window, _ideas-binds
 #import "@rookery/timeline:0.1.1": timeline-tags, is-overdue, updated-of
 #import "target.typ": *
 #import "tags.typ": *
@@ -209,7 +209,18 @@
   if filter != none { rows = rows.filter(r => filter(r.tags-dict)) }
   rows = _by-priority(rows)
   if limit != none { rows = rows.slice(0, calc.min(limit, rows.len())) }
-  if windows { _windows(title, rows, [No todos.]) } else { _list(title, rows, [No todos.]) }
+  // Unfiltered: the graph (and any other note's dependency edges) can shift
+  // which rows this filter admits, not just the shown rows' own fields.
+  //
+  // MARKUP TARGETS ONLY. A combined PDF renders every vertebra into ONE
+  // shared document, where `state("rheo-handle")` is only meaningful while
+  // the CURRENT vertebra's own content is on the stream — a `windows: true`
+  // view transcludes another note's page inline ahead of this one and
+  // leaves that note's handle current, so a bind read here would attach to
+  // the wrong page. HTML and EPUB give every vertebra its own document and
+  // carry no such risk.
+  let binds = if _is-markup() { _ideas-binds(ids: rows.map(r => r.id), body: windows) } else { [] }
+  (if windows { _windows(title, rows, [No todos.]) } else { _list(title, rows, [No todos.]) }) + binds
 }
 
 // ---- #todos-ready — br `ready` ---------------------------------------------
@@ -222,13 +233,16 @@
   assert-acyclic(graph)
   let rows = _by-priority(all.filter(r => is-ready(r, graph, today: today)))
   if limit != none { rows = rows.slice(0, calc.min(limit, rows.len())) }
+  // Unfiltered: readiness depends on the whole dependency graph, not just the
+  // rows shown.
+  let binds = if _is-markup() { _ideas-binds(ids: rows.map(r => r.id), body: windows) } else { [] }
   // `extra:` is dropped on the windows path: `todo-row-ready` styles the
   // border-left of a flex row, and a window row is neither.
-  if windows {
+  (if windows {
     _windows(title, rows, [Nothing is ready.])
   } else {
     _list(title, rows, [Nothing is ready.], extra: ("todo-row-ready",))
-  }
+  }) + binds
 }
 
 // ---- #todos-blocked — br `blocked` -----------------------------------------
@@ -244,7 +258,10 @@
     all.filter(r => not r.closed and is-blocked(r, graph)),
   )
   let why = r => [blocked by #blockers-of(r, graph).join(", ")]
-  if windows {
+  // Unfiltered: a blocker's own title can change on a note this view never
+  // lists.
+  let binds = if _is-markup() { _ideas-binds(ids: rows.map(r => r.id), body: windows) } else { [] }
+  (if windows {
     _windows(title, rows, [Nothing is blocked.], trailing: why)
   } else {
     _list(
@@ -254,7 +271,7 @@
       extra: ("todo-row-blocked",),
       trailing: why,
     )
-  }
+  }) + binds
 }
 
 // ---- #todos-stale — br `stale` ---------------------------------------------
@@ -297,17 +314,19 @@
     stale(u)
   })
   let when = r => [last touched #touched(r).display("[year]-[month]-[day]")]
-  if windows {
-    _windows(title, _by-priority(rows), [Nothing is stale.], trailing: when)
+  let rows = _by-priority(rows)
+  let binds = if _is-markup() { _ideas-binds(ids: rows.map(r => r.id), body: windows) } else { [] }
+  (if windows {
+    _windows(title, rows, [Nothing is stale.], trailing: when)
   } else {
     _list(
       title,
-      _by-priority(rows),
+      rows,
       [Nothing is stale.],
       extra: ("todo-row-stale",),
       trailing: when,
     )
-  }
+  }) + binds
 }
 
 // ---- #todos-stats — br `stats` / `count` -----------------------------------
@@ -336,12 +355,15 @@
     if c > 0 { pairs.push((t, c)) }
   }
 
+  // Every total here is over the whole corpus, not a filtered subset.
+  let binds = if _is-markup() { _ideas-binds(ids: rows.map(r => r.id), body: false) } else { [] }
+
   if not _is-markup() {
     // `align(start)` for the same figure-centring reason as `_list` above.
     return align(start, {
       if title != none { strong(title); linebreak() }
       pairs.map(((key, value)) => text(gray, key) + " " + str(value)).join(", ")
-    })
+    }) + binds
   }
 
   let cell(k, v) = html.elem(
@@ -364,7 +386,7 @@
         pairs.map(((key, value)) => cell(key, value)).join(),
       )
     },
-  )
+  ) + binds
 }
 
 // ---- #todo-graph-view — the DAG, as a page element ------------------------
@@ -413,6 +435,10 @@
   let shown-names = rows.map(r => (r.name, true)).to-dict()
   let shown-deps(r) = r.deps.filter(d => d not in graph.nodes or d in shown-names)
 
+  // Unfiltered: an edge or a blocker status can point at a todo outside this
+  // slice.
+  let binds = if _is-markup() { _ideas-binds(ids: rows.map(r => r.id), body: false) } else { [] }
+
   // PAGED TARGET: there is no layout engine for a directed graph Typst-side
   // and no JavaScript to draw one, so the paged rendering IS the fallback list
   // the HTML branch already builds for readers with JS off. Same content, and
@@ -429,7 +455,7 @@
         let d = shown-deps(r)
         if d.len() > 0 { [ #text(gray, "depends on " + d.join(", "))] }
       }))
-    })
+    }) + binds
   }
 
   let stamp(d) = if d == none { none } else { d.display("[year][month][day]") }
@@ -499,5 +525,5 @@
           .join(),
       )
     },
-  )
+  ) + binds
 }

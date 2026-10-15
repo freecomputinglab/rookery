@@ -3,7 +3,7 @@
 #import "@rookery/core:0.1.1": idea, _merge-base-tags, _norm
 #import "@rookery/timeline:0.1.1": CLOSED-STAGE, dated
 #import "tags.typ": *
-#import "fields.typ": todo-blocked-by
+#import "fields.typ": todo-blocked-by, todo-dep-binds
 
 // A todo is a rookery note tagged `todo`, plus whatever `todo-tags` folds in.
 //
@@ -194,11 +194,15 @@
   // Two branches because a name is positional and Typst has no way to pass "no
   // positional argument here": an unnamed todo must be called with the body
   // alone, not with `none` in front of it, which `#idea` would read as the name.
-  if name == none {
+  let minted = if name == none {
     mint(timeline: log, tags: all-tags, ..args.named(), full)
   } else {
     mint(name, timeline: log, tags: all-tags, ..args.named(), full)
   }
+  // OUTSIDE `full`, deliberately: this is `#todo`'s own return value, shown
+  // exactly once, at the call site — see `todo-dep-binds`'s own comment for
+  // why its bind cannot ride inside the replayed body instead.
+  minted + todo-dep-binds(deps.map(_norm))
 }
 
 // ---- #done — the same close, as a factory --------------------------------

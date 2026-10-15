@@ -27,7 +27,7 @@
 // was the last thing on this panel a site had to maintain by hand. See `_tags-of`.
 
 #import "@rookery/search:0.1.1": facet-pill, panel
-#import "@rookery/core:0.1.1": idea-row-body
+#import "@rookery/core:0.1.1": idea-row-body, _ideas-binds
 #import "@rookery/timeline:0.1.1": deadline-of, scheduled-of, countdown, days-until
 #import "target.typ": *
 #import "tags.typ": *
@@ -385,6 +385,11 @@
       + "or an array of band numbers, as in `bands: (0,)` — got " + repr(bands),
   )
 
+  // A caller passing both `rows:` and `corpus:` already ran its own query and
+  // binds at its own call site; this function only reads the registry itself
+  // — through `todos()`, or through `all` standing in for the corpus — when
+  // one of the two is left `none`.
+  let bind-corpus = rows == none or corpus == none
   let all = if rows != none { rows } else { todos() }
   // THE GRAPH IS BUILT FROM THE CORPUS, not from the listed rows, and that is
   // load-bearing: a todo's blocker is very often closed, and a closed row dropped
@@ -657,6 +662,10 @@
     )
   }
 
+  let binds = if bind-corpus and _is-markup() {
+    _ideas-binds(ids: rows.map(r => r.id), body: false)
+  } else { [] }
+
   panel(
     rows: rows,
     facets: facets,
@@ -697,5 +706,5 @@
     haystack: haystack,
     sync: sync,
     render: draw,
-  )
+  ) + binds
 }

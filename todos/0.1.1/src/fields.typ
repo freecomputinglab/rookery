@@ -7,7 +7,9 @@
 //
 // HTML only: `html.elem` contributes nothing at all on a paged target, element
 // and children alike. That is the same trade every view here makes.
+#import "@rookery/core:0.1.1": _bind, _LIG-IDEA
 #import "graph.typ": *
+#import "target.typ": *
 
 // `deps` is an array of already-normalized handles. Blockedness is NOT derived
 // here: `blockers-of` is the one place that decides which of a todo's deps are
@@ -39,6 +41,34 @@
             .join(", "),
         )
       })
+    }
+  }
+}
+
+// Binds this todo's recompile to every dep it names that resolves to a real
+// note — OPEN OR CLOSED, since a dep closing or reopening changes what
+// `#todo-blocked-by` shows even on a run where the OPEN set itself does not
+// change.
+//
+// A SEPARATE FUNCTION from `#todo-blocked-by`, called once at `#todo`'s own
+// call site rather than folded into the note's transcluded body: that body
+// is replayed verbatim wherever the note is shown — inline at the call site
+// AND on the note's own minted page — and a minted page is never a member of
+// rheo's known vertebrae (core's own `_idea-ligaments` draws the same line,
+// for the same reason: see `state.typ`'s comment on `page: rec.origin`). A
+// bind read from inside the replayed body would, on the minted-page replay,
+// attach to a handle ligaments cannot resolve and get silently dropped as
+// malformed. Read once, at the call site, `state("rheo-handle")` names the
+// vertebra the call was WRITTEN in — rebuilding that vertebra is what
+// re-mints the note's page anyway.
+#let todo-dep-binds(deps) = if deps.len() > 0 {
+  context {
+    if _is-markup() and type(state("rheo-handle").get()) == str {
+      let graph = todo-graph()
+      deps
+        .filter(d => d in graph.nodes)
+        .map(d => _bind(_LIG-IDEA + graph.nodes.at(d).id))
+        .join()
     }
   }
 }

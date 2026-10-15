@@ -45,6 +45,7 @@
 // no JavaScript the rendering is the full readable list rather than an empty
 // container waiting to be filled.
 
+#import "@rookery/core:0.1.1": _ideas-binds
 #import "target.typ": *
 #import "tags.typ": *
 #import "graph.typ": *
@@ -157,9 +158,13 @@
   if not closed { rows = rows.filter(r => not r.closed) }
   rows = _by-priority(rows)
 
+  // Unfiltered: `ready`/`blocked` status is derived from the whole dependency
+  // graph, and the haystack carries each row's own body text.
+  let binds = if _is-markup() { _ideas-binds(ids: rows.map(r => r.id)) } else { [] }
+
   // A PDF has no input to type into, so it gets the plain list it already knows
   // how to render. Same branch every view here takes, for the same reason.
-  if not _is-markup() { return _list(title, rows, [No todos.]) }
+  if not _is-markup() { return _list(title, rows, [No todos.]) + binds }
 
   let statuses = rows.map(r => (r.name, _search-status(r, graph, today))).to-dict()
 
@@ -228,5 +233,5 @@
         rows.map(r => _search-row(r, statuses.at(r.name))).join(),
       )
     },
-  )
+  ) + binds
 }
