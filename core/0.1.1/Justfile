@@ -33,4 +33,8 @@ test:
     typst compile --features html --root . --format pdf test/units.typ /dev/null
     typst compile --features html --root . --format pdf --input rookery-exclude=c --input rookery-include=a test/inputs.typ /dev/null
     typst compile --features html --root . --format html demo/pure/ligaments.typ /dev/null
+    # Guards a prose citation written OUTSIDE any `#idea`/`#window`: it must
+    # still reach the rendered PDF, with its bibliography entry, rather than
+    # vanishing under `show ref: hyperlink`.
+    typst compile --features html --root . test/paged-cite.typ /tmp/rookery-paged-cite.pdf && pdftotext /tmp/rookery-paged-cite.pdf - | grep -q 'Mythical Man-Month'
     @echo "units OK"

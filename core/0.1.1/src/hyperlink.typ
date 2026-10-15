@@ -106,11 +106,16 @@
         let reg = _reg-final()
         let rec = reg.at(id, default: none)
         if rec == none {
-          // Neither resolvable here nor known to ligaments: fall through to
-          // `it.element`, which reproduces Typst's ordinary "label does not
-          // exist" panic for a genuine typo, unchanged from before ligament
-          // support.
-          it.element
+          // Neither resolvable here nor known to ligaments. Touching
+          // `it.element` reproduces Typst's ordinary "label does not exist"
+          // panic for a genuine typo, but a `ref` that resolved to a
+          // bibliography citation rather than a label has no element at
+          // all — `it.element` is `none` for it, and returning that would
+          // erase the citation (and its entry) instead of panicking. Hand
+          // such a `ref` back unchanged so Typst's own citation handling,
+          // and `_margin-cite` above it, see it exactly as `refs: false`
+          // would.
+          if it.element == none { it } else { it.element }
         } else {
           let named = _rec-label(rec, _ref-text(reg))
           let shown = if it.supplement != auto {
