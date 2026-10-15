@@ -19,7 +19,7 @@
 // `_panel-shell` — the chrome this widget and `#panel` share. `lib.typ` imports
 // `panel.typ` ahead of this file, but a module resolves its own imports.
 #import "panel.typ": *
-#import "@rookery/core:0.1.1": idea-row, ideas, _ideas-binds
+#import "@rookery/core:0.1.1": idea-row, ideas, _ideas-binds, _bind, _LIG-IDEA, _LIG-IDEA-BODY
 
 // SHORT AND NUMERIC, matching @rookery/timeline's own `_fmt-day` exactly —
 // `27.8.26`, unpadded — so a site running both packages' lists on one page does not
@@ -229,9 +229,11 @@
 
   let hay = if haystack != none { haystack } else { _row-haystack }
 
-  // Only the fallback below runs its own `ideas()` query and is bound here —
-  // a caller passing `rows:` explicitly already ran its own query and binds
-  // it at its own call site.
+  // The panel always binds the rows it renders (their records and bodies,
+  // since `data-panel-text` below reads both) — only the fallback below also
+  // runs its own `ideas()` query, so only that arm binds MEMBERSHIP (the tag
+  // or the `ideas` aggregate): a caller passing `rows:` ran its own query and
+  // owns that bind at its own call site.
   let used-own-query = rows == none
   let rows = if rows != none { rows } else { ideas(tagged: tag, values: true) }
 
@@ -248,7 +250,13 @@
   let undated = stamped.filter(e => e.stamp == none).map(e => e.row)
   let rows = dated + undated
   // `data-panel-text` below renders the row's body text, so this binds it too.
-  let binds = if used-own-query { _ideas-binds(tagged: tag, ids: rows.map(r => r.id)) } else { [] }
+  let binds = if used-own-query {
+    _ideas-binds(tagged: tag, ids: rows.map(r => r.id))
+  } else if type(state("rheo-handle").get()) == str {
+    let row-binds = rows.map(r => _bind(_LIG-IDEA + r.id) + _bind(_LIG-IDEA-BODY + r.id))
+    // An empty array's `.join()` is `none`, not empty content.
+    if row-binds.len() == 0 { [] } else { row-binds.join() }
+  } else { [] }
 
   // DERIVED OR AUTHORED, and after this line the rest of the function cannot tell:
   // `auto` is the sorted union of what the listed rows carry (sorted for build
