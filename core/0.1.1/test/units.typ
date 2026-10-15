@@ -109,20 +109,29 @@
 #assert.eq(_join(()), "")
 #assert.eq(_join(("a", "b")), "ab")
 
-// ---- #idea — the three legal positional shapes still compile ---------------
-// A name-carrying positional plus a body, a bare body, and named arguments
-// alone with no positionals at all, are the three shapes `#idea`'s own guard
-// (idea.typ) allows through. A third positional is rejected there and cannot
-// be pinned here as a regression, since Typst has no way to catch a panic
-// from inside a document — the negative case is a manual VERIFY instead.
-// Reaching the guard without it firing is the whole assertion: a wrong bound
-// there fails this compile just as loudly as a real three-positional call
-// would.
+// ---- #idea — the four legal positional shapes still compile ----------------
+// A name-carrying positional plus a body, a bare body, named arguments alone
+// with no positionals at all, and a name with no body, are the four shapes
+// `#idea`'s own guard (idea.typ) allows through. A third positional is
+// rejected there and cannot be pinned here as a regression, since Typst has
+// no way to catch a panic from inside a document — the negative case is a
+// manual VERIFY instead. Reaching the guard without it firing is the whole
+// assertion: a wrong bound there fails this compile just as loudly as a real
+// three-positional call would.
 #context {
   let _named = idea(<idea-units-legal-named>, title: [Some Title])[body text]
   let _bare = idea[body text]
   let _bodiless = idea(title: [Some Title])
+  let _named-bodiless = idea(<idea-units-named-bodiless>, title: [Some Title])
 }
+
+// ---- #idea — a name with no body still mints its label ---------------------
+#idea(<idea-units-minted-bodiless>, title: [Bodiless])
+#context assert.eq(
+  query(label("idea:idea-units-minted-bodiless")).len(),
+  1,
+  message: "a bodyless #idea(<name>) must mint the label <idea:name>",
+)
 
 // ---- _plain — a `raw` span must contribute its text, not a hole ------------
 // MEASURED defect: "The  marker" (two spaces) where `raw` fell through to "".

@@ -138,8 +138,12 @@
   // Variadic, not a plain positional: a positional parameter cannot carry a
   // default in Typst, and `#idea[body]` has to be callable with no name at
   // all. The same sink is also what lets the body itself be absent —
-  // `#idea(title: [T])` arrives here with zero positionals. `#window` and
-  // `#hyperlink` take the same shape for the same reason.
+  // `#idea(title: [T])` arrives here with zero positionals. A lone positional
+  // is read by type: a `label` is the name with an empty body
+  // (`#idea(<x>, title: [T])`), so a bodyless named idea still mints its
+  // label; anything else (content, a string) stays the body, as
+  // `#idea("x")` already means. `#window` and `#hyperlink` take the same
+  // shape for the same reason.
   assert(
     pos.len() <= 2,
     message: "@rookery/core: #idea takes an optional name and an optional "
@@ -151,7 +155,7 @@
   let (name, body) = if pos.len() == 0 {
     (none, [])
   } else if pos.len() == 1 {
-    (none, pos.at(0))
+    if type(pos.at(0)) == label { (pos.at(0), []) } else { (none, pos.at(0)) }
   } else {
     (pos.at(0), pos.at(1))
   }
