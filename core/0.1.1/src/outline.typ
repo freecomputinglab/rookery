@@ -131,9 +131,11 @@
   // below reads it for every window carrying a `tagged:` selector, and
   // `.final()` is a document-wide resolution each time it is called.
   //
-  // LIGAMENTS: `_reg-merge` — a tag-selector window can match a note
-  // belonging to a vertebra that did not run this pass.
-  let reg = _reg-merge(_ligaments(override: ligaments))
+  // LIGAMENTS: a tag-selector window can match a note belonging to a
+  // vertebra that did not run this pass. `_reg-final()` for the real
+  // `sys.inputs` path (every production call), `_reg-merge` only for
+  // `demo/pure/ligaments.typ`'s hand-built override.
+  let reg = if ligaments == auto { _reg-final() } else { _reg-merge(_ligaments(override: ligaments)) }
 
   // A `#window` announces its named ids in a `<rookery-window-mark>` metadata
   // element, and those are collected HERE rather than by the content walk that

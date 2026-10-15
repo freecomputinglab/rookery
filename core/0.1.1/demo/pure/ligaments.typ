@@ -32,7 +32,7 @@
 // output):
 //   typst compile --features html --format html --root ../.. ligaments.typ build/ligaments.html
 
-#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _ligament-rec, _ligament-body, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window
+#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _registry, _ligament-rec, _ligament-body, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window
 
 // `raw`/`body` deliberately DIFFER — `#idea`'s own `body: _flatten(raw)`
 // never produces identical content to its input, but a fixture where both
@@ -293,6 +293,13 @@
   // existing full build takes, now reached via an explicit (rather than
   // absent) ligaments value instead of `sys.inputs`' real absence.
   let reg-no-ligaments = _reg-final()
+  // No `rheo-ligaments` input at all (as this fixture compiles) means
+  // `_LIG-RECS` (state.typ) is `none`, so `_reg-final()` must fall straight
+  // back to the live registry with nothing merged in.
+  assert.eq(
+    reg-no-ligaments, _registry.final(),
+    message: "with no rheo-ligaments input, _reg-final() must equal _registry.final()",
+  )
   let reg-empty-ligaments = _reg-merge((attaches: (ideas: ())))
   assert.eq(
     reg-empty-ligaments,

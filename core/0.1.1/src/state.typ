@@ -710,6 +710,31 @@
   rec
 }
 
+// Every note this compile's ligaments can reconstruct, built ONCE: a
+// top-level `#let` evaluates once per compile, where `_reg-final()` below
+// runs from about thirty call sites across every page, each passing the
+// whole `rheo-ligaments` dictionary as an argument Typst would otherwise
+// hash to memoise the call. `none` when `sys.inputs` carries no
+// `rheo-ligaments` at all, matching `_reg-merge`'s own "no ligaments"
+// branch below; otherwise a dictionary `id -> record`, built from the
+// `ideas` aggregate the same way `_reg-merge` walks it, duplicate ids
+// keeping the FIRST occupant — the same `if id not in merged` rule.
+#let _LIG-RECS = {
+  let ligaments = sys.inputs.at("rheo-ligaments", default: none)
+  if ligaments == none {
+    none
+  } else {
+    let recs = (:)
+    for entry in ligaments.at("attaches", default: (:)).at(_LIG-IDEAS, default: ()) {
+      let id = entry.value.id
+      if id not in recs {
+        recs.insert(id, _ligament-rec(entry, ligaments))
+      }
+    }
+    recs
+  }
+}
+
 // Drop-in replacement for `_registry`'s own `.final()` everywhere a reader
 // wants every note THIS COMPILE knows about, whether or not its vertebra
 // actually ran this pass. This is a MERGE, never an all-or-nothing swap:
@@ -754,7 +779,13 @@
   merged
 }
 
-#let _reg-final() = _reg-merge(_ligaments())
+// `_reg-merge(_ligaments())` without the per-call merge. Spreading `live`
+// first and again last reproduces `_reg-merge` exactly: live ids keep their
+// leading positions and live values, ligament-only ids follow in attach order.
+#let _reg-final() = {
+  let live = _registry.final()
+  if _LIG-RECS == none { live } else { (: ..live, .._LIG-RECS, ..live) }
+}
 
 // Stepped ONCE per rendered idea box. It exists only so two renderings of the
 // SAME body on one output page (its own `#idea`, plus a `#window` on it) get
