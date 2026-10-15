@@ -416,6 +416,10 @@
       loc: el.location(),
       handle: handle,
       tags: v.at("tags", default: (:)),
+      // The note's own full id — unused for rendering (the entry links by
+      // `loc`, not by id), kept so `#ideas-outline` can bind the ligament
+      // keys of exactly the notes it actually lists.
+      id: v.at("id", default: none),
     ))
   }
 
@@ -572,6 +576,16 @@
   entries = _prune-outline(entries, pred)
   if depth != none { entries = entries.filter(e => e.depth + 1 <= depth) }
 
+  // LIGAMENTS: binds exactly the notes this outline actually lists — titles
+  // only (`body: false`), since an outline shows titles, not bodies — plus
+  // the `ideas`/`tag:<t>` aggregate implied by `tagged`/`filter`, so a
+  // narrowed rebuild recompiles this page when the listing itself would
+  // change. Scoped to `"rookery"` only: a page-scoped outline lists only
+  // notes written on its own page, which already recompile with it.
+  let binds = if scope == "rookery" {
+    _ideas-binds(tagged: tagged, filter: filter, ids: entries.map(e => e.id).filter(id => id != none), body: false)
+  } else { [] }
+
   // On HTML an explicit `h4` carrying a class, the same shape (and the same
   // reason) as the Footnotes block's heading: a bare `heading()` compiled to
   // an unclassed `<h2>`, which took the host site's heading scale and made
@@ -623,7 +637,9 @@
   //
   // `depth:` deliberately does NOT count as a filter here. It drops levels below
   // the first, so it cannot empty an outline that had anything in it at all.
-  if entries.len() == 0 { return if pred == none { title-heading } else { none } }
+  if entries.len() == 0 {
+    return if pred != none { binds } else if title-heading == none { binds } else { binds + title-heading }
+  }
 
   let list-content = if _target() == "html" or _target() == "epub" {
     _nest-outline(
@@ -671,7 +687,7 @@
       (e, sub) => list.item(link(e.loc, e.title) + if sub == none { [] } else { sub }),
     )
   }
-  if title-heading == none { list-content } else { title-heading + list-content }
+  binds + if title-heading == none { list-content } else { title-heading + list-content }
 }
 
 

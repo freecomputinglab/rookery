@@ -32,7 +32,7 @@
 // output):
 //   typst compile --features html --format html --root ../.. ligaments.typ build/ligaments.html
 
-#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _registry, _ligament-rec, _ligament-body, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window
+#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _registry, _ligament-rec, _ligament-body, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window, idea-body, ideas-outline
 
 // `raw`/`body` deliberately DIFFER — `#idea`'s own `body: _flatten(raw)`
 // never produces identical content to its input, but a fixture where both
@@ -157,6 +157,12 @@
 #idea("iv-unfiltered", tags: ("iv-unfiltered-tag",))[IV unfiltered body.]
 #idea("iv-tagged", tags: ("iv-filter-tag",))[IV tagged body.]
 #idea("iv-nobody", tags: ("iv-nobody-tag",))[IV no-body body.]
+// `idea-body`/`ideas-outline` get their own note and tag, disjoint from the
+// `ideas-view` scenarios above, for the same reason those are disjoint from
+// each other: a shared key would make one scenario's bind indistinguishable
+// from another's.
+#idea("io-tagged", tags: ("io-filter-tag",))[IO outline body.]
+#idea("ib-body")[IB body note.]
 
 // Each scenario emits its own content as its own top-level `#context` call,
 // same shape as `#_idea-ligaments(..)` above — NOT computed inside the one
@@ -179,6 +185,11 @@
 #context ideas-view(tagged: "iv-filter-tag", rows => [Tagged marker. <iv-marker-b>])
 // `body: false` on a tagged query binds no `idea-body:` key at all.
 #context ideas-view(tagged: "iv-nobody-tag", body: false, rows => [No-body marker.])
+// `idea-body`/`ideas-outline` scenarios, same note/tag as above and same
+// top-level-call discipline: emission and query in one `#context` is one
+// pass behind.
+#context idea-body("ib-body")
+#context ideas-outline(tagged: "io-filter-tag")
 
 #context {
   let binds = query(<rheo-ligament:bind>).map(e => e.value)
@@ -201,6 +212,14 @@
   assert(
     binds.any(b => b.key == "idea:idea:iv-nobody"),
     message: "a query binds each returned row's record, body or not",
+  )
+  assert(
+    binds.any(b => b.key == "idea-body:idea:ib-body"),
+    message: "#idea-body must bind the note's own idea-body: key",
+  )
+  assert(
+    binds.any(b => b.key == "tag:io-filter-tag"),
+    message: "#ideas-outline(tagged:) must bind the tag: key it filters on",
   )
 
   // `fn`'s own content is actually present in the realized document, not

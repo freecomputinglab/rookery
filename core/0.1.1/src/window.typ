@@ -616,6 +616,15 @@
   let body = _body-at(id, rec, depth: unfurl)
   let shown = _truncate(body, limit)
   let inner = _footnoted(shown) + _refs-block(_own-cited-keys(shown, windows-claim: unfurl > 1))
+  // LIGAMENTS: binds this note's own record AND its raw body, so a narrowed
+  // rebuild recompiles whichever page calls `idea-body` on it when either
+  // changes. Not `_ideas-binds` — with no `tagged` that helper would also
+  // bind the `ideas` aggregate, recompiling this page on every note's
+  // change; a body that transcludes further windows needs nothing more,
+  // since those are bound through the transcluded note's own `rec.links`.
+  let binds = if type(state("rheo-handle").get()) == str {
+    _bind(_LIG-IDEA + id) + _bind(_LIG-IDEA-BODY + id)
+  } else { [] }
   if _target() == "html" or _target() == "epub" {
     // `idea-window-plain`: this render has no chrome by design (no summary,
     // no disclosure), so it should not carry `.idea-window`'s BOX either —
@@ -625,7 +634,7 @@
     // rather than a downstream override. `data-rookery` stays "window" (every
     // generic window rule still applies); `data-rookery-plain` is the boolean
     // flag core.css keys the two box-suppressing overrides on.
-    _bracket(
+    binds + _bracket(
       html.elem(
         "div",
         attrs: _themed((class: _c("window") + " " + _c("window-plain"), data-rookery: "window", data-rookery-plain: "plain")),
@@ -634,6 +643,6 @@
       WK,
     )
   } else {
-    _bracket(align(start, block(inner)), WK)
+    binds + _bracket(align(start, block(inner)), WK)
   }
 }
