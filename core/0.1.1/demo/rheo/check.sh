@@ -163,8 +163,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">54 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 54 ideas"
+  grep -q 'idea-index-count">57 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 57 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
@@ -950,6 +950,32 @@ grep -q 'data-rookery="window-filter-input"' "$H/tags.html" ||
 for t in todo phd; do
   grep -q "data-rookery-filter-tag=\"$t\"" "$H/tags.html" ||
     note "tags.html has no data-rookery-filter-tag=\"$t\" pill"
+done
+
+# 38. `from:` — a produced idea's Parents section, its parents' Children
+#     section (the inverse map), and the absence of either section on a page
+#     with no `from:` relation at all. `content/relations.typ`'s
+#     `negative-mathematics` is produced from `vienna-circle` and
+#     `frankfurt-school`, written before both — a forward reference `idea-key`
+#     must still resolve.
+grep -q '>Parents</h2>' "$H/ideas/negative-mathematics.html" ||
+  note "ideas/negative-mathematics.html has no Parents section"
+for parent in vienna-circle frankfurt-school; do
+  grep -qE "data-rookery=\"parents\">.*href=\"[^\"]*$parent\.html\"" "$H/ideas/negative-mathematics.html" ||
+    note "ideas/negative-mathematics.html's Parents section does not link $parent.html"
+done
+for parent in vienna-circle frankfurt-school; do
+  grep -q '>Children</h2>' "$H/ideas/$parent.html" ||
+    note "ideas/$parent.html has no Children section"
+  grep -qE 'data-rookery="children">.*href="[^"]*negative-mathematics\.html"' "$H/ideas/$parent.html" ||
+    note "ideas/$parent.html's Children section does not link negative-mathematics.html"
+done
+# `pinned` carries no `from:` relation in either direction, so neither section
+# should be emitted at all — not emitted blank.
+for section in Parents Children; do
+  if grep -q ">$section</h2>" "$H/ideas/pinned.html"; then
+    note "ideas/pinned.html has a $section section with no from: relation to show"
+  fi
 done
 
 if [ "$fail" -ne 0 ]; then

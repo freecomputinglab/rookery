@@ -34,6 +34,8 @@
   index-page,
   display-context,
   display-backlinks,
+  display-parents,
+  display-children,
   display-background,
   display-date,
   display-frame,
@@ -146,6 +148,14 @@
   assert(
     type(display-backlinks) == bool,
     message: "@rookery/core: `display-backlinks` must be a boolean — got " + repr(display-backlinks),
+  )
+  assert(
+    type(display-parents) == bool,
+    message: "@rookery/core: `display-parents` must be a boolean — got " + repr(display-parents),
+  )
+  assert(
+    type(display-children) == bool,
+    message: "@rookery/core: `display-children` must be a boolean — got " + repr(display-children),
   )
   assert(
     type(display-background) == bool,
@@ -579,6 +589,8 @@
   display: (:),
   display-context: auto,
   display-backlinks: auto,
+  display-parents: auto,
+  display-children: auto,
   display-background: auto,
   display-date: auto,
   display-frame: auto,
@@ -596,7 +608,7 @@
   invisible-tags: (),
   doc,
 ) = {
-  // `rookery(..)` accepts all eleven `_DISPLAY-KEYS` now — every one of them
+  // `rookery(..)` accepts all thirteen `_DISPLAY-KEYS` now — every one of them
   // has a document-wide tier, resolved below and published to its own state
   // (state.typ), and read back at the point a card, a window or a minted
   // page renders.
@@ -611,7 +623,8 @@
   let display = _resolve-display(
     display,
     (
-      "context": display-context, backlinks: display-backlinks, background: display-background,
+      "context": display-context, backlinks: display-backlinks, parents: display-parents,
+      children: display-children, background: display-background,
       date: display-date, frame: display-frame, name: display-name, label: display-label,
       tags: display-tags, title: display-title, "right-gutter": display-right-gutter,
       "bibliography": display-bibliography,
@@ -642,6 +655,8 @@
   let display = display + (
     "context": if display.context == auto { true } else { display.context },
     backlinks: if display.backlinks == auto { backlinks } else { display.backlinks },
+    parents: if display.parents == auto { true } else { display.parents },
+    children: if display.children == auto { true } else { display.children },
     background: if display.background == auto { true } else { display.background },
     date: if display.date == auto { false } else { display.date },
     frame: if display.frame == auto { true } else { display.frame },
@@ -663,6 +678,8 @@
     index-page,
     display.context,
     display.backlinks,
+    display.parents,
+    display.children,
     display.background,
     display.date,
     display.frame,
@@ -724,6 +741,8 @@
   _index-page.update(index-page)
   _display-context.update(display.context)
   _display-backlinks.update(display.backlinks)
+  _display-parents.update(display.parents)
+  _display-children.update(display.children)
   _backlinks.update(backlinks)
   _display-background.update(display.background)
   _display-date.update(display.date)

@@ -582,17 +582,23 @@ figure:has(> [data-rookery="page-list"]),
 }
 
 /* ---- The footer of a minted note page ------------------------------------
-   Two sections of equal standing, either of which may be absent:
+   Up to four sections of equal standing, any of which may be absent:
 
      data-rookery="context"    the page the note was written in, linked to the
                                note's own anchor there — the way back to the
                                argument it was written inside, which a minted
                                page strips away;
-     data-rookery="backlinks"  the notes that point AT this one, as folded windows.
+     data-rookery="backlinks"  the notes that point AT this one, as folded windows;
+     data-rookery="parents"    the ideas this one was produced `from:`, as folded
+                               windows — a `from:` antagonism, not an ordinary
+                               link, so it gets its own section rather than
+                               folding into Backlinks;
+     data-rookery="children"   the inverse of Parents: the ideas produced FROM
+                               this one.
 
    They share a markup shape (heading first, then content) and every rule
-   below, because they are two answers to the same question about where a note
-   sits, not one main thing and one afterthought.
+   below, because they are four answers to the same question about where a
+   note sits, not one main thing and three afterthoughts.
 
    Ruled off and set small: apparatus, not part of the note. The date colour is
    reused rather than given a knob of its own, since both are the same kind of

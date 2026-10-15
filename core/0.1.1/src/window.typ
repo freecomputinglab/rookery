@@ -64,15 +64,16 @@
   ..args,
   limit: none,
   folded: false,
-  // The eleven-key display dictionary `#idea` also takes (`_resolve-display`,
-  // pure.typ). `#window` declares all eleven as flags too, for parity with
+  // The thirteen-key display dictionary `#idea` also takes (`_resolve-display`,
+  // pure.typ). `#window` declares all thirteen as flags too, for parity with
   // `#idea` and the `display:` dictionary, but only HONOURS seven of them —
   // `date`, `tags`, `frame`, `name`, `label`, `background`, `bibliography`.
-  // `context`, `backlinks` and `title` describe a minted page, and a window
-  // is not one, so all three ride along unused inside the `display:`
-  // dictionary too. `right-gutter` rides along the same way, for a different
-  // reason: a window never splits — its notes always float into its host
-  // card's gutter (or, unwindowed, render vertically) — so the flag is
+  // `context`, `backlinks`, `parents`, `children` and `title` describe a
+  // minted page, and a window is not one, so all five ride along unused
+  // inside the `display:` dictionary too. `right-gutter` rides along the same
+  // way, for a different reason: a window never splits — its notes always
+  // float into its host card's gutter (or, unwindowed, render vertically) —
+  // so the flag is
   // accepted for parity and never read.
   //
   // `bibliography` is a GROUP setting, unlike the other six: `auto` (the
@@ -125,10 +126,12 @@
   // wants the frame gone and the tint kept, hence two switches.
   display-background: auto,
   // Accepted for parity with `#idea` and the `display:` dictionary; ignored
-  // here, because `context`, `backlinks` and `title` describe a minted page,
-  // and a window is not one.
+  // here, because `context`, `backlinks`, `parents`, `children` and `title`
+  // describe a minted page, and a window is not one.
   display-context: auto,
   display-backlinks: auto,
+  display-parents: auto,
+  display-children: auto,
   display-title: auto,
   display-right-gutter: auto,
   display-bibliography: auto,
@@ -203,14 +206,16 @@
     (
       date: display-date, tags: display-tags, frame: display-frame,
       name: display-name, label: display-label, background: display-background,
-      "context": display-context, backlinks: display-backlinks, title: display-title,
+      "context": display-context, backlinks: display-backlinks,
+      parents: display-parents, children: display-children, title: display-title,
       "right-gutter": display-right-gutter, "bibliography": display-bibliography,
     ),
     "#window's",
   )
   // These six keys stay `auto` when unset, same as `context`/`backlinks`/
-  // `title`: `#window` itself substitutes no built-in default for any of the
-  // nine. `auto` means "use the document-wide `rookery(..)` setting", resolved
+  // `parents`/`children`/`title`: `#window` itself substitutes no built-in
+  // default for any of the eleven. `auto` means "use the document-wide
+  // `rookery(..)` setting", resolved
   // against state (`_display-final`, state.typ) at the point this window
   // actually renders: `_window-content` (transclusion.typ), which every
   // rendering path below reaches, whether directly or via `_flatten`'s WK
@@ -228,9 +233,10 @@
     unknown.len() == 0,
     message: "@rookery/core: #window got unknown named argument(s) " + repr(unknown)
       + " — every argument #window honours is a declared one; the display "
-      + "flags are display-background, display-backlinks, display-context, "
-      + "display-date, display-frame, display-name, display-label, display-tags, "
-      + "display-title, display-right-gutter and display-bibliography.",
+      + "flags are display-background, display-backlinks, display-children, "
+      + "display-context, display-date, display-frame, display-name, "
+      + "display-label, display-parents, display-tags, display-title, "
+      + "display-right-gutter and display-bibliography.",
   )
   assert(
     pos.len() <= 1,

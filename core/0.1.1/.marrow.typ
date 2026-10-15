@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.1": _registry, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _norm-tags
+#import "@rookery/core:0.1.1": _registry, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-parents, _display-children, _display-title, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _norm-tags, _excluded-ids
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
@@ -109,6 +109,8 @@
   let syndicate = _syndicate.final()
   let display-context = _display-context.final()
   let display-backlinks = _display-backlinks.final()
+  let display-parents = _display-parents.final()
+  let display-children = _display-children.final()
   let display-title = _display-title.final()
   // Resolved HERE, in the one context that already resolves every other
   // document-wide key, and handed to `_handle-title` as a plain string — that
@@ -214,6 +216,32 @@
           _bind(_LIG-IDEA-BODY + target, page: rec.origin)
         }
       }
+    }
+  }
+
+  // NOTE produced-from: the inverse of every note's recorded `from`, exactly
+  // as `backlinks` above inverts `links`. A separate map, not merged into
+  // `backlinks` — a `from` antagonism is not an ordinary outbound link, and
+  // nothing renders this yet.
+  //
+  // THE MISSING/EXCLUDED CHECK LIVES HERE, not inside `#idea`'s own
+  // registration — the registry is genuinely final at this bundle-root
+  // pass, so checking it here costs nothing a note's own registration would
+  // otherwise pay in convergence (see `resolved-from`'s banner, idea.typ).
+  // EXCLUDED IS NOT MISSING, the same distinction `#hyperlink` draws through
+  // `_excluded-ids`: a `from` target dropped from this build by its own
+  // `exclude-tags` is silently absent, not a panic — a genuine typo still
+  // panics.
+  let excluded = _excluded-ids.final()
+  let produced-from = (:)
+  for (src, rec) in registry.pairs() {
+    for parent in rec.at("from", default: ()) {
+      if parent not in registry {
+        if parent in excluded { continue }
+        panic("@rookery/core: #idea's `from` names unknown note '" + parent + "'")
+      }
+      let seen = produced-from.at(parent, default: ())
+      if src not in seen { produced-from.insert(parent, seen + (src,)) }
     }
   }
 
@@ -593,6 +621,14 @@
           let v = rec.at("display", default: (:)).at("backlinks", default: auto)
           if v == auto { display-backlinks } else { v }
         }
+        let use-parents = {
+          let v = rec.at("display", default: (:)).at("parents", default: auto)
+          if v == auto { display-parents } else { v }
+        }
+        let use-children = {
+          let v = rec.at("display", default: (:)).at("children", default: auto)
+          if v == auto { display-children } else { v }
+        }
 
         // Both parts are the SAME shape — a titled section, heading first —
         // so the stylesheet can treat them as one thing and lay them out
@@ -715,13 +751,33 @@
           section(_c("backlinks"), "backlinks", [Backlinks], note-rows + page-rows)
         }
 
-        if context-part != [] or backlinks-part != [] {
+        // Parents and Children are a SPECIAL KIND OF BACKLINK, not an
+        // ordinary one — a `from:` antagonism, not a link written in prose —
+        // so each gets its own section beside Backlinks rather than folding
+        // into it. Parents answers "what was this produced out of": the
+        // ids `#idea`'s own `from:` resolved, read straight off this note's
+        // record. Children answers the inverse — "what was produced out of
+        // this" — from `produced-from`, built above next to `backlinks`.
+        // Both render exactly like Backlinks' own note list: folded,
+        // `unfurl: 1`, for the same reason given there.
+        let parents = rec.at("from", default: ())
+        let parents-part = if not use-parents or parents.len() == 0 { [] } else {
+          section(_c("parents"), "parents", [Parents],
+            window(parents.map(p => p.trim(_pfx(), at: start)), folded: true, unfurl: 1))
+        }
+        let children = produced-from.at(id, default: ())
+        let children-part = if not use-children or children.len() == 0 { [] } else {
+          section(_c("children"), "children", [Children],
+            window(children.map(c => c.trim(_pfx(), at: start)), folded: true, unfurl: 1))
+        }
+
+        if context-part != [] or backlinks-part != [] or parents-part != [] or children-part != [] {
           html.elem(
             "footer",
             // Themed in its own right: the footer is a SIBLING of the <h1>
             // above, not a descendant, so it inherits nothing from it.
             attrs: _themed((class: _c("footer"), data-rookery: "footer")),
-            context-part + backlinks-part,
+            context-part + backlinks-part + parents-part + children-part,
           )
         }
       }

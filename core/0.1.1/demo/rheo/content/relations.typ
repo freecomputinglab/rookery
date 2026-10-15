@@ -52,3 +52,20 @@ A transcluded window of the same note:
 // `#outline(target: core-idea, ..)` forwards its other arguments straight to
 // `#ideas-outline` above and renders the same tree.
 #outline(target: core-idea, tagged: "phd")
+
+// `from:` — an idea produced out of an antagonism between two others.
+// Written BEFORE its own parents, demonstrating that `idea-key` resolves
+// against the final registry rather than requiring declaration order.
+#idea(<negative-mathematics>, title: [Negative Mathematics],
+  from: (<vienna-circle>, <frankfurt-school>))[
+  Produced from the tension between the Vienna Circle's formal unity of
+  science and the Frankfurt School's critique of instrumental reason.
+]
+
+#idea(<vienna-circle>, title: [The Vienna Circle])[
+  Logical positivism: science unified under one formal language.
+]
+
+#idea(<frankfurt-school>, title: [The Frankfurt School])[
+  Critical theory: reason turned against its own instrumental uses.
+]

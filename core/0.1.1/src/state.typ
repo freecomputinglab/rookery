@@ -208,6 +208,15 @@
 // binding/key naming split as `_display-context`, for the same reason.
 #let _display-backlinks = state("rheo-idea-show-backlinks", true)
 
+// Whether `.marrow.typ` should render the Parents section (the ideas this one
+// was produced `from:`) and the Children section (the ideas produced from
+// this one, the inverse of `from:`) on each minted note page. Same DEFAULT ON
+// reasoning and binding/key naming split as `_display-context`/
+// `_display-backlinks` above — two more answers to "what sits beside this
+// note in the graph", not a separate feature with different defaults.
+#let _display-parents = state("rheo-idea-show-parents", true)
+#let _display-children = state("rheo-idea-show-children", true)
+
 // Whether this vertebra harvests the backlink graph at all — each note's
 // outbound links at registration and the page's own links. `false` is
 // `rookery.with(backlinks: false)`: nothing is harvested, so `.marrow.typ`
@@ -262,6 +271,8 @@
 #let _DISPLAY-STATES = (
   "context": _display-context,
   backlinks: _display-backlinks,
+  parents: _display-parents,
+  children: _display-children,
   background: _display-background,
   date: _display-date,
   frame: _display-frame,

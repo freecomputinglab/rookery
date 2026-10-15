@@ -970,17 +970,17 @@
     + "integer (the number of leading blocks to show) — got " + repr(v),
 )
 
-// The eleven keys a `display:` dictionary and its matching `display-*`
+// The thirteen keys a `display:` dictionary and its matching `display-*`
 // arguments may set. `#idea` and `#window` each use a different subset of
 // these — the union lives here once so the validation and the panic message
 // below share one list instead of drifting apart.
 #let _DISPLAY-KEYS = (
-  "context", "backlinks", "background", "date", "frame",
+  "context", "backlinks", "parents", "children", "background", "date", "frame",
   "name", "label", "tags", "title", "right-gutter", "bibliography",
 )
 
 // Merges a `display:` dictionary with a set of individual `display-*`
-// override flags into one dictionary carrying all ten `_DISPLAY-KEYS`,
+// override flags into one dictionary carrying all thirteen `_DISPLAY-KEYS`,
 // always. For each key, an override in `flags` that is not `auto` wins;
 // otherwise `dict`'s own value for that key is used, if present; otherwise
 // the result is `auto`.

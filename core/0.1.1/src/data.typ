@@ -47,6 +47,7 @@
   "page",
   "created",
   "tags-dict",
+  "from",
 )
 
 // Three extractor forms and no more. Each may carry `stamp: true`.
@@ -388,6 +389,11 @@
         // Keeping values off the row makes that failure impossible rather than
         // merely unlikely. Reach for `tag-data()` below when you want them.
         tags: rec.at("tags", default: (:)).keys(),
+        // The full ids of the ideas this one was produced from — an
+        // antagonism, not a tag or an ordinary outbound link — in the order
+        // `#idea`'s `from:` named them. JSON-safe strings only, as with
+        // `tags` above.
+        from: rec.at("from", default: ()),
         // A REFERENCE IN THE BODY READS AS ITS TARGET'S NAME here too, through the
         // same one-per-walk resolver the title and the label use: a search over
         // `#idea("draft")[Write @idea:nz-man post]` has to match the words a

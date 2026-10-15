@@ -22,7 +22,7 @@
   _derived-title, _derived-title-with, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
   _project, _split-tag-list, _tag-pred, _truncate, _truncate-split, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _id-slug, _name-slug, _h3, _b36, _ideate-tag-value, _ideate-name-value,
   _resolve-display, _DISPLAY-KEYS, _rechild,
-  footnote, idea, idea-href, idea-path, slug,
+  footnote, idea, idea-href, idea-path, ideas, slug,
   tag-index, window,
 )
 
@@ -131,6 +131,20 @@
   query(label("idea:idea-units-minted-bodiless")).len(),
   1,
   message: "a bodyless #idea(<name>) must mint the label <idea:name>",
+)
+
+// ---- #idea — `from:` resolves to the full ids of its parents, in order ----
+// The produced idea is declared BEFORE its two parents, pinning that a
+// forward reference works: `idea-key` resolves against the final registry,
+// not against whatever has registered so far.
+#idea(<idea-units-from-child>, title: [Negative Mathematics],
+  from: (<idea-units-from-parent-a>, <idea-units-from-parent-b>))
+#idea(<idea-units-from-parent-a>, title: [The Vienna Circle])
+#idea(<idea-units-from-parent-b>, title: [The Frankfurt School])
+#context assert.eq(
+  ideas().filter(r => r.id == "idea:idea-units-from-child").at(0).from,
+  ("idea:idea-units-from-parent-a", "idea:idea-units-from-parent-b"),
+  message: "#idea's `from:` must resolve to its parents' full ids, in the order given",
 )
 
 // ---- _plain — a `raw` span must contribute its text, not a hole ------------
@@ -881,8 +895,8 @@
 
 // ---- _resolve-display — merges a `display:` dict with `display-*` flags ---
 //
-// All eleven keys are always present, `auto` where nobody had an opinion.
-#assert.eq(_resolve-display((:), (:), "#t").len(), 11)
+// All thirteen keys are always present, `auto` where nobody had an opinion.
+#assert.eq(_resolve-display((:), (:), "#t").len(), 13)
 #assert.eq(_resolve-display((:), (:), "#t").frame, auto)
 // The dictionary supplies a value.
 #assert.eq(_resolve-display((frame: false), (:), "#t").frame, false)
