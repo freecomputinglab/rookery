@@ -181,7 +181,8 @@
     }
   }
 
-  toks.map(ts => {
+  let out = ()
+  for ts in toks {
     // tf per term, and `order` in first-appearance order — the tie-break below
     // rides on that order, so it is built here rather than recovered later.
     let tf = (:)
@@ -209,28 +210,35 @@
     // Without the guard a small rookery indexes NOTHING: at n=2 every term is in
     // 50% or 100% of the notes and 50 > 40. It rescues only the corpus too small
     // for df to mean anything, the case the stopword floor is also there for.
-    let kept = order.filter(t => {
-      let d = df.at(t)
-      d <= 1 or d * 100 <= n * df-ceiling
-    })
-
+    //
     // Integer tf-idf: round(100 * tf * log2(n / df)). The 100 keeps the ordering
     // a float would carry without a float ever reaching the sort key, and the
-    // number itself is never shipped — it only orders.
-    //
+    // number itself is never shipped — it only orders. The filter and the weight
+    // are computed in one plain `for` loop rather than a `filter`/`sorted(key:)`
+    // closure pair: a closure here would capture the corpus-wide `df` dictionary,
+    // and Typst hashes a closure's captures (including a whole-corpus dictionary)
+    // on every memoized call. A `for` loop is not memoized and captures nothing.
+    let pairs = ()
+    for t in order {
+      let d = df.at(t)
+      if d <= 1 or d * 100 <= n * df-ceiling {
+        let w = -1 * int(calc.round(100 * tf.at(t) * calc.log(n / d, base: 2)))
+        pairs.push((w, t))
+      }
+    }
+
     // SORTED BY WEIGHT ALONE, tie-broken by FIRST APPEARANCE: `order` is in
     // first-appearance order and Typst's `.sorted` is stable, so equal weights
     // keep the order the note wrote them in and the island is byte-stable between
-    // builds. The key is a plain integer rather than a `(weight, index)` array
-    // because an array key is not reliably comparable here.
-    let ranked = kept.sorted(key: t => (
-      -1 * int(calc.round(100 * tf.at(t) * calc.log(n / df.at(t), base: 2)))
-    ))
+    // builds. The sort key is the pair's weight alone, not the pair itself — an
+    // array key is not reliably comparable here.
+    let ranked = pairs.sorted(key: p => p.first()).map(p => p.last())
 
     let top = ranked.slice(0, calc.min(body-terms, ranked.len()))
     // `array.join()` on an EMPTY array returns `none` in Typst, not `""`, and an
     // empty result is a real case: a genuinely empty note compresses to no terms
     // at all.
-    if top.len() == 0 { "" } else { top.join(" ") }
-  })
+    out.push(if top.len() == 0 { "" } else { top.join(" ") })
+  }
+  out
 }
