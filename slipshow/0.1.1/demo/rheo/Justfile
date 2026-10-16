@@ -1,0 +1,18 @@
+# rheo is NOT in this repo's devShell — locally it is the sibling `rheo/` crate,
+# or whatever `rheo` is on PATH. CI installs a pinned release and runs
+# `just check` below, so this recipe is both the local check and the CI one.
+#
+# `just build` IN THE PACKAGE ROOT FIRST. This package is a BUILT one: its
+# `typst.toml` points at `dist/`, which is gitignored, so a fresh checkout has
+# no package for rheo to resolve until vite has run.
+build:
+    rheo compile .
+
+watch:
+    rheo watch .
+
+# Asserts on the OUTPUT, not merely that the build succeeded — the DOM
+# `src/slipshow.typ` renders, and the PDF branch it renders nothing at all
+# for, only exist after a real rheo build.
+check: build
+    ./check.sh

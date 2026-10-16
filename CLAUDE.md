@@ -7,7 +7,7 @@ dated meeting notes (`meetings`), a BibTeX reader and `#citation` note
 constructor (`bibtex`), an endlessly scrolling presentation over notes
 (`slipshow`), a board of draggable cards for arranging notes by hand
 (`pinboard`), and venues with their calls and deadlines (`cfps`). Each package
-lives in `<name>/<version>/` (e.g. `search/0.1.0/`)
+lives in `<name>/<version>/` (e.g. `search/0.1.1/`)
 and mirrors the same layout: `typst.toml`, `src/`, and a `Justfile`, plus a
 `flake.nix` where the package pins a toolchain of its own (`search` for
 node/pnpm, `slipshow` likewise). Four of them (`search`, `todos`, `slipshow`,
@@ -137,7 +137,7 @@ packages" below) and `rheo
 compile` a test project that imports it. No per-package devShell needed
 either for most work: this repo's own root `flake.nix`/`.envrc` provide
 `just` and `typst`, and direnv finds them by walking up from anywhere under
-the repo. `search/0.1.0` and `slipshow/0.1.0` each carry their own `flake.nix`
+the repo. `search/0.1.1` and `slipshow/0.1.1` each carry their own `flake.nix`
 on top of that, for `node`/`pnpm` pinned to that package specifically.
 
 ## Pattern: consuming the injected `rheo-context`
@@ -225,7 +225,7 @@ rheo present at all.
   on this machine) — readable from package scope without any `ctx:`
   parameter.
 - `@rookery/core` uses this pattern throughout and takes NO `ctx` parameter at
-  all: see `core/0.1.0/src/lib.typ`'s `_rheo-ctx()`/`_target()` helpers.
+  all: see `core/0.1.1/src/lib.typ`'s `_rheo-ctx()`/`_target()` helpers.
 
 DO NOT assert or panic when rheo is absent under this pattern — that's
 Pattern A's job for packages that genuinely can't function without rheo.
