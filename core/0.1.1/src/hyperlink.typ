@@ -117,7 +117,7 @@
           // would.
           if it.element == none { it } else { it.element }
         } else {
-          let named = _rec-label(rec, _ref-text(reg))
+          let named = _rec-label(rec, _ref-text-live)
           let shown = if it.supplement != auto {
             it.supplement
           } else if named != none {
@@ -146,7 +146,7 @@
           // name goes inside a `link`, and content carrying a reference of its own
           // would nest one link inside another.
           let rec = reg.at(id, default: none)
-          let named = if rec == none { none } else { _rec-label(rec, _ref-text(reg)) }
+          let named = if rec == none { none } else { _rec-label(rec, _ref-text-live) }
           let shown = if it.supplement != auto {
             it.supplement
           } else if named != none {

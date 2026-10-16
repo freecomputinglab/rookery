@@ -819,6 +819,25 @@
   if _LIG-RECS == none { live } else { (: ..live, .._LIG-RECS, ..live) }
 }
 
+// `_ref-text(reg)` with `reg` read from `_reg-final()` inside the body instead
+// of taken as an argument. Typst memoizes every closure call by hashing the
+// closure together with everything it captures, and a Typst dictionary caches
+// no hash, so `_ref-text(_reg-final())` costs time proportional to the whole
+// registry on every call. This closure captures nothing large, so its own
+// memo key is cheap to hash.
+#let _ref-text-live = it => {
+  if it.at("supplement", default: auto) != auto {
+    _plain(it.supplement)
+  } else {
+    let id = str(it.target)
+    let rec = _reg-final().at(id, default: none)
+    if rec == none { "" } else {
+      let l = rec.at("label", default: none)
+      if l == none or l == "" { _norm(id) } else { l }
+    }
+  }
+}
+
 // Stepped ONCE per rendered idea box. It exists only so two renderings of the
 // SAME body on one output page (its own `#idea`, plus a `#window` on it) get
 // distinct HTML ids — uniqueness within a page is all that is asked of it.

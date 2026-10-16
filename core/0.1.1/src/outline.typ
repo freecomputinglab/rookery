@@ -360,9 +360,10 @@
   // entry: it is what lets a reference inside a note's title read as the name of
   // the note it points at (see `_rec-label` below), and a per-entry
   // `_registry.final()` would be one state resolution per note on the page.
-  // LIGAMENTS: `_reg-final()` — a page's own title/outline entries may
-  // reference a note belonging to a vertebra that did not run this pass.
-  let ref-text = _ref-text(_reg-final())
+  // LIGAMENTS: `_ref-text-live` reads `_reg-final()` — a page's own
+  // title/outline entries may reference a note belonging to a vertebra that
+  // did not run this pass.
+  let ref-text = _ref-text-live
   let out = ()
   for el in query(selector(<rookery-edge>).or(selector(figure.where(kind: IK)))) {
     let f = el.func()

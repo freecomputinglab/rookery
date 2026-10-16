@@ -153,10 +153,10 @@
   // label of "Meeting with " and nothing more, computed before there was a
   // registry to resolve against.
   let name = if display.label {
-    // LIGAMENTS: `_reg-final()` — the title being resolved may reference a
-    // note belonging to a vertebra that did not run this pass.
-    let reg = _reg-final()
-    _rec-label(rec, _ref-text(reg))
+    // LIGAMENTS: `_ref-text-live` reads `_reg-final()` — the title being
+    // resolved may reference a note belonging to a vertebra that did not run
+    // this pass.
+    _rec-label(rec, _ref-text-live)
   } else {
     rec.at("title", default: none)
   }

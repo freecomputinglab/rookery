@@ -336,9 +336,10 @@
   // unstable once a titleless note anywhere in the spine needed `context` to
   // name itself.
   let handle = state("rheo-handle").get()
-  // ONE resolver for the whole walk, not one per row: it closes over the registry
-  // and nothing else, so every row's title flattens against the same corpus.
-  let ref-text = _ref-text(reg)
+  // ONE resolver for the whole walk, not one per row: `_ref-text-live` reads
+  // the registry itself rather than closing over `reg`, so every row's title
+  // flattens against the same corpus without re-hashing it per call.
+  let ref-text = _ref-text-live
   let plain = c => _plain-with(c, ref-text)
   let keep = _tag-pred(tagged, match, filter: filter)
   let survivors = reg

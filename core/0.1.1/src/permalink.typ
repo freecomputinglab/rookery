@@ -243,9 +243,10 @@
   // registration-time `label` cannot resolve a reference, there being no registry
   // yet when it is computed. `none` only for a note with no name at all — an
   // empty body and no title — which the `id` branch below still covers.
-  // LIGAMENTS: `_reg-final()` — the reference `rec`'s own title may name a
-  // note belonging to a vertebra that did not run this pass.
-  let name = _rec-label(rec, _ref-text(_reg-final()))
+  // LIGAMENTS: `_ref-text-live` reads `_reg-final()` — the reference `rec`'s
+  // own title may name a note belonging to a vertebra that did not run this
+  // pass.
+  let name = _rec-label(rec, _ref-text-live)
   let row = link(_resolve-dest(id, true), if name == none { id } else { name })
   if _target() == "html" or _target() == "epub" {
     let date = if display.date and rec.at("created", default: none) != none {

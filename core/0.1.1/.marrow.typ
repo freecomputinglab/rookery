@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.1": _registry, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-parents, _display-children, _display-title, _show-parent-tag, _show-child-tag, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _norm-tags, _excluded-ids, _fn-block
+#import "@rookery/core:0.1.1": _registry, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-parents, _display-children, _display-title, _show-parent-tag, _show-child-tag, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _ref-text-live, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _norm-tags, _excluded-ids, _fn-block
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
@@ -855,16 +855,16 @@
       // here and wrong on the `<h1>` above (see `#idea`'s title-vs-label banner).
       // A titleless note's page is therefore called by its opening words instead
       // of by `1`. `slug` survives as the fallback for a note whose label is
-      // somehow absent. Resolved through `_ref-text` rather than read straight
-      // off the stored record, so a title holding a reference names the note it
-      // points at here too, instead of contributing the empty string `_plain`
-      // (the registration-time projection) gives a `ref`.
+      // somehow absent. Resolved through `_ref-text-live` rather than read
+      // straight off the stored record, so a title holding a reference names
+      // the note it points at here too, instead of contributing the empty
+      // string `_plain` (the registration-time projection) gives a `ref`.
       title: {
-        // LIGAMENTS: `_reg-final()` — `rec`'s own title may reference a
-        // note on a vertebra that did not run this pass, same reason every
-        // other `_ref-text(..)` call site in this package switched.
-        let reg = _reg-final()
-        let l = _rec-label(rec, _ref-text(reg))
+        // LIGAMENTS: `_ref-text-live` reads `_reg-final()` — `rec`'s own
+        // title may reference a note on a vertebra that did not run this
+        // pass, same reason every other `_ref-text-live` call site in this
+        // package resolves this way.
+        let l = _rec-label(rec, _ref-text-live)
         if l == none or l == "" { slug } else { l }
       },
       // Restarts the footnote/sidenote block counter (`_fn-block`, state.typ)
