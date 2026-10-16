@@ -587,13 +587,14 @@
 // predicates, so they bind the `ideas` aggregate like an unfiltered query;
 // `tagged` binds `tag:<t>` per tag under either `match` — membership only, so
 // each returned row also binds `idea:<id>` (title, tag values) and, unless
-// `body: false`, `idea-body:<id>`. Off a vertebra (a paged build) there is no
-// page handle to bind on, so this emits nothing.
+// `body: false`, `idea-body:<id>`. Off a vertebra there is nothing to bind
+// on, so this emits nothing: a paged build has no handle, and a minted page's
+// `ideas:<slug>` is no spine handle (its owning vertebra binds the same keys).
 // An empty array's `.join()` is `none`, not empty content.
 #let _join-content(arr) = if arr.len() == 0 { [] } else { arr.join() }
 #let _ideas-binds(tagged: none, filter: none, index: none, ids: (), body: true, page: auto) = {
   let p = if page != auto { page } else { state("rheo-handle").get() }
-  if type(p) != str { return [] }
+  if type(p) != str or not _is-vertebra(p) { return [] }
   let out = if filter != none or index != none or tagged == none {
     _bind(_LIG-IDEAS, page: p)
   } else {
