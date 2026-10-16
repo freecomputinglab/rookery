@@ -113,3 +113,26 @@ deliverable here is the isolation itself (`_page-href` in `context-part` x
 Nothing in the flight changed except this document — every marrow.typ edit
 made during bisection was reverted before writing it up, and `core/0.1.1 &&
 just test` passes against the restored tree.
+
+## Follow-up: deferring the context link
+
+Two more variants of `context-part` were tried, each keeping its output byte-
+identical while changing only when the `link`/`<a>` element is constructed.
+Neither moved the count below 5.
+
+| Variant | What changed | Iteration line | typst-compile | Diff vs. BEFORE |
+|---|---|---|---|---|
+| A — whole link deferred | The entire row — `context-href`, `context-dest`, and the `link(..)` call — moved inside a `context { .. }` block, mirroring `page-rows`'s existing pattern; `section`/`page-list` left untouched | `5 convergence iteration(s) — iter(1) 2.7s, iter(2) 11.5s, iter(3) 7.0s, iter(4) 3.5s, iter(5) 533ms` | 32.1s | empty (`diff -rq` against BEFORE's `html/`) |
+| B — raw anchor element | `context-href != none` case built as `html.elem("a", attrs: (href: context-href + "#" + id), shown)` instead of `link(context-dest, shown)`; the `none` case kept as `link(label(id), shown)` | `5 convergence iteration(s) — iter(1) 2.8s, iter(2) 11.5s, iter(3) 10.5s, iter(4) 3.5s, iter(5) 484ms` | 35.0s | empty (`diff -rq` against BEFORE's `html/`) |
+
+Neither variant landed. Variant A had already been tried once during the
+original bisection (row 12 above) and is repeated here only to pair it with
+B under the same BEFORE build. Variant B shows the interaction is not
+specific to Typst's `link` element either: replacing it with a plain HTML
+`<a>` built from the same already-resolved `context-href`/`id` strings still
+costs the fifth pass, so the trigger is the un-deferred *evaluation* of
+`_page-href(origin, here: page-at.handle)` inside the page-building loop,
+not which element wraps its result. `context-part` is left exactly as it was
+before this follow-up (`page-list((link(context-dest, ..),))`, built eagerly,
+no `context { .. }` wrapper) — the two non-goals (no output-byte change, no
+variant left half-applied) both hold.
