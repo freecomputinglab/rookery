@@ -208,10 +208,10 @@
 // here — `tag-data()` below hands over the whole store.
 //
 // `#idea-tag-names(name)` exposes ONE note's tags too, and still does. This field is
-// the bulk form and the cheap one: `idea-tag-names` resolves `_registry.final()` once
-// PER NOTE, where `ideas()` resolves it once for the whole pass — and
+// the bulk form and the cheap one: `idea-tag-names` calls `_registry-final()` once
+// PER NOTE, where `ideas()` calls it once for the whole pass — and
 // `@rookery/search`'s `#search-index` runs on every page of a site, so the
-// difference is one state resolution per note per page against one per page.
+// difference is one `_registry-final()` call per note per page against one per page.
 //
 // NOT exposed IN BULK: `raw`, `body`-as-CONTENT and `links`. `body` above is
 // a plain STRING derived from `raw` — matchable and excerptable, but not
@@ -240,7 +240,7 @@
 // exclusion, or an OR of ANDs. They exist because the workaround does not
 // scale and does not reach far enough — `ideas().filter(e => "phd" in
 // idea-tag-names(e.name))` works and is VERIFIED, but it costs one
-// `_registry.final()` read per row, and `#search-bar` builds its index
+// `_registry-final()` call per row, and `#search-bar` builds its index
 // internally with no hook for a caller's filter at all.
 //
 // Filtered BEFORE the `.map`, so a note that is dropped never pays for its
@@ -273,7 +273,7 @@
 // only to the survivors, so the cost is proportional to what was asked for rather
 // than to the corpus.
 //
-// Must be called INSIDE a `#context` block (it reads `_registry.final()`); it
+// Must be called INSIDE a `#context` block (it reads `_registry-final()`); it
 // is not itself a context function, because a context function can only return
 // content and the whole point here is to return data.
 //
@@ -321,7 +321,7 @@
       message: "@rookery/core: `index:` must be a value built by `tag-index(..)` — got " + repr(index),
     )
   }
-  // LIGAMENTS: `_reg-final()`, not `_registry.final()` — on a narrowed
+  // LIGAMENTS: `_reg-final()`, not `_registry-final()` directly — on a narrowed
   // compile this is the merge of whatever this pass registered live plus
   // every other note reconstructed from ligaments, so `#ideas()` keeps
   // enumerating the WHOLE corpus regardless of which vertebra is recompiling.
@@ -460,9 +460,9 @@
 // This is the accessor a package builds on when it needs tag VALUES across the
 // corpus — `@rookery/todos` reads its dependency edges out of it.
 //
-// BULK, and that is the point. `idea-tag-names`/`idea-tag-value` each resolve
-// `_registry.final()` for ONE note, so walking N notes through them pays N
-// registry reads; the same cost is already noted against `idea-tag-names` further up.
+// BULK, and that is the point. `idea-tag-names`/`idea-tag-value` each call
+// `_registry-final()` for ONE note, so walking N notes through them pays N
+// registry builds; the same cost is already noted against `idea-tag-names` further up.
 // One `ideas()` plus one `tag-data()` covers the whole corpus, and the two join
 // cleanly on `id`.
 //
@@ -475,7 +475,7 @@
 // constructors, so a bare `tags()` would be shadowed by that parameter inside
 // every one of those bodies.
 //
-// Must be called INSIDE a `#context` block (it reads `_registry.final()`); it
+// Must be called INSIDE a `#context` block (it reads `_registry-final()`); it
 // is not itself a context function, because a context function can only return
 // content and the whole point here is to return data.
 #let tag-data() = {

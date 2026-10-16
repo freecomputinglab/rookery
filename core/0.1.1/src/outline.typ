@@ -168,7 +168,7 @@
     // The one reader that CAN resolve a tag selection: `_outbound` (links.typ)
     // walks a note's raw body at registration, before the registry exists, so
     // it can never do this — but this loop runs at render time, inside the
-    // `#context` that binds `_registry.final()` at the call site below, so the
+    // `#context` that calls `_registry-final()` at the call site below, so the
     // registry is already final. `filtered` skips resolution entirely: `tagged`
     // is ANDed with `filter` at the call site, so a filtered window's tag
     // selector alone would claim backlinks from notes the window never showed.
@@ -359,7 +359,7 @@
   // ONE resolver for the whole walk, resolved before the loop rather than per
   // entry: it is what lets a reference inside a note's title read as the name of
   // the note it points at (see `_rec-label` below), and a per-entry
-  // `_registry.final()` would be one state resolution per note on the page.
+  // `_registry-final()` call would be one registry build per note on the page.
   // LIGAMENTS: `_ref-text-live` reads `_reg-final()` — a page's own
   // title/outline entries may reference a note belonging to a vertebra that
   // did not run this pass.

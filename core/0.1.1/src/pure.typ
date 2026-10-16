@@ -370,7 +370,7 @@
 // "Meeting with Finale Doshi-Velez" in an index row, a search hit and a
 // reference's own link text, where `_plain` alone leaves "Meeting with ".
 //
-//   _plain-with(title, _ref-text(_registry.final()))
+//   _plain-with(title, _ref-text(_registry-final()))
 //
 // `it.supplement` WINS where the author gave one — `@idea:x[custom text]` — the
 // same preference and the same `auto` sentinel `#hyperlink`'s ref-mode carries.
@@ -516,7 +516,7 @@
 // `ref-text` is `_ref-text(reg)` wherever the registry is in hand and `_ => ""`
 // where it is not. THE RESOLVER IS THE ARGUMENT rather than the registry so a
 // caller walking the whole corpus resolves the state ONCE for the pass, which is
-// the cost `ideas()` exists to keep to one — a per-row `_registry.final()` is
+// the cost `ideas()` exists to keep to one — a per-row `_registry-final()` call is
 // exactly the walk-per-note that accessor's own comments warn about.
 //
 // EVERY PLACE THAT NAMES A NOTE READS THIS, so a search hit, an index row, a

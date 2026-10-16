@@ -599,7 +599,7 @@
 // wrapping. On a paged target the body still renders, just without that
 // wrapping, so a stray direct call does not hard-error.
 //
-// Supplies its own `context` — it reads `_registry.final()` internally — so,
+// Supplies its own `context` — it reads `_registry-final()` internally — so,
 // unlike `idea-tag-names`/`idea-tag-value`/`ideas`/`tag-data`, it needs none from its
 // caller and can be called anywhere.
 #let idea-body(name, unfurl: 1, limit: none) = context {

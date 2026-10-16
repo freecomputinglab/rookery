@@ -21,7 +21,7 @@
 // `.marrow.typ` imports THIRTY-EIGHT names from `"@rookery/core:0.1.1"`,
 // thirty-six underscore-private and load-bearing — a broken marrow mints no
 // pages but fails silently. RENAME OR RE-SIGN ONLY WITH `.marrow.typ`:
-//   _registry            note store; marrow mints pages from it, inverts links
+//   _registry-final       note store, built by one query-and-loop; marrow mints pages from it, inverts links
 //   _note-page           slug + minted path + handle for one note
 //   _pfx                 prefix stripped off a backlink id for `#window`
 //   _head                per-page <head> contributions

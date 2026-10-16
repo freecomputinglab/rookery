@@ -32,7 +32,7 @@
 // output):
 //   typst compile --features html --format html --root ../.. ligaments.typ build/ligaments.html
 
-#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _registry, _ligament-rec, _ligament-body, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window, idea-body, ideas-outline
+#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _registry-final, _ligament-rec, _ligament-body, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window, idea-body, ideas-outline
 
 // `raw`/`body` deliberately DIFFER — `#idea`'s own `body: _flatten(raw)`
 // never produces identical content to its input, but a fixture where both
@@ -235,9 +235,10 @@
 //
 // Everything above is the WRITE side. Below proves `_reg-final()` and the
 // small helpers it is built from — the functions every real reader in this
-// package now calls instead of `_registry.final()` (see `rg --hidden
-// --no-ignore -c '_registry\.final\(\)' src/state.typ` — exactly one hit,
-// `_reg-final`'s own no-ligaments fallback).
+// package calls, built atop `_registry-final()` (see `rg --hidden
+// --no-ignore -c '_registry-final\(\)' src/state.typ`), which reads every
+// note's `<rookery-rec>` back in one query-and-loop rather than resolving a
+// per-note state.
 //
 // `_reg-final()` ITSELF takes no argument — every production call site
 // (window.typ, data.typ, outline.typ, transclusion.typ, idea.typ,
@@ -316,8 +317,8 @@
   // `_LIG-RECS` (state.typ) is `none`, so `_reg-final()` must fall straight
   // back to the live registry with nothing merged in.
   assert.eq(
-    reg-no-ligaments, _registry.final(),
-    message: "with no rheo-ligaments input, _reg-final() must equal _registry.final()",
+    reg-no-ligaments, _registry-final(),
+    message: "with no rheo-ligaments input, _reg-final() must equal _registry-final()",
   )
   let reg-empty-ligaments = _reg-merge((attaches: (ideas: ())))
   assert.eq(

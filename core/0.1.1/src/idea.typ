@@ -501,40 +501,26 @@
         // alone.
         display: display,
       )
-      _registry.update(r => {
-        let existing = r.at(id, default: none)
-        if id in r and existing != rec {
-          panic(
-            "@rookery/core: duplicate note id " + id + " — already registered"
-              + (if existing.origin != none { " in " + existing.origin } else { "" })
-              + ", registered again" + (if origin != none { " in " + origin } else { "" })
-              + ". An id must be unique whether it was pinned by name or derived"
-              + " from a title — a pinned id and a title-derived id collide just"
-              + " like two pinned ids would. Retitle or rename one of the two"
-              + " notes, or pin the derived one explicitly with #idea(<some-name>, title: [..]).",
-          )
-        }
-        r.insert(id, rec)
-        r
-      })
+      [#metadata((id: id, rec: rec)) <rookery-rec>]
 
-      // LIGAMENTS does NOT emit from here any more. It WAS, as a
-      // `#context`-time `_attach`/`_bind` call at exactly this point, same
-      // as the hidden anchor below — but ANY added per-note element here,
-      // even a content-free dummy `#metadata(..)`, broke Typst's 5-pass
-      // introspection convergence: on `demo/notes` (note-style citations)
-      // and on the real waterline build (1767 pages) — "document did not
-      // converge within five attempts" / "failed to resolve cross-link" on
-      // `template.typ`'s `show FNK: ...`. Every note's card sits inside a
-      // `figure(kind: IK, ..)` that `_flatten` specially walks for
-      // nested/transcluded rendering, and this package's
-      // footnote-promotion machinery (`_sweep-block`/`_footnoted`,
-      // bib.typ) is already at that convergence edge — one more queryable
-      // element per note, regardless of its content, tips it over.
-      // `.marrow.typ` emits all of this instead, once per record, from the
-      // final registry at bundle root: no per-note in-flow element, so no
-      // interaction with per-note convergence. See its own LIGAMENTS
-      // section.
+      // This spot emits exactly ONE per-note queryable element, the
+      // `<rookery-rec>` registry carrier above, which REPLACES the old
+      // per-note state update rather than adding to it — `_registry-final()`
+      // (state.typ) reads every `<rookery-rec>` back in one pass. A
+      // ligament, or any further per-note element added here, breaks
+      // Typst's 5-pass introspection convergence: on `demo/notes`
+      // (note-style citations) and on the real waterline build (1767
+      // pages) — "document did not converge within five attempts" /
+      // "failed to resolve cross-link" on `template.typ`'s `show FNK: ...`.
+      // Every note's card sits inside a `figure(kind: IK, ..)` that
+      // `_flatten` specially walks for nested/transcluded rendering, and
+      // this package's footnote-promotion machinery
+      // (`_sweep-block`/`_footnoted`, bib.typ) is already at that
+      // convergence edge — one more queryable element per note, regardless
+      // of its content, tips it over. `.marrow.typ` emits ligaments
+      // instead, once per record, from the final registry at bundle root:
+      // no per-note in-flow element, so no interaction with per-note
+      // convergence. See its own LIGAMENTS section.
 
       // Hidden referenceable anchor. VERIFIED: a locally scoped
       // `show ...: none` still hides it while leaving it referenceable, in-page
@@ -717,7 +703,7 @@
 // The VALUES are deliberately not here. `idea-tag-value` below fetches one, and
 // `tag-data` (data.typ) fetches the whole store in bulk.
 //
-// Must be called INSIDE a `#context` block: it reads `_registry.final()`. It
+// Must be called INSIDE a `#context` block: it reads `_registry-final()`. It
 // is not itself a context function, because a context function may only
 // return content and the whole point here is to return data.
 #let idea-tag-names(name) = {

@@ -416,7 +416,34 @@
 // referenceable anchor, an HTML heading (only when `title` is given)
 // carrying that id and an `idea`/`idea-tag-<tag>` class list, and a
 // registry entry other beads (#window, #hyperlink) read from.
-#let _registry = state("rheo-ideas", (:))
+//
+// Built by one query and one loop rather than a per-note state fold: each
+// `#idea` (idea.typ) emits a single `<rookery-rec>` metadata carrier instead
+// of updating an accumulated dictionary, so this function reads every one
+// back in document order and inserts each into a dictionary it owns alone —
+// a loop body is not memoized, unlike a state fold's update closure, so
+// building the registry this way costs one pass over the notes, not one
+// pass per note.
+#let _registry-final() = {
+  let out = (:)
+  for elem in query(<rookery-rec>) {
+    let (id, rec) = (elem.value.id, elem.value.rec)
+    let existing = out.at(id, default: none)
+    if id in out and existing != rec {
+      panic(
+        "@rookery/core: duplicate note id " + id + " — already registered"
+          + (if existing.origin != none { " in " + existing.origin } else { "" })
+          + ", registered again" + (if rec.origin != none { " in " + rec.origin } else { "" })
+          + ". An id must be unique whether it was pinned by name or derived"
+          + " from a title — a pinned id and a title-derived id collide just"
+          + " like two pinned ids would. Retitle or rename one of the two"
+          + " notes, or pin the derived one explicitly with #idea(<some-name>, title: [..]).",
+      )
+    }
+    out.insert(id, rec)
+  }
+  out
+}
 
 //
 // A title-derived slug that collides with an earlier one gets a numeric
@@ -509,8 +536,9 @@
 // UNNAMED NOTES ARE NOT HERE, and cannot be: an auto-numbered note has no id
 // anything could name it by.
 //
-// Read with `.final()`, like `_registry` and `_prefix` above and for the same
-// reason: a note may be excluded in one file and linked from another.
+// Read with `.final()`, like `_prefix` above, and read via `_registry-final()`'s
+// own cross-pass query for the same reason: a note may be excluded in one
+// file and linked from another.
 #let _excluded-ids = state("rheo-ideas-excluded", ())
 
 //
@@ -659,8 +687,8 @@
 //
 // `none` distinct from `(:)`/`()` throughout: `none` means no ligaments were
 // supplied at all — an ordinary full build, or `[watch] narrow` off — and
-// `_reg-final()` below must then behave EXACTLY as `_registry`'s own
-// `.final()` always has. Anything else means ligaments WERE supplied, even where a
+// `_reg-final()` below must then behave EXACTLY as `_registry-final()` alone
+// always has. Anything else means ligaments WERE supplied, even where a
 // particular key attached nothing.
 // `override: auto` throughout this section reads the real `sys.inputs` —
 // every production call site (window.typ, data.typ, outline.typ,
@@ -767,7 +795,7 @@
   }
 }
 
-// Drop-in replacement for `_registry`'s own `.final()` everywhere a reader
+// Drop-in replacement for `_registry-final()` everywhere a reader
 // wants every note THIS COMPILE knows about, whether or not its vertebra
 // actually ran this pass. This is a MERGE, never an all-or-nothing swap:
 // live records win over ligament-sourced ones because they are freshest,
@@ -787,8 +815,8 @@
 //     overwritten by a ligament entry — the live, just-evaluated version
 //     always wins, since it is the freshest.
 //
-// `_registry.update(..)` (idea.typ) keeps writing unconditionally either
-// way — this function only ever reads, never gates that write.
+// Every `#idea` (idea.typ) keeps emitting its `<rookery-rec>` unconditionally
+// either way — this function only ever reads, never gates that emission.
 //
 // Split into `_reg-merge` (the actual merge, a pure function of an already-
 // resolved `ligaments` value) and `_reg-final` (the zero-argument production
@@ -798,7 +826,7 @@
 // `override:` — without `_reg-final` itself taking a parameter no production
 // call site ever passes.
 #let _reg-merge(ligaments) = {
-  let live = _registry.final()
+  let live = _registry-final()
   if ligaments == none { return live }
   let merged = live
   let hits = ligaments.at("attaches", default: (:)).at(_LIG-IDEAS, default: ())
@@ -815,7 +843,7 @@
 // first and again last reproduces `_reg-merge` exactly: live ids keep their
 // leading positions and live values, ligament-only ids follow in attach order.
 #let _reg-final() = {
-  let live = _registry.final()
+  let live = _registry-final()
   if _LIG-RECS == none { live } else { (: ..live, .._LIG-RECS, ..live) }
 }
 

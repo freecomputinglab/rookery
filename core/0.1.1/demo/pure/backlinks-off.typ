@@ -6,14 +6,14 @@
 // Build (HTML only — this fixture asserts on the registry, not on output):
 //   typst compile --features html --format html --root ../.. backlinks-off.typ build/backlinks-off.html
 
-#import "../../src/lib.typ": idea, idea-key, rookery, window, _registry
+#import "../../src/lib.typ": idea, idea-key, rookery, window, _registry-final
 #show: rookery.with(backlinks: false)
 
 #idea(<b>)[Target note.]
 #idea(<a>)[Links to b: #window("b")]
 
 #context {
-  let reg = _registry.final()
+  let reg = _registry-final()
   assert.eq(reg.at(idea-key("a")).links, ())
   assert.eq(reg.at(idea-key("a")).tag-links, ())
   assert.eq(query(<rookery-page-links>).len(), 0)
