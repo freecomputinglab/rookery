@@ -819,6 +819,30 @@
   if _LIG-RECS == none { live } else { (: ..live, .._LIG-RECS, ..live) }
 }
 
+// `_sort-ids(ids, reg, sort)` with `reg` read from `_reg-final()` inside the
+// body instead of taken as an argument, for the same reason `_ref-text-live`
+// exists below: a Typst dictionary caches no hash, so passing the registry
+// into a memoized call costs time proportional to the whole corpus.
+#let _sort-ids-live(ids, sort) = {
+  let by-id = ids.sorted()
+  if sort != "date" { return by-id }
+  let stamp-of(id) = {
+    let m = _reg-final().at(id).at("created", default: none)
+    if m == none { none } else { m.display("[year][month][day]") }
+  }
+  let buckets = (:)
+  let undated = ()
+  for id in by-id {
+    let s = stamp-of(id)
+    if s == none { undated.push(id) } else {
+      buckets.insert(s, buckets.at(s, default: ()) + (id,))
+    }
+  }
+  let ordered = ()
+  for s in buckets.keys().sorted().rev() { ordered += buckets.at(s) }
+  ordered + undated
+}
+
 // `_ref-text(reg)` with `reg` read from `_reg-final()` inside the body instead
 // of taken as an argument. Typst memoizes every closure call by hashing the
 // closure together with everything it captures, and a Typst dictionary caches

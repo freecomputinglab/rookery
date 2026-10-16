@@ -347,8 +347,8 @@
     .filter(((_, rec)) => keep == none or keep(rec.at("tags", default: (:))))
     .map(((id, _)) => id)
   // `auto` and "lexicographic" both mean the id order this function has
-  // always published; only "date" changes anything — see `_sort-ids`.
-  let ids = _sort-ids(survivors, reg, sort)
+  // always published; only "date" changes anything — see `_sort-ids-live`.
+  let ids = _sort-ids-live(survivors, sort)
   ids
     .map(id => {
       let rec = reg.at(id)

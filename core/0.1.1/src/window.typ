@@ -376,7 +376,7 @@
   // `auto` keeps the author's own order for what they named and appends the
   // tag matches; naming a sort orders the whole selection instead.
   let full-ids = if sort == auto { named + tagged } else {
-    _sort-ids(named + tagged, reg, sort)
+    _sort-ids-live(named + tagged, sort)
   }
 
   // `display-bibliography` is a GROUP setting on `#window`, resolved once for
