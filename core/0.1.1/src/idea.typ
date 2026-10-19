@@ -112,11 +112,13 @@
   )
   // `from` declares this note as produced out of an antagonism between the
   // ideas it names — every entry takes the same name shape `#idea`'s own
-  // name does: a label, a string, or a prefixed form like `<idea:x>`.
+  // name does: a label, a string, or a prefixed form like `<idea:x>`. A
+  // single parent needs no array ceremony, the same leniency as `tags`.
+  let from = if type(from) == label or type(from) == str { (from,) } else { from }
   assert(
     type(from) == array and from.all(f => type(f) == label or type(f) == str),
-    message: "@rookery/core: #idea's `from` must be an array of note names — "
-      + "a label, a string, or a prefixed form like <idea:x> — got " + repr(from),
+    message: "@rookery/core: #idea's `from` must be a note name or an array of "
+      + "them — a label, a string, or a prefixed form like <idea:x> — got " + repr(from),
   )
   let display = _resolve-display(
     display,

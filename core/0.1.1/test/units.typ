@@ -147,6 +147,15 @@
   message: "#idea's `from:` must resolve to its parents' full ids, in the order given",
 )
 
+// ---- #idea — a lone `from:` name is a one-parent array -------------------
+#idea(<idea-units-from-single-child>, title: [Critical Theory],
+  from: <idea-units-from-parent-b>)
+#context assert.eq(
+  ideas().filter(r => r.id == "idea:idea-units-from-single-child").at(0).from,
+  ("idea:idea-units-from-parent-b",),
+  message: "#idea's `from:` must accept a single name as well as an array",
+)
+
 // ---- _plain — a `raw` span must contribute its text, not a hole ------------
 // MEASURED defect: "The  marker" (two spaces) where `raw` fell through to "".
 #assert.eq(_plain(none), "")
