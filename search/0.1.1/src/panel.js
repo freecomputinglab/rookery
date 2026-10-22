@@ -39,6 +39,10 @@
 
 import { score, bodyScore } from "./score.js";
 import { splitQuery, evalClauses } from "./tagquery.js";
+// `loadIndex` is how a `body-index:` panel reaches the page's `#search-index`
+// pointer — the same corpus the site search box body-matches against — rather
+// than carrying every row's full body in its own markup.
+import { loadIndex } from "./island.js";
 // `fold` IS REQUIRED, not decorative: a `tags:` clause's contract is that `tags`
 // arrive ALREADY FOLDED, which is how `search()` satisfies it (`score.js`:
 // `(row.tags ?? []).map(fold)`). Skip it and a panel's tag query is case- and
@@ -269,6 +273,7 @@ export const wirePanel = (container, n) => {
     return {
       el,
       index,
+      id: el.getAttribute("data-panel-id") || "",
       text: el.getAttribute("data-panel-text") || "",
       name: el.getAttribute("data-panel-name") || "",
       values,
@@ -277,6 +282,22 @@ export const wirePanel = (container, n) => {
     };
   });
   const total = rows.length;
+
+  // `body-index:` NAMES A `#search-index` POINTER ON THE PAGE, absent on a panel
+  // that renders every row's full body itself (the default). `bodyIndex` is the
+  // `id -> body` map built from it, `null` until the fetch or inline parse
+  // resolves — and while it is null the body tier matches nothing, so a query
+  // typed before the index arrives is not a false negative, only an early one:
+  // `apply()` below re-runs once the map lands.
+  const bodyIndexId = container.dataset.panelBodyIndex;
+  let bodyIndex = null;
+  if (bodyIndexId) {
+    loadIndex(bodyIndexId).then((indexRows) => {
+      if (indexRows === null) return;
+      bodyIndex = new Map(indexRows.map((r) => [r.id, r.body ?? ""]));
+      apply();
+    });
+  }
 
   // `aria-controls` wired at RUNTIME, because the markup carries no id: a
   // hardcoded one cannot appear twice on a page and nothing stops a site putting
@@ -317,7 +338,12 @@ export const wirePanel = (container, n) => {
         // NAME, substring-AND over its body. A subsequence of a 24,000-character
         // body matches every row and filters nothing.
         if (score(row.name, text) != null) return { matched: true, score: 0 };
-        return { matched: bodyScore(row.text, text) != null, score: 0 };
+        // UNDER `body-index:`, `row.text` carries no body at all (the Typst side
+        // dropped it from the default haystack) — the body tier reads the
+        // index's own compressed terms for this row's id instead, or nothing
+        // while the index has not resolved yet.
+        const body = bodyIndexId ? (bodyIndex?.get(row.id) ?? "") : row.text;
+        return { matched: bodyScore(body, text) != null, score: 0 };
       };
       // IT ANDs WITH THE PILLS, which is the only composition that is not
       // surprising: a pressed pill and a typed query are both visible commitments,

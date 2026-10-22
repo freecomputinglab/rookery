@@ -10,7 +10,9 @@
 // one shared `wirePanel`, which is why this is the only new predicate to pin.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { parseHTML } from "linkedom";
 import { passesTags } from "./internal.mjs";
+import { wirePanel } from "../src/panel.js";
 
 // A row as `wirePanel` builds it: the tag names off `data-panel-tags`, as a Set.
 const row = (...tags) => ({ tags: new Set(tags) });
@@ -70,4 +72,73 @@ test("a tag that is another's prefix does not half-match", () => {
     assert.equal(passesTags(row("epic"), new Set(["epic-jobs"]), mode), false);
     assert.equal(passesTags(row("epic", "epic-jobs"), new Set(["epic"]), mode), true);
   }
+});
+
+// `body-index:` — THE PANEL LOOKS A ROW'S BODY TERMS UP IN THE PAGE'S SEARCH
+// INDEX AT RUNTIME, rather than scoring `data-panel-text`, which under this mode
+// the Typst side no longer fills with the row's body at all (pinned by the
+// Typst-side parity suite, not here). What is unpinned on the JS side is the
+// JOIN: reading `data-panel-body-index`, fetching/parsing the index once, and
+// keying each row's body tier off its own `data-panel-id` rather than its
+// `data-panel-text`.
+//
+// TWO ROWS: `a`'s id is in the index with a body containing "justification";
+// `b`'s is not in the index at all. Neither row's NAME contains the probe word,
+// so a match can only come through the body tier.
+const BODY_INDEX_PANEL = (indexScript) => `<!doctype html><body>
+<div class="panel" data-panel-ready="false" data-panel-mode="tags" data-panel-body-index="rookery-search-index">
+<input class="panel-input" type="search">
+<p class="panel-count">2 rows</p>
+<ul class="panel-results">
+<li class="panel-row" data-panel-text="alpha" data-panel-name="alpha" data-panel-id="idea:a">a</li>
+<li class="panel-row" data-panel-text="beta" data-panel-name="beta" data-panel-id="idea:b">b</li>
+</ul></div>
+${indexScript}
+</body>`;
+
+// One microtask tick resolves `readIndex`'s own promise; a second runs the
+// `.then()` chained onto it inside `wirePanel`. A macrotask flush (`setTimeout`)
+// clears both without the test needing to know that count.
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+const wireBodyIndex = async (indexScript) => {
+  const { document } = parseHTML(BODY_INDEX_PANEL(indexScript));
+  globalThis.document = document;
+  wirePanel(document.querySelector(".panel"), 0);
+  await flush();
+  const input = document.querySelector(".panel-input");
+  return {
+    type: (v) => {
+      input.value = v;
+      input.dispatchEvent(new document.defaultView.Event("input"));
+    },
+    shown: () =>
+      [...document.querySelectorAll(".panel-row")]
+        .filter((r) => !r.hidden)
+        .map((r) => r.textContent)
+        .sort(),
+  };
+};
+
+test("body-index: a row whose id maps to body terms containing a word matches through the body tier", async () => {
+  const p = await wireBodyIndex(
+    `<script type="application/json" id="rookery-search-index">`
+      + `[{"id":"idea:a","body":"justification clause"}]</script>`,
+  );
+  p.type("justif");
+  assert.deepEqual(p.shown(), ["a"]);
+});
+
+test("body-index: the same row with an empty map does not match the body tier", async () => {
+  // No `#search-index` element at all — `loadIndex` resolves `null` and the map
+  // stays empty, so the body tier of every row matches nothing.
+  const p = await wireBodyIndex("");
+  p.type("justif");
+  assert.deepEqual(p.shown(), []);
+});
+
+test("body-index: a name match still matches with an empty map", async () => {
+  const p = await wireBodyIndex("");
+  p.type("alpha");
+  assert.deepEqual(p.shown(), ["a"]);
 });

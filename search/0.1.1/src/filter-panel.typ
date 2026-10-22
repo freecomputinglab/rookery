@@ -193,8 +193,26 @@
   // carrying a comma itself.
   sync: none,
   // The text input's haystack, per row. Defaults to label + name + body — searching the
-  // BODY is what finds a note by a phrase inside it rather than by its title.
+  // BODY is what finds a note by a phrase inside it rather than by its title. With
+  // `body-index:` set, the default drops to label + name (see that argument) — an
+  // explicit `haystack:` always wins over either default.
   haystack: none,
+  // OPT IN to matching the BODY tier against the page's search index at runtime
+  // instead of rendering every row's full body into this panel's markup. `none`
+  // (the default) keeps today's behaviour byte for byte: the full body joins the
+  // haystack and each row binds `idea-body:<id>`, so any note's prose changing
+  // recompiles the page under rheo's narrowed watch.
+  //
+  // A STRING NAMES THE `#search-index` POINTER on the same page (normally
+  // `"rookery-search-index"`, which rookery's chrome already emits) — the same
+  // compressed top-terms the site search box body-matches against, fetched or
+  // read inline once by `panel.js` rather than shipped a second time per panel.
+  //
+  // THE RECALL CHANGES: a query that matched any word anywhere in a note's prose
+  // now matches only its compressed top terms, and a note with no minted page of
+  // its own (absent from `index.json`) matches by name alone. Document this on any
+  // site that turns it on.
+  body-index: none,
   // Override the whole row. The default is `#idea-row`; this exists for the caller with
   // a genuinely different row, not as the ordinary path.
   render: none,
@@ -226,16 +244,37 @@
       + "carrying either pressed tag) or \"all\" (only a row carrying both) — got "
       + repr(pill-match),
   )
+  assert(
+    body-index == none or (type(body-index) == str and body-index.len() > 0),
+    message: "@rookery/search: #filter-panel's `body-index` must be none or the "
+      + "non-empty element id of a `#search-index` pointer on the page — got "
+      + repr(body-index),
+  )
 
-  let hay = if haystack != none { haystack } else { _row-haystack }
+  // WITH `body-index:` SET, the default haystack drops the body — `_row-name` is
+  // already exactly that pair, used below for `data-panel-name` too, so this is a
+  // reuse rather than a second copy of `_row-haystack`'s pieces. An explicit
+  // `haystack:` still wins over either default.
+  let hay = if haystack != none {
+    haystack
+  } else if body-index != none {
+    _row-name
+  } else {
+    _row-haystack
+  }
 
   // The panel always binds the rows it renders (their records and bodies,
   // since `data-panel-text` below reads both) — only the fallback below also
   // runs its own `ideas()` query, so only that arm binds MEMBERSHIP (the tag
   // or the `ideas` aggregate): a caller passing `rows:` ran its own query and
   // owns that bind at its own call site.
+  //
+  // `body-index:` SET MEANS NO ROW BINDS ITS BODY, matching the attribute
+  // change below: the panel no longer renders or depends on the body, so it
+  // must not recompile when one changes.
   let used-own-query = rows == none
-  let rows = if rows != none { rows } else { ideas(tagged: tag, values: true) }
+  let want-body = body-index == none
+  let rows = if rows != none { rows } else { ideas(tagged: tag, values: true, body: want-body) }
 
   // THE ORDER `order:` NAMES, UNDATED LAST EITHER WAY — see that argument for why this
   // is a partition rather than a `.rev()` of the whole list. The stamp is a zero-padded
@@ -251,9 +290,10 @@
   let rows = dated + undated
   // `data-panel-text` below renders the row's body text, so this binds it too.
   let binds = if used-own-query {
-    _ideas-binds(tagged: tag, ids: rows.map(r => r.id))
+    _ideas-binds(tagged: tag, ids: rows.map(r => r.id), body: want-body)
   } else if type(state("rheo-handle").get()) == str {
-    let row-binds = rows.map(r => _bind(_LIG-IDEA + r.id) + _bind(_LIG-IDEA-BODY + r.id))
+    let row-binds = rows.map(r => _bind(_LIG-IDEA + r.id)
+      + (if want-body { _bind(_LIG-IDEA-BODY + r.id) } else { [] }))
     // An empty array's `.join()` is `none`, not empty content.
     if row-binds.len() == 0 { [] } else { row-binds.join() }
   } else { [] }
@@ -342,6 +382,9 @@
         attrs: (
           "data-panel-text": lower(hay(r)),
           "data-panel-name": lower(_row-name(r)),
+          // THE JOIN KEY into the search index under `body-index:` only, so the
+          // default mode's markup stays byte for byte what it was.
+          ..if body-index == none { (:) } else { ("data-panel-id": r.id) },
           // SPACE-PADDED AT BOTH ENDS, which is not cosmetic: the script tests
           // `includes(" x ")`, and without the padding a tag that is another's prefix
           // would half-match.
@@ -381,6 +424,10 @@
       // for the non-default, so the markup states the behaviour a reader is looking
       // at instead of leaving it to be inferred from an absence.
       "data-panel-pill-match": pill-match,
+      // ABSENT UNLESS `body-index:` IS SET, so `panel.js` tells the two modes
+      // apart by the attribute's presence rather than by testing its value
+      // against the literal string "none".
+      ..if body-index == none { (:) } else { ("data-panel-body-index": body-index) },
     ),
     // `tag-pill` rather than the markup written out here, which it was until a row's
     // own badge could be a pill too: two hand copies of one button is how the block

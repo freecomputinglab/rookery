@@ -1644,6 +1644,37 @@ one undifferentiated row, not facets a caller named, so the collision that check
 guards against cannot arise. See "Keeping filter state in the URL" below for the
 rest.
 
+### `body-index:` — matching the body against the search index, not a copy in the row
+
+By default a row's text filter matches label, name and the note's **full body**,
+rendered lowercased into `data-panel-text` on every `<li>` — which is how a reader
+finds a note by a phrase inside it rather than by its title, but also means the
+panel binds `idea-body:<id>` per row, so editing any listed note's prose
+recompiles the whole panel under rheo's narrowed watch, and the full body of
+every row ships in the page's HTML.
+
+`body-index: "rookery-search-index"` (`none` by default) trades that for the
+same compressed top terms the site search box already body-matches against,
+read from the page's own `#search-index` pointer at runtime instead:
+
+```typst
+#search-index()
+#filter-panel(tag: "todo", pills: auto, body-index: "rookery-search-index")
+```
+
+- The default haystack drops to label + name, and no row binds its body —
+  so a note's prose changing no longer recompiles this panel at all.
+- The body tier of the text filter now matches a row's entry in `index.json`
+  (fetched once by `panel.js`, the same file the search bar loads) rather than
+  scoring the row's own markup.
+- **The recall changes.** A query that matched any word anywhere in a note's
+  full body now matches only its compressed top terms — the same recall the
+  site search box already has. A note with no minted page of its own (absent
+  from `index.json`) matches by name only.
+- Needs a `#search-index()` pointer on the same page — rookery's own chrome
+  already emits one, normally under the id `"rookery-search-index"`.
+- An explicit `haystack:` still wins over either default.
+
 ### The row is not this package's
 
 Each row is `#idea-row` from [`@rookery/core`](../../core/0.1.0) — the same row
