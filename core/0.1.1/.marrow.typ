@@ -105,6 +105,9 @@
   let dup-warnings = (:)
   for w in _assert-unique-names() { dup-warnings.insert(w.id, w) }
   let registry = _registry-final()
+  // Relations read the merged registry: a narrowed compile's live one holds
+  // only the recompiled vertebrae. Minting stays on the live `registry`.
+  let merged = _reg-final()
   let tpl = _idea-page-template.final()
   let syndicate = _syndicate.final()
   let display-context = _display-context.final()
@@ -189,9 +192,9 @@
 
   // NOTE backlinks: the inverse of every note's recorded outbound links.
   let backlinks = (:)
-  for (src, rec) in registry.pairs() {
+  for (src, rec) in merged.pairs() {
     for target in rec.at("links", default: ()) {
-      if target not in registry { continue }
+      if target not in merged { continue }
       let seen = backlinks.at(target, default: ())
       if src not in seen { backlinks.insert(target, seen + (src,)) }
     }
@@ -204,7 +207,7 @@
     for sel in rec.at("tag-links", default: ()) {
       let pred = _tag-pred(sel.tagged, sel.at("match", default: "any"))
       if pred == none { continue }
-      for (target, trec) in registry {
+      for (target, trec) in merged {
         if target == src { continue }
         if not pred(trec.at("tags", default: (:))) { continue }
         let seen = backlinks.at(target, default: ())
@@ -236,9 +239,9 @@
   // panics.
   let excluded = _excluded-ids.final()
   let produced-from = (:)
-  for (src, rec) in registry.pairs() {
+  for (src, rec) in merged.pairs() {
     for parent in rec.at("from", default: ()) {
-      if parent not in registry {
+      if parent not in merged {
         if parent in excluded { continue }
         panic("@rookery/core: #idea's `from` names unknown note '" + parent + "'")
       }
@@ -255,7 +258,7 @@
   let page-backlinks = (:)
   for (handle, targets) in _page-links() {
     for target in targets {
-      if target not in registry { continue }
+      if target not in merged { continue }
       let seen = page-backlinks.at(target, default: ())
       if handle not in seen { page-backlinks.insert(target, seen + (handle,)) }
       // LIGAMENTS: `_page-links()` reads the
@@ -925,7 +928,7 @@
   // a note, so a fabricated record would be a lie a template could act on. A
   // template that assumes a string id fails here — `demo/rheo/content/lib.typ`
   // shows the two-line branch that handles it.
-  if _index-page.final() and registry.len() > 0 {
+  if _index-page.final() and merged.len() > 0 {
     // NOT `.filter(e => e.href != none)` any more, even though `e.href` (an
     // `ideas()` row's `_note-href`) is exactly the UNMINTED GUARD that reads
     // as — `_note-href` returns `none` under plain `typst compile` and under
