@@ -22,12 +22,17 @@
 // through with no translation table. The last three move the camera
 // horizontally rather than vertically; `targetFor` also brings a horizontal
 // action's row vertically into view, which is its behaviour to decide, not
-// this file's. There is no `transition:`/`duration:` in this package — the
-// camera is the only motion.
+// this file's. A transition is a separate axis, `TRANSITIONS` below: where
+// the camera ends up is the action's, how the slips change over is the
+// transition's.
 #let ENTERS = (
   "scroll", "up", "down", "center", "focus",
   "left", "right", "center-x",
 )
+
+// Every transition `src/slipshow.js`'s `transitionFor` knows. `none` is the
+// absence of one, not a member.
+#let TRANSITIONS = ("fade",)
 
 // The valued keys. Namespaced with a `slip-` prefix per rookery's convention:
 // a key becomes a CSS class fragment, and a bare `background` (or `width`) is
@@ -37,6 +42,7 @@
 #let CLASS-KEY = "slip-class"
 #let ROW-KEY = "slip-row"
 #let MAX-WIDTH-KEY = "slip-max-width"
+#let TRANSITION-KEY = "slip-transition"
 
 // A local copy of rookery's four-form tag normalizer, so this module stays a
 // pure function of its arguments. Deliberately NOT an import of core's
@@ -77,6 +83,7 @@
   class: none,
   row: none,
   max-width: none,
+  transition: none,
 ) = {
   let out = ((SLIP-KEY): none)
 
@@ -135,6 +142,17 @@
     out.insert(MAX-WIDTH-KEY, max-width)
   }
 
+  // Valued, not flat like `enter`: a slip on a fading deck has to be
+  // able to say `"none"` and mean it.
+  if transition != none {
+    assert(
+      transition == "none" or transition in TRANSITIONS,
+      message: "@rookery/slipshow: `transition` must be \"none\" or one of "
+        + TRANSITIONS.join(", ") + " — got " + repr(transition),
+    )
+    out.insert(TRANSITION-KEY, transition)
+  }
+
   out + _norm-tags-local(tags)
 }
 
@@ -157,3 +175,4 @@
 #let class-of(tags) = tags.at(CLASS-KEY, default: none)
 #let row-of(tags) = tags.at(ROW-KEY, default: none)
 #let max-width-of(tags) = tags.at(MAX-WIDTH-KEY, default: none)
+#let transition-of(tags) = tags.at(TRANSITION-KEY, default: none)

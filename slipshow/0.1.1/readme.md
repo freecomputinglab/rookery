@@ -94,6 +94,7 @@ deck, which never sees the call site itself, only the registry row.
 | `fullscreen` | `bool` | `false` | tags the note `slip-fullscreen`; the stylesheet stretches the slip to at least the viewport height and centers its content in it |
 | `background` | `color`, `gradient`, or `image(..)` content | `none` | this slip's own background — see "Backgrounds" below |
 | `enter` | one of the eight camera actions (see "Keyboard and mouse controls") | `none` (deck default) | overrides `#slipshow`'s deck-wide `enter:` for this one slip |
+| `transition` | `"fade"` or `"none"` | `none` (deck default) | overrides `#slipshow`'s deck-wide `transition:` for this one slip |
 | `order` | `int` | `none` | this slip's `slip-order` — the default sort key for a tag-queried deck |
 | `class` | `str` | `none` | appended to the rendered `<section>`'s class list |
 | `row` | `int` | `none` | groups CONSECUTIVE slips sharing the same value into one `div.slip-row[data-row=..]` wrapper — overridden per-deck by `#slipshow`'s own `row:` key function, below, for a row that is computed rather than authored |
@@ -183,6 +184,7 @@ and needs the same list `idea` itself gets:
   reverse: false,
   row: none,
   enter: "scroll",
+  transition: none,
   reveal: true,
   open: false,
   display-frame: false,
@@ -203,6 +205,11 @@ the result. Giving neither route, or both, panics naming which:
 `enter:` is the deck-wide default camera action, one of the eight named in
 "Keyboard and mouse controls" below (`"scroll"` by default); a bad value
 panics naming the valid set.
+
+`transition:` is how the slips change over, whichever action moved the camera:
+`none` (the default) or `"fade"`, which fades a slip in as it appears, going
+forwards. Going back to a slip does not fade it again. It composes with every `enter:`; a slip's own
+`transition:` overrides it, `"none"` included.
 
 `reveal:` is the progressive reveal, `true` by default — see its own section
 below.

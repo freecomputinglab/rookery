@@ -28,6 +28,7 @@
   class: none,
   row: none,
   max-width: none,
+  transition: none,
   tags: none,
   exclude-tags: (),
   // CORE'S OWN TWO CHROME SWITCHES, with their defaults INVERTED here — the
@@ -67,6 +68,7 @@
     class: class,
     row: row,
     max-width: max-width,
+    transition: transition,
   ))
   // A PLAIN sibling marker, not nested inside `#idea`'s own — see
   // `marker.typ` for why a caller reading this note's options back from an

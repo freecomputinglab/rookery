@@ -141,6 +141,12 @@ function rowEnter(el) {
   return row && row.querySelector(".slip") !== el ? "left" : undefined;
 }
 
+// A slip's own `data-transition`, else the deck's. Independent of
+// `actionFor`: a transition rides on whatever move the camera makes.
+function transitionFor(el) {
+  return el.dataset.transition ?? deck.dataset.transition ?? "none";
+}
+
 function scrollBehavior() {
   return reducedMotion ? "auto" : "smooth";
 }
@@ -191,8 +197,9 @@ function upFloor(el) {
 // Measures `el`, asks `camera.js` where its action wants to go, and moves
 // there. Shared by navigation (`goTo`) and by a resize's re-measurement of
 // whichever slip is already current — `recordFocus` is false for the
-// latter, since a resize does not enter a new focus.
-function apply(el, { recordFocus }) {
+// latter, since a resize does not enter a new focus. `forward` is whether
+// `el` is appearing rather than being returned to, the only time it fades.
+function apply(el, { recordFocus, forward = false }) {
   // FIRST, and before a single measurement: a slip the reveal is about to
   // show is `display: none` until this runs, so its rect is all zeroes and
   // the document is shorter than it is about to be. Both `documentRect`
@@ -240,6 +247,10 @@ function apply(el, { recordFocus }) {
 
   applyScale(target.scale, el);
 
+  if (forward && !reducedMotion && transitionFor(el) === "fade") {
+    el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, easing: "ease-out" });
+  }
+
   // `replaceState`, not a `location.hash` assignment: the latter pushes a
   // history entry per slip, so navigating the deck would fill the back
   // button with one entry per stop.
@@ -258,7 +269,7 @@ function goTo(index) {
   if (!started) {
     if (!entersDeck(started, currentIndex, index)) return;
     started = true;
-    apply(slips[currentIndex], { recordFocus: true });
+    apply(slips[currentIndex], { recordFocus: true, forward: true });
     redrawEdges();
     return;
   }
@@ -268,8 +279,9 @@ function goTo(index) {
   }
   const clamped = Math.min(Math.max(index, 0), slips.length - 1);
   if (clamped === currentIndex) return;
+  const forward = clamped > currentIndex;
   currentIndex = clamped;
-  apply(slips[currentIndex], { recordFocus: true });
+  apply(slips[currentIndex], { recordFocus: true, forward });
   redrawEdges();
 }
 

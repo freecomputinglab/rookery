@@ -55,9 +55,9 @@
 //   carries `data-enter` of its own ONLY when that slip's `#slip(enter: ..)`
 //   overrides the default — its absence is what lets the engine tell "unset,
 //   use the deck default" apart from "set to the same value the deck already
-//   has". There is no `data-transition`/`data-duration` anywhere: the camera
-//   is the only motion this package has, and `ENTERS` (`tags.typ`) is its
-//   whole vocabulary.
+//   has". `data-transition` follows the same rule, from `transition:`, and
+//   is orthogonal to it: the action says where the camera lands, the
+//   transition how the slips change over on the way.
 // - `id="slip-<id>"`: for a `kind: "row"` entry (a tag query) `<id>` is the
 //   note's own registry id, prefix included (`row.id`, e.g. `idea:intro` ->
 //   `slip-idea:intro`) — the same id `#window` transcludes by. For a
@@ -337,6 +337,8 @@
   let attrs = (class: cls.join(" "), id: id, "data-index": str(i))
   let ent = enter-of(e.tags)
   if ent != none { attrs.insert("data-enter", ent) }
+  let tr = transition-of(e.tags)
+  if tr != none { attrs.insert("data-transition", tr) }
   let edge-ids = _edge-ids(e, id-of)
   if edge-ids != none { attrs.insert("data-slip-edges", edge-ids.join(" ")) }
   let decls = (_background-style(e.tags), _max-width-style(e.tags)).filter(d => d != none)
@@ -386,6 +388,7 @@
   class: none,
   edges: none,
   enter: "scroll",
+  transition: none,
   reveal: true,
   open: false,
   display-frame: false,
@@ -417,6 +420,11 @@
   // `reveal: "all"`. The attribute keeps the words: `data-reveal="all"` says
   // what it means in a DOM inspector, where a bare `data-reveal="false"`
   // would leave a reader wondering what was false about it.
+  assert(
+    transition == none or transition in TRANSITIONS,
+    message: "@rookery/slipshow: `transition` must be none or one of "
+      + TRANSITIONS.join(", ") + " — got " + repr(transition),
+  )
   assert(
     type(reveal) == bool,
     message: "@rookery/slipshow: `reveal` must be a bool — got " + repr(reveal),
@@ -526,6 +534,7 @@
     attrs: (
       class: "slipshow",
       "data-enter": enter,
+      "data-transition": if transition == none { "none" } else { transition },
       "data-reveal": if reveal { "progressive" } else { "all" },
       "data-open": if open { "true" } else { "false" },
     ),
