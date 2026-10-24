@@ -15,7 +15,7 @@
 // presentations, so absent a `div.slipshow` this file finds nothing and
 // returns silently rather than throwing or logging.
 
-import { targetFor, clampTo, unfocusTarget } from "./camera.js";
+import { targetFor, clampTo, floorTo, unfocusTarget } from "./camera.js";
 import { redraw } from "./edges.js";
 
 // Gap kept between a slip's edge and the viewport edge when the camera
@@ -180,6 +180,14 @@ function applyScale(scale, el) {
   currentScale = scale;
 }
 
+// Where the last `up` slip before `el` put the camera, or `null` if none did.
+// Measured afresh rather than remembered, so a resize or a jump straight to a
+// later slip finds the same floor that walking there would have.
+function upFloor(el) {
+  const prior = slips.slice(0, slips.indexOf(el)).findLast((s) => actionFor(s) === "up");
+  return prior ? targetFor("up", documentRect(prior), currentViewport(), { margin: MARGIN }).scrollTop : null;
+}
+
 // Measures `el`, asks `camera.js` where its action wants to go, and moves
 // there. Shared by navigation (`goTo`) and by a resize's re-measurement of
 // whichever slip is already current — `recordFocus` is false for the
@@ -196,7 +204,7 @@ function apply(el, { recordFocus }) {
   const action = actionFor(el);
   const rect = documentRect(el);
   const viewport = currentViewport();
-  const target = targetFor(action, rect, viewport, { margin: MARGIN });
+  const target = floorTo(targetFor(action, rect, viewport, { margin: MARGIN }), upFloor(el));
 
   if (recordFocus && action === "focus" && target.scale !== 1) {
     // Saved BEFORE moving: what `unfocus` restores is where the camera was

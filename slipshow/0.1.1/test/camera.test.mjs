@@ -1,7 +1,7 @@
 // Numbers-only tests for the pure camera geometry — no DOM, no browser.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { targetFor, clampTo, unfocusTarget } from "../src/camera.js";
+import { targetFor, clampTo, floorTo, unfocusTarget } from "../src/camera.js";
 
 const VP = { height: 800, width: 600, scrollLeft: 0, scrollTop: 0 };
 
@@ -178,6 +178,23 @@ test("targetFor: an unknown action throws, naming the bad action and the accepte
       return true;
     },
   );
+});
+
+test("floorTo: a target above the floor is held at the floor", () => {
+  const t = floorTo({ scrollLeft: 0, scrollTop: 100, scale: 1 }, 480);
+  assert.deepEqual(t, { scrollLeft: 0, scrollTop: 480, scale: 1 });
+});
+
+test("floorTo: a target below the floor passes through unchanged", () => {
+  const t = { scrollLeft: 0, scrollTop: 900, scale: 1 };
+  assert.deepEqual(floorTo(t, 480), t);
+});
+
+test("floorTo: no floor, or a zoomed target, passes through unchanged", () => {
+  const t = { scrollLeft: 0, scrollTop: 100, scale: 1 };
+  assert.deepEqual(floorTo(t, null), t);
+  const z = { scrollLeft: 0, scrollTop: 100, scale: 0.5 };
+  assert.deepEqual(floorTo(z, 480), z);
 });
 
 test("unfocusTarget: restores a saved position unchanged", () => {

@@ -100,6 +100,13 @@ export const targetFor = (action, rect, viewport, opts = {}) => {
 export const clampTo = (pos, docSize, viewportSize) =>
   Math.min(Math.max(pos, 0), Math.max(0, docSize - viewportSize));
 
+// Holds a target at or below `floor`, the scroll position an earlier `up`
+// slip set, so the slips after it never bring it back down the screen.
+// `null` is no floor. A zoomed target is left alone: its scroll position is
+// taken around the scaled deck, which a floor measured unscaled does not know.
+export const floorTo = (target, floor) =>
+  floor == null || target.scale !== 1 ? target : { ...target, scrollTop: Math.max(target.scrollTop, floor) };
+
 // The position `unfocus` restores: whatever `focus` saved before it moved,
 // or the top-left of the document at natural scale if nothing was saved
 // (e.g. `unfocus` fires with no prior `focus`). The stack of saved positions
