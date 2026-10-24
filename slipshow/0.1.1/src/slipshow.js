@@ -330,6 +330,21 @@ function onKeydown(event) {
     goTo(slips.length - 1);
   } else if (event.key === "Escape") {
     unfocus();
+  } else if (event.key === "f") {
+    event.preventDefault();
+    toggleFullscreen();
+  }
+}
+
+// The whole page rather than the deck, so the camera keeps scrolling the
+// window it already scrolls. The browser's own `Esc` also leaves fullscreen.
+// `webkit`-prefixed for Safari releases that predate the unprefixed API.
+function toggleFullscreen() {
+  const root = document.documentElement;
+  if (document.fullscreenElement ?? document.webkitFullscreenElement) {
+    (document.exitFullscreen ?? document.webkitExitFullscreen)?.call(document);
+  } else {
+    (root.requestFullscreen ?? root.webkitRequestFullscreen)?.call(root);
   }
 }
 

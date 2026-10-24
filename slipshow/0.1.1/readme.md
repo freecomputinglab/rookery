@@ -627,6 +627,7 @@ Reachable from the keyboard and from a click, both bound in
 | `Home` | jump to the first slip |
 | `End` | jump to the last slip |
 | `Esc` | **unfocus** — return the camera to wherever it was before the last `focus` action moved it (a stack, so repeated focuses undo in the reverse order); a no-op if nothing was ever focused |
+| `f` | toggle the browser's fullscreen for the whole page, hiding its tabs and toolbars; `Esc` also leaves it. Where the browser refuses (iPhone Safari allows fullscreen to video alone) nothing happens |
 | click anywhere inside the deck | advance to the next slip |
 
 On a revealing deck (the default) every one of these also brings the deck up
