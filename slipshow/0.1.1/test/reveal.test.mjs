@@ -49,3 +49,7 @@ test("an ordinary backwards step does not leave the deck", () => {
 test("a deck already out cannot be exited again", () => {
   assert.equal(exitsDeck(false, 0, -1), false);
 });
+
+test("an open deck cannot be left by a backwards press off slip 0", () => {
+  assert.equal(exitsDeck(true, 0, -1, true), false);
+});

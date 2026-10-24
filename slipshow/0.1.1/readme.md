@@ -184,6 +184,7 @@ and needs the same list `idea` itself gets:
   row: none,
   enter: "scroll",
   reveal: true,
+  open: false,
   display-frame: false,
   display-name: false,
   display-label: false,
@@ -205,6 +206,12 @@ panics naming the valid set.
 
 `reveal:` is the progressive reveal, `true` by default — see its own section
 below.
+
+`open:` enters the deck on load, on its first slip, rather than waiting for the
+reader's first press; `false` by default. It is for a page that is nothing but
+its deck: with no heading or prose above it there is nothing for the camera to
+take the reader away from, and a revealing deck would otherwise open on a blank
+page. A backwards press on slip 0 then stays put instead of leaving the deck.
 
 `display-frame:`, `display-name:`, `display-label:`, `foldable:` and `reserve-title:` are
 `@rookery/core`'s own chrome switches with their defaults inverted — see "A slip
@@ -323,7 +330,8 @@ a document that is mostly nothing.
 
 Three consequences worth knowing before turning it on for a deck, or off:
 
-- **Click-to-advance cannot START a revealing deck.** The click handler is
+- **Click-to-advance cannot START a revealing deck** (unless it is `open:`,
+  which starts itself). The click handler is
   bound to `div.slipshow`, which has no area at all while the deck is empty, so
   the first move has to come from the keyboard (`→`, `↓`, `Space`, …). Click
   works normally from the first slip onwards. Listening on the document instead

@@ -55,6 +55,9 @@ let started = false;
 // (`data-reveal="progressive"`, the default — see `src/slipshow.typ`'s
 // header). Read once at init.
 let revealing = false;
+// Whether this deck enters itself on load (`data-open="true"`), on slip 0 or
+// the fragment's slip, and so has no outside to leave to. Read once at init.
+let opening = false;
 
 // THE LISTENERS ONE WIRING PASS OWNS. rheo's dev server can morph a content
 // edit straight into the live DOM instead of reloading (`docs/contract.md`'s
@@ -99,9 +102,10 @@ export function entersDeck(hasStarted, currentIndex, index) {
 
 // True when a requested index would exit an already-started deck: a
 // backwards press off slip 0, and only there — the one case `goTo`'s ordinary
-// clamp would otherwise swallow, leaving `started` stuck true forever.
-export function exitsDeck(hasStarted, currentIndex, index) {
-  return hasStarted && index < 0 && currentIndex === 0;
+// clamp would otherwise swallow, leaving `started` stuck true forever. Never on
+// an open deck, which opened on slip 0 and so has nowhere before it to go.
+export function exitsDeck(hasStarted, currentIndex, index, opens = false) {
+  return !opens && hasStarted && index < 0 && currentIndex === 0;
 }
 
 // Puts `slip-revealed` on every slip up to `revealThrough`'s answer and takes
@@ -250,7 +254,7 @@ function goTo(index) {
     redrawEdges();
     return;
   }
-  if (exitsDeck(started, currentIndex, index)) {
+  if (exitsDeck(started, currentIndex, index, opening)) {
     stop();
     return;
   }
@@ -395,6 +399,7 @@ function wire() {
   // of edits buys nothing.
   reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   revealing = deck.dataset.reveal !== "all";
+  opening = deck.dataset.open === "true";
 
   const signal = wiring(document);
   document.addEventListener("keydown", onKeydown, { signal });
@@ -442,10 +447,11 @@ function restore(rehydrating) {
     // camera runs on load. WITHOUT one it does not: a page carrying a deck
     // usually carries its own heading and prose above it, and scrolling
     // that out of view before the reader has pressed anything is the deck
-    // taking over a page it only occupies part of.
+    // taking over a page it only occupies part of. An open deck is the page,
+    // so it enters on slip 0 all the same.
     const hashIndex = slips.findIndex((s) => s.id === window.location.hash.slice(1));
     currentIndex = hashIndex === -1 ? 0 : hashIndex;
-    started = hashIndex !== -1;
+    started = hashIndex !== -1 || opening;
     // With `started` still false this reveals NOTHING, which is the point:
     // the deck occupies no height at all until the reader's first press.
     syncReveal();

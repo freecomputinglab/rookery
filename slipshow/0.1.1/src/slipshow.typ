@@ -3,7 +3,8 @@
 // `src/slipshow.js` are both pinned to. Nothing downstream can change these
 // names without changing all three together.
 //
-//   <div class="slipshow" data-enter="scroll" data-reveal="progressive">
+//   <div class="slipshow" data-enter="scroll" data-reveal="progressive"
+//        data-open="false">
 //     [<div class="slip-row" [data-row="0"]>]
 //       <section class="slip [slip-fullscreen] [<slip-class>]"
 //                id="slip-<id>" data-index="0" [data-enter="focus"]
@@ -27,6 +28,11 @@
 //   is identical under either value and only the attribute differs. See
 //   `src/slipshow.css`'s reveal section for the pair of rules, and
 //   `src/slipshow.js`'s `syncReveal`.
+// - `data-open` on the root is `"true"` or `"false"`, from `#slipshow`'s own
+//   `open:` argument, and is always present. `"true"` enters the deck on load,
+//   on its first slip, as a `#slip-<id>` fragment would; for a page that is
+//   nothing but its deck, with no prose above it for the camera to scroll
+//   away from.
 // - A QUERIED SLIP IS TRANSCLUDED WITH CORE'S CHROME OFF. `#slipshow`'s
 //   `display-frame:`, `display-name:` and `display-label:` all default to `false` here,
 //   inverting `@rookery/core`'s own defaults, and are passed straight to the
@@ -381,6 +387,7 @@
   edges: none,
   enter: "scroll",
   reveal: true,
+  open: false,
   display-frame: false,
   display-name: false,
   display-label: false,
@@ -413,6 +420,10 @@
   assert(
     type(reveal) == bool,
     message: "@rookery/slipshow: `reveal` must be a bool — got " + repr(reveal),
+  )
+  assert(
+    type(open) == bool,
+    message: "@rookery/slipshow: `open` must be a bool — got " + repr(open),
   )
 
   // THE CHROME FLAGS, all `false` where `@rookery/core`'s own defaults are
@@ -516,6 +527,7 @@
       class: "slipshow",
       "data-enter": enter,
       "data-reveal": if reveal { "progressive" } else { "all" },
+      "data-open": if open { "true" } else { "false" },
     ),
     {
       binds
