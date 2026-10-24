@@ -46,6 +46,14 @@
   position: relative;
 }
 
+/* A screen of runway past the last slip. The camera's targets are clamped to
+   the document's height (`src/slipshow.js`), so without it `up` on a short
+   last slip has nowhere to scroll to and leaves the slip where it was. Only on
+   a deck that is its own page: an embedded deck has prose below it already. */
+.slipshow[data-open="true"] {
+  padding-bottom: 100vh;
+}
+
 /* THE CONNECTOR LAYER (`src/edges.js`): one SVG spanning the whole deck, its
    user units the deck's own untransformed pixels — hence no `viewBox`. It is
    the deck's FIRST child so the curves paint beneath every slip.
