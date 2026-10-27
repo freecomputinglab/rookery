@@ -622,7 +622,11 @@
   if node.func() == figure and node.at("kind", default: none) in (IK, WK) { return out }
   if node.has("children") { for k in node.children { out += _footnotes(k) } }
   else if node.has("body") { out += _footnotes(node.body) }
-  else if node.has("child") { out += _footnotes(node.child) }
+  // A styled node's rules (e.g. `_flatten`'s `show ref: hyperlink`) must ride
+  // along with each footnote, which renders outside the node in the block.
+  else if node.has("child") {
+    out += _footnotes(node.child).map(b => if node.has("styles") { (node.func())(b, node.styles) } else { b })
+  }
   out
 }
 
