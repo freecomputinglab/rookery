@@ -988,6 +988,6 @@
   } else {
     // Paged target: no ids and no anchors, neither of which means anything in
     // a PDF. The block still renders, so an idea reads the same everywhere.
-    [*Footnotes*] + enum(..notes)
+    block(strong[Footnotes]) + enum(..notes)
   }
 }
