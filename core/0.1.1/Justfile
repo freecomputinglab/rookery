@@ -38,4 +38,5 @@ test:
     # vanishing under `show ref: hyperlink`.
     typst compile --features html --root . test/paged-cite.typ /tmp/rookery-paged-cite.pdf && pdftotext /tmp/rookery-paged-cite.pdf - | grep -q 'Mythical Man-Month'
     typst compile --features html --root . test/paged-footnotes.typ /tmp/rookery-paged-footnotes.pdf && pdftotext /tmp/rookery-paged-footnotes.pdf - | grep -qx 'Footnotes'
+    typst compile --features html --root . test/paged-references-title.typ /tmp/rookery-paged-references-title.pdf && pdftotext /tmp/rookery-paged-references-title.pdf - | grep -qx 'Works Cited' && pdftotext /tmp/rookery-paged-references-title.pdf - | grep -qx 'Bibliography'
     @echo "units OK"

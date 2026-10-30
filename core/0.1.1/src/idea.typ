@@ -69,7 +69,7 @@
   (if r.len() > 4096 { r.slice(0, 4096) } else { r }) + "#" + str(r.len())
 }
 
-#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, handle: auto, from: (), display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-name: auto, display-label: auto, display-background: auto, display-context: auto, display-backlinks: auto, display-parents: auto, display-children: auto, display-title: auto, display-right-gutter: auto, display-bibliography: auto, ..args) = {
+#let idea(level: 1, title: none, tags: (), tag: none, base-tags: none, exclude-tags: (), created: none, handle: auto, from: (), display: (:), display-date: auto, display-tags: auto, display-frame: auto, display-name: auto, display-label: auto, display-background: auto, display-context: auto, display-backlinks: auto, display-parents: auto, display-children: auto, display-title: auto, display-right-gutter: auto, display-bibliography: auto, references-title: [References], ..args) = {
   // Same leniency as `#window`/`#ideas-outline`/`#ideas`: a single tag needs
   // no array ceremony. Without this, a bare string reached `v.tags.map(...)`
   // below and further down at render time — str has no `.map`, so the error
@@ -657,7 +657,7 @@
                 + _tags-attr(visible),
             ),
             header + _footnoted(body)
-              + _refs-block(_own-cited-keys(body), card: (bib: bib, gutter: gutter)),
+              + _refs-block(_own-cited-keys(body), card: (bib: bib, gutter: gutter), title: references-title),
           ),
           IK,
         )
@@ -682,7 +682,7 @@
           if title != none { heading(depth: level, title) }
           if date != none { text(gray, date); linebreak() }
           _footnoted(body)
-        }) + _refs-block(_own-cited-keys(body)), IK)
+        }) + _refs-block(_own-cited-keys(body), title: references-title), IK)
       }
     }
     ])

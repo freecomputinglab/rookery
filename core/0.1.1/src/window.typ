@@ -599,10 +599,12 @@
 // wrapping. On a paged target the body still renders, just without that
 // wrapping, so a stray direct call does not hard-error.
 //
+// `references-title` is the heading over the body's References block.
+//
 // Supplies its own `context` — it reads `_registry-final()` internally — so,
 // unlike `idea-tag-names`/`idea-tag-value`/`ideas`/`tag-data`, it needs none from its
 // caller and can be called anywhere.
-#let idea-body(name, unfurl: 1, limit: none) = context {
+#let idea-body(name, unfurl: 1, limit: none, references-title: [References]) = context {
   // `#window` and `idea-body` take these same two parameters with the same
   // meaning, so their assert messages have to agree — see `#window`'s own
   // asserts for the reason `limit` requires `>= 1`.
@@ -624,7 +626,7 @@
   let rec = reg.at(id)
   let body = _body-at(id, rec, depth: unfurl)
   let shown = _truncate(body, limit)
-  let inner = _footnoted(shown) + _refs-block(_own-cited-keys(shown, windows-claim: unfurl > 1))
+  let inner = _footnoted(shown) + _refs-block(_own-cited-keys(shown, windows-claim: unfurl > 1), title: references-title)
   // LIGAMENTS: binds this note's own record AND its raw body, so a narrowed
   // rebuild recompiles whichever page calls `idea-body` on it when either
   // changes. Not `_ideas-binds` — with no `tagged` that helper would also

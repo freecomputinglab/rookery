@@ -127,7 +127,9 @@
 // `card:` is the card's resolved `(bib:, gutter:)`. Where core.css would hide
 // the block, its heading is `outlined: false`, so an outline or contents panel
 // lists no References section the reader cannot see. `none` means always shown.
-#let _refs-block(keys, card: none, id: none, attrs: (:)) = {
+//
+// `title:` is the block's heading.
+#let _refs-block(keys, card: none, id: none, attrs: (:), title: [References]) = {
   if _bib.final() == none or keys.len() == 0 { return [] }
   if _target() == "html" or _target() == "epub" {
     let elem-attrs = (class: _c("references"), data-rookery: "references") + attrs
@@ -136,9 +138,9 @@
       else if card.bib == false { false }
       else { not (_citation-mode.get() == "horizontal" and card.gutter != false) }
     show bibliography: set heading(outlined: shown)
-    html.elem("div", attrs: elem-attrs, _bib-call([References]))
+    html.elem("div", attrs: elem-attrs, _bib-call(title))
   } else {
-    _bib-call([References])
+    _bib-call(title)
   }
 }
 
