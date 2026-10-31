@@ -25,6 +25,14 @@ the only thing that produces a page backlink:
   #window(<sub-note>)
 ]
 
+#idea("wide-code", title: [Wide code])[
+  A note that pins code-block overflow: the block below is wider than any page.
+
+  ```rust
+  let long = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij";
+  ```
+]
+
 // A window selecting notes ACROSS vertebrae by TAG rather than by name — the
 // page-level backlink for a tag-selected window is what this pins. `#window(tagged:
 // "phd")` here picks up `tag-t-both` (on the `tags` vertebra, a different page

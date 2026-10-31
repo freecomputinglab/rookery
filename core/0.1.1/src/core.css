@@ -972,6 +972,18 @@ figure:has(> [data-rookery="window"]) + figure:has(> [data-rookery="window"]),
   padding-left: calc(var(--idea-pad, 0.5em) + var(--idea-rule-width, 2px));
 }
 
+/* A CODE BLOCK SCROLLS ITSELF rather than widening the card. A `pre` keeps its
+   whitespace, so a long line has no break point and its min-content width is the
+   whole line; left alone, that stretches the box and the page scrolls sideways.
+   The scrolling sits on the `pre`, never on the box or window: giving either an
+   `overflow`, or making it a block formatting context, would trap the margin
+   notes that float out of it. */
+[data-rookery="box"] pre,
+[data-rookery="window"] pre {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
 /* `<length>` typed, NOT left as a bare token sequence: an untyped custom
    property is substituted lazily, in the FONT-SIZE CONTEXT OF WHOEVER READS
    IT — and `[data-rookery="sidenote"]` reads `--_inset` at its own

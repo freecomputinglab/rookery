@@ -351,4 +351,63 @@ rm -f "$BLROW_GEOM"
 if [ "$fail" -ne 0 ]; then
   exit 1
 fi
+
+# Last check: a code block inside a note scrolls on its own instead of widening
+# the page. A long `pre` in a box must leave the document no wider than the
+# viewport, at a desktop and at a phone width.
+PRE_JS="$(mktemp)"
+PRE_GEOM="$H/_geom-pre.html"
+trap 'rm -f "$JS" "$GEOM" "$SUM_JS" "$ROW_JS" "$ROW_GEOM" "$BLROW_JS" "$BLROW_GEOM" "$PRE_JS" "$PRE_GEOM"' EXIT
+
+cat > "$PRE_JS" <<'JS'
+const de = document.documentElement;
+document.body.dataset.out = JSON.stringify({
+  scrollWidth: de.scrollWidth,
+  clientWidth: de.clientWidth,
+  pres: document.querySelectorAll('[data-rookery="box"] pre').length,
+});
+JS
+
+[ -f "$H/index.html" ] || { echo "FAIL: no $H/index.html"; exit 1; }
+cp "$H/index.html" "$PRE_GEOM"
+python3 - "$PRE_GEOM" "$PRE_JS" <<'PY'
+import sys
+p, script_path = sys.argv[1], sys.argv[2]
+s = open(p).read()
+js = "<script>" + open(script_path).read() + "</script>"
+open(p, "w").write(s.replace("</body>", js + "</body>"))
+PY
+
+for size in 1400,900 400,900; do
+  out=$(timeout 60 chromium --headless=new --disable-gpu --no-sandbox \
+    --window-size="$size" --force-device-scale-factor=1 \
+    --dump-dom "$PRE_GEOM" 2>/dev/null \
+    | grep -o 'data-out="[^"]*"' | sed 's/&quot;/"/g; s/^data-out="//; s/"$//')
+  if [ -z "$out" ]; then
+    echo "FAIL: pre $size: chromium produced no data-out attribute"
+    fail=1
+    continue
+  fi
+  if ! python3 - "$size" "$out" <<'PY'
+import json, sys
+size, out = sys.argv[1], sys.argv[2]
+row = json.loads(out)
+bad = False
+if row["pres"] == 0:
+    print(f"FAIL: pre {size}: no pre found inside a box")
+    bad = True
+if row["scrollWidth"] > row["clientWidth"]:
+    print(f"FAIL: pre {size}: page scrolls sideways scrollWidth={row['scrollWidth']} clientWidth={row['clientWidth']}")
+    bad = True
+sys.exit(1 if bad else 0)
+PY
+  then
+    fail=1
+  fi
+done
+rm -f "$PRE_GEOM"
+
+if [ "$fail" -ne 0 ]; then
+  exit 1
+fi
 echo "geom OK"

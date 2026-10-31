@@ -163,8 +163,8 @@ if [ -f "$H/ideas/index.html" ]; then
   # Every registered note but the excluded one. `private-note` never registers,
   # which makes this count also the assertion that exclusion reaches the index
   # page — so it grows with the rookery's content rather than staying pinned.
-  grep -q 'idea-index-count">57 ideas<' "$idx" ||
-    note "ideas/index.html does not count its 57 ideas"
+  grep -q 'idea-index-count">58 ideas<' "$idx" ||
+    note "ideas/index.html does not count its 58 ideas"
   # A dated note carries its date; sub-note is the demo's only dated one.
   grep -q 'idea-date">2026-03-14<' "$idx" ||
     note "ideas/index.html does not show the dated note's date"
