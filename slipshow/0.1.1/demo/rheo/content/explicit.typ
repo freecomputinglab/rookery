@@ -36,6 +36,13 @@
   // An OVERLAY: re-draws the last line with its right side in gold, on top
   // of the slip before it, and the camera stays still.
   slip("lines-gold", over: true, { show "b": set text(fill: rgb("#c08000")); equation-band(eq, 1) }),
+  // A REPLACEMENT: takes the place of the slips before it in the stack, in
+  // flow, so it can be taller than what it replaces.
+  slip("lines-replaced", replace: true)[
+    Replaced outright, and taller than the line it replaces.
+
+    Going back brings the line back.
+  ],
   slip("prose", lines: true)[
     First paragraph.
 

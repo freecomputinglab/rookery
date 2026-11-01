@@ -82,6 +82,7 @@
   fullscreen: false,
   join: false,
   over: false,
+  replace: false,
   background: none,
   enter: none,
   order: none,
@@ -110,6 +111,12 @@
     message: "@rookery/slipshow: `over` must be a bool — got " + repr(over),
   )
   if over == true { out.insert("slip-over", none) }
+
+  assert(
+    type(replace) == bool,
+    message: "@rookery/slipshow: `replace` must be a bool — got " + repr(replace),
+  )
+  if replace == true { out.insert("slip-replace", none) }
 
   if enter != none {
     assert(
@@ -193,6 +200,7 @@
 #let is-fullscreen(tags) = "slip-fullscreen" in tags
 #let is-joined(tags) = "slip-join" in tags
 #let is-over(tags) = "slip-over" in tags
+#let is-replace(tags) = "slip-replace" in tags
 
 // Decoded from the key, not stored a second time: the entered name and the
 // filterable flat key cannot disagree if there is only one of them.

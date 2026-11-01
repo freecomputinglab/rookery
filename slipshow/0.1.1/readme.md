@@ -72,6 +72,7 @@ the build succeeds either way.
   fullscreen: false,
   join: false,
   over: false,
+  replace: false,
   background: none,
   enter: none,
   order: none,
@@ -98,6 +99,7 @@ deck, which never sees the call site itself, only the registry row.
 | `fullscreen` | `bool` | `false` | tags the note `slip-fullscreen`; the stylesheet stretches the slip to at least the viewport height and centers its content in it |
 | `join` | `bool` | `false` | tags the note `slip-join`; the stylesheet removes the gap between this slip and the one above it |
 | `over` | `bool` | `false` | tags the note `slip-over`; draws this slip on top of the slip directly before it in the deck — see "Overlays" below |
+| `replace` | `bool` | `false` | tags the note `slip-replace`; once revealed, this slip takes the place of the slip directly before it — see "Replacements" below |
 | `background` | `color`, `gradient`, or `image(..)` content | `none` | this slip's own background — see "Backgrounds" below |
 | `enter` | one of the nine camera actions (see "Keyboard and mouse controls") | `none` (deck default) | overrides `#slipshow`'s deck-wide `enter:` for this one slip |
 | `transition` | `"fade"` or `"none"` | `none` (deck default) | overrides `#slipshow`'s deck-wide `transition:` for this one slip |
@@ -224,6 +226,19 @@ A slip plus every consecutive `over: true` slip after it is one STACK, rendered 
 An overlay is transparent unless it has a `background:`. Give it the same background as the slip it covers to hide that slip, or none to draw on top of it (a circle, an arrow).
 
 An overlay is entered with the `stay` camera action, so the camera does not move when it appears; its own `enter:` still wins. Going back takes it away again. A stack can sit in a row like a lone slip, and joining (`join: true`) the stack's first slip to the slip above still works.
+
+### Replacements — `replace: true`
+
+`#slip(replace: true)` joins the stack of the slip directly before it, as an overlay does, but once revealed it takes that slip's place rather than covering it: every slip before it in the stack is hidden, and the replacement sits in normal flow, so it can be any height. Going back past it brings them back. It is entered with `stay` like an overlay. Overlays and replacements mix in one stack: an overlay after a replacement covers the replacement.
+
+```typst
+#slipshow(slips: (
+  slip("claim")[The short version.],
+  slip("claim-long", replace: true)[The long version, which needs more room.],
+))
+```
+
+With no controller revealing slips (JavaScript off, or `reveal: false`), every slip in the stack shows, one after another. A replacement panics where an overlay would: with no slip before it, or alongside `lines: true`.
 
 ## `#slipshow` — the deck container
 
@@ -653,6 +668,7 @@ every slip exactly as an explicit inline deck does:
 | `slip-fullscreen` | `#slip(fullscreen: true)` |
 | `slip-join` | `#slip(join: true)` |
 | `slip-over` | `#slip(over: true)` |
+| `slip-replace` | `#slip(replace: true)` |
 | `slip-enter-<action>` | `#slip(enter: <action>)`, one of the nine camera actions |
 
 **Valued keys** — present-filterable by key, but carry no pill (a valued tag

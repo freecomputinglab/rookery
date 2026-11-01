@@ -335,6 +335,19 @@
   inset: 0;
 }
 
+/* A REPLACEMENT (`slip(replace: true)`) is in flow rather than pinned, so it
+   can be any height. Once revealed it takes the place of every slip before it
+   in its stack, and going back past it brings them back. With no controller
+   to reveal anything, every slip shows, one after another. */
+.slip-stack > .slip.slip-replace {
+  position: relative;
+  inset: auto;
+}
+
+.slipshow-revealing .slip-stack > .slip:has(~ .slip-replace.slip-revealed) {
+  display: none;
+}
+
 /* EACH SLIP IN A STACK PAINTS AS ONE LAYER. A slip's children sit at
    `z-index: 1` (`.slip > :not(.slip-bg)` above) with no stacking context on
    the slip, so without this the slip beneath's content would paint over an

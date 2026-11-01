@@ -333,6 +333,7 @@
     "slip",
     ..if is-fullscreen(e.tags) { ("slip-fullscreen",) } else { () },
     ..if is-joined(e.tags) { ("slip-join",) } else { () },
+    ..if is-replace(e.tags) { ("slip-replace",) } else { () },
     ..if entry-class != none { (entry-class,) } else { () },
   )
   let attrs = (class: cls.join(" "), id: id, "data-index": str(i))
@@ -356,17 +357,18 @@
 #let _entry-row(e) = if "computed-row" in e { e.computed-row } else { row-of(e.tags) }
 
 // Groups resolved entries into STACKS: a slip plus every consecutive
-// `over: true` slip after it, each overlay drawn on top of the one before.
+// `over: true` or `replace: true` slip after it, each overlay drawn on top of
+// the one before and each replacement taking the place of those before it.
 // Each stack is an array of `(i: i, e: e)` pairs, `i` the entry's original
 // index for `_slip-attrs`/`id="slip-<n>"`. An overlay with nothing before it
 // has nothing to cover, and panics.
 #let _stacks(entries) = {
   let stacks = ()
   for (i, e) in entries.enumerate() {
-    if is-over(e.tags) {
+    if is-over(e.tags) or is-replace(e.tags) {
       assert(
         stacks.len() > 0,
-        message: "@rookery/slipshow: a slip with `over: true` must follow the slip it covers",
+        message: "@rookery/slipshow: a slip with `over: true` or `replace: true` must follow the slip it covers",
       )
       stacks.last().push((i: i, e: e))
     } else {

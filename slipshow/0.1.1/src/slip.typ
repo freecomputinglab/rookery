@@ -25,6 +25,7 @@
   fullscreen: false,
   join: false,
   over: false,
+  replace: false,
   background: none,
   enter: none,
   order: none,
@@ -69,6 +70,7 @@
     fullscreen: fullscreen,
     join: join,
     over: over,
+    replace: replace,
     background: background,
     enter: enter,
     order: order,
@@ -113,8 +115,8 @@
   if not lines { return _slip-one(wrap: wrap, ..args) }
   let named = args.named()
   assert(
-    not named.at("over", default: false),
-    message: "@rookery/slipshow: a slip cannot be both `lines: true` and `over: true`",
+    not named.at("over", default: false) and not named.at("replace", default: false),
+    message: "@rookery/slipshow: a slip cannot be both `lines: true` and `over: true` or `replace: true`",
   )
   let pos = args.pos()
   assert(
