@@ -7,11 +7,11 @@
 // the result (with `window.scrollTo`, a CSS transform for `scale`, and a
 // saved-position stack for `unfocus`).
 
-// The eight action names. `ENTERS` in `src/tags.typ` is the Typst half of the
-// same vocabulary and holds the same eight, which is what lets a `data-enter`
+// The nine action names. `ENTERS` in `src/tags.typ` is the Typst half of the
+// same vocabulary and holds the same nine, which is what lets a `data-enter`
 // attribute reach `targetFor` unchanged, with no translation table between an
 // authored tag and this switch. The two halves cannot be changed apart.
-const ACTIONS = ["scroll", "up", "down", "center", "left", "right", "center-x", "focus"];
+const ACTIONS = ["scroll", "up", "down", "center", "left", "right", "center-x", "focus", "stay"];
 
 // `rect` is the element's position in DOCUMENT coordinates —
 // `{ top, height, left, width }` measured from the top/left of the whole
@@ -29,6 +29,8 @@ const ACTIONS = ["scroll", "up", "down", "center", "left", "right", "center-x", 
 export const targetFor = (action, rect, viewport, opts = {}) => {
   const margin = opts.margin ?? 0;
   switch (action) {
+    case "stay":
+      return { scrollLeft: viewport.scrollLeft, scrollTop: viewport.scrollTop, scale: 1 };
     case "up":
       return { scrollLeft: viewport.scrollLeft, scrollTop: rect.top - margin, scale: 1 };
     case "down":

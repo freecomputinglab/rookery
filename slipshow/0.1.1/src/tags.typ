@@ -27,7 +27,7 @@
 // transition's.
 #let ENTERS = (
   "scroll", "up", "down", "center", "focus",
-  "left", "right", "center-x",
+  "left", "right", "center-x", "stay",
 )
 
 // Every transition `src/slipshow.js`'s `transitionFor` knows. `none` is the

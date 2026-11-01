@@ -95,7 +95,7 @@ deck, which never sees the call site itself, only the registry row.
 | `fullscreen` | `bool` | `false` | tags the note `slip-fullscreen`; the stylesheet stretches the slip to at least the viewport height and centers its content in it |
 | `join` | `bool` | `false` | tags the note `slip-join`; the stylesheet removes the gap between this slip and the one above it |
 | `background` | `color`, `gradient`, or `image(..)` content | `none` | this slip's own background — see "Backgrounds" below |
-| `enter` | one of the eight camera actions (see "Keyboard and mouse controls") | `none` (deck default) | overrides `#slipshow`'s deck-wide `enter:` for this one slip |
+| `enter` | one of the nine camera actions (see "Keyboard and mouse controls") | `none` (deck default) | overrides `#slipshow`'s deck-wide `enter:` for this one slip |
 | `transition` | `"fade"` or `"none"` | `none` (deck default) | overrides `#slipshow`'s deck-wide `transition:` for this one slip |
 | `order` | `int` | `none` | this slip's `slip-order` — the default sort key for a tag-queried deck |
 | `class` | `str` | `none` | appended to the rendered `<section>`'s class list |
@@ -220,7 +220,7 @@ the result. Giving neither route, or both, panics naming which:
 - **`slips:`** — an explicit, already-ordered array.
 - **`tags:` and/or `where:`** — a query over the registry, sorted by `order:`.
 
-`enter:` is the deck-wide default camera action, one of the eight named in
+`enter:` is the deck-wide default camera action, one of the nine named in
 "Keyboard and mouse controls" below (`"scroll"` by default); a bad value
 panics naming the valid set.
 
@@ -617,7 +617,7 @@ every slip exactly as an explicit inline deck does:
 | `slip` | every `#slip` call, and `#idea(tags: ("slip": none))` by hand — the key a deck's `tags:`/`where:` query filters on |
 | `slip-fullscreen` | `#slip(fullscreen: true)` |
 | `slip-join` | `#slip(join: true)` |
-| `slip-enter-<action>` | `#slip(enter: <action>)`, one of the eight camera actions |
+| `slip-enter-<action>` | `#slip(enter: <action>)`, one of the nine camera actions |
 
 **Valued keys** — present-filterable by key, but carry no pill (a valued tag
 never gets one, the same rule core states for a tag like `depends-on`):
@@ -660,6 +660,11 @@ On a revealing deck (the default) every one of these also brings the deck up
 to wherever it lands: forwards reveals, backwards hides again, and `End`
 reveals the lot. Only the click has a starting condition — an empty deck has
 nothing to click, so the first move is a keypress. See "`reveal:`" above.
+
+The camera action a slip enters with (`enter:`, or `slip-enter-<action>`) is
+one of nine: `scroll`, `up`, `down`, `center`, `focus`, `left`, `right`,
+`center-x`, and `stay`. `stay` leaves the camera exactly where it is, so the
+slip appears wherever it is in the page.
 
 Keyboard shortcuts are ignored outright while a modifier (`Ctrl`/`Alt`/
 `Meta`/`Shift`) is held, and while focus sits in an `<input>`, a `<textarea>`

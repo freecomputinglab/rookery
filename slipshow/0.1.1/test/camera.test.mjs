@@ -5,6 +5,11 @@ import { targetFor, clampTo, floorTo, unfocusTarget } from "../src/camera.js";
 
 const VP = { height: 800, width: 600, scrollLeft: 0, scrollTop: 0 };
 
+test("stay: keeps the current scroll position whatever the element", () => {
+  const t = targetFor("stay", { top: 5000, height: 100, left: 0, width: 100 }, { ...VP, scrollTop: 123, scrollLeft: 7 }, { margin: 20 });
+  assert.deepEqual(t, { scrollLeft: 7, scrollTop: 123, scale: 1 });
+});
+
 test("up: scrollTop puts the element's top at the top of the viewport", () => {
   const t = targetFor("up", { top: 500, height: 100, left: 0, width: 100 }, VP, { margin: 0 });
   assert.equal(t.scrollTop, 500);
