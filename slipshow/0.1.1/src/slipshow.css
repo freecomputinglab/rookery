@@ -335,6 +335,24 @@
 .slip-stack > .slip:not(:first-child):not(.slip-replace) {
   position: absolute;
   inset: 0;
+  /* A margin on a pinned box shrinks it: a site's `--slip-gap` would stop the
+     overlay that far short of the base's foot. */
+  margin-block: 0;
+}
+
+/* THE ROWS OF A `lines: true` SLIP, and a layer stacked on them, carry no
+   vertical card spacing, so the rows sit exactly as the lines of the one
+   equation they are cut from and an overlay that redraws them all
+   (`slip-rows(body).join()`) lands on them. Reaches into `@rookery/core`'s
+   card by its role attributes, more specifically than core's own rules. */
+.slip [data-rookery="window"][data-rookery-tags~="slip-line"],
+.slip-stack:has(> .slip-group) > .slip [data-rookery="window"] {
+  padding-block: 0;
+}
+
+.slip [data-rookery="window"][data-rookery-tags~="slip-line"] > [data-rookery="window-details"][open],
+.slip-stack:has(> .slip-group) > .slip [data-rookery="window"] > [data-rookery="window-details"][open] {
+  margin-bottom: 0;
 }
 
 /* A REPLACEMENT (`slip(replace: true)`) is in flow rather than pinned, so it
