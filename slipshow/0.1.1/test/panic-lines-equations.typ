@@ -1,2 +1,2 @@
-#import "/src/lib.typ": slip-lines
-#slip-lines("x", [not math])
+#import "/src/lib.typ": slip
+#slip(lines: "yes")[x]

@@ -44,13 +44,15 @@ check_page() {
 }
 
 check_page index 5
-check_page explicit 7 all
+check_page explicit 11 all
 check_page predicate 2
 check_page deck 12
 grep -q 'slip-join' "$H/explicit.html" ||
   note "explicit.html: the joined slip did not carry slip-join"
 grep -q 'id="idea:lines-line-2"' "$H/explicit.html" ||
-  note "explicit.html: slip-lines did not mint its second row"
+  note "explicit.html: lines: true did not mint its second row"
+grep -q 'id="idea:prose-line-4"' "$H/explicit.html" ||
+  note "explicit.html: the prose lines slip did not mint its fourth row"
 grep -q 'class="slip-stack"' "$H/explicit.html" ||
   note "explicit.html: the overlay did not form a slip-stack"
 line2=$(grep -bo 'id="idea:lines-line-2"' "$H/explicit.html" | head -1 | cut -d: -f1)
@@ -84,7 +86,7 @@ deck_chrome predicate 2
 # The ARRAY route reaches the same shape by the other half of the mechanism:
 # `#slip` binds those defaults at its own call site, because its slips were
 # rendered before any deck existed and nothing downstream can reach inside them.
-deck_chrome explicit 7
+deck_chrome explicit 11
 
 # 2c. A DECK ANNOUNCES NOTHING. `#slipshow`'s `backlink:` defaults to false, so
 #     a deck contributes nothing to the backlinks graph — the notes it shows do

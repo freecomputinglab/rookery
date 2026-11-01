@@ -159,7 +159,13 @@
       reverse,
     )
   } else if order == "slip-order" {
-    _sort-pairs(rows.map(row => (key: order-of(row.tags-dict), row: row)), reverse)
+    // The line breaks a tie between rows of one `lines: true` slip, which the
+    // id alone would not: `x-line-10` sorts before `x-line-2`.
+    _sort-pairs(rows.map(row => {
+      let o = order-of(row.tags-dict)
+      let l = line-of(row.tags-dict)
+      (key: if o == none { none } else { (o, if l == none { 0 } else { l }) }, row: row)
+    }), reverse)
   } else if type(order) == function {
     // Call the key function ONCE per row — an author's key function may walk
     // the note's body — and keep the pair `(key, row)`, rather than sorting a
@@ -303,9 +309,21 @@
           + "authored on a page the spine does not include.",
       )
     }
-    (kind: "row", row: row, tags: row.tags-dict)
+    ((kind: "row", row: row, tags: row.tags-dict),)
   } else {
-    (kind: "content", content: item, tags: slip-tags-of(item))
+    // A `lines: true` slip is several slips in one value: one entry each.
+    let is-marker = c => c.func() == metadata and type(c.value) == dictionary and _SLIP-META in c.value
+    let kids = if type(item) == content and item.func() == [].func() { item.children } else { () }
+    let groups = ()
+    for c in kids {
+      if is-marker(c) or groups.len() == 0 { groups.push(()) }
+      groups.last().push(c)
+    }
+    if kids.filter(is-marker).len() < 2 { groups = ((item,),) }
+    groups.map(g => {
+      let content = g.join()
+      (kind: "content", content: content, tags: slip-tags-of(content))
+    })
   }
 }
 
@@ -415,7 +433,7 @@
     // so a content-only array stays exactly as cheap as it was before names
     // existed, and keeps working with no registry (and no `#context`) at all.
     let lookup = if slips.any(item => type(item) in (str, label)) { _slip-lookup() } else { (:) }
-    let entries = slips.map(item => _resolve-slip-item(item, lookup))
+    let entries = slips.map(item => _resolve-slip-item(item, lookup)).flatten()
     return _apply-edges(_apply-class(_apply-row(entries, row), class), edges)
   }
 

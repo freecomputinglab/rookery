@@ -78,6 +78,8 @@ the build succeeds either way.
   class: none,
   row: none,
   max-width: none,
+  lines: false,
+  wrap: it => it,
   tags: none,
   exclude-tags: (),
   display-frame: false,
@@ -103,6 +105,8 @@ deck, which never sees the call site itself, only the registry row.
 | `class` | `str` | `none` | appended to the rendered `<section>`'s class list |
 | `row` | `int` | `none` | groups CONSECUTIVE slips sharing the same value into one `div.slip-row[data-row=..]` wrapper — overridden per-deck by `#slipshow`'s own `row:` key function, below, for a row that is computed rather than authored |
 | `max-width` | `length`, `ratio`, or a raw-CSS `str` | `none` | a `max-width` declaration on the slip's own `<section>` — never `width`, so a narrower slip stays narrow rather than being stretched to fill the cap |
+| `lines` | `bool` | `false` | one slip per row of the body, each joined to the one above — see "`lines: true`" below |
+| `wrap` | function | `it => it` | applied to the body, so styling travels inside it — see "`lines: true`" below |
 | `tags` | any of core's four tag forms | `none` | the caller's own tags, merged in LAST — a caller naming one of `#slip`'s own keys wins outright |
 | `exclude-tags` | array of tag names | `()` | forwarded through to the underlying `#idea` — see below |
 | `display-frame` | `bool` | `false` | `@rookery/core`'s own switch with its default INVERTED — no card left rule, no indent |
@@ -176,21 +180,32 @@ and needs the same list `idea` itself gets:
 #let slip = _slip.with(exclude-tags: EX)
 ```
 
-### `#slip-lines` — a block of math, a row at a time
+### `lines: true` — a slip a row at a time
 
 ```typst
-#slip-lines(name, equation, ..args)
+#slip("steps", lines: true, $ a &= b \ &= c $)
+#slip("prose", lines: true)[
+  First paragraph.
+
+  + one
+  + two
+]
 ```
 
-Turns one multi-line equation into one slip per row, each joined to the one above (`join: true` on every row after the first), so a block of math is revealed row by row. It returns an array of slips. Spread it into an explicit deck, `slips: (..slip-lines("x", $ a &= b \ c &= d $),)`, or write `#slip-lines("x", $ .. $).join()` on a page a queried deck reads from.
+Makes one slip per row of the body, so the body is revealed row by row. Every row after the first is joined to the one above (`join: true`); the first keeps the `join:` you gave it. It returns the slips joined into one value, which goes straight into a `slips:` array (each row becomes its own entry) or onto a page a queried deck reads from.
 
-Ids are `<name>`, `<name>-line-2`, `<name>-line-3`, and so on. Other named arguments (`background:`, `tags:`) go to every row. `title:` goes to the first row only.
+How the body splits:
 
-Alignment holds because every row is a band of the one equation: each slip shows the whole equation clipped vertically to its row, so all slips share a width and the columns of their `&`s.
+- A body that is one block equation splits at its `\`s. Each row is a band of the whole equation, clipped vertically to that row, so every row shares the equation's width and the columns of its `&`s. Band edges assume even row spacing.
+- Anything else splits at paragraph breaks, and each list or enum item is a row of its own. An enum item keeps its number, so a lone `+ two` still reads as 2. Tables, figures and nested lists are not split beyond their top-level items.
 
-Limits: exactly one equation; `order:` is refused, since the rows would share it; band edges assume even row spacing.
+Ids are `<id>`, `<id>-line-2`, `<id>-line-3`, and so on, as strings, for a string or label id. With no id, every row gets its own automatic id. `title:` goes to the first row only. Every other option goes to every row, and each row carries a valued `slip-line` tag with its 1-based position, so rows sharing an `order:` stay in row order in a tag-queried deck.
 
-`equation-rows(eq)` and `equation-band(eq, k)` are public, for a caller building its own slips.
+`lines: true` with `over: true` panics: an overlay covers one slip, not several.
+
+`wrap:` is applied to every slip's body, lines or not. Styling set around a `#slip` call does not reach the copy a queried deck re-renders from the registry, so a show rule the slip needs goes in `wrap:`, as `wrap: it => { set text(red); it }`.
+
+`slip-rows(body)` returns the rows themselves, and `equation-rows(eq)` and `equation-band(eq, k)` are public too, for a caller building its own slips.
 
 ### Overlays — `over: true`
 
@@ -199,7 +214,7 @@ Limits: exactly one equation; `order:` is refused, since the rows would share it
 ```typst
 #let eq = $ "short" &-> "a" \ "much longer left side" &-> "b" $
 #slipshow(slips: (
-  ..slip-lines("lines", eq),
+  slip("lines", lines: true, eq),
   slip("lines-gold", over: true, { show "b": set text(fill: rgb("#c08000")); equation-band(eq, 1) }),
 ))
 ```
@@ -650,6 +665,7 @@ never gets one, the same rule core states for a tag like `depends-on`):
 | `slip-class` | `#slip(class: ..)` |
 | `slip-row` | `#slip(row: ..)` |
 | `slip-max-width` | `#slip(max-width: ..)` |
+| `slip-line` | `#slip(lines: true)`, each row's 1-based position |
 
 Flat keys are filterable by core's own `#ideas(tagged:)`/`#window(tagged:)` and
 by `@rookery/search`'s `tags:draft`-style query language exactly like any

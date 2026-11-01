@@ -1,5 +1,3 @@
-#import "slip.typ": slip
-
 // The rows of a multi-line equation, split at its `\`s.
 #let equation-rows(eq) = {
   let kids = if eq.body.func() == [].func() { eq.body.children } else { (eq.body,) }
@@ -25,19 +23,50 @@
 // only paged layout can clip.
 #let equation-band(eq, k) = context if target() == "html" { html.frame(_band(eq, k)) } else { _band(eq, k) }
 
-#let slip-lines(name, eq, ..args) = {
-  assert(type(name) == str, message: "@rookery/slipshow: `slip-lines` takes a string name first — got " + repr(name))
-  assert(type(eq) == content and eq.func() == math.equation,
-    message: "@rookery/slipshow: `slip-lines` takes one equation — got " + repr(eq))
-  assert("order" not in args.named(),
-    message: "@rookery/slipshow: `slip-lines` takes no `order:` — its rows would share it")
-  let named = args.named()
-  let rest = named.pairs().filter(p => p.at(0) != "title").to-dict()
-  range(equation-rows(eq).len()).map(k => slip(
-    if k == 0 { name } else { name + "-line-" + str(k + 1) },
-    join: k > 0,
-    ..(if k == 0 { named } else { rest }),
-    ..args.pos(),
-    equation-band(eq, k),
-  ))
+#let _space = [ ].func()
+#let _blank(c) = c.func() in (_space, parbreak)
+
+#let _block-equation(c) = c.func() == math.equation and c.block
+
+// The one block equation `body` is, ignoring space around it, or `none`.
+#let _lone-equation(body) = {
+  if _block-equation(body) { return body }
+  if body.func() != [].func() { return none }
+  let kids = body.children.filter(c => not _blank(c))
+  if kids.len() == 1 and _block-equation(kids.first()) { kids.first() } else { none }
+}
+
+// The rows `#slip(lines: true)` reveals one at a time. A lone block equation
+// splits at its `\`s into bands that keep its `&` columns; anything else
+// splits at paragraph breaks, with each list or enum item a row of its own.
+#let slip-rows(body) = {
+  let eq = _lone-equation(body)
+  if eq != none { return range(equation-rows(eq).len()).map(k => equation-band(eq, k)) }
+
+  let kids = if body.func() == [].func() { body.children } else { (body,) }
+  kids = kids.map(c => if c.func() in (list, enum) { c.children } else { (c,) }).flatten()
+  let rows = ()
+  let cur = ()
+  // The number the next enum item in an unbroken run takes.
+  let next = none
+  for c in kids {
+    if c.func() in (parbreak, list.item, enum.item) {
+      if cur.any(k => not _blank(k)) { rows.push(cur.join()) }
+      cur = ()
+    }
+    if c.func() == list.item {
+      rows.push(c)
+      next = none
+    } else if c.func() == enum.item {
+      let given = c.at("number", default: none)
+      let n = if type(given) == int { given } else if next == none { 1 } else { next }
+      rows.push(enum.item(n, c.body))
+      next = n + 1
+    } else if c.func() != parbreak {
+      if not _blank(c) { next = none }
+      cur.push(c)
+    }
+  }
+  if cur.any(k => not _blank(k)) { rows.push(cur.join()) }
+  rows
 }

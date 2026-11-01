@@ -43,6 +43,9 @@
 #let ROW-KEY = "slip-row"
 #let MAX-WIDTH-KEY = "slip-max-width"
 #let TRANSITION-KEY = "slip-transition"
+// A `#slip(lines: true)` row's 1-based position, so rows sharing an `order:`
+// keep row order.
+#let LINE-KEY = "slip-line"
 
 // A local copy of rookery's four-form tag normalizer, so this module stays a
 // pure function of its arguments. Deliberately NOT an import of core's
@@ -86,6 +89,7 @@
   row: none,
   max-width: none,
   transition: none,
+  line: none,
 ) = {
   let out = ((SLIP-KEY): none)
 
@@ -167,6 +171,14 @@
     out.insert(TRANSITION-KEY, transition)
   }
 
+  if line != none {
+    assert(
+      type(line) == int and line >= 1,
+      message: "@rookery/slipshow: `line` must be an integer ≥ 1 — got " + repr(line),
+    )
+    out.insert(LINE-KEY, line)
+  }
+
   out + _norm-tags-local(tags)
 }
 
@@ -192,3 +204,4 @@
 #let row-of(tags) = tags.at(ROW-KEY, default: none)
 #let max-width-of(tags) = tags.at(MAX-WIDTH-KEY, default: none)
 #let transition-of(tags) = tags.at(TRANSITION-KEY, default: none)
+#let line-of(tags) = tags.at(LINE-KEY, default: none)

@@ -402,7 +402,7 @@
 #let edge-content = slip("edge-content")[Loose content]
 #assert("computed-edges" not in resolve-slips(slips: (edge-content,), edges: r => ("x",)).first())
 
-// `slip-lines` splits at `\`, and its bands tile the one equation.
+// `equation-rows` splits at `\`, and its bands tile the one equation.
 #import "/src/lines.typ": _band
 #context {
   assert.eq(equation-rows($ a &= b \ c &= d \ e &= f $).len(), 3)
@@ -415,3 +415,47 @@
     assert.eq(measure(_band(eq, k)).width, whole.width)
   }
 }
+
+// `slip-rows` splits a lone block equation at `\`, and anything else at
+// paragraph breaks and list items, numbering each enum item explicitly.
+#import "/src/select.typ": _sort-rows
+#context {
+  assert.eq(slip-rows($ a &= b \ c &= d $).len(), 2)
+  assert.eq(slip-rows[
+    One.
+
+    Two.
+
+    Three.
+  ].len(), 3)
+  let rows = slip-rows[
+    Intro.
+
+    + a
+    + b
+    + c
+  ]
+  assert.eq(rows.len(), 4)
+  assert.eq(rows.at(3).func(), enum.item)
+  assert.eq(rows.at(3).number, 3)
+}
+
+#assert.eq(slip-tags(line: 2).at("slip-line"), 2)
+
+// Rows sharing an `order:` keep row order, which the id tie-break would not.
+#let line-rows = (
+  (id: "x-line-10", name: "x-line-10", tags-dict: (slip-order: 1, slip-line: 10)),
+  (id: "x-line-2", name: "x-line-2", tags-dict: (slip-order: 1, slip-line: 2)),
+)
+#assert.eq(_sort-rows(line-rows, "slip-order", false).first().id, "x-line-2")
+
+// A `lines: true` slip in `slips:` is one entry per row.
+#let multi = slip("m", lines: true)[
+  First.
+
+  Second.
+]
+#let multi-entries = resolve-slips(slips: (multi,))
+#assert.eq(multi-entries.len(), 2)
+#assert.eq(multi-entries.at(1).tags.at("slip-line"), 2)
+#assert("slip-join" in multi-entries.at(1).tags)

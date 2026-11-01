@@ -5,7 +5,7 @@
 // placed a second time: unlike a tag-queried deck, this page shows each slip
 // exactly once.
 #import "lib.typ": demo
-#import "@rookery/slipshow:0.1.1": equation-band, slip, slip-lines, slipshow
+#import "@rookery/slipshow:0.1.1": equation-band, slip, slipshow
 #show: demo
 
 #let eq = $ "short" &-> "a" \ "much longer left side" &-> "b" $
@@ -32,8 +32,16 @@
     Overrides the deck's default `scroll` entry for this one slip alone.
   ],
   slip("joined", join: true)[Flush against the slip above: no gap between them.],
-  ..slip-lines("lines", eq),
+  slip("lines", lines: true, eq),
   // An OVERLAY: re-draws the last line with its right side in gold, on top
   // of the slip before it, and the camera stays still.
   slip("lines-gold", over: true, { show "b": set text(fill: rgb("#c08000")); equation-band(eq, 1) }),
+  slip("prose", lines: true)[
+    First paragraph.
+
+    Second paragraph.
+
+    + one
+    + two
+  ],
 ))
