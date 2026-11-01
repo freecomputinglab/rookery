@@ -174,6 +174,22 @@ and needs the same list `idea` itself gets:
 #let slip = _slip.with(exclude-tags: EX)
 ```
 
+### `#slip-lines` — a block of math, a row at a time
+
+```typst
+#slip-lines(name, equation, ..args)
+```
+
+Turns one multi-line equation into one slip per row, each joined to the one above (`join: true` on every row after the first), so a block of math is revealed row by row. It returns an array of slips. Spread it into an explicit deck, `slips: (..slip-lines("x", $ a &= b \ c &= d $),)`, or write `#slip-lines("x", $ .. $).join()` on a page a queried deck reads from.
+
+Ids are `<name>`, `<name>-line-2`, `<name>-line-3`, and so on. Other named arguments (`background:`, `tags:`) go to every row. `title:` goes to the first row only.
+
+Alignment holds because every row is a band of the one equation: each slip shows the whole equation clipped vertically to its row, so all slips share a width and the columns of their `&`s.
+
+Limits: exactly one equation; `order:` is refused, since the rows would share it; band edges assume even row spacing.
+
+`equation-rows(eq)` and `equation-band(eq, k)` are public, for a caller building its own slips.
+
 ## `#slipshow` — the deck container
 
 ```typst

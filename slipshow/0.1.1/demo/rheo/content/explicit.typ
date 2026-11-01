@@ -5,7 +5,7 @@
 // placed a second time: unlike a tag-queried deck, this page shows each slip
 // exactly once.
 #import "lib.typ": demo
-#import "@rookery/slipshow:0.1.1": slip, slipshow
+#import "@rookery/slipshow:0.1.1": slip, slip-lines, slipshow
 #show: demo
 
 = Deck built from an explicit array
@@ -30,4 +30,5 @@
     Overrides the deck's default `scroll` entry for this one slip alone.
   ],
   slip("joined", join: true)[Flush against the slip above: no gap between them.],
+  ..slip-lines("lines", $ "short" &-> "a" \ "much longer left side" &-> "b" $),
 ))

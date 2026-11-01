@@ -400,3 +400,17 @@
 // which also makes it unreachable as an edge TARGET — it has no name.
 #let edge-content = slip("edge-content")[Loose content]
 #assert("computed-edges" not in resolve-slips(slips: (edge-content,), edges: r => ("x",)).first())
+
+// `slip-lines` splits at `\`, and its bands tile the one equation.
+#import "/src/lines.typ": _band
+#context {
+  assert.eq(equation-rows($ a &= b \ c &= d \ e &= f $).len(), 3)
+  assert.eq(equation-rows($ x = y $).len(), 1)
+  let eq = $ a &= b \ sum_(i=0)^n c &= d $
+  let whole = measure(box(eq))
+  let total = range(equation-rows(eq).len()).map(k => measure(_band(eq, k)).height).sum()
+  assert(calc.abs((total - whole.height).pt()) < 0.01, message: "bands do not tile: " + repr(total) + " vs " + repr(whole.height))
+  for k in range(equation-rows(eq).len()) {
+    assert.eq(measure(_band(eq, k)).width, whole.width)
+  }
+}

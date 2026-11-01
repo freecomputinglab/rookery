@@ -14,4 +14,5 @@
 #import "marker.typ": *
 #import "select.typ": *
 #import "slip.typ": *
+#import "lines.typ": *
 #import "slipshow.typ": *
