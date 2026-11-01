@@ -1,0 +1,215 @@
+// The tag mapping: how `#slip`'s presentation options become keys in
+// rookery's tag dictionary. `tags` is the only extensible field on a rookery
+// record (see `@rookery/core`'s `idea.typ`), so an option that must survive a
+// tag-query-defined slipshow — one that only ever sees a record, never the
+// call site — has to live here rather than as an ordinary function argument.
+//
+// Three surfaces, as in `@rookery/todos`:
+// 1. FLAT, key encodes the value (`slip`, `slip-fullscreen`,
+//    `slip-enter-<name>`) — value `none`, renders a pill, filterable by
+//    `#ideas(tagged:)` and by `@rookery/search`'s query language.
+// 2. VALUED (`slip-background`, `slip-order`, `slip-class`) — no pill, but
+//    still presence-filterable by key.
+// 3. The caller's own `tags:` — plain, unnamespaced, merged LAST so a caller
+//    naming one of our keys wins outright.
+
+// The base key every slip carries.
+#let SLIP-KEY = "slip"
+
+// The camera action set, verbatim: every name `src/camera.js`'s `targetFor`
+// accepts. One vocabulary spans this file, the `data-enter` attribute and the
+// engine, which is why the controller can pass the attribute straight
+// through with no translation table. The last three move the camera
+// horizontally rather than vertically; `targetFor` also brings a horizontal
+// action's row vertically into view, which is its behaviour to decide, not
+// this file's. A transition is a separate axis, `TRANSITIONS` below: where
+// the camera ends up is the action's, how the slips change over is the
+// transition's.
+#let ENTERS = (
+  "scroll", "up", "down", "center", "focus",
+  "left", "right", "center-x", "stay",
+)
+
+// Every transition `src/slipshow.js`'s `transitionFor` knows. `none` is the
+// absence of one, not a member.
+#let TRANSITIONS = ("fade",)
+
+// The valued keys. Namespaced with a `slip-` prefix per rookery's convention:
+// a key becomes a CSS class fragment, and a bare `background` (or `width`) is
+// generic enough that two packages could both claim it.
+#let BACKGROUND-KEY = "slip-background"
+#let ORDER-KEY = "slip-order"
+#let CLASS-KEY = "slip-class"
+#let ROW-KEY = "slip-row"
+#let MAX-WIDTH-KEY = "slip-max-width"
+#let TRANSITION-KEY = "slip-transition"
+// A `#slip(lines: true)` row's 1-based position, so rows sharing an `order:`
+// keep row order.
+#let LINE-KEY = "slip-line"
+
+// A local copy of rookery's four-form tag normalizer, so this module stays a
+// pure function of its arguments. Deliberately NOT an import of core's
+// private `_norm-tags`: this is six lines, and reaching into another
+// package's underscore names is a dependency on an internal that can move
+// without notice.
+//
+// Defined ABOVE its caller because a `#let` closure captures the scope
+// visible AT DEFINITION time — a helper defined further down is invisible.
+#let _norm-tags-local(v) = {
+  if v == none {
+    (:)
+  } else if std.type(v) == str {
+    ((v): none)
+  } else if std.type(v) == dictionary {
+    v
+  } else {
+    v.fold((:), (d, t) => { d.insert(t, none); d })
+  }
+}
+
+// `#slip`'s presentation options, folded into one tag dictionary.
+//
+// EMPTY MEANS ABSENT for every optional key, flat or valued: a key present
+// with an empty or `false` value would read as an assertion about the note —
+// `slip-fullscreen: false` would mark every ordinary slip as fullscreen to
+// anything testing for the key, including core's own `tags:` filter.
+//
+// `tags` is the caller's own and is merged LAST so a caller naming one of our
+// keys wins outright: Typst dictionary `+` is right-wins, which is exactly the
+// precedence wanted.
+#let slip-tags(
+  tags: none,
+  fullscreen: false,
+  join: false,
+  over: false,
+  replace: false,
+  background: none,
+  enter: none,
+  order: none,
+  class: none,
+  row: none,
+  max-width: none,
+  transition: none,
+  line: none,
+) = {
+  let out = ((SLIP-KEY): none)
+
+  assert(
+    type(fullscreen) == bool,
+    message: "@rookery/slipshow: `fullscreen` must be a bool — got " + repr(fullscreen),
+  )
+  if fullscreen == true { out.insert("slip-fullscreen", none) }
+
+  assert(
+    type(join) == bool,
+    message: "@rookery/slipshow: `join` must be a bool — got " + repr(join),
+  )
+  if join == true { out.insert("slip-join", none) }
+
+  assert(
+    type(over) == bool,
+    message: "@rookery/slipshow: `over` must be a bool — got " + repr(over),
+  )
+  if over == true { out.insert("slip-over", none) }
+
+  assert(
+    type(replace) == bool,
+    message: "@rookery/slipshow: `replace` must be a bool — got " + repr(replace),
+  )
+  if replace == true { out.insert("slip-replace", none) }
+
+  if enter != none {
+    assert(
+      enter in ENTERS,
+      message: "@rookery/slipshow: `enter` must be one of "
+        + ENTERS.join(", ") + " — got " + repr(enter),
+    )
+    out.insert("slip-enter-" + enter, none)
+  }
+
+  // Untouched: `background` is an arbitrary Typst value — a colour, a
+  // gradient, an image — and this file has no business interpreting it.
+  if background != none { out.insert(BACKGROUND-KEY, background) }
+
+  if order != none {
+    assert(
+      type(order) == int,
+      message: "@rookery/slipshow: `order` must be an integer — got " + repr(order),
+    )
+    out.insert(ORDER-KEY, order)
+  }
+
+  if class != none {
+    assert(
+      type(class) == str,
+      message: "@rookery/slipshow: `class` must be a string — got " + repr(class),
+    )
+    out.insert(CLASS-KEY, class)
+  }
+
+  if row != none {
+    assert(
+      type(row) == int,
+      message: "@rookery/slipshow: `row` must be an integer — got " + repr(row),
+    )
+    out.insert(ROW-KEY, row)
+  }
+
+  // Untouched, like `background`: `src/slipshow.typ` turns this into a CSS
+  // declaration, and this file has no business interpreting a length, ratio,
+  // or the raw-CSS `str` escape hatch.
+  if max-width != none {
+    assert(
+      type(max-width) in (length, ratio, str),
+      message: "@rookery/slipshow: `max-width` must be a length, ratio, or string — got "
+        + repr(max-width),
+    )
+    out.insert(MAX-WIDTH-KEY, max-width)
+  }
+
+  // Valued, not flat like `enter`: a slip on a fading deck has to be
+  // able to say `"none"` and mean it.
+  if transition != none {
+    assert(
+      transition == "none" or transition in TRANSITIONS,
+      message: "@rookery/slipshow: `transition` must be \"none\" or one of "
+        + TRANSITIONS.join(", ") + " — got " + repr(transition),
+    )
+    out.insert(TRANSITION-KEY, transition)
+  }
+
+  if line != none {
+    assert(
+      type(line) == int and line >= 1,
+      message: "@rookery/slipshow: `line` must be an integer ≥ 1 — got " + repr(line),
+    )
+    out.insert(LINE-KEY, line)
+  }
+
+  out + _norm-tags-local(tags)
+}
+
+// The readers below take the DICT — what `ideas(values: true)` hands back per
+// note as `tags-dict` — rather than a note name, so they stay pure and a
+// caller walking the corpus pays one registry read for everything rather than
+// one per note per question.
+
+// Is this note a slip at all?
+#let is-slip(tags) = SLIP-KEY in tags
+
+#let is-fullscreen(tags) = "slip-fullscreen" in tags
+#let is-joined(tags) = "slip-join" in tags
+#let is-over(tags) = "slip-over" in tags
+#let is-replace(tags) = "slip-replace" in tags
+
+// Decoded from the key, not stored a second time: the entered name and the
+// filterable flat key cannot disagree if there is only one of them.
+#let enter-of(tags) = ENTERS.find(name => ("slip-enter-" + name) in tags)
+
+#let background-of(tags) = tags.at(BACKGROUND-KEY, default: none)
+#let order-of(tags) = tags.at(ORDER-KEY, default: none)
+#let class-of(tags) = tags.at(CLASS-KEY, default: none)
+#let row-of(tags) = tags.at(ROW-KEY, default: none)
+#let max-width-of(tags) = tags.at(MAX-WIDTH-KEY, default: none)
+#let transition-of(tags) = tags.at(TRANSITION-KEY, default: none)
+#let line-of(tags) = tags.at(LINE-KEY, default: none)
