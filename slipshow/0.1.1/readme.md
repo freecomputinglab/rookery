@@ -71,6 +71,7 @@ the build succeeds either way.
 #slip(
   fullscreen: false,
   join: false,
+  over: false,
   background: none,
   enter: none,
   order: none,
@@ -94,6 +95,7 @@ deck, which never sees the call site itself, only the registry row.
 | --- | --- | --- | --- |
 | `fullscreen` | `bool` | `false` | tags the note `slip-fullscreen`; the stylesheet stretches the slip to at least the viewport height and centers its content in it |
 | `join` | `bool` | `false` | tags the note `slip-join`; the stylesheet removes the gap between this slip and the one above it |
+| `over` | `bool` | `false` | tags the note `slip-over`; draws this slip on top of the slip directly before it in the deck — see "Overlays" below |
 | `background` | `color`, `gradient`, or `image(..)` content | `none` | this slip's own background — see "Backgrounds" below |
 | `enter` | one of the nine camera actions (see "Keyboard and mouse controls") | `none` (deck default) | overrides `#slipshow`'s deck-wide `enter:` for this one slip |
 | `transition` | `"fade"` or `"none"` | `none` (deck default) | overrides `#slipshow`'s deck-wide `transition:` for this one slip |
@@ -189,6 +191,24 @@ Alignment holds because every row is a band of the one equation: each slip shows
 Limits: exactly one equation; `order:` is refused, since the rows would share it; band edges assume even row spacing.
 
 `equation-rows(eq)` and `equation-band(eq, k)` are public, for a caller building its own slips.
+
+### Overlays — `over: true`
+
+`#slip(over: true)` draws a slip on top of the slip directly before it in the deck, in the same place. It is for emphasis: re-draw the slip you have just shown with one thing changed (a phrase bolded, a term in colour, a circle round it) and the new slip covers the old one exactly.
+
+```typst
+#let eq = $ "short" &-> "a" \ "much longer left side" &-> "b" $
+#slipshow(slips: (
+  ..slip-lines("lines", eq),
+  slip("lines-gold", over: true, { show "b": set text(fill: rgb("#c08000")); equation-band(eq, 1) }),
+))
+```
+
+A slip plus every consecutive `over: true` slip after it is one STACK, rendered as a `div.slip-stack` whose slips share one grid cell. An overlay after an overlay covers the same stack. An `over: true` slip with no slip before it in the deck panics.
+
+An overlay is transparent unless it has a `background:`. Give it the same background as the slip it covers to hide that slip, or none to draw on top of it (a circle, an arrow).
+
+An overlay is entered with the `stay` camera action, so the camera does not move when it appears; its own `enter:` still wins. Going back takes it away again. A stack can sit in a row like a lone slip, and joining (`join: true`) the stack's first slip to the slip above still works.
 
 ## `#slipshow` — the deck container
 
@@ -617,6 +637,7 @@ every slip exactly as an explicit inline deck does:
 | `slip` | every `#slip` call, and `#idea(tags: ("slip": none))` by hand — the key a deck's `tags:`/`where:` query filters on |
 | `slip-fullscreen` | `#slip(fullscreen: true)` |
 | `slip-join` | `#slip(join: true)` |
+| `slip-over` | `#slip(over: true)` |
 | `slip-enter-<action>` | `#slip(enter: <action>)`, one of the nine camera actions |
 
 **Valued keys** — present-filterable by key, but carry no pill (a valued tag

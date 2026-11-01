@@ -355,23 +355,43 @@
 // still carry.
 #let _entry-row(e) = if "computed-row" in e { e.computed-row } else { row-of(e.tags) }
 
-// Groups resolved entries into RUNS of consecutive entries sharing the same
-// row value (`_entry-row`), keeping each entry's original index (`i`)
-// alongside it for `_slip-attrs`/`id="slip-<n>"`. `none` never merges with a
-// neighbouring `none`: unlike two equal row numbers, two unrowed slips are
-// not one run of two — see the file header — so an entry whose row is
-// `none` always starts a fresh run of its own.
-#let _row-runs(entries) = {
+// Groups resolved entries into STACKS: a slip plus every consecutive
+// `over: true` slip after it, each overlay drawn on top of the one before.
+// Each stack is an array of `(i: i, e: e)` pairs, `i` the entry's original
+// index for `_slip-attrs`/`id="slip-<n>"`. An overlay with nothing before it
+// has nothing to cover, and panics.
+#let _stacks(entries) = {
+  let stacks = ()
+  for (i, e) in entries.enumerate() {
+    if is-over(e.tags) {
+      assert(
+        stacks.len() > 0,
+        message: "@rookery/slipshow: a slip with `over: true` must follow the slip it covers",
+      )
+      stacks.last().push((i: i, e: e))
+    } else {
+      stacks.push(((i: i, e: e),))
+    }
+  }
+  stacks
+}
+
+// Groups stacks (`_stacks`) into RUNS of consecutive stacks sharing the same
+// row value, read off each stack's first entry (`_entry-row`). `none` never
+// merges with a neighbouring `none`: unlike two equal row numbers, two
+// unrowed stacks are not one run of two — see the file header — so a stack
+// whose row is `none` always starts a fresh run of its own.
+#let _row-runs(stacks) = {
   let runs = ()
   let current = ()
   let current-row = none
-  for (i, e) in entries.enumerate() {
-    let r = _entry-row(e)
+  for stack in stacks {
+    let r = _entry-row(stack.first().e)
     if current.len() == 0 or r == none or r != current-row {
       if current.len() > 0 { runs.push(current) }
       current = ()
     }
-    current.push((i: i, e: e))
+    current.push(stack)
     current-row = r
   }
   if current.len() > 0 { runs.push(current) }
@@ -511,6 +531,9 @@
     []
   }
 
+  // Built before the paged branch so a misplaced overlay panics in PDF too.
+  let stacks = _stacks(entries)
+
   if target() != "html" {
     // PAGED (PDF): no camera, no deck, nothing to click — the ideas render
     // exactly as they would outside a slipshow, in the resolved order.
@@ -563,17 +586,22 @@
           backlink: backlink,
         )
       })
-      for run in _row-runs(entries) {
-        let r = _entry-row(run.first().e)
+      let render-stack(stack) = if stack.len() == 1 {
+        render-section(stack.first())
+      } else {
+        html.elem("div", attrs: (class: "slip-stack"), { for pair in stack { render-section(pair) } })
+      }
+      for run in _row-runs(stacks) {
+        let r = _entry-row(run.first().first().e)
         if run.len() == 1 and r == none {
-          // The wrapper-free case (file header): a lone unrowed slip is a
+          // The wrapper-free case (file header): a lone unrowed stack is a
           // direct child of `div.slipshow`, exactly as every slip was before
           // `slip-row` existed.
-          render-section(run.first())
+          render-stack(run.first())
         } else {
           let attrs = (class: "slip-row")
           if r != none { attrs.insert("data-row", repr(r)) }
-          html.elem("div", attrs: attrs, { for pair in run { render-section(pair) } })
+          html.elem("div", attrs: attrs, { for stack in run { render-stack(stack) } })
         }
       }
     },

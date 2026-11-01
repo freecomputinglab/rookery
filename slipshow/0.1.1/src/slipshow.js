@@ -122,12 +122,20 @@ function syncReveal() {
   slips.forEach((s, i) => s.classList.toggle("slip-revealed", i <= through));
 }
 
-// A slip's own `data-enter`, else "left" for a non-first slip in a row (see
-// `rowEnter`), else the deck's default, else "scroll" — the same chain
-// `src/slipshow.typ` documents for the attribute's absence meaning "inherit",
-// with the row-aware step inserted ahead of the deck default.
+// A slip's own `data-enter`, else "stay" for an overlay (see `stackEnter`),
+// else "left" for a non-first slip in a row (see `rowEnter`), else the deck's
+// default, else "scroll" — the same chain `src/slipshow.typ` documents for the
+// attribute's absence meaning "inherit", with the stack- and row-aware steps
+// inserted ahead of the deck default.
 function actionFor(el) {
-  return el.dataset.enter ?? rowEnter(el) ?? deck.dataset.enter ?? "scroll";
+  return el.dataset.enter ?? stackEnter(el) ?? rowEnter(el) ?? deck.dataset.enter ?? "scroll";
+}
+
+// An overlay (a slip inside a `.slip-stack` that is not the stack's first
+// slip) covers the slip beneath it in place, so the camera stays put.
+function stackEnter(el) {
+  const stack = el.closest(".slip-stack");
+  return stack && stack.querySelector(".slip") !== el ? "stay" : undefined;
 }
 
 // A slip inside a `.slip-row` that is not the row's first slip is reached by

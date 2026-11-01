@@ -314,8 +314,39 @@
    which a `display: none` child is still in — so it would hold a whole
    viewport of blank page open for a slip nobody has reached. The moment any
    one of its slips is revealed the row comes back with it. */
-.slipshow-revealing .slip-row:not(:has(> .slip-revealed)) {
+.slipshow-revealing .slip-row:not(:has(> .slip-revealed, > .slip-stack > .slip-revealed)) {
   display: none;
+}
+
+/* A STACK (`div.slip-stack`, `slip(over: true)`): a slip and the overlays
+   drawn on top of it, every one in the same grid cell so each covers the
+   last exactly. An overlay is transparent unless it has a `background:` of
+   its own, so it either hides the slip beneath or draws over it. */
+.slip-stack {
+  display: grid;
+}
+
+.slip-stack > .slip {
+  grid-area: 1 / 1;
+}
+
+/* IN A ROW, a stack takes the place a lone slip would, so it gets the same
+   sizing as `.slip-row > .slip` above. */
+.slip-row > .slip-stack {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  max-width: min(100%, 34rem);
+}
+
+/* A STACK WHOSE SLIPS ARE ALL STILL HIDDEN goes too, as a row does. */
+.slipshow-revealing .slip-stack:not(:has(> .slip-revealed)) {
+  display: none;
+}
+
+/* A JOINED SLIP AT THE FOOT OF A STACK is no longer the next sibling of the
+   slip it joins, so `.slip:has(+ .slip-join)` above cannot reach it. */
+.slip:has(+ .slip-stack > .slip-join:first-child) {
+  margin-bottom: 0;
 }
 
 /* AN INLINE `background-image`, from a source OTHER than this package:

@@ -8,6 +8,7 @@
 // Every slip carries the base key, and nothing else by default.
 #assert.eq(slip-tags(), (slip: none))
 #assert.eq(slip-tags(join: true), (slip: none, slip-join: none))
+#assert.eq(slip-tags(over: true), (slip: none, slip-over: none))
 #assert.eq(slip-tags(join: false), (slip: none))
 
 // FLAT keys encode their value in the key, so `slip-fullscreen` and
@@ -288,7 +289,7 @@
     tags: "slip", where: rk-cohort, order: r => r.name, row: r => rk-layer.at(r.name),
   )
   assert.eq(entries.map(e => e.computed-row), (0, 0, 1))
-  let runs = _row-runs(entries)
+  let runs = _row-runs(_stacks(entries))
   assert.eq(runs.map(run => run.len()), (2, 1))
 }
 
@@ -309,7 +310,7 @@
   )
   assert.eq(entries.map(e => "computed-row" in e), (true, true))
   assert.eq(entries.at(1).computed-row, none)
-  let runs = _row-runs(entries)
+  let runs = _row-runs(_stacks(entries))
   assert.eq(runs.map(run => run.len()), (1, 1))
 }
 

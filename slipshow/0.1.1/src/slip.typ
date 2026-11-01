@@ -23,6 +23,7 @@
 #let slip(
   fullscreen: false,
   join: false,
+  over: false,
   background: none,
   enter: none,
   order: none,
@@ -64,6 +65,7 @@
     tags: tags,
     fullscreen: fullscreen,
     join: join,
+    over: over,
     background: background,
     enter: enter,
     order: order,
