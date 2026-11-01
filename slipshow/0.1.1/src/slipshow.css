@@ -335,6 +335,14 @@
   inset: 0;
 }
 
+/* EACH SLIP IN A STACK PAINTS AS ONE LAYER. A slip's children sit at
+   `z-index: 1` (`.slip > :not(.slip-bg)` above) with no stacking context on
+   the slip, so without this the slip beneath's content would paint over an
+   overlay's background, and an overlay could never hide what it covers. */
+.slip-stack > .slip {
+  isolation: isolate;
+}
+
 /* IN A ROW, a stack takes the place a lone slip would, so it gets the same
    sizing as `.slip-row > .slip` above. */
 .slip-row > .slip-stack {
