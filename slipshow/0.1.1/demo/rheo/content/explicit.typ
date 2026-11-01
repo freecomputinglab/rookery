@@ -5,7 +5,7 @@
 // placed a second time: unlike a tag-queried deck, this page shows each slip
 // exactly once.
 #import "lib.typ": demo
-#import "@rookery/slipshow:0.1.1": equation-band, slip, slipshow
+#import "@rookery/slipshow:0.1.1": slip, slip-rows, slipshow
 #show: demo
 
 #let eq = $ "short" &-> "a" \ "much longer left side" &-> "b" $
@@ -33,11 +33,11 @@
   ],
   slip("joined", join: true)[Flush against the slip above: no gap between them.],
   slip("lines", lines: true, eq),
-  // An OVERLAY: re-draws the last line with its right side in gold, on top
-  // of the slip before it, and the camera stays still.
-  slip("lines-gold", over: true, { show "b": set text(fill: rgb("#c08000")); equation-band(eq, 1) }),
-  // A REPLACEMENT: takes the place of the slips before it in the stack, in
-  // flow, so it can be taller than what it replaces.
+  // An OVERLAY: covers every row of the lines slip before it, re-drawing
+  // both with the right side "b" in gold, and the camera stays still.
+  slip("lines-gold", over: true, { show "b": set text(fill: rgb("#c08000")); slip-rows(eq).join() }),
+  // A REPLACEMENT: takes the place of everything before it in the stack,
+  // both rows included, in flow, so it can be taller than what it replaces.
   slip("lines-replaced", replace: true)[
     Replaced outright, and taller than the line it replaces.
 

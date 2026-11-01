@@ -131,11 +131,12 @@ function actionFor(el) {
   return el.dataset.enter ?? stackEnter(el) ?? rowEnter(el) ?? deck.dataset.enter ?? "scroll";
 }
 
-// An overlay (a slip inside a `.slip-stack` that is not the stack's first
-// slip) covers the slip beneath it in place, so the camera stays put.
+// An overlay (a slip that is a direct child of a `.slip-stack` but not its
+// first element child, the base) covers the base in place, so the camera
+// stays put. Rows inside a base `.slip-group` enter as ordinary slips.
 function stackEnter(el) {
-  const stack = el.closest(".slip-stack");
-  return stack && stack.querySelector(".slip") !== el ? "stay" : undefined;
+  const stack = el.parentElement;
+  return stack && stack.classList.contains("slip-stack") && stack.firstElementChild !== el ? "stay" : undefined;
 }
 
 // A slip inside a `.slip-row` that is not the row's first slip is reached by

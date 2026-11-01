@@ -314,14 +314,16 @@
    which a `display: none` child is still in — so it would hold a whole
    viewport of blank page open for a slip nobody has reached. The moment any
    one of its slips is revealed the row comes back with it. */
-.slipshow-revealing .slip-row:not(:has(> .slip-revealed, > .slip-stack > .slip-revealed)) {
+.slipshow-revealing .slip-row:not(:has(> .slip-revealed, > .slip-stack .slip-revealed)) {
   display: none;
 }
 
-/* A STACK (`div.slip-stack`, `slip(over: true)`): a slip and the overlays
-   drawn on top of it. The first slip stays in normal flow, so it lays out
-   exactly as it would outside a stack; each overlay is pinned over that
-   slip's box, and covers it as long as it is no taller. NOT a grid: a grid
+/* A STACK (`div.slip-stack`, `slip(over: true)`): a base and the overlays
+   drawn on top of it. The base is the stack's FIRST CHILD, whatever element
+   that is: one slip, or a `div.slip-group` holding every row of a
+   `lines: true` slip. It stays in normal flow, so it lays out exactly as it
+   would outside a stack; each overlay is pinned over the base's box, and
+   covers it as long as it is no taller. NOT a grid: a grid
    item with auto inline margins shrinks to its content, so a slip a site
    centres with `margin-inline: auto` would narrow and move. An overlay is
    transparent unless it has a `background:` of its own, so it either hides
@@ -330,29 +332,30 @@
   position: relative;
 }
 
-.slip-stack > .slip + .slip {
+.slip-stack > .slip:not(:first-child):not(.slip-replace) {
   position: absolute;
   inset: 0;
 }
 
 /* A REPLACEMENT (`slip(replace: true)`) is in flow rather than pinned, so it
-   can be any height. Once revealed it takes the place of every slip before it
-   in its stack, and going back past it brings them back. With no controller
+   can be any height. Once revealed it takes the place of everything before
+   it in its stack, base group included, and going back past it brings them
+   back. With no controller
    to reveal anything, every slip shows, one after another. */
 .slip-stack > .slip.slip-replace {
   position: relative;
   inset: auto;
 }
 
-.slipshow-revealing .slip-stack > .slip:has(~ .slip-replace.slip-revealed) {
+.slipshow-revealing .slip-stack > :has(~ .slip-replace.slip-revealed) {
   display: none;
 }
 
-/* EACH SLIP IN A STACK PAINTS AS ONE LAYER. A slip's children sit at
+/* EACH CHILD OF A STACK PAINTS AS ONE LAYER. A slip's children sit at
    `z-index: 1` (`.slip > :not(.slip-bg)` above) with no stacking context on
-   the slip, so without this the slip beneath's content would paint over an
+   the slip, so without this the base's content would paint over an
    overlay's background, and an overlay could never hide what it covers. */
-.slip-stack > .slip {
+.slip-stack > * {
   isolation: isolate;
 }
 
@@ -365,19 +368,28 @@
 }
 
 /* A STACK WHOSE SLIPS ARE ALL STILL HIDDEN goes too, as a row does. */
-.slipshow-revealing .slip-stack:not(:has(> .slip-revealed)) {
+.slipshow-revealing .slip-stack:not(:has(.slip-revealed)) {
+  display: none;
+}
+
+/* A GROUP WHOSE ROWS ARE ALL STILL HIDDEN goes too, as a row does. */
+.slipshow-revealing .slip-group:not(:has(> .slip-revealed)) {
   display: none;
 }
 
 /* A JOINED SLIP AT THE FOOT OF A STACK is no longer the next sibling of the
-   slip it joins, so `.slip:has(+ .slip-join)` above cannot reach it. */
-.slip:has(+ .slip-stack > .slip-join:first-child) {
+   slip it joins, so `.slip:has(+ .slip-join)` above cannot reach it, whether
+   it is the stack's base or the first row of its base group. Rows inside a
+   group are still siblings, and join each other by that rule unchanged. */
+.slip:has(+ .slip-stack > .slip-join:first-child, + .slip-stack > .slip-group:first-child > .slip-join:first-child) {
   margin-bottom: 0;
 }
 
 /* A JOINED SLIP AFTER A STACK: the gap is the margin of whichever of the
-   stack's slips is showing, so every one of them gives it up. */
-.slip-stack:has(+ .slip-join) > .slip {
+   stack's children is showing, so every one of them gives it up, and so does
+   the last row of a base group. */
+.slip-stack:has(+ .slip-join) > *,
+.slip-stack:has(+ .slip-join) > .slip-group > .slip:last-child {
   margin-bottom: 0;
 }
 

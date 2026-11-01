@@ -460,3 +460,14 @@
 #assert.eq(multi-entries.len(), 2)
 #assert.eq(multi-entries.at(1).tags.at("slip-line"), 2)
 #assert("slip-join" in multi-entries.at(1).tags)
+
+// A slip stacked after a `lines: true` slip covers its whole group of rows:
+// one stack, the three rows its base, the overlay its one layer.
+#let grouped = resolve-slips(slips: (
+  slip("g", lines: true, $ a \ b \ c $),
+  slip("g-over", over: true)[x],
+))
+#let grouped-stacks = _stacks(grouped)
+#assert.eq(grouped-stacks.len(), 1)
+#assert.eq(grouped-stacks.first().base.len(), 3)
+#assert.eq(grouped-stacks.first().layers.len(), 1)

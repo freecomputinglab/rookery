@@ -62,6 +62,8 @@ if [ -z "$line2" ] || [ -z "$gold" ] || [ "$gold" -le "$line2" ]; then
 fi
 grep -q 'class="slip slip-replace"' "$H/explicit.html" ||
   note "explicit.html: the replacement did not carry slip-replace"
+grep -q 'class="slip-group"' "$H/explicit.html" ||
+  note "explicit.html: the lines slip under an overlay did not form a slip-group"
 
 # 2b. A QUERIED SLIP WEARS NO CARD CHROME. `#slipshow`'s `show-frame`/`show-id`/
 #     `show-label` all default to false, so every slip the tag-query route

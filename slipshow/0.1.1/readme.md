@@ -217,11 +217,13 @@ Ids are `<id>`, `<id>-line-2`, `<id>-line-3`, and so on, as strings, for a strin
 #let eq = $ "short" &-> "a" \ "much longer left side" &-> "b" $
 #slipshow(slips: (
   slip("lines", lines: true, eq),
-  slip("lines-gold", over: true, { show "b": set text(fill: rgb("#c08000")); equation-band(eq, 1) }),
+  slip("lines-gold", over: true, { show "b": set text(fill: rgb("#c08000")); slip-rows(eq).join() }),
 ))
 ```
 
-A slip plus every consecutive `over: true` slip after it is one STACK, rendered as a `div.slip-stack` whose first slip lays out as it would anywhere else and whose overlays are pinned over its box, so an overlay should be no taller than the slip it covers. An overlay after an overlay covers the same stack. An `over: true` slip with no slip before it in the deck panics.
+A slip plus every consecutive `over: true` slip after it is one STACK, rendered as a `div.slip-stack` whose first child lays out as it would anywhere else and whose overlays are pinned over its box, so an overlay should be no taller than the slip it covers.
+
+An overlay after a `lines: true` slip covers ALL of its rows, not just the last: the rows are gathered into a `div.slip-group` as the stack's first child, and the overlay is pinned over the whole group. It is still one reveal step. `slip-rows(body).join()` re-draws every row for an overlay, as above, so it lines up with the group it covers. An overlay after an overlay covers the same stack. An `over: true` slip with no slip before it in the deck panics.
 
 An overlay is transparent unless it has a `background:`. Give it the same background as the slip it covers to hide that slip, or none to draw on top of it (a circle, an arrow).
 
@@ -229,7 +231,7 @@ An overlay is entered with the `stay` camera action, so the camera does not move
 
 ### Replacements — `replace: true`
 
-`#slip(replace: true)` joins the stack of the slip directly before it, as an overlay does, but once revealed it takes that slip's place rather than covering it: every slip before it in the stack is hidden, and the replacement sits in normal flow, so it can be any height. Going back past it brings them back. It is entered with `stay` like an overlay. Overlays and replacements mix in one stack: an overlay after a replacement covers the replacement.
+`#slip(replace: true)` joins the stack of the slip directly before it, as an overlay does, but once revealed it takes that slip's place rather than covering it: every slip before it in the stack is hidden, and the replacement sits in normal flow, so it can be any height. After a `lines: true` slip, that is every one of its rows: the whole `div.slip-group` is hidden at once. Going back past it brings them back. It is entered with `stay` like an overlay. Overlays and replacements mix in one stack: an overlay after a replacement covers the replacement.
 
 ```typst
 #slipshow(slips: (

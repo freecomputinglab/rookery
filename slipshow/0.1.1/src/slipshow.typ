@@ -356,30 +356,53 @@
 // still carry.
 #let _entry-row(e) = if "computed-row" in e { e.computed-row } else { row-of(e.tags) }
 
-// Groups resolved entries into STACKS: a slip plus every consecutive
-// `over: true` or `replace: true` slip after it, each overlay drawn on top of
-// the one before and each replacement taking the place of those before it.
-// Each stack is an array of `(i: i, e: e)` pairs, `i` the entry's original
-// index for `_slip-attrs`/`id="slip-<n>"`. An overlay with nothing before it
-// has nothing to cover, and panics.
+// Groups resolved entries into GROUPS: the rows of one `lines: true` slip,
+// that is an entry on line 1 plus every immediately following joined entry
+// whose line is one more than the one before. Any other slip is a group of
+// one. Each group is an array of `(i: i, e: e)` pairs, `i` the entry's
+// original index for `_slip-attrs`/`id="slip-<n>"`.
+#let _groups(entries) = {
+  let groups = ()
+  let prev = none
+  for (i, e) in entries.enumerate() {
+    let k = line-of(e.tags)
+    if (
+      groups.len() > 0 and prev != none and k != none and k == prev + 1 and is-joined(e.tags)
+    ) {
+      groups.last().push((i: i, e: e))
+    } else {
+      groups.push(((i: i, e: e),))
+    }
+    prev = k
+  }
+  groups
+}
+
+// Groups resolved entries into STACKS: a BASE group (`_groups`) plus every
+// consecutive `over: true` or `replace: true` slip after it, its LAYERS, each
+// overlay drawn on top of the one before and each replacement taking the
+// place of those before it. A layer after a `lines: true` slip covers all of
+// its rows. Each stack is `(base: pairs, layers: pairs)`. An overlay with
+// nothing before it has nothing to cover, and panics.
 #let _stacks(entries) = {
   let stacks = ()
-  for (i, e) in entries.enumerate() {
+  for group in _groups(entries) {
+    let e = group.first().e
     if is-over(e.tags) or is-replace(e.tags) {
       assert(
         stacks.len() > 0,
         message: "@rookery/slipshow: a slip with `over: true` or `replace: true` must follow the slip it covers",
       )
-      stacks.last().push((i: i, e: e))
+      stacks.last().layers += group
     } else {
-      stacks.push(((i: i, e: e),))
+      stacks.push((base: group, layers: ()))
     }
   }
   stacks
 }
 
 // Groups stacks (`_stacks`) into RUNS of consecutive stacks sharing the same
-// row value, read off each stack's first entry (`_entry-row`). `none` never
+// row value, read off the first entry of each stack's base (`_entry-row`). `none` never
 // merges with a neighbouring `none`: unlike two equal row numbers, two
 // unrowed stacks are not one run of two — see the file header — so a stack
 // whose row is `none` always starts a fresh run of its own.
@@ -388,7 +411,7 @@
   let current = ()
   let current-row = none
   for stack in stacks {
-    let r = _entry-row(stack.first().e)
+    let r = _entry-row(stack.base.first().e)
     if current.len() == 0 or r == none or r != current-row {
       if current.len() > 0 { runs.push(current) }
       current = ()
@@ -588,13 +611,23 @@
           backlink: backlink,
         )
       })
-      let render-stack(stack) = if stack.len() == 1 {
-        render-section(stack.first())
+      // A stack with no layers is its base's rows, bare. With layers it is a
+      // `div.slip-stack` whose FIRST child is the base (one section, or a
+      // `div.slip-group` of the rows) and whose later children are the layers.
+      let render-stack(stack) = if stack.layers.len() == 0 {
+        for pair in stack.base { render-section(pair) }
       } else {
-        html.elem("div", attrs: (class: "slip-stack"), { for pair in stack { render-section(pair) } })
+        html.elem("div", attrs: (class: "slip-stack"), {
+          if stack.base.len() == 1 {
+            render-section(stack.base.first())
+          } else {
+            html.elem("div", attrs: (class: "slip-group"), { for pair in stack.base { render-section(pair) } })
+          }
+          for pair in stack.layers { render-section(pair) }
+        })
       }
       for run in _row-runs(stacks) {
-        let r = _entry-row(run.first().first().e)
+        let r = _entry-row(run.first().base.first().e)
         if run.len() == 1 and r == none {
           // The wrapper-free case (file header): a lone unrowed stack is a
           // direct child of `div.slipshow`, exactly as every slip was before
