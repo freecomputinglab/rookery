@@ -375,6 +375,12 @@
   margin-bottom: 0;
 }
 
+/* A JOINED SLIP AFTER A STACK: the gap is the margin of whichever of the
+   stack's slips is showing, so every one of them gives it up. */
+.slip-stack:has(+ .slip-join) > .slip {
+  margin-bottom: 0;
+}
+
 /* AN INLINE `background-image`, from a source OTHER than this package:
    `src/slipshow.typ` never emits one itself — a colour or a gradient becomes
    an inline `background: ..`, an image becomes `div.slip-bg` instead (see
