@@ -219,7 +219,7 @@ Ids are `<id>`, `<id>-line-2`, `<id>-line-3`, and so on, as strings, for a strin
 ))
 ```
 
-A slip plus every consecutive `over: true` slip after it is one STACK, rendered as a `div.slip-stack` whose slips share one grid cell. An overlay after an overlay covers the same stack. An `over: true` slip with no slip before it in the deck panics.
+A slip plus every consecutive `over: true` slip after it is one STACK, rendered as a `div.slip-stack` whose first slip lays out as it would anywhere else and whose overlays are pinned over its box, so an overlay should be no taller than the slip it covers. An overlay after an overlay covers the same stack. An `over: true` slip with no slip before it in the deck panics.
 
 An overlay is transparent unless it has a `background:`. Give it the same background as the slip it covers to hide that slip, or none to draw on top of it (a circle, an arrow).
 

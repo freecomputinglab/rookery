@@ -319,15 +319,20 @@
 }
 
 /* A STACK (`div.slip-stack`, `slip(over: true)`): a slip and the overlays
-   drawn on top of it, every one in the same grid cell so each covers the
-   last exactly. An overlay is transparent unless it has a `background:` of
-   its own, so it either hides the slip beneath or draws over it. */
+   drawn on top of it. The first slip stays in normal flow, so it lays out
+   exactly as it would outside a stack; each overlay is pinned over that
+   slip's box, and covers it as long as it is no taller. NOT a grid: a grid
+   item with auto inline margins shrinks to its content, so a slip a site
+   centres with `margin-inline: auto` would narrow and move. An overlay is
+   transparent unless it has a `background:` of its own, so it either hides
+   the slip beneath or draws over it. */
 .slip-stack {
-  display: grid;
+  position: relative;
 }
 
-.slip-stack > .slip {
-  grid-area: 1 / 1;
+.slip-stack > .slip + .slip {
+  position: absolute;
+  inset: 0;
 }
 
 /* IN A ROW, a stack takes the place a lone slip would, so it gets the same
