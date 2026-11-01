@@ -7,6 +7,8 @@
 
 // Every slip carries the base key, and nothing else by default.
 #assert.eq(slip-tags(), (slip: none))
+#assert.eq(slip-tags(join: true), (slip: none, slip-join: none))
+#assert.eq(slip-tags(join: false), (slip: none))
 
 // FLAT keys encode their value in the key, so `slip-fullscreen` and
 // `slip-enter-center` are both filterable and both render a pill.

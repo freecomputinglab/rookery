@@ -22,6 +22,7 @@
 
 #let slip(
   fullscreen: false,
+  join: false,
   background: none,
   enter: none,
   order: none,
@@ -62,6 +63,7 @@
   let resolved-tags = _merge-base-tags(SLIP-KEY, slip-tags(
     tags: tags,
     fullscreen: fullscreen,
+    join: join,
     background: background,
     enter: enter,
     order: order,

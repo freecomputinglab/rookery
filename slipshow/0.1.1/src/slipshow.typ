@@ -332,6 +332,7 @@
   let cls = (
     "slip",
     ..if is-fullscreen(e.tags) { ("slip-fullscreen",) } else { () },
+    ..if is-joined(e.tags) { ("slip-join",) } else { () },
     ..if entry-class != none { (entry-class,) } else { () },
   )
   let attrs = (class: cls.join(" "), id: id, "data-index": str(i))

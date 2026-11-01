@@ -29,4 +29,5 @@
   slip("centered", enter: "center")[
     Overrides the deck's default `scroll` entry for this one slip alone.
   ],
+  slip("joined", join: true)[Flush against the slip above: no gap between them.],
 ))

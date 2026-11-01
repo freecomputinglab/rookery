@@ -70,6 +70,7 @@ the build succeeds either way.
 ```typst
 #slip(
   fullscreen: false,
+  join: false,
   background: none,
   enter: none,
   order: none,
@@ -92,6 +93,7 @@ deck, which never sees the call site itself, only the registry row.
 | option | type | default | what it does |
 | --- | --- | --- | --- |
 | `fullscreen` | `bool` | `false` | tags the note `slip-fullscreen`; the stylesheet stretches the slip to at least the viewport height and centers its content in it |
+| `join` | `bool` | `false` | tags the note `slip-join`; the stylesheet removes the gap between this slip and the one above it |
 | `background` | `color`, `gradient`, or `image(..)` content | `none` | this slip's own background — see "Backgrounds" below |
 | `enter` | one of the eight camera actions (see "Keyboard and mouse controls") | `none` (deck default) | overrides `#slipshow`'s deck-wide `enter:` for this one slip |
 | `transition` | `"fade"` or `"none"` | `none` (deck default) | overrides `#slipshow`'s deck-wide `transition:` for this one slip |
@@ -598,6 +600,7 @@ every slip exactly as an explicit inline deck does:
 | --- | --- |
 | `slip` | every `#slip` call, and `#idea(tags: ("slip": none))` by hand — the key a deck's `tags:`/`where:` query filters on |
 | `slip-fullscreen` | `#slip(fullscreen: true)` |
+| `slip-join` | `#slip(join: true)` |
 | `slip-enter-<action>` | `#slip(enter: <action>)`, one of the eight camera actions |
 
 **Valued keys** — present-filterable by key, but carry no pill (a valued tag
@@ -756,6 +759,9 @@ anywhere above the slips) in a project's own stylesheet:
   --slip-gap: 3rem;
 }
 ```
+
+`#slip(join: true)` overrides `--slip-gap` for one pair of slips: it draws that
+slip flush against the one above it, with no gap between them.
 
 The default is zero because a progressive deck (`reveal:`, above) is walked
 one slip at a time: a frame sized for a page showing every slip at once reads,

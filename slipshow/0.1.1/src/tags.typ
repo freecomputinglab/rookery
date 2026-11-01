@@ -77,6 +77,7 @@
 #let slip-tags(
   tags: none,
   fullscreen: false,
+  join: false,
   background: none,
   enter: none,
   order: none,
@@ -92,6 +93,12 @@
     message: "@rookery/slipshow: `fullscreen` must be a bool — got " + repr(fullscreen),
   )
   if fullscreen == true { out.insert("slip-fullscreen", none) }
+
+  assert(
+    type(join) == bool,
+    message: "@rookery/slipshow: `join` must be a bool — got " + repr(join),
+  )
+  if join == true { out.insert("slip-join", none) }
 
   if enter != none {
     assert(
@@ -165,6 +172,7 @@
 #let is-slip(tags) = SLIP-KEY in tags
 
 #let is-fullscreen(tags) = "slip-fullscreen" in tags
+#let is-joined(tags) = "slip-join" in tags
 
 // Decoded from the key, not stored a second time: the entered name and the
 // filterable flat key cannot disagree if there is only one of them.

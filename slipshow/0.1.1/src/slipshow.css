@@ -139,6 +139,15 @@
   scroll-margin-top: var(--slip-scroll-margin, 1.5rem);
 }
 
+/* A JOINED SLIP (`slip(join: true)`) sits flush against the slip above it.
+   The gap lives on the PREVIOUS slip's `margin-bottom`, so that is what is
+   removed. A plain `0`, not `--slip-gap: 0`: a consuming site sets
+   `--slip-gap` on its own, more specific selector, which would beat the
+   variable but cannot beat this declaration. */
+.slip:has(+ .slip-join) {
+  margin-bottom: 0;
+}
+
 /* A ROW (`div.slip-row[data-row]`, `src/slipshow.typ`'s file header): a run
    of slips laid out side by side instead of stacked. `align-items:
    flex-start`, not `stretch`: slips in one row carry different amounts of
