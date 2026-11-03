@@ -437,6 +437,8 @@
       if "number" in node.fields() { enum.item(node.number, r) } else { enum.item(r) }
     } else if node.func() == html.elem {
       html.elem(node.tag, attrs: node.at("attrs", default: (:)), r)
+    } else if node.func() == math.class {
+      math.class(node.class, r)
     } else {
       let fields = node.fields()
       let _ = fields.remove("body")

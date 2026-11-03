@@ -727,6 +727,10 @@
     } else if node.func() == html.elem {
       // `html.elem(tag, body)` — `tag` is positional too, and first.
       html.elem(node.tag, attrs: node.at("attrs", default: (:)), r.node)
+    } else if node.func() == math.class {
+      // `math.class(class, body)` — `class` is positional, and first. `dif`
+      // expands to one.
+      math.class(node.class, r.node)
     } else {
       let fields = node.fields()
       let _ = fields.remove("body")
