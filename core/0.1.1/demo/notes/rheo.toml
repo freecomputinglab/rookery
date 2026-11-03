@@ -1,0 +1,9 @@
+# `@rookery/core`'s coverage for note-style bibliographies (`citations:
+# "notes"`, `style: "chicago-notes"`): every prose citation renders as one of
+# this package's own footnotes rather than a native Typst one.
+version = "0.6.2"
+content_dir = "content"
+formats = ["html"]
+
+[packages.rookery]
+path = "../../../.."

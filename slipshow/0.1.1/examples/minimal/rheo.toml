@@ -1,0 +1,12 @@
+# The smallest possible slipshow deck — copy `examples/_template/` for the
+# comments explaining `version`, `[spine]`, and the `[packages.rookery]`
+# override below.
+version = "0.6.2"
+content_dir = "content"
+formats = ["html"]
+
+[spine]
+exclude = ["lib.typ"]
+
+[packages.rookery]
+path = "../../../.."

@@ -1,0 +1,416 @@
+#!/usr/bin/env bash
+# Asserts on this demo's output — the fixture for `footnotes: "horizontal"`.
+# `demo/rheo/check.sh` covers the vertical default; this covers the margin
+# mode only, on its own small project. Greps/python, no test framework, for
+# the same reason `demo/rheo/check.sh` gives.
+set -euo pipefail
+cd "$(dirname "$0")"
+H=build/html
+fail=0
+note() { echo "FAIL: $*"; fail=1; }
+
+[ -f "$H/index.html" ] || note "no $H/index.html"
+[ -f "$H/mixed.html" ] || note "no $H/mixed.html"
+
+# Typst emits the SAME shape in every mode now (bib.typ/state.typ): a
+# margin note beside every marker AND the bottom Footnotes block, on EVERY
+# card that has footnotes — no card is special-cased to one or the other in
+# the markup any more. What differs page to page is only which pair a
+# reader sees, and that is core.css's call, keyed on the one
+# `data-rookery="mode"` marker each page carries. So this script checks
+# structure only — both blocks present and in step with each other, ids in
+# the right namespace, no `hidden` attribute anywhere, one mode marker per
+# page — never which one a browser would paint, which is `geom.sh`'s job.
+#
+# (a) Every `<sup ... data-rookery="fn-ref">` is IMMEDIATELY followed by its
+# `data-rookery="sidenote"` span — checked by requiring the SAME ids appear
+# back to back in one match, not just present somewhere on the page.
+# Sidenote ids carry a `sn-` prefix; the Footnotes list's own `<li>` ids stay
+# `fn-`, since the two must stay distinct now that both are always present.
+#
+# (b) For every block number found among the sidenotes, the SAME numbers
+# appear in that block's Footnotes list, and vice versa — the two are
+# always emitted together, so neither can drift from the other.
+#
+# (c) `host-note`'s `#window` transclusion of `margin-note` carries its own
+# sidenotes, its own Footnotes list matching them, and a References div —
+# same shape as any other card, since a window is no longer special-cased
+# in the markup either (core.css hides its sidenotes and shows its blocks).
+#
+# (d) A margin CITATION note (`data-rookery-cite="cite"`) exists and names
+# Knuth — the third paragraph's bare `@knuth1984` AND the blockquote's own
+# bare `@knuth1984`, twice per rendering of margin-note's body (its own
+# card, and again inside host-note's `#window` of it: 4 on index.html).
+# Lamport (`@lamport1994`) is cited INSIDE the fourth footnote's own body,
+# so it appears twice per rendering — once in that footnote's sidenote, once
+# more where the Footnotes list repeats the same footnote body — 4 on
+# index.html, none of them a second, SEPARATE margin note spawned outside
+# the footnote's own.
+#
+# (e) No `data-rookery="references"` div anywhere carries `hidden` — Typst
+# never sets it now; only core.css ever hides that block.
+#
+# (f) Exactly one `data-rookery="mode"` marker per page, naming this
+# project's `data-rookery-footnotes="horizontal"` choice. `index.html` also
+# names `data-rookery-citations="horizontal"` (the demo wrapper's explicit
+# `citations: "horizontal"`, `content/lib.typ`) and `mixed.html` names
+# `data-rookery-citations="vertical"` (`content/mixed.typ`'s own `auto`,
+# which resolves to vertical) — the one place this script checks a
+# citations VALUE, since a minted note page's own marker reads
+# `_citation-mode.final()` (state.typ), the project's LAST vertebra to apply
+# `#show: rookery`, which need not agree with the note's own vertebra
+# (`.marrow.typ`'s banner on `citation-mode`).
+python3 - "$H/index.html" "$H/mixed.html" "$H/ideas/margin-note.html" "$H/ideas/host-note.html" "$H/ideas/no-gutter.html" "$H/ideas/plain-wide.html" <<'SIDENOTES' || fail=1
+import re, sys
+bad = 0
+
+def extract_div(h, start):
+    # A naive balanced-tag scan: counts nested "<div" against "</div>" from
+    # the opening tag's own ">" to find where IT closes, good enough for this
+    # fixture's markup (no "<div" text appears inside an attribute value).
+    i = h.index(">", start) + 1
+    depth = 1
+    j = i
+    while depth > 0:
+        nxt_open = h.find("<div", j)
+        nxt_close = h.find("</div>", j)
+        if nxt_close == -1:
+            break
+        if nxt_open != -1 and nxt_open < nxt_close:
+            depth += 1
+            j = nxt_open + 4
+        else:
+            depth -= 1
+            j = nxt_close + 6
+    return h[start:j]
+
+def extract_span(h, start):
+    # `extract_div`'s balanced scan, for a `<span>` instead — a sidenote is a
+    # span nesting a number span, the note's body, and (when its footnote
+    # cites something) a further sidenote-refs span, so a plain non-greedy
+    # regex stops at the first nested `</span>` instead of the sidenote's own.
+    i = h.index(">", start) + 1
+    depth = 1
+    j = i
+    while depth > 0:
+        nxt_open = h.find("<span", j)
+        nxt_close = h.find("</span>", j)
+        if nxt_close == -1:
+            break
+        if nxt_open != -1 and nxt_open < nxt_close:
+            depth += 1
+            j = nxt_open + 5
+        else:
+            depth -= 1
+            j = nxt_close + 7
+    return h[start:j]
+
+
+def box_for(h, name):
+    # Finds the `[data-rookery="box"]` div carrying a given idea's own
+    # `id="idea:<name>"` heading, by walking backward from that id to the
+    # nearest preceding box opening tag — the same nesting `byIdea` in
+    # geom.sh's JS reaches via `.closest()`.
+    marker = f'id="idea:{name}"'
+    mi = h.find(marker)
+    if mi == -1:
+        return None
+    start = h.rfind('<div class="', 0, mi)
+    while start != -1:
+        tag_end = h.index(">", start) + 1
+        if 'data-rookery="box"' in h[start:tag_end]:
+            return extract_div(h, start)
+        start = h.rfind('<div class="', 0, start)
+    return None
+
+for path in sys.argv[1:]:
+    try:
+        h = open(path).read()
+    except FileNotFoundError:
+        continue
+
+    sidenotes = re.findall(
+        r'<span class="idea-sidenote" id="sn-(\d+)-(\d+)" data-rookery="sidenote">', h,
+    )
+    sn_blocks = {}
+    for b, n in sidenotes:
+        sn_blocks.setdefault(b, []).append(int(n))
+
+    fn_items = re.findall(
+        r'<li class="idea-footnote" id="fn-(\d+)-(\d+)" data-rookery="footnote">', h,
+    )
+    fn_blocks = {}
+    for b, n in fn_items:
+        fn_blocks.setdefault(b, []).append(int(n))
+
+    # (b) Every sidenote block has a matching Footnotes list, and vice versa.
+    if {k: sorted(v) for k, v in sn_blocks.items()} != {k: sorted(v) for k, v in fn_blocks.items()}:
+        print(f"FAIL: {path} sidenote blocks {sn_blocks} do not match Footnotes-list blocks {fn_blocks}")
+        bad = 1
+
+    # (a) Every fn-ref sits immediately before its own sidenote.
+    pairs = re.findall(
+        r'<sup class="idea-fn-ref" id="fnref-(\d+)-(\d+)" data-rookery="fn-ref">'
+        r'<a href="#fn-\1-\2">\2</a></sup>'
+        r'<span class="idea-sidenote" id="sn-\1-\2" data-rookery="sidenote">',
+        h,
+    )
+    if len(pairs) != len(sidenotes):
+        print(f"FAIL: {path} has {len(sidenotes)} sidenotes but only {len(pairs)} sit "
+              f"immediately after their own fn-ref marker")
+        bad = 1
+
+    # (e) No hidden References div anywhere.
+    for m in re.finditer(r'<div [^>]*data-rookery="references"[^>]*>', h):
+        if 'hidden="hidden"' in m.group(0):
+            print(f"FAIL: {path} has a hidden data-rookery=\"references\" div — "
+                  f"Typst must never set `hidden` now, only core.css")
+            bad = 1
+
+    # (f) Exactly one mode marker, naming horizontal footnotes. Citations is
+    # checked by VALUE only on index.html/mixed.html below (see the banner
+    # above the python3 call for why not on a minted page).
+    modes = re.findall(
+        r'<div data-rookery="mode" data-rookery-footnotes="(\w+)" data-rookery-citations="(\w+)" hidden="hidden">',
+        h,
+    )
+    if len(modes) != 1:
+        print(f"FAIL: {path} has {len(modes)} data-rookery=\"mode\" marker(s), expected exactly 1")
+        bad = 1
+    elif modes[0][0] != "horizontal":
+        print(f"FAIL: {path}'s mode marker says footnotes={modes[0][0]!r}, expected \"horizontal\"")
+        bad = 1
+    elif path.endswith("/index.html") and modes[0][1] != "horizontal":
+        print(f"FAIL: {path}'s mode marker says citations={modes[0][1]!r}, expected \"horizontal\"")
+        bad = 1
+    elif path.endswith("/mixed.html") and modes[0][1] != "vertical":
+        print(f"FAIL: {path}'s mode marker says citations={modes[0][1]!r}, expected \"vertical\"")
+        bad = 1
+
+    # (h) `mixed.html`'s native-footnote fixture: a `#footnote[..]` written
+    # straight into an idea's body (no rookery `footnote` import) is claimed
+    # the same as rookery's own marker — no page-wide endnote section, and
+    # its own box carries an ordinary fn-ref/sidenote pair.
+    if path.endswith("/mixed.html"):
+        if 'role="doc-endnotes"' in h:
+            print(f"FAIL: {path} has a doc-endnotes section — a native "
+                  f"#footnote escaped instead of being claimed by its idea")
+            bad = 1
+        native_box = box_for(h, "native-note")
+        if native_box is None:
+            print(f"FAIL: {path} has no box for idea:native-note")
+            bad = 1
+        else:
+            sup_m = re.search(
+                r'<sup class="idea-fn-ref"[^>]*data-rookery="fn-ref">.*?</sup>', native_box, re.S,
+            )
+            if sup_m is None:
+                print(f"FAIL: {path}'s native-note box carries no fn-ref marker")
+                bad = 1
+            else:
+                tail = native_box[sup_m.end():]
+                span_m = re.match(r'<span class="idea-sidenote"[^>]*data-rookery="sidenote">', tail)
+                if span_m is None:
+                    print(f"FAIL: {path}'s native-note fn-ref is not immediately followed "
+                          f"by a data-rookery=\"sidenote\" span")
+                    bad = 1
+                else:
+                    sidenote_html = extract_span(tail, span_m.start())
+                    if "Written with std.footnote" not in sidenote_html:
+                        print(f"FAIL: {path}'s native-note sidenote does not contain "
+                              f"\"Written with std.footnote\"")
+                        bad = 1
+
+    # (g) A minted note page (`ideas/<slug>.html`) wraps its body and its
+    # own References block in exactly one `[data-rookery="page-body"]`
+    # element, and that element's Footnotes block is INSIDE it — the own
+    # card standing core.css needs to show margin notes on the page at all.
+    if path.endswith("/ideas/margin-note.html"):
+        page_body_ms = list(re.finditer(r'<div class="[^"]*" data-rookery="page-body"[^>]*>', h))
+        if len(page_body_ms) != 1:
+            print(f"FAIL: {path} has {len(page_body_ms)} data-rookery=\"page-body\" element(s), "
+                  f"expected exactly 1")
+            bad = 1
+        else:
+            page_body_html = extract_div(h, page_body_ms[0].start())
+            if 'data-rookery="footnotes"' not in page_body_html:
+                print(f"FAIL: {path}'s data-rookery=\"page-body\" element carries no "
+                      f"data-rookery=\"footnotes\" block")
+                bad = 1
+            # The page body is themed the same way the head and footer are
+            # (`.marrow.typ`'s `_themed(..)` on its attrs) — its own opening
+            # tag carries the theme's custom properties inline.
+            page_body_tag = h[page_body_ms[0].start():h.index(">", page_body_ms[0].start()) + 1]
+            if 'style="' not in page_body_tag or '--idea-border-color' not in page_body_tag:
+                print(f"FAIL: {path}'s data-rookery=\"page-body\" element carries no "
+                      f"style attribute with --idea-border-color")
+                bad = 1
+
+    # `data-rookery-gutter` on the minted page's body mirrors the resolved
+    # right-gutter flag, the same as an idea's own card (idea.typ) — the
+    # project sets `display-right-gutter: true`, and `no-gutter` overrides
+    # it back to `false` for its own note (content/index.typ).
+    if path.endswith("/ideas/plain-wide.html") or path.endswith("/ideas/margin-note.html"):
+        if 'data-rookery-gutter="on"' not in h:
+            print(f"FAIL: {path}'s page-body carries no data-rookery-gutter=\"on\"")
+            bad = 1
+    if path.endswith("/ideas/no-gutter.html"):
+        if 'data-rookery-gutter="off"' not in h:
+            print(f"FAIL: {path}'s page-body carries no data-rookery-gutter=\"off\"")
+            bad = 1
+
+    if path.endswith("/index.html"):
+        # (c) `host-note`'s window transclusion of `margin-note`: its own
+        # sidenotes, its own Footnotes list matching them, and a References
+        # div — the same shape any other card gets now.
+        win_m = re.search(r'<div class="[^"]*"[^>]*data-rookery="window"[^>]*>', h)
+        if win_m is None:
+            print(f"FAIL: {path} has no data-rookery=\"window\" element for host-note's transclusion")
+            bad = 1
+        else:
+            window_html = extract_div(h, win_m.start())
+            if 'data-rookery="sidenote"' not in window_html:
+                print(f"FAIL: {path}'s window transclusion carries no sidenote")
+                bad = 1
+            win_fn_items = re.findall(r'data-rookery="footnote"', window_html)
+            if len(win_fn_items) != 6:
+                print(f"FAIL: {path}'s window transclusion has {len(win_fn_items)} Footnotes "
+                      f"list item(s), expected 6")
+                bad = 1
+            if 'data-rookery="references"' not in window_html:
+                print(f"FAIL: {path}'s window transclusion has no data-rookery=\"references\" div")
+                bad = 1
+
+        # `index.html` carries four blocks with footnotes — margin-note's own
+        # card, host-note's window transclusion of it, bib-group's window
+        # transclusion of it, and no-gutter's card — three matching
+        # margin-note's six notes and one matching no-gutter's single note.
+        # Which block number lands on which is an implementation detail of a
+        # document-wide counter, so this checks the multiset of shapes rather
+        # than a specific id.
+        shapes = sorted(sorted(v) for v in sn_blocks.values())
+        if shapes != [[1], [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]]:
+            print(f"FAIL: {path} has sidenote blocks shaped {shapes}, expected one "
+                  f"single-note block (no-gutter) and three six-note blocks "
+                  f"(margin-note's own card, host-note's window transclusion of it, and "
+                  f"bib-group's window transclusion of it, each carrying the blockquote's and "
+                  f"the list item's own footnotes too)")
+            bad = 1
+
+        cite_spans = re.findall(
+            r'<span class="[^"]*" data-rookery="sidenote" data-rookery-cite="cite">(.*?)</span>', h, re.S,
+        )
+        knuth = [s for s in cite_spans if "Knuth" in s]
+        if len(knuth) != 9:
+            print(f"FAIL: {path} has {len(knuth)} margin citation note(s) naming Knuth, expected 9 "
+                  f"— two per rendering of margin-note's body (the bare citation and the "
+                  f"blockquote's), across its own card, host-note's #window and bib-group's "
+                  f"#window, plus one each from with-bib's and no-bib's own bare citation")
+            bad = 1
+        lamport = [s for s in cite_spans if "Lamport" in s]
+        if len(lamport) != 6:
+            print(f"FAIL: {path} has {len(lamport)} margin citation note(s) naming Lamport, expected 6 "
+                  f"— two per rendering of margin-note's body (the fourth footnote's own sidenote, "
+                  f"and its repeat in that rendering's Footnotes list), across its own card, "
+                  f"host-note's #window and bib-group's #window")
+            bad = 1
+
+        # The fourth footnote's own sidenote ("Citing @lamport1994 here, …")
+        # carries a data-rookery="sidenote-refs" naming Lamport, gathered at
+        # the note's end since its inline citation note sits mid-sentence. A
+        # footnote citing nothing (every other one here) carries no such span.
+        for sn_id, sn_start in [
+            (m.group(1), m.start())
+            for m in re.finditer(r'<span class="idea-sidenote" id="sn-(\d+-\d+)" data-rookery="sidenote">', h)
+        ]:
+            sn_html = extract_span(h, sn_start)
+            has_citing = "Citing" in sn_html
+            refs_m = re.search(
+                r'<span class="[^"]*" data-rookery="sidenote-refs">(.*?)</span>\s*</span>\s*$', sn_html, re.S,
+            )
+            if has_citing:
+                if refs_m is None or "Lamport" not in refs_m.group(1):
+                    print(f"FAIL: {path}'s sidenote sn-{sn_id} (\"Citing …\") carries no "
+                          f"data-rookery=\"sidenote-refs\" naming Lamport")
+                    bad = 1
+            elif 'data-rookery="sidenote-refs"' in sn_html:
+                print(f"FAIL: {path}'s sidenote sn-{sn_id} cites nothing of its own but "
+                      f"carries a data-rookery=\"sidenote-refs\" span")
+                bad = 1
+
+        # `bib-group`'s `#window((<margin-note>, <with-bib>), display-bibliography:
+        # false)`: neither transcluded window carries a references block of its
+        # own — the group's one combined block, after the second window, claims
+        # both notes' citations instead. `data-rookery-bibliography="off"` sits on
+        # that combined block ITSELF (unlike an idea's own card, where the flag
+        # sits on the box), and core.css's own rule keys its hide off exactly that.
+        bg_start = h.find('id="idea:bib-group"')
+        if bg_start == -1:
+            print(f"FAIL: {path} has no idea:bib-group heading")
+            bad = 1
+        else:
+            bg_end = h.find('data-rookery="references"', bg_start)
+            if bg_end == -1:
+                print(f"FAIL: {path} has no references block after idea:bib-group")
+                bad = 1
+            else:
+                group_html = h[bg_start:bg_end]
+                if group_html.count('data-rookery="window"') != 2:
+                    print(f"FAIL: {path}'s bib-group does not carry exactly 2 windows before its "
+                          f"combined references block")
+                    bad = 1
+                combined_tag_end = h.index(">", bg_end) + 1
+                combined_tag = h[bg_end:combined_tag_end]
+                if 'data-rookery-bibliography="off"' not in combined_tag:
+                    print(f"FAIL: {path}'s bib-group combined references block carries no "
+                          f"data-rookery-bibliography=\"off\"")
+                    bad = 1
+                combined_section = extract_div(h, h.rfind('<div', 0, bg_end + 1))
+                if combined_section.count("Knuth, Donald E. 1984") != 1:
+                    print(f"FAIL: {path}'s bib-group combined references block does not list "
+                          f"Knuth exactly once, though both windows cite it — de-duplication "
+                          f"did not take")
+                    bad = 1
+                if combined_section.count("Lamport, Leslie") != 1:
+                    print(f"FAIL: {path}'s bib-group combined references block does not list "
+                          f"Lamport exactly once")
+                    bad = 1
+
+        # `data-rookery-bibliography` mirrors the resolved flag on each
+        # card's own box, exactly as `data-rookery-gutter` does — present
+        # only for a concrete `true`/`false` (content/index.typ's
+        # `display-bibliography:` on with-bib and no-bib), absent on
+        # margin-note, which sets no override and stays `auto`.
+        for name, expect in (("with-bib", "on"), ("no-bib", "off")):
+            box_html = box_for(h, name)
+            if box_html is None:
+                print(f"FAIL: {path} has no box for idea:{name}")
+                bad = 1
+            else:
+                tag = box_html[:box_html.index(">") + 1]
+                attr = f'data-rookery-bibliography="{expect}"'
+                if attr not in tag:
+                    print(f"FAIL: {path}'s {name} box carries no {attr}")
+                    bad = 1
+        margin_box = box_for(h, "margin-note")
+        if margin_box is not None:
+            tag = margin_box[:margin_box.index(">") + 1]
+            if "data-rookery-bibliography" in tag:
+                print(f"FAIL: {path}'s margin-note box carries a "
+                      f"data-rookery-bibliography attribute, expected none")
+                bad = 1
+if not bad:
+    print("  sidenotes: every sidenote block matches its Footnotes list, sidenotes sit immediately "
+          "after their own marker, host-note's #window of margin-note carries its own sidenotes and "
+          "Footnotes list, the Knuth and Lamport margin citations appear the right number of times per "
+          "margin-note's body with Lamport's nested inside its footnote, no References div is ever "
+          "hidden, every page carries exactly one horizontal mode marker, and the minted margin-note "
+          "page wraps its body and Footnotes block in exactly one data-rookery=\"page-body\" element")
+sys.exit(bad)
+SIDENOTES
+
+if [ "$fail" -ne 0 ]; then
+    echo "demo/sidenotes FAILED"
+    exit 1
+fi
+echo "demo/sidenotes OK"
