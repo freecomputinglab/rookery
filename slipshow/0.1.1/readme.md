@@ -79,7 +79,7 @@ the build succeeds either way.
   class: none,
   row: none,
   max-width: none,
-  lines: false,
+  steps: false,
   wrap: it => it,
   tags: none,
   exclude-tags: (),
@@ -107,8 +107,8 @@ deck, which never sees the call site itself, only the registry row.
 | `class` | `str` | `none` | appended to the rendered `<section>`'s class list |
 | `row` | `int` | `none` | groups CONSECUTIVE slips sharing the same value into one `div.slip-row[data-row=..]` wrapper — overridden per-deck by `#slipshow`'s own `row:` key function, below, for a row that is computed rather than authored |
 | `max-width` | `length`, `ratio`, or a raw-CSS `str` | `none` | a `max-width` declaration on the slip's own `<section>` — never `width`, so a narrower slip stays narrow rather than being stretched to fill the cap |
-| `lines` | `bool` | `false` | one slip per row of the body, each joined to the one above — see "`lines: true`" below |
-| `wrap` | function | `it => it` | applied to the body, so styling travels inside it — see "`lines: true`" below |
+| `steps` | `bool` | `false` | one slip per row of the body, each joined to the one above — see "`steps: true`" below |
+| `wrap` | function | `it => it` | applied to the body, so styling travels inside it — see "`steps: true`" below |
 | `tags` | any of core's four tag forms | `none` | the caller's own tags, merged in LAST — a caller naming one of `#slip`'s own keys wins outright |
 | `exclude-tags` | array of tag names | `()` | forwarded through to the underlying `#idea` — see below |
 | `display-frame` | `bool` | `false` | `@rookery/core`'s own switch with its default INVERTED — no card left rule, no indent |
@@ -182,11 +182,11 @@ and needs the same list `idea` itself gets:
 #let slip = _slip.with(exclude-tags: EX)
 ```
 
-### `lines: true` — a slip a row at a time
+### `steps: true` — a slip a step at a time
 
 ```typst
-#slip("steps", lines: true, $ a &= b \ &= c $)
-#slip("prose", lines: true)[
+#slip("steps", steps: true, $ a &= b \ &= c $)
+#slip("prose", steps: true)[
   First paragraph.
 
   + one
@@ -201,9 +201,9 @@ How the body splits:
 - A body that is one block equation splits at its `\`s. Each row is a band of the whole equation, clipped vertically to that row, so every row shares the equation's width and the columns of its `&`s. Band edges assume even row spacing.
 - Anything else splits at paragraph breaks, and each list or enum item is a row of its own. An enum item keeps its number, so a lone `+ two` still reads as 2. Tables, figures and nested lists are not split beyond their top-level items.
 
-Ids are `<id>`, `<id>-line-2`, `<id>-line-3`, and so on, as strings, for a string or label id. With no id, every row gets its own automatic id. `title:` goes to the first row only. Every other option goes to every row, and each row carries a valued `slip-line` tag with its 1-based position, so rows sharing an `order:` stay in row order in a tag-queried deck.
+Ids are `<id>`, `<id>-step-2`, `<id>-step-3`, and so on, as strings, for a string or label id. With no id, every row gets its own automatic id. `title:` goes to the first row only. Every other option goes to every row, and each row carries a valued `slip-step` tag with its 1-based position, so rows sharing an `order:` stay in row order in a tag-queried deck.
 
-`lines: true` with `over: true` panics: an overlay covers one slip, not several.
+`steps: true` with `over: true` panics: an overlay covers one slip, not several.
 
 `wrap:` is applied to every slip's body, lines or not. Styling set around a `#slip` call does not reach the copy a queried deck re-renders from the registry, so a show rule the slip needs goes in `wrap:`, as `wrap: it => { set text(red); it }`.
 
@@ -216,14 +216,14 @@ Ids are `<id>`, `<id>-line-2`, `<id>-line-3`, and so on, as strings, for a strin
 ```typst
 #let eq = $ "short" &-> "a" \ "much longer left side" &-> "b" $
 #slipshow(slips: (
-  slip("lines", lines: true, eq),
+  slip("lines", steps: true, eq),
   slip("lines-gold", over: true, { show "b": set text(fill: rgb("#c08000")); slip-rows(eq).join() }),
 ))
 ```
 
 A slip plus every consecutive `over: true` slip after it is one STACK, rendered as a `div.slip-stack` whose first child lays out as it would anywhere else and whose overlays are pinned over its box, so an overlay should be no taller than the slip it covers.
 
-An overlay after a `lines: true` slip covers ALL of its rows, not just the last: the rows are gathered into a `div.slip-group` as the stack's first child, and the overlay is pinned over the whole group. It is still one reveal step. `slip-rows(body).join()` re-draws every row for an overlay, as above, so it lines up with the group it covers. An overlay after an overlay covers the same stack. An `over: true` slip with no slip before it in the deck panics.
+An overlay after a `steps: true` slip covers ALL of its rows, not just the last: the rows are gathered into a `div.slip-group` as the stack's first child, and the overlay is pinned over the whole group. It is still one reveal step. `slip-rows(body).join()` re-draws every row for an overlay, as above, so it lines up with the group it covers. An overlay after an overlay covers the same stack. An `over: true` slip with no slip before it in the deck panics.
 
 An overlay is transparent unless it has a `background:`. Give it the same background as the slip it covers to hide that slip, or none to draw on top of it (a circle, an arrow).
 
@@ -231,7 +231,7 @@ An overlay is entered with the `stay` camera action, so the camera does not move
 
 ### Replacements — `replace: true`
 
-`#slip(replace: true)` joins the stack of the slip directly before it, as an overlay does, but once revealed it takes that slip's place rather than covering it: every slip before it in the stack is hidden, and the replacement sits in normal flow, so it can be any height. After a `lines: true` slip, that is every one of its rows: the whole `div.slip-group` is hidden at once. Going back past it brings them back. It is entered with `stay` like an overlay. Overlays and replacements mix in one stack: an overlay after a replacement covers the replacement.
+`#slip(replace: true)` joins the stack of the slip directly before it, as an overlay does, but once revealed it takes that slip's place rather than covering it: every slip before it in the stack is hidden, and the replacement sits in normal flow, so it can be any height. After a `steps: true` slip, that is every one of its rows: the whole `div.slip-group` is hidden at once. Going back past it brings them back. It is entered with `stay` like an overlay. Overlays and replacements mix in one stack: an overlay after a replacement covers the replacement.
 
 ```typst
 #slipshow(slips: (
@@ -240,7 +240,7 @@ An overlay is entered with the `stay` camera action, so the camera does not move
 ))
 ```
 
-With no controller revealing slips (JavaScript off, or `reveal: false`), every slip in the stack shows, one after another. A replacement panics where an overlay would: with no slip before it, or alongside `lines: true`.
+With no controller revealing slips (JavaScript off, or `reveal: false`), every slip in the stack shows, one after another. A replacement panics where an overlay would: with no slip before it, or alongside `steps: true`.
 
 ## `#slipshow` — the deck container
 
@@ -683,7 +683,7 @@ never gets one, the same rule core states for a tag like `depends-on`):
 | `slip-class` | `#slip(class: ..)` |
 | `slip-row` | `#slip(row: ..)` |
 | `slip-max-width` | `#slip(max-width: ..)` |
-| `slip-line` | `#slip(lines: true)`, each row's 1-based position |
+| `slip-step` | `#slip(steps: true)`, each row's 1-based position |
 
 Flat keys are filterable by core's own `#ideas(tagged:)`/`#window(tagged:)` and
 by `@rookery/search`'s `tags:draft`-style query language exactly like any

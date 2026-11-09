@@ -1,5 +1,5 @@
 #import "/src/lib.typ": slip
-#slip(lines: true, over: true)[
+#slip(steps: true, over: true)[
   a
 
   b

@@ -1,2 +1,2 @@
 #import "/src/lib.typ": slip
-#slip(lines: "yes")[x]
+#slip(steps: "yes")[x]

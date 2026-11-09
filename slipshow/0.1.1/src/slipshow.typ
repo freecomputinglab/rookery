@@ -356,16 +356,16 @@
 // still carry.
 #let _entry-row(e) = if "computed-row" in e { e.computed-row } else { row-of(e.tags) }
 
-// Groups resolved entries into GROUPS: the rows of one `lines: true` slip,
-// that is an entry on line 1 plus every immediately following joined entry
-// whose line is one more than the one before. Any other slip is a group of
+// Groups resolved entries into GROUPS: the rows of one `steps: true` slip,
+// that is an entry on step 1 plus every immediately following joined entry
+// whose step is one more than the one before. Any other slip is a group of
 // one. Each group is an array of `(i: i, e: e)` pairs, `i` the entry's
 // original index for `_slip-attrs`/`id="slip-<n>"`.
 #let _groups(entries) = {
   let groups = ()
   let prev = none
   for (i, e) in entries.enumerate() {
-    let k = line-of(e.tags)
+    let k = step-of(e.tags)
     if (
       groups.len() > 0 and prev != none and k != none and k == prev + 1 and is-joined(e.tags)
     ) {
@@ -381,7 +381,7 @@
 // Groups resolved entries into STACKS: a BASE group (`_groups`) plus every
 // consecutive `over: true` or `replace: true` slip after it, its LAYERS, each
 // overlay drawn on top of the one before and each replacement taking the
-// place of those before it. A layer after a `lines: true` slip covers all of
+// place of those before it. A layer after a `steps: true` slip covers all of
 // its rows. Each stack is `(base: pairs, layers: pairs)`. An overlay with
 // nothing before it has nothing to cover, and panics.
 #let _stacks(entries) = {

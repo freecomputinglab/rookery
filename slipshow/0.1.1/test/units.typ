@@ -441,30 +441,30 @@
   assert.eq(rows.at(3).number, 3)
 }
 
-#assert.eq(slip-tags(line: 2).at("slip-line"), 2)
+#assert.eq(slip-tags(step: 2).at("slip-step"), 2)
 
 // Rows sharing an `order:` keep row order, which the id tie-break would not.
-#let line-rows = (
-  (id: "x-line-10", name: "x-line-10", tags-dict: (slip-order: 1, slip-line: 10)),
-  (id: "x-line-2", name: "x-line-2", tags-dict: (slip-order: 1, slip-line: 2)),
+#let step-rows = (
+  (id: "x-step-10", name: "x-step-10", tags-dict: (slip-order: 1, slip-step: 10)),
+  (id: "x-step-2", name: "x-step-2", tags-dict: (slip-order: 1, slip-step: 2)),
 )
-#assert.eq(_sort-rows(line-rows, "slip-order", false).first().id, "x-line-2")
+#assert.eq(_sort-rows(step-rows, "slip-order", false).first().id, "x-step-2")
 
-// A `lines: true` slip in `slips:` is one entry per row.
-#let multi = slip("m", lines: true)[
+// A `steps: true` slip in `slips:` is one entry per row.
+#let multi = slip("m", steps: true)[
   First.
 
   Second.
 ]
 #let multi-entries = resolve-slips(slips: (multi,))
 #assert.eq(multi-entries.len(), 2)
-#assert.eq(multi-entries.at(1).tags.at("slip-line"), 2)
+#assert.eq(multi-entries.at(1).tags.at("slip-step"), 2)
 #assert("slip-join" in multi-entries.at(1).tags)
 
-// A slip stacked after a `lines: true` slip covers its whole group of rows:
+// A slip stacked after a `steps: true` slip covers its whole group of rows:
 // one stack, the three rows its base, the overlay its one layer.
 #let grouped = resolve-slips(slips: (
-  slip("g", lines: true, $ a \ b \ c $),
+  slip("g", steps: true, $ a \ b \ c $),
   slip("g-over", over: true)[x],
 ))
 #let grouped-stacks = _stacks(grouped)

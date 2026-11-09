@@ -33,7 +33,7 @@
   row: none,
   max-width: none,
   transition: none,
-  line: none,
+  step: none,
   wrap: it => it,
   tags: none,
   exclude-tags: (),
@@ -78,7 +78,7 @@
     row: row,
     max-width: max-width,
     transition: transition,
-    line: line,
+    step: step,
   ))
   // A PLAIN sibling marker, not nested inside `#idea`'s own — see
   // `marker.typ` for why a caller reading this note's options back from an
@@ -104,34 +104,38 @@
   )
 }
 
-// `lines: true` makes one slip per row of the body (`slip-rows`), every row
+// `steps: true` makes one slip per row of the body (`slip-rows`), every row
 // after the first joined to the one above. `title:` goes to the first row;
 // everything else goes to every row.
-#let slip(lines: false, wrap: it => it, ..args) = {
+#let slip(steps: false, wrap: it => it, ..args) = {
   assert(
-    type(lines) == bool,
-    message: "@rookery/slipshow: `lines` must be a bool — got " + repr(lines),
+    "lines" not in args.named(),
+    message: "@rookery/slipshow: `lines:` was renamed `steps:`",
   )
-  if not lines { return _slip-one(wrap: wrap, ..args) }
+  assert(
+    type(steps) == bool,
+    message: "@rookery/slipshow: `steps` must be a bool — got " + repr(steps),
+  )
+  if not steps { return _slip-one(wrap: wrap, ..args) }
   let named = args.named()
   assert(
     not named.at("over", default: false) and not named.at("replace", default: false),
-    message: "@rookery/slipshow: a slip cannot be both `lines: true` and `over: true` or `replace: true`",
+    message: "@rookery/slipshow: a slip cannot be both `steps: true` and `over: true` or `replace: true`",
   )
   let pos = args.pos()
   assert(
     pos.len() in (1, 2) and type(pos.last()) != label,
-    message: "@rookery/slipshow: `lines: true` needs a body — got " + repr(pos),
+    message: "@rookery/slipshow: `steps: true` needs a body — got " + repr(pos),
   )
   let id = if pos.len() == 2 { pos.first() } else { none }
   if type(id) == label { id = str(id) }
   let first = named.pairs().filter(p => p.at(0) != "join").to-dict()
   let rest = first.pairs().filter(p => p.at(0) != "title").to-dict()
   slip-rows(pos.last()).enumerate().map(((k, row)) => _slip-one(
-    ..(if id == none { () } else if k == 0 { (id,) } else { (id + "-line-" + str(k + 1),) }),
+    ..(if id == none { () } else if k == 0 { (id,) } else { (id + "-step-" + str(k + 1),) }),
     ..(if k == 0 { first } else { rest }),
     join: if k == 0 { named.at("join", default: false) } else { true },
-    line: k + 1,
+    step: k + 1,
     wrap: wrap,
     row,
   )).join()

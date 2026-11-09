@@ -32,7 +32,7 @@
     Overrides the deck's default `scroll` entry for this one slip alone.
   ],
   slip("joined", join: true)[Flush against the slip above: no gap between them.],
-  slip("lines", lines: true, eq),
+  slip("lines", steps: true, eq),
   // An OVERLAY: covers every row of the lines slip before it, re-drawing
   // both with the right side "b" in gold, and the camera stays still.
   slip("lines-gold", over: true, { show "b": set text(fill: rgb("#c08000")); slip-rows(eq).join() }),
@@ -43,7 +43,7 @@
 
     Going back brings the line back.
   ],
-  slip("prose", lines: true)[
+  slip("prose", steps: true)[
     First paragraph.
 
     Second paragraph.

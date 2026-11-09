@@ -321,7 +321,7 @@
 /* A STACK (`div.slip-stack`, `slip(over: true)`): a base and the overlays
    drawn on top of it. The base is the stack's FIRST CHILD, whatever element
    that is: one slip, or a `div.slip-group` holding every row of a
-   `lines: true` slip. It stays in normal flow, so it lays out exactly as it
+   `steps: true` slip. It stays in normal flow, so it lays out exactly as it
    would outside a stack; each overlay is pinned over the base's box, and
    covers it as long as it is no taller. NOT a grid: a grid
    item with auto inline margins shrinks to its content, so a slip a site
@@ -340,17 +340,17 @@
   margin-block: 0;
 }
 
-/* THE ROWS OF A `lines: true` SLIP, and a layer stacked on them, carry no
+/* THE ROWS OF A `steps: true` SLIP, and a layer stacked on them, carry no
    vertical card spacing, so the rows sit exactly as the lines of the one
    equation they are cut from and an overlay that redraws them all
    (`slip-rows(body).join()`) lands on them. Reaches into `@rookery/core`'s
    card by its role attributes, more specifically than core's own rules. */
-.slip [data-rookery="window"][data-rookery-tags~="slip-line"],
+.slip [data-rookery="window"][data-rookery-tags~="slip-step"],
 .slip-stack:has(> .slip-group) > .slip [data-rookery="window"] {
   padding-block: 0;
 }
 
-.slip [data-rookery="window"][data-rookery-tags~="slip-line"] > [data-rookery="window-details"][open],
+.slip [data-rookery="window"][data-rookery-tags~="slip-step"] > [data-rookery="window-details"][open],
 .slip-stack:has(> .slip-group) > .slip [data-rookery="window"] > [data-rookery="window-details"][open] {
   margin-bottom: 0;
 }

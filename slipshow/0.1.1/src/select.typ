@@ -159,11 +159,11 @@
       reverse,
     )
   } else if order == "slip-order" {
-    // The line breaks a tie between rows of one `lines: true` slip, which the
-    // id alone would not: `x-line-10` sorts before `x-line-2`.
+    // The line breaks a tie between rows of one `steps: true` slip, which the
+    // id alone would not: `x-step-10` sorts before `x-step-2`.
     _sort-pairs(rows.map(row => {
       let o = order-of(row.tags-dict)
-      let l = line-of(row.tags-dict)
+      let l = step-of(row.tags-dict)
       (key: if o == none { none } else { (o, if l == none { 0 } else { l }) }, row: row)
     }), reverse)
   } else if type(order) == function {
@@ -311,7 +311,7 @@
     }
     ((kind: "row", row: row, tags: row.tags-dict),)
   } else {
-    // A `lines: true` slip is several slips in one value: one entry each.
+    // A `steps: true` slip is several slips in one value: one entry each.
     let is-marker = c => c.func() == metadata and type(c.value) == dictionary and _SLIP-META in c.value
     let kids = if type(item) == content and item.func() == [].func() { item.children } else { () }
     let groups = ()

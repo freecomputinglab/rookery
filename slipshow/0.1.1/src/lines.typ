@@ -36,7 +36,7 @@
   if kids.len() == 1 and _block-equation(kids.first()) { kids.first() } else { none }
 }
 
-// The rows `#slip(lines: true)` reveals one at a time. A lone block equation
+// The rows `#slip(steps: true)` reveals one at a time. A lone block equation
 // splits at its `\`s into bands that keep its `&` columns; anything else
 // splits at paragraph breaks, with each list or enum item a row of its own.
 #let slip-rows(body) = {
