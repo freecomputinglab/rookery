@@ -64,7 +64,7 @@ WHAT IS ALREADY RULED OUT (2026-09-16) — do not redo this
 
 Driven under Playwright WebKit (Safari 26 engine), Chromium and Firefox,
 against both the live rookery.ohrg.org and a freshly built
-search/0.1.0/demo/rheo:
+search/0.1.1/demo/rheo:
 
   - WebKit desktop 1280x720: opens, :modal, 898x514, input focused, 28 rows.
   - WebKit iPad Pro 11 device descriptor, touch tap: opens, :modal, 804x514,
@@ -89,5 +89,5 @@ demo/rheo/build/html/index.html EXISTS, not that it is current, and WebKit is
 first in ALL_ENGINES — so a stale demo build reports as
 "FAIL search-modal [webkit]". Rebuild first:
 
-    cd search/0.1.0/demo/rheo && just check
-    cd search/0.1.0 && node test/browser/modal.mjs
+    cd search/0.1.1/demo/rheo && just check
+    cd search/0.1.1 && node test/browser/modal.mjs

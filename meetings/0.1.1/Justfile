@@ -1,0 +1,26 @@
+default:
+    @echo "@rookery/meetings: pure Typst package, entrypoint is src/lib.typ directly — nothing to build"
+
+# Two fixtures. `test/units.typ` asserts every VALUE `#meeting` derives — the tags,
+# the date, the synthesized title — and `test/view.typ` plus `test/check.sh` assert
+# the MARKUP and, above all, the order of the three blocks in a meeting's card.
+#
+# `--root .` so a fixture's `#import "/src/lib.typ"` resolves against THIS package.
+# `--features html` for parity with this repo's other Justfiles.
+#
+# BOTH FIXTURES COMPILE TO HTML, where timeline's units fixture compiles to a
+# throwaway PDF. `#meeting`'s record block is `html.elem`, which a paged export
+# drops with a warning per element — so a paged units run is a wall of warnings
+# about markup this package only claims to draw on the web. The cost is that the
+# paged branch of `#timeline-view` is not exercised here; it is exercised in
+# @rookery/timeline's own fixture, which owns it.
+#
+# `mkdir` first: unlike `rheo`, `typst compile` does not create its output
+# directory and fails with "No such file or directory" on a fresh checkout, since
+# `test/build/` is gitignored and never committed.
+test:
+    mkdir -p test/build
+    typst compile --features html --root . --format html test/units.typ test/build/units.html
+    @echo "units OK"
+    typst compile --features html --root . --format html test/view.typ test/build/view.html
+    ./test/check.sh
