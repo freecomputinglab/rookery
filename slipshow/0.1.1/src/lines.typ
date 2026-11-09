@@ -36,10 +36,43 @@
   if kids.len() == 1 and _block-equation(kids.first()) { kids.first() } else { none }
 }
 
+// Copied from `core/0.1.1/src/ideate.typ`: a package cannot import its private helpers.
+#let _level-of(h) = h.at("level", default: h.at("depth", default: 1))
+
+// Copied from `core/0.1.1/src/ideate.typ`, panic message reworded for `steps`.
+#let _sel-level(sel) = {
+  let r = repr(sel)
+  let m = r.match(regex("^heading\.where\((level|depth): (\d+)\)$"))
+  if m == none {
+    panic(
+      "@rookery/slipshow: `steps` took `" + r + "`, which does not name a plain heading level. "
+        + "Write `true` or `heading.where(level: 2)` (one field, `level` or `depth`, a whole number).",
+    )
+  }
+  int(m.captures.at(1))
+}
+
+// Heading mode: each heading of level `n` starts a row; everything else joins it.
+#let _heading-rows(body, n) = {
+  let kids = if body.func() == [].func() { body.children } else { (body,) }
+  let rows = ()
+  let cur = ()
+  for c in kids {
+    if c.func() == heading and _level-of(c) == n {
+      if cur.any(k => not _blank(k)) { rows.push(cur.join()) }
+      cur = ()
+    }
+    cur.push(c)
+  }
+  if cur.any(k => not _blank(k)) { rows.push(cur.join()) }
+  rows
+}
+
 // The rows `#slip(steps: true)` reveals one at a time. A lone block equation
 // splits at its `\`s into bands that keep its `&` columns; anything else
 // splits at paragraph breaks, with each list or enum item a row of its own.
-#let slip-rows(body) = {
+#let slip-rows(body, separator: auto) = {
+  if separator != auto { return _heading-rows(body, _sel-level(separator)) }
   let eq = _lone-equation(body)
   if eq != none { return range(equation-rows(eq).len()).map(k => equation-band(eq, k)) }
 

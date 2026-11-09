@@ -104,7 +104,8 @@
   )
 }
 
-// `steps: true` makes one slip per row of the body (`slip-rows`), every row
+// `steps: true` (or a `heading.where(level: N)` selector, splitting at those
+// headings) makes one slip per row of the body (`slip-rows`), every row
 // after the first joined to the one above. `title:` goes to the first row;
 // everything else goes to every row.
 #let slip(steps: false, wrap: it => it, ..args) = {
@@ -113,10 +114,10 @@
     message: "@rookery/slipshow: `lines:` was renamed `steps:`",
   )
   assert(
-    type(steps) == bool,
-    message: "@rookery/slipshow: `steps` must be a bool — got " + repr(steps),
+    type(steps) == bool or type(steps) == selector,
+    message: "@rookery/slipshow: `steps` must be a bool or a heading selector — got " + repr(steps),
   )
-  if not steps { return _slip-one(wrap: wrap, ..args) }
+  if steps == false { return _slip-one(wrap: wrap, ..args) }
   let named = args.named()
   assert(
     not named.at("over", default: false) and not named.at("replace", default: false),
@@ -131,7 +132,7 @@
   if type(id) == label { id = str(id) }
   let first = named.pairs().filter(p => p.at(0) != "join").to-dict()
   let rest = first.pairs().filter(p => p.at(0) != "title").to-dict()
-  slip-rows(pos.last()).enumerate().map(((k, row)) => _slip-one(
+  slip-rows(pos.last(), separator: if steps == true { auto } else { steps }).enumerate().map(((k, row)) => _slip-one(
     ..(if id == none { () } else if k == 0 { (id,) } else { (id + "-step-" + str(k + 1),) }),
     ..(if k == 0 { first } else { rest }),
     join: if k == 0 { named.at("join", default: false) } else { true },

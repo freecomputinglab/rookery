@@ -441,6 +441,40 @@
   assert.eq(rows.at(3).number, 3)
 }
 
+// `slip-rows(separator: heading.where(..))` starts a row at each matching
+// heading; content before the first is a row when not blank.
+#context {
+  let h3 = heading.where(level: 3)
+  assert.eq(slip-rows(separator: h3)[
+    === What is code?
+    === What is literature?
+    === From code to literate programming
+  ].len(), 3)
+  assert.eq(slip-rows(separator: h3)[
+    Lead.
+
+    === A
+    one
+
+    two
+    === B
+    == Not a step
+    three
+  ].len(), 3)
+  assert.eq(slip-rows(separator: heading.where(depth: 2))[
+    == x
+    == y
+  ].len(), 2)
+}
+
+// A heading-stepped slip in `slips:` is one entry per step.
+#let stepped = resolve-slips(slips: (slip("s", steps: heading.where(level: 3))[
+  === a
+  === b
+],))
+#assert.eq(stepped.len(), 2)
+#assert.eq(stepped.at(1).tags.at("slip-step"), 2)
+
 #assert.eq(slip-tags(step: 2).at("slip-step"), 2)
 
 // Rows sharing an `order:` keep row order, which the id tie-break would not.

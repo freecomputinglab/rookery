@@ -107,7 +107,7 @@ deck, which never sees the call site itself, only the registry row.
 | `class` | `str` | `none` | appended to the rendered `<section>`'s class list |
 | `row` | `int` | `none` | groups CONSECUTIVE slips sharing the same value into one `div.slip-row[data-row=..]` wrapper — overridden per-deck by `#slipshow`'s own `row:` key function, below, for a row that is computed rather than authored |
 | `max-width` | `length`, `ratio`, or a raw-CSS `str` | `none` | a `max-width` declaration on the slip's own `<section>` — never `width`, so a narrower slip stays narrow rather than being stretched to fill the cap |
-| `steps` | `bool` | `false` | one slip per row of the body, each joined to the one above — see "`steps: true`" below |
+| `steps` | `bool` or selector | `false` | one slip per row of the body, each joined to the one above — see "`steps: true`" below |
 | `wrap` | function | `it => it` | applied to the body, so styling travels inside it — see "`steps: true`" below |
 | `tags` | any of core's four tag forms | `none` | the caller's own tags, merged in LAST — a caller naming one of `#slip`'s own keys wins outright |
 | `exclude-tags` | array of tag names | `()` | forwarded through to the underlying `#idea` — see below |
@@ -207,7 +207,19 @@ Ids are `<id>`, `<id>-step-2`, `<id>-step-3`, and so on, as strings, for a strin
 
 `wrap:` is applied to every slip's body, lines or not. Styling set around a `#slip` call does not reach the copy a queried deck re-renders from the registry, so a show rule the slip needs goes in `wrap:`, as `wrap: it => { set text(red); it }`.
 
-`slip-rows(body)` returns the rows themselves, and `equation-rows(eq)` and `equation-band(eq, k)` are public too, for a caller building its own slips.
+`slip-rows(body, separator: auto)` returns the rows themselves (`separator:` is a heading selector, see "Steps by heading"), and `equation-rows(eq)` and `equation-band(eq, k)` are public too, for a caller building its own slips.
+
+#### Steps by heading
+
+```typst
+#slip(steps: heading.where(level: 3))[
+  === What is code?
+  === What is literature?
+  === From code without comment to literate programming
+]
+```
+
+`steps:` also takes a selector, and the body then splits at headings instead of paragraph breaks. Each matching heading starts a step, and everything up to the next matching heading stays in it. Content before the first match is a step of its own when it is not blank. This mode does not split equations or list items: a lone equation under a heading selector is one step. Only `heading.where(level: N)` and `heading.where(depth: N)` are accepted; anything else panics.
 
 ### Overlays — `over: true`
 
