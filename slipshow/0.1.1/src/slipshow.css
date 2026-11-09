@@ -355,6 +355,25 @@
   margin-bottom: 0;
 }
 
+/* Rows whose content has margins, such as headings, spaced as they would be
+   in one slip: each row keeps its margins inside, so the rule runs unbroken,
+   and a joined row drops its tab and its leading margin, so the gap between
+   two rows is one margin, not two. `:where`, so a reveal's `display: none`
+   still wins. */
+:where(.slip:not(.slip-fullscreen):has([data-rookery="window"][data-rookery-tags~="slip-step"])) {
+  display: flow-root;
+}
+
+.slip.slip-join [data-rookery="window"][data-rookery-tags~="slip-step"] [data-rookery="window-summary"] {
+  display: none;
+}
+
+.slip.slip-join [data-rookery="window"][data-rookery-tags~="slip-step"] [data-rookery="window-body"] > :first-child,
+.slip.slip-join [data-rookery="window"][data-rookery-tags~="slip-step"] [data-rookery="window-body"] > :first-child > :first-child,
+.slip.slip-join [data-rookery="window"][data-rookery-tags~="slip-step"] [data-rookery="window-body"] > :first-child > :first-child > :first-child {
+  margin-top: 0;
+}
+
 /* A REPLACEMENT (`slip(replace: true)`) is in flow rather than pinned, so it
    can be any height. Once revealed it takes the place of everything before
    it in its stack, base group included, and going back past it brings them
