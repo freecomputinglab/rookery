@@ -791,15 +791,17 @@
 // every key through `_lig-get` rather than holding the whole ligaments value,
 // so no call ever takes it as an argument: a call like that hashes every
 // note's raw body to memoise it, on every one of about 1,100 notes.
-#let _LIG-RECS = {
+#let _LIG-BUILT = {
   let hits = _lig-get(_LIG-IDEAS)
   if hits == none {
-    none
+    (recs: none, page-ids: none)
   } else {
     let recs = (:)
+    let page-ids = (:)
     for entry in hits {
       let rec = entry.value
       let id = rec.id
+      page-ids.insert(entry.page, page-ids.at(entry.page, default: ()) + (id,))
       if id not in recs {
         let _ = rec.remove("id", default: none)
         if rec.at("title", default: none) == none {
@@ -809,8 +811,25 @@
         recs.insert(id, rec)
       }
     }
-    recs
+    (recs: recs, page-ids: page-ids)
   }
+}
+#let _LIG-RECS = _LIG-BUILT.recs
+// Page handle -> ids fed under it, from each `ideas` entry's `page`, built in
+// the same pass as `_LIG-RECS`. `none` exactly when `_LIG-RECS` is.
+#let _LIG-PAGE-IDS = _LIG-BUILT.page-ids
+
+// Removes from `merged` every id fed under `handle` that `live` lacks: the
+// page being recompiled re-registers its notes, so a fed id it no longer
+// registers was deleted there and must not be resurrected from the stale
+// feed. Touches `handle`'s own ids only, so the cost is that page's note
+// count, not the corpus. A `none` handle (marrow) filters nothing.
+#let _drop-stale-page-ids(merged, page-ids, handle, live) = {
+  if page-ids == none or type(handle) != str { return merged }
+  for id in page-ids.at(handle, default: ()) {
+    if id not in live { let _ = merged.remove(id, default: none) }
+  }
+  merged
 }
 
 // Drop-in replacement for `_registry-final()` everywhere a reader
@@ -860,9 +879,21 @@
 // `_reg-merge(_ligaments())` without the per-call merge. Spreading `live`
 // first and again last reproduces `_reg-merge` exactly: live ids keep their
 // leading positions and live values, ligament-only ids follow in attach order.
-#let _reg-final() = {
+//
+// The feed holds every page's entries, the recompiled page's own included.
+// Given the calling page's `handle:`, that page's fed ids it no longer
+// registers are dropped (`_drop-stale-page-ids`), so a listing never
+// resurrects a note just deleted from it. Only listings pass one: reading
+// `state("rheo-handle")` here would tie every reference and window to its
+// location and cost them their memoisation. So a reference to a note deleted
+// from its own page still resolves for one rebuild, and a note deleted from
+// page P can still appear on a DIFFERENT page compiled in the same round as P
+// and in marrow-minted views compiled that round. The next compile of those
+// pages corrects it.
+#let _reg-final(handle: none) = {
   let live = _registry-final()
-  if _LIG-RECS == none { live } else { (: ..live, .._LIG-RECS, ..live) }
+  if _LIG-RECS == none { return live }
+  _drop-stale-page-ids((: ..live, .._LIG-RECS, ..live), _LIG-PAGE-IDS, handle, live)
 }
 
 // `_sort-ids(ids, reg, sort)` with `reg` read from `_reg-final()` inside the

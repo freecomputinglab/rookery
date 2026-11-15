@@ -325,7 +325,6 @@
   // compile this is the merge of whatever this pass registered live plus
   // every other note reconstructed from ligaments, so `#ideas()` keeps
   // enumerating the WHOLE corpus regardless of which vertebra is recompiling.
-  let reg = _reg-final()
   // ONE read of the CURRENT page's own handle for the whole walk, not one per
   // row — every row's `href` (below) is relative to the SAME calling page, so
   // there is exactly one value here regardless of how many rows follow.
@@ -336,6 +335,7 @@
   // unstable once a titleless note anywhere in the spine needed `context` to
   // name itself.
   let handle = state("rheo-handle").get()
+  let reg = _reg-final(handle: handle)
   // ONE resolver for the whole walk, not one per row: `_ref-text-live` reads
   // the registry itself rather than closing over `reg`, so every row's title
   // flattens against the same corpus without re-hashing it per call.

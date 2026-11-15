@@ -216,12 +216,17 @@
   // `seen` dedupe below is the same one those loops use, so a live edge is
   // never duplicated by a ligament entry describing the same thing.
   if _lig-get(_LIG-IDEAS, override: ligaments) != none {
+    // The feed carries every page's entries, the ones compiled in this pass
+    // included, and its backlinks count a page by its notes' links where the
+    // live beacons above count its outbound links. A page that compiled
+    // answers live only, as in a full build.
+    let live = query(<rookery-page-links>).map(el => el.value.at("handle", default: none))
     for id in reg.keys() {
       let hits = _lig-get(_LIG-BACKLINKS + id, override: ligaments)
       if hits == none { continue }
       for e in hits {
         let handle = e.at("page", default: none)
-        if type(handle) != str { continue }
+        if type(handle) != str or handle in live { continue }
         let seen = out.at(handle, default: ())
         if id not in seen { seen.push(id) }
         out.insert(handle, seen)

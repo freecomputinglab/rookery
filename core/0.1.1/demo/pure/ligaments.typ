@@ -32,7 +32,7 @@
 // output):
 //   typst compile --features html --format html --root ../.. ligaments.typ build/ligaments.html
 
-#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _registry-final, _ligament-rec, _ligament-body, _rec-raw, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window, idea-body, ideas-outline
+#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _drop-stale-page-ids, _registry-final, _ligament-rec, _ligament-body, _rec-raw, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window, idea-body, ideas-outline
 
 // `raw`/`body` deliberately DIFFER — `#idea`'s own `body: _flatten(raw)`
 // never produces identical content to its input, but a fixture where both
@@ -362,6 +362,25 @@
       ),
       "idea-body:idea:b": ((page: "other-vertebra", value: [B's raw prose.]),),
     ),
+  )
+  // A fed id on the current page that the live registry lacks was deleted
+  // there: the page filter drops it, and only for that page's own handle.
+  let gone-fed = ligaments
+  gone-fed.attaches.ideas.push((page: "cur-page", value: (..ligament-b, id: "gone")))
+  let gone-merged = _reg-merge(gone-fed)
+  let live-now = _registry-final()
+  assert("gone" in gone-merged, message: "fixture: the fed `gone` entry must merge in")
+  assert(
+    "gone" not in _drop-stale-page-ids(gone-merged, (cur-page: ("gone",)), "cur-page", live-now),
+    message: "a fed id absent from the live registry must be dropped for its own page",
+  )
+  assert(
+    "gone" in _drop-stale-page-ids(gone-merged, (cur-page: ("gone",)), "other-page", live-now),
+    message: "another page's handle must not filter it",
+  )
+  assert(
+    "gone" in _drop-stale-page-ids(gone-merged, (cur-page: ("gone",)), none, live-now),
+    message: "no handle (marrow) filters nothing",
   )
   let merged = _reg-merge(ligaments)
   assert(
