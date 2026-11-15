@@ -733,6 +733,9 @@
   if hits == none or hits.len() == 0 { none } else { hits.first().value }
 }
 
+// A merged record carries `raw` when it is live or titleless; otherwise its body comes from its own `idea-body:` attach.
+#let _rec-raw(id, rec) = if "raw" in rec { rec.raw } else { _ligament-body(id) }
+
 // One note's record, reconstructed from one `(page: .., value: ..)` entry of
 // `rheo-ligament-get("ideas")` (or an equivalent `idea:<id>` entry — same
 // value shape). `value` is `_idea-ligaments`'s `lig-rec`: a live record minus
@@ -771,6 +774,12 @@
 // `ideas` aggregate the same way `_reg-merge` walks it, duplicate ids
 // keeping the FIRST occupant — the same `if id not in merged` rule.
 //
+// Only a TITLELESS note's record carries `raw` (its label is derived from
+// its body, so it genuinely depends on it). A titled note's body is fetched
+// per note through `_rec-raw` instead: a prose edit changes only that
+// note's `idea-body:<id>` attach, so `_LIG-RECS` — and every closure that
+// captures it through `_reg-final()` — must not change with it.
+//
 // The loop inlines `_ligament-rec`/`_ligament-body`'s lookups instead of
 // calling them, so neither ever takes the whole ligaments dictionary as an
 // argument: a call like that hashes every note's raw body to memoise it, on
@@ -788,7 +797,9 @@
       if id not in recs {
         let _ = rec.remove("id", default: none)
         let hits = attaches.at(_LIG-IDEA-BODY + id, default: ())
-        rec.raw = if hits.len() == 0 { none } else { hits.first().value }
+        if rec.at("title", default: none) == none {
+          rec.raw = if hits.len() == 0 { none } else { hits.first().value }
+        }
         recs.insert(id, rec)
       }
     }

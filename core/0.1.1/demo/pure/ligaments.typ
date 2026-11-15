@@ -32,7 +32,7 @@
 // output):
 //   typst compile --features html --format html --root ../.. ligaments.typ build/ligaments.html
 
-#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _registry-final, _ligament-rec, _ligament-body, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window, idea-body, ideas-outline
+#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _registry-final, _ligament-rec, _ligament-body, _rec-raw, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window, idea-body, ideas-outline
 
 // `raw`/`body` deliberately DIFFER — `#idea`'s own `body: _flatten(raw)`
 // never produces identical content to its input, but a fixture where both
@@ -393,6 +393,11 @@
     none,
     message: "a key ligaments carry nothing under must answer none, not panic or ()",
   )
+
+  // `_rec-raw` — a record carrying `raw` returns it untouched; one without
+  // falls through to its own `idea-body:` attach (absent in this fixture).
+  assert.eq(_rec-raw("idea:x", (title: [X], raw: [X body.])), [X body.])
+  assert.eq(_rec-raw("idea:nowhere", (title: [N])), none)
 
   // A LIVE record (body/raw both present, from `#idea` above) is completely
   // unaffected by any of this.

@@ -410,7 +410,7 @@
         // `idea-body:<id>` attach IS `raw`, not the flattened form, so
         // walking it here reads identically to a live row's.
         ..if body {
-          (body: _body-plain-with(rec.raw, ref-text))
+          (body: _body-plain-with(_rec-raw(id, rec), ref-text))
         } else { (:) },
         href: _note-href(id, handle: handle),
         page: _note-path(id),

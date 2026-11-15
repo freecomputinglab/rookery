@@ -617,10 +617,11 @@
       // `#let` forward-reference, which a `#let` closure's definition-time
       // scope capture does not allow; see lib.typ's own ordering banner) —
       // the same two-way branch instead, inlined.
+      let raw = _rec-raw(id, rec)
       let inner = if depth == 2 {
-        rec.at("body", default: _flatten(rec.raw))
+        rec.at("body", default: _flatten(raw))
       } else {
-        _flatten(rec.raw, depth: depth - 1)
+        _flatten(raw, depth: depth - 1)
       }
       let split = _truncate-split(inner, v.limit)
       // `.at(..., default: (:))`: a WK marker from an older rookery version
@@ -669,12 +670,12 @@
 // falls back to flattening `raw` fresh when there is no cache to reuse,
 // which is `_flatten(raw, depth: 1)` either way — same answer a live
 // record's cached `body` already holds, just computed here instead of at
-// registration. `id`/`ligaments` are unused now that every `rec` reaching
-// this function (via `_reg-final()`) already carries its own `raw` —
-// kept on the signature for call-site stability (window.typ,
-// `demo/pure/ligaments.typ`).
+// registration. `id` is used again: a titled ligament-sourced `rec` carries
+// no `raw` (see `_LIG-RECS`, state.typ), so `_rec-raw` fetches it per note
+// from `idea-body:<id>`. `ligaments` stays unused, kept on the signature
+// for call-site stability (window.typ, `demo/pure/ligaments.typ`).
 #let _body-at(id, rec, depth: auto, ligaments: auto) = {
   let d = if depth == auto { _window-depth.final() } else { depth }
-  let raw = rec.raw
+  let raw = _rec-raw(id, rec)
   if d <= 1 { rec.at("body", default: _flatten(raw)) } else { _flatten(raw, depth: d) }
 }
