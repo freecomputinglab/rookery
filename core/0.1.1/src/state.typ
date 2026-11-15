@@ -708,10 +708,17 @@
 
 // One key's attaches: `()` when ligaments were supplied but nothing was
 // attached under this key, `none` when ligaments were not supplied at all.
+// A dictionary is the explicit override, or a rheo that still feeds one;
+// anything else is rheo's per-key store, whose `get` returns `none` on a
+// compile with no ligaments.
 #let _lig-get(key, override: auto) = {
   let l = _ligaments(override: override)
   if l == none { return none }
-  l.at("attaches", default: (:)).at(key, default: ())
+  if type(l) == dictionary {
+    l.at("attaches", default: (:)).at(key, default: ())
+  } else {
+    l.get(key)
+  }
 }
 
 // One note's RAW body, reconstructed from its `idea-body:<id>` attach alone
@@ -780,25 +787,24 @@
 // note's `idea-body:<id>` attach, so `_LIG-RECS` — and every closure that
 // captures it through `_reg-final()` — must not change with it.
 //
-// The loop inlines `_ligament-rec`/`_ligament-body`'s lookups instead of
-// calling them, so neither ever takes the whole ligaments dictionary as an
-// argument: a call like that hashes every note's raw body to memoise it, on
-// every one of about 1,100 notes.
+// The loop inlines `_ligament-rec`'s lookups instead of calling it, and reads
+// every key through `_lig-get` rather than holding the whole ligaments value,
+// so no call ever takes it as an argument: a call like that hashes every
+// note's raw body to memoise it, on every one of about 1,100 notes.
 #let _LIG-RECS = {
-  let ligaments = sys.inputs.at("rheo-ligaments", default: none)
-  if ligaments == none {
+  let hits = _lig-get(_LIG-IDEAS)
+  if hits == none {
     none
   } else {
-    let attaches = ligaments.at("attaches", default: (:))
     let recs = (:)
-    for entry in attaches.at(_LIG-IDEAS, default: ()) {
+    for entry in hits {
       let rec = entry.value
       let id = rec.id
       if id not in recs {
         let _ = rec.remove("id", default: none)
-        let hits = attaches.at(_LIG-IDEA-BODY + id, default: ())
         if rec.at("title", default: none) == none {
-          rec.raw = if hits.len() == 0 { none } else { hits.first().value }
+          let body = _lig-get(_LIG-IDEA-BODY + id)
+          rec.raw = if body == none or body.len() == 0 { none } else { body.first().value }
         }
         recs.insert(id, rec)
       }

@@ -215,7 +215,7 @@
   // target list. Entries the live loops already found are left as-is — the
   // `seen` dedupe below is the same one those loops use, so a live edge is
   // never duplicated by a ligament entry describing the same thing.
-  if _ligaments(override: ligaments) != none {
+  if _lig-get(_LIG-IDEAS, override: ligaments) != none {
     for id in reg.keys() {
       let hits = _lig-get(_LIG-BACKLINKS + id, override: ligaments)
       if hits == none { continue }
