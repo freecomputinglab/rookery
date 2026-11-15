@@ -218,23 +218,32 @@
     // closure pair: a closure here would capture the corpus-wide `df` dictionary,
     // and Typst hashes a closure's captures (including a whole-corpus dictionary)
     // on every memoized call. A `for` loop is not memoized and captures nothing.
-    let pairs = ()
+    let stride = order.len() + 1
+    let cands = ()
+    let keys = ()
     for t in order {
       let d = df.at(t)
       if d <= 1 or d * 100 <= n * df-ceiling {
         let w = -1 * int(calc.round(100 * tf.at(t) * calc.log(n / d, base: 2)))
-        pairs.push((w, t))
+        keys.push(w * stride + cands.len())
+        cands.push(t)
       }
     }
 
     // SORTED BY WEIGHT ALONE, tie-broken by FIRST APPEARANCE: `order` is in
-    // first-appearance order and Typst's `.sorted` is stable, so equal weights
-    // keep the order the note wrote them in and the island is byte-stable between
-    // builds. The sort key is the pair's weight alone, not the pair itself — an
-    // array key is not reliably comparable here.
-    let ranked = pairs.sorted(key: p => p.first()).map(p => p.last())
-
-    let top = ranked.slice(0, calc.min(body-terms, ranked.len()))
+    // first-appearance order, so a candidate's position is its first-appearance
+    // rank. Each key is the integer `w * stride + position`; every position is
+    // below `stride`, so a plain native integer sort orders by weight ascending
+    // (most relevant first) and then by position, which is exactly the order a
+    // stable sort on weight alone would give, and the island stays byte-stable
+    // between builds. No `key:` closure is used: each Typst closure call is
+    // memoised, and two per (note, term) pair dominated the corpus pass. Only
+    // the kept keys are mapped back to terms; `rem-euclid` because keys are
+    // negative whenever the weight is.
+    let sorted-keys = keys.sorted()
+    let top = sorted-keys
+      .slice(0, calc.min(body-terms, sorted-keys.len()))
+      .map(k => cands.at(calc.rem-euclid(k, stride)))
     // `array.join()` on an EMPTY array returns `none` in Typst, not `""`, and an
     // empty result is a real case: a genuinely empty note compresses to no terms
     // at all.
