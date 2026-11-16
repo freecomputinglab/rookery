@@ -890,6 +890,7 @@
       page-at.file,
       handle: page-at.handle,
       format: "html",
+      owner: rec.at("origin", default: none),
       // THE BROWSER TAB, so a LABEL rather than the authored title: this is never
       // rendered beside the note's body, which is what makes a derived name safe
       // here and wrong on the `<h1>` above (see `#idea`'s title-vs-label banner).
