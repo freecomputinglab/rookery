@@ -224,6 +224,18 @@
     }
   }
 
+  // LIGAMENTS: a note's minted page is rebuilt with its note's owning
+  // vertebra and transcludes each backlinker's body in its footer, so that
+  // vertebra depends on each backlinker's record and body.
+  for (target, srcs) in backlinks {
+    let origin = merged.at(target).at("origin", default: none)
+    if origin == none { continue }
+    for src in srcs {
+      _bind(_LIG-IDEA + src, page: origin)
+      _bind(_LIG-IDEA-BODY + src, page: origin)
+    }
+  }
+
   // NOTE produced-from: the inverse of every note's recorded `from`, exactly
   // as `backlinks` above inverts `links`. A separate map, not merged into
   // `backlinks` — a `from` antagonism is not an ordinary outbound link, and
