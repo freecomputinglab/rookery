@@ -325,10 +325,13 @@
 // order, its own, and the two forms would otherwise disagree about it on the
 // very target where they list the same set.
 //
-// Each entry links to `el.location()` directly, no href/label
-// reconstruction — this resolves cross-page too under rheo's bundle export
-// (`../<page>.html#loc-N`, the same shape `#link(label(id))` gets), so
-// `rookery-wide` needs no second linking path.
+// Each entry carries `el.location()` as `loc`, which the paged target links
+// to directly. Multi-page HTML links by the note's literal heading id
+// (`<page>.html#idea:<id>`, via `_page-href`) instead: a `Location` link only
+// gets an HTML id (`loc-N`) while the linker is in the same compile as its
+// target, so a narrowed rebuild of the note's page drops or renumbers it. The
+// literal id is present in every build. `loc` remains the fallback when there
+// is no rheo page or no note id, so `rookery-wide` needs no second path.
 #let _ideas-outline-data(rookery-wide: false) = {
   let here = state("rheo-handle").get()
   let c = _rheo-ctx()
@@ -539,6 +542,21 @@
   }
   out
 }
+// Depth-relative href from the CURRENT page to another vertebra's page — the
+// same arithmetic as `_note-href`, against a spine handle rather than a note
+// id. rheo's own `show link:` rule would do this for a `#link(<handle>)`, but
+// that rule lives in the document template and a marrow contribution is
+// spliced in outside it, so the package computes its own.
+#let _page-href(handle, here: auto) = {
+  let c = _rheo-ctx()
+  if c == none { return none }
+  let ext = c.at("ext", default: none)
+  if ext == none { return none }
+  let here = if here != auto { here } else { state("rheo-handle").get() }
+  if type(here) != str { return none }
+  _rel-prefix(here) + handle.replace(":", "/") + "." + ext
+}
+
 #let ideas-outline(
   title: auto,
   depth: none,
@@ -673,7 +691,15 @@
           // out of a card: the class names the tag in the HTML.
           attrs: (class: ((_c("outline-row"),) + visible.map(l => _c("tag-" + l))).join(" "), data-rookery: "outline-row")
             + _tags-attr(visible),
-          link(e.loc, e.title) + if sub == none { [] } else { sub },
+          // Link by the note's literal heading id where the page is known, else
+          // by `Location` (no rheo, or an entry with no note id).
+          {
+            let href = if type(e.handle) == str and e.id != none {
+              let p = _page-href(e.handle)
+              if p == none { none } else { p + "#" + e.id }
+            } else { none }
+            link(if href == none { e.loc } else { href }, e.title)
+          } + if sub == none { [] } else { sub },
         )
       },
     )
@@ -691,21 +717,6 @@
   binds + if title-heading == none { list-content } else { title-heading + list-content }
 }
 
-
-// Depth-relative href from the CURRENT page to another vertebra's page — the
-// same arithmetic as `_note-href`, against a spine handle rather than a note
-// id. rheo's own `show link:` rule would do this for a `#link(<handle>)`, but
-// that rule lives in the document template and a marrow contribution is
-// spliced in outside it, so the package computes its own.
-#let _page-href(handle, here: auto) = {
-  let c = _rheo-ctx()
-  if c == none { return none }
-  let ext = c.at("ext", default: none)
-  if ext == none { return none }
-  let here = if here != auto { here } else { state("rheo-handle").get() }
-  if type(here) != str { return none }
-  _rel-prefix(here) + handle.replace(":", "/") + "." + ext
-}
 
 // Typst's own idiom for an outline over something other than headings is a
 // `target:` argument (`#outline(target: figure.where(kind: image))`), so
