@@ -108,6 +108,8 @@
     body-etal.first().value, etal.raw,
     message: "idea-body: must carry raw, not the flattened body",
   )
+  // `titleless-bodies` carries titleless notes only; both fixtures are titled.
+  assert.eq(by-key(attaches, "titleless-bodies").len(), 0)
 
   // One `tag:<t>` attach per tag a note carries, valued with the note's id.
   assert.eq(by-key(attaches, "tag:post").len(), 1)

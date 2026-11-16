@@ -566,6 +566,10 @@
 #let _LIG-IDEAS = "ideas"
 #let _LIG-PAGE-LINKS = "page-links"
 #let _LIG-OUTLINE = "outline"
+// `titleless-bodies` every TITLELESS note's raw body, `(id, raw)`, under one
+// aggregate key beside its own `idea-body:<id>`: `_lig-built` reads all of
+// them through one token instead of one per note — see its own banner.
+#let _LIG-TITLELESS-BODIES = "titleless-bodies"
 
 // Raw ligament emission. Package code cannot reach rheo's own
 // `rheo-ligament-attach`/`rheo-ligament-bind` (crates/core/src/typ/rheo.typ
@@ -665,6 +669,11 @@
   // as a live record's `raw` already lets them (see `_body-at`,
   // transclusion.typ).
   _attach(_LIG-IDEA-BODY + id, rec.at("raw", default: none), page: origin)
+  // A titleless note's body again, under the one aggregate `_lig-built`
+  // reads (its record carries `raw`; a titled one's does not).
+  if rec.at("title", default: none) == none {
+    _attach(_LIG-TITLELESS-BODIES, (id: id, raw: rec.at("raw", default: none)), page: origin)
+  }
   // One `tag:<t>` attach per tag this note carries.
   for t in rec.at("tags", default: (:)).keys() {
     _attach(_LIG-TAG + t, id, page: origin)
@@ -812,11 +821,25 @@
 // every key through `_lig-get` rather than holding the whole ligaments value,
 // so no call ever takes it as an argument: a call like that hashes every
 // note's raw body to memoise it, on every one of about 1,100 notes.
+//
+// Two keys read, never one per note: titleless bodies come from the
+// `titleless-bodies` aggregate, not each note's `idea-body:<id>`. Every key
+// `get` reads is a constraint comemo replays on each memo hit of every call
+// that reached this one (`_reg-final()`, `_ref-text-live`, an `ideas()`
+// row), so one token per titleless note (327 on waterline) would be
+// re-read thousands of times per narrowed compile — about a third of it.
+// Invalidation is the same either way: any titleless body changing re-runs
+// this whole function.
 #let _lig-built() = {
   let hits = _lig-get(_LIG-IDEAS)
   if hits == none {
     (recs: none, page-ids: none)
   } else {
+    let bodies = (:)
+    for entry in _lig-get(_LIG-TITLELESS-BODIES) {
+      let v = entry.value
+      if v.id not in bodies { bodies.insert(v.id, v.raw) }
+    }
     let recs = (:)
     let page-ids = (:)
     for entry in hits {
@@ -826,8 +849,7 @@
       if id not in recs {
         let _ = rec.remove("id", default: none)
         if rec.at("title", default: none) == none {
-          let body = _lig-get(_LIG-IDEA-BODY + id)
-          rec.raw = if body == none or body.len() == 0 { none } else { body.first().value }
+          rec.raw = bodies.at(id, default: none)
         }
         recs.insert(id, rec)
       }
