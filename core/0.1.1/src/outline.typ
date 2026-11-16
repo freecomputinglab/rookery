@@ -252,6 +252,114 @@
   out
 }
 
+// The live idea figures of THIS compile in document order, outside any
+// `#window` (an echo of a note stored elsewhere, not this page's own
+// structure): `(el, depth, handle, v)` per figure, `depth` its idea nesting
+// (0-indexed), `handle` the page it sits on, `v` its payload. Figures with no
+// payload are skipped. Shared by `_ideas-outline-data` and
+// `_outline-live-by-page`, so the `outline` attach carries exactly the
+// entries a live outline lists.
+#let _outline-walk() = {
+  let idea-depth = 0
+  let window-depth = 0
+  let out = ()
+  for el in query(selector(<rookery-edge>).or(selector(figure.where(kind: IK)))) {
+    let f = el.func()
+    if f == metadata {
+      let v = el.value
+      if type(v) != dictionary { continue }
+      let edge = v.at("rookery-edge", default: none)
+      let container = v.at("rookery-container", default: none)
+      if edge == "open" and container == IK { idea-depth += 1 }
+      if edge == "close" and container == IK { idea-depth -= 1 }
+      if edge == "open" and container == WK { window-depth += 1 }
+      if edge == "close" and container == WK { window-depth -= 1 }
+      continue
+    }
+    if window-depth > 0 { continue }
+    let m = el.body.children.find(x => x.func() == metadata)
+    if m == none { continue }
+    out.push((el: el, depth: idea-depth, handle: state("rheo-handle").at(el.location()), v: m.value))
+  }
+  out
+}
+
+// `handle -> array of (id, depth)`, one run per VERTEBRA that compiled this
+// pass, in document order — the `outline` ligament's value (`.marrow.typ`
+// attaches one per compiled vertebra). Ids and depths only: an entry's name
+// and tags are read back from the merged registry on the reading side
+// (`_outline-fed-entries`), which already carries every note's record, and
+// a ligament attached at bundle root must hold no content anyway.
+#let _outline-live-by-page() = {
+  let spine = _rheo-spine-flat().map(v => v.at("handle", default: none))
+  let out = (:)
+  for w in _outline-walk() {
+    let h = w.handle
+    if type(h) != str or h not in spine { continue }
+    let id = w.v.at("id", default: none)
+    if id == none { continue }
+    out.insert(h, out.at(h, default: ()) + ((id: id, depth: w.depth),))
+  }
+  out
+}
+
+// One fed vertebra's `(id, depth)` run as outline entries. Named the way a
+// live entry is — from the record's `title`/`label` only, never its `raw`,
+// because the live payload carries no `raw` and the two must agree. A note
+// missing from `reg`, or with no name, is skipped, as a live one is. `loc`
+// is `none`: a fed entry is only built on multi-page output, where the row
+// links by `_page-href(handle) + "#" + id` instead.
+#let _outline-fed-entries(vals, handle, reg, ref-text) = {
+  let out = ()
+  for x in vals {
+    let id = x.at("id", default: none)
+    let rec = if id == none { none } else { reg.at(id, default: none) }
+    if rec == none { continue }
+    let name = _rec-label((title: rec.at("title", default: none), label: rec.at("label", default: none)), ref-text)
+    if name == none { continue }
+    out.push((
+      depth: x.at("depth", default: 0),
+      title: name,
+      loc: none,
+      handle: handle,
+      tags: rec.at("tags", default: (:)),
+      id: id,
+    ))
+  }
+  out
+}
+
+// SPINE ORDER, plus the ligament fallback. `live` (entries this compile
+// built) is bucketed by `order`'s rank; with `fed` not `none` (the `outline`
+// ligament: `(page, value)` per attach), every handle in `order` absent
+// from `live-handles` fills its bucket from its own fed run instead. A
+// compiled page answers live only, as in a full build — the same rule
+// `_page-links` applies to `page-links`. Pure (no query, no state) so
+// `demo/pure/outline-merge.typ` can test it with hand-built values.
+#let _outline-merge(order, live, live-handles, fed, reg, ref-text) = {
+  let rank = (:)
+  for (i, h) in order.enumerate() {
+    if type(h) == str { rank.insert(h, i) }
+  }
+  let buckets = range(order.len() + 1).map(x => ())
+  for e in live {
+    let b = if type(e.handle) == str { rank.at(e.handle, default: order.len()) } else { order.len() }
+    buckets.at(b) = buckets.at(b) + (e,)
+  }
+  if fed != none {
+    let by-page = (:)
+    for e in fed {
+      let h = e.at("page", default: none)
+      if type(h) == str { by-page.insert(h, e.at("value", default: ())) }
+    }
+    for (i, h) in order.enumerate() {
+      if type(h) != str or h in live-handles or h not in by-page { continue }
+      buckets.at(i) = buckets.at(i) + _outline-fed-entries(by-page.at(h), h, reg, ref-text)
+    }
+  }
+  buckets.flatten()
+}
+
 // Typst's own `#outline()` can't see ideas: it lists `heading` elements, and
 // an idea only ever becomes one on the PAGED target (`heading(depth: level,
 // ...)`, inside `#idea`'s `else` branch) — never on html/epub, where the
@@ -357,8 +465,6 @@
   //     document; its outline should follow that document, and reordering it
   //     against the page sequence the reader is holding would be a lie.
   let multi-page = c != none and c.at("ext", default: none) != none
-  let idea-depth = 0
-  let window-depth = 0
   // ONE resolver for the whole walk, resolved before the loop rather than per
   // entry: it is what lets a reference inside a note's title read as the name of
   // the note it points at (see `_rec-label` below), and a per-entry
@@ -368,31 +474,20 @@
   // did not run this pass.
   let ref-text = _ref-text-live
   let out = ()
-  for el in query(selector(<rookery-edge>).or(selector(figure.where(kind: IK)))) {
-    let f = el.func()
-    if f == metadata {
-      let v = el.value
-      if type(v) != dictionary { continue }
-      let edge = v.at("rookery-edge", default: none)
-      let container = v.at("rookery-container", default: none)
-      if edge == "open" and container == IK { idea-depth += 1 }
-      if edge == "close" and container == IK { idea-depth -= 1 }
-      if edge == "open" and container == WK { window-depth += 1 }
-      if edge == "close" and container == WK { window-depth -= 1 }
-      continue
-    }
-    // Inside a `#window`, at any cascade depth: an echo of a note stored
-    // (and possibly authored) elsewhere, not this page's own structure.
-    if window-depth > 0 { continue }
-    let handle = state("rheo-handle").at(el.location())
+  // Every handle the live walk saw, named or not — a page that compiled this
+  // pass answers live in `_outline-merge`, never from its feed.
+  let walked = ()
+  for w in _outline-walk() {
+    let el = w.el
+    let idea-depth = w.depth
+    if w.handle not in walked { walked.push(w.handle) }
+    let handle = w.handle
     if rookery-wide {
       if multi-page and type(handle) == str and handle not in spine { continue }
     } else if handle != here {
       continue
     }
-    let m = el.body.children.find(x => x.func() == metadata)
-    if m == none { continue }
-    let v = m.value
+    let v = w.v
     // AN OUTLINE ENTRY NAMES A NOTE, so it takes the note's NAME rather than
     // its authored title — the title where there is one, the note's opening
     // words where there is not (see `#idea`'s title-vs-label banner). The
@@ -466,16 +561,16 @@
   let order = if "index" in spine { ("index",) + spine.filter(h => h != "index") } else { spine }
 
   if rookery-wide and multi-page and order.len() > 0 {
-    let rank = (:)
-    for (i, h) in order.enumerate() {
-      if type(h) == str { rank.insert(h, i) }
+    // LIGAMENTS: on a narrowed compile `out` holds only the vertebrae that
+    // ran this pass; every other vertebra's entries come from its own
+    // `outline` attach (`.marrow.typ`). `none` — no ligaments, a full build —
+    // keeps the merge to the live bucketing alone.
+    let fed = _lig-get(_LIG-OUTLINE)
+    let live-handles = if fed == none { () } else {
+      walked + query(<rookery-page-links>).map(el => el.value.at("handle", default: none))
     }
-    let buckets = range(order.len() + 1).map(x => ())
-    for e in out {
-      let b = if type(e.handle) == str { rank.at(e.handle, default: order.len()) } else { order.len() }
-      buckets.at(b) = buckets.at(b) + (e,)
-    }
-    out = buckets.flatten()
+    let reg = if fed == none { (:) } else { _reg-final() }
+    out = _outline-merge(order, out, live-handles, fed, reg, ref-text)
   }
   out
 }
@@ -602,7 +697,7 @@
   // change. Scoped to `"rookery"` only: a page-scoped outline lists only
   // notes written on its own page, which already recompile with it.
   let binds = if scope == "rookery" {
-    _ideas-binds(tagged: tagged, filter: filter, ids: entries.map(e => e.id).filter(id => id != none), body: false)
+    _ideas-binds(tagged: tagged, filter: filter, ids: entries.map(e => e.id).filter(id => id != none), body: false) + _outline-bind()
   } else { [] }
 
   // On HTML an explicit `h4` carrying a class, the same shape (and the same

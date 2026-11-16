@@ -554,12 +554,18 @@
 // exists anywhere in the corpus, since ligaments have no prefix/wildcard
 // lookup.
 // `page-links` one vertebra's own page-level link targets, attached on that vertebra.
+// `outline` one vertebra's own outline run — `(id, depth)` per idea, in
+// document order — attached on that vertebra (`.marrow.typ`), so a narrowed
+// `#ideas-outline` lists the vertebrae that did not compile. ONE aggregate
+// key, like `page-links`, not `outline:<handle>`: every reader wants every
+// page's run, so a per-page key would only be bound back by prefix.
 #let _LIG-IDEA = "idea:"
 #let _LIG-IDEA-BODY = "idea-body:"
 #let _LIG-TAG = "tag:"
 #let _LIG-BACKLINKS = "backlinks:"
 #let _LIG-IDEAS = "ideas"
 #let _LIG-PAGE-LINKS = "page-links"
+#let _LIG-OUTLINE = "outline"
 
 // Raw ligament emission. Package code cannot reach rheo's own
 // `rheo-ligament-attach`/`rheo-ligament-bind` (crates/core/src/typ/rheo.typ
@@ -607,6 +613,15 @@
     out += _join-content(ids.map(id => _bind(_LIG-IDEA-BODY + id, page: p)))
   }
   out
+}
+
+// The bind a rookery-wide `#ideas-outline` places on its page: the `outline`
+// aggregate, so any vertebra gaining, losing, reordering or re-nesting an
+// idea recompiles it. Off a vertebra, nothing (as `_ideas-binds`).
+#let _outline-bind(page: auto) = {
+  let p = if page != auto { page } else { state("rheo-handle").get() }
+  if type(p) != str or not _is-vertebra(p) { return [] }
+  _bind(_LIG-OUTLINE, page: p)
 }
 
 // One record's whole ligament emission — every `idea:`/`idea-body:`/`tag:`/

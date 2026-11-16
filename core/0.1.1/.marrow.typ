@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.1": _registry-final, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-parents, _display-children, _display-title, _show-parent-tag, _show-child-tag, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _ref-text-live, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _LIG-PAGE-LINKS, _attach, _page-links-live, _norm-tags, _excluded-ids, _fn-block
+#import "@rookery/core:0.1.1": _registry-final, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-parents, _display-children, _display-title, _show-parent-tag, _show-child-tag, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _ref-text-live, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _LIG-PAGE-LINKS, _LIG-OUTLINE, _outline-live-by-page, _attach, _page-links-live, _norm-tags, _excluded-ids, _fn-block
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
@@ -280,6 +280,17 @@
     let h = v.at("handle", default: none)
     if type(h) != str { continue }
     _attach(_LIG-PAGE-LINKS, live-links.at(h, default: ()), page: h)
+  }
+  // LIGAMENTS: likewise this pass's own outline run per compiled vertebra
+  // (`outline`), read back by `_ideas-outline-data` for the vertebrae a
+  // narrowed compile did not run. Attached even when empty, so a page that
+  // lost its last idea overwrites its old run. Every vertebra that ran:
+  // those with a beacon, plus any holding ideas without one.
+  let live-outline = _outline-live-by-page()
+  let outline-pages = query(<rookery-page-links>).map(el => el.value.at("handle", default: none)).filter(h => type(h) == str)
+  for h in live-outline.keys() { if h not in outline-pages { outline-pages.push(h) } }
+  for h in outline-pages {
+    _attach(_LIG-OUTLINE, live-outline.at(h, default: ()), page: h)
   }
   let page-backlinks = (:)
   for (handle, targets) in _page-links() {

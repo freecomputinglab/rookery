@@ -61,6 +61,7 @@ build:
     typst compile --features html --format html --root ../.. idea-key.typ build/idea-key.html
     typst compile --features html --format html --root ../.. idea-key-prefix.typ build/idea-key-prefix.html
     typst compile --features html --format html --root ../.. ligaments.typ build/ligaments.html
+    typst compile --features html --format html --root ../.. outline-merge.typ build/outline-merge.html
     @just check
 
 # Greps on what `build` produced. The assertions live here rather than as
