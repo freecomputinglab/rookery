@@ -345,7 +345,7 @@
   // Doubles as the vertebra test below, replacing a call to `_is-vertebra`
   // (which walks `spine-flat` afresh per entry). Same predicate, one pass.
   let spine = if c == none { () } else {
-    c.at("spine-flat", default: ()).map(v => v.at("handle", default: none))
+    _rheo-spine-flat().map(v => v.at("handle", default: none))
   }
   // Is the output MULTI-PAGE? `ext` is present for html/epub and absent for
   // the combined PDF (and there is no context at all under plain `typst

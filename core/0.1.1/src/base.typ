@@ -7,6 +7,17 @@
 // over a bare `target()` (rheo-injected, vertebra scope only); REQUIRES `--features html`.
 #let _rheo-ctx() = sys.inputs.at("rheo-context", default: none)
 
+// The spine, as a list of vertebra dictionaries. Read from rheo's spine store
+// (`sys.inputs.rheo-spine`) when it exists, else from `rheo-context`, so the
+// reader works on a rheo that keeps the spine in either place.
+#let _rheo-spine-flat() = {
+  let s = sys.inputs.at("rheo-spine", default: none)
+  if s != none { s.get("spine-flat") } else {
+    let c = _rheo-ctx()
+    if c == none { () } else { c.at("spine-flat", default: ()) }
+  }
+}
+
 #let _target() = {
   let c = _rheo-ctx()
   if c != none and "target" in c { c.target } else { std.target() }
@@ -54,7 +65,7 @@
 #let _handle-title(handle, mode: "title") = {
   let c = _rheo-ctx()
   if c == none { return handle }
-  for v in c.at("spine-flat", default: ()) {
+  for v in _rheo-spine-flat() {
     if v.at("handle", default: none) == handle {
       let title = v.at("title", default: handle)
       if mode != "path" { return title }
@@ -74,7 +85,7 @@
 #let _is-vertebra(handle) = {
   let c = _rheo-ctx()
   if c == none { return false }
-  c.at("spine-flat", default: ()).any(v => v.at("handle", default: none) == handle)
+  _rheo-spine-flat().any(v => v.at("handle", default: none) == handle)
 }
 
 // A note carrying an excluded tag is ABSENT, not hidden: `#idea` never

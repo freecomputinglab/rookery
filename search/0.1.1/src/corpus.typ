@@ -78,7 +78,7 @@
   // Every vertebra can carry a bar, and every minted note page carries whatever
   // the template puts on it, so the page count is both. An overestimate is
   // impossible to avoid here and harmless: this is an order-of-magnitude test.
-  let pages = c.at("spine-flat", default: ()).len() + note-count
+  let pages = _rheo-spine-flat().len() + note-count
   let total = island-bytes * pages
   if total <= _ISLAND-BUDGET { return }
   html.elem(

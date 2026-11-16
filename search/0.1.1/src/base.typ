@@ -5,7 +5,7 @@
 // keeps the module graph a DAG.
 
 // `_rheo-ctx`/`_target` are a copy of rookery's own pair, not an import of it:
-// they are six lines of `sys.inputs` read, and `sys.inputs` is readable from any
+// they are a few lines of `sys.inputs` read, and `sys.inputs` is readable from any
 // package's scope, so the copy behaves identically without rookery widening its
 // public surface. Keep the two in step.
 //
@@ -15,6 +15,17 @@
 // into package scope — and that read requires `--features html`, which every
 // build of a project using this package therefore needs.
 #let _rheo-ctx() = sys.inputs.at("rheo-context", default: none)
+
+// The spine, as a list of vertebra dictionaries. Read from rheo's spine store
+// (`sys.inputs.rheo-spine`) when it exists, else from `rheo-context`, so the
+// reader works on a rheo that keeps the spine in either place.
+#let _rheo-spine-flat() = {
+  let s = sys.inputs.at("rheo-spine", default: none)
+  if s != none { s.get("spine-flat") } else {
+    let c = _rheo-ctx()
+    if c == none { () } else { c.at("spine-flat", default: ()) }
+  }
+}
 
 #let _target() = {
   let c = _rheo-ctx()
