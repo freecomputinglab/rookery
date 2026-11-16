@@ -834,6 +834,67 @@
   merged
 }
 
+// The merged id order a full compile's live registry would have: spine
+// order. `live-origins` is `((id, origin), …)` in live order, `fed-ids` every
+// fed id in feed order, `page-ids` page -> fed ids in feed order, `spine` the
+// spine's handles in order. Walking the spine, a handle with live records
+// contributes those (in live order); any other handle contributes its fed ids
+// that are neither live nor already placed. Then every remaining live id, then
+// every remaining fed id (notes with no spine origin, e.g. marrow's). Ids only,
+// no records, so a caller memoising it hashes strings, not note bodies.
+#let _spine-order(live-origins, fed-ids, page-ids, spine) = {
+  let by-origin = (:)
+  let is-live = (:)
+  for (id, origin) in live-origins {
+    is-live.insert(id, true)
+    if type(origin) == str {
+      by-origin.insert(origin, by-origin.at(origin, default: ()) + (id,))
+    }
+  }
+  let out = ()
+  let seen = (:)
+  for h in spine {
+    if type(h) != str { continue }
+    let ls = by-origin.at(h, default: none)
+    if ls != none {
+      for id in ls {
+        if id not in seen { seen.insert(id, true); out.push(id) }
+      }
+    } else {
+      for id in page-ids.at(h, default: ()) {
+        if id not in seen and id not in is-live { seen.insert(id, true); out.push(id) }
+      }
+    }
+  }
+  for (id, _) in live-origins {
+    if id not in seen { seen.insert(id, true); out.push(id) }
+  }
+  for id in fed-ids {
+    if id not in seen { seen.insert(id, true); out.push(id) }
+  }
+  out
+}
+
+// The live registry merged with the feed, in `_spine-order`. Zero-argument so
+// Typst memoises it per compile: every `_reg-final(handle: …)` call shares one
+// ordering pass instead of regrouping per reference or window. Only called
+// once `_lig-built().recs` is known non-`none`.
+#let _reg-ordered() = {
+  let live = _registry-final()
+  let built = _lig-built()
+  let order = _spine-order(
+    live.pairs().map(((id, rec)) => (id, rec.at("origin", default: none))),
+    built.recs.keys(),
+    built.page-ids,
+    _rheo-spine-flat().map(v => v.at("handle", default: none)),
+  )
+  let out = (:)
+  for id in order {
+    out.insert(id, if id in live { live.at(id) } else { built.recs.at(id) })
+  }
+  out
+}
+
 // Drop-in replacement for `_registry-final()` everywhere a reader
 // wants every note THIS COMPILE knows about, whether or not its vertebra
 // actually ran this pass. This is a MERGE, never an all-or-nothing swap:
@@ -896,7 +957,7 @@
   let live = _registry-final()
   let built = _lig-built()
   if built.recs == none { return live }
-  _drop-stale-page-ids((: ..live, ..built.recs, ..live), built.page-ids, handle, live)
+  _drop-stale-page-ids(_reg-ordered(), built.page-ids, handle, live)
 }
 
 // `_sort-ids(ids, reg, sort)` with `reg` read from `_reg-final()` inside the

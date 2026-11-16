@@ -32,7 +32,7 @@
 // output):
 //   typst compile --features html --format html --root ../.. ligaments.typ build/ligaments.html
 
-#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _drop-stale-page-ids, _registry-final, _ligament-rec, _ligament-body, _rec-raw, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window, idea-body, ideas-outline
+#import "../../src/lib.typ": _idea-ligaments, _reg-final, _reg-merge, _drop-stale-page-ids, _spine-order, _registry-final, _ligament-rec, _ligament-body, _rec-raw, _body-at, _page-links, _label-exists, _window-content, idea, ideas-view, window, idea-body, ideas-outline
 
 // `raw`/`body` deliberately DIFFER — `#idea`'s own `body: _flatten(raw)`
 // never produces identical content to its input, but a fixture where both
@@ -381,6 +381,20 @@
   assert(
     "gone" in _drop-stale-page-ids(gone-merged, (cur-page: ("gone",)), none, live-now),
     message: "no handle (marrow) filters nothing",
+  )
+  // Spine order, not feed order: the feed lists page `z` before page `m`
+  // (rheo sorts its pages by handle), the spine puts `m` first. The live note
+  // on `r` keeps its spine slot; the originless live note and a fed id under
+  // no spine handle trail, live before fed.
+  assert.eq(
+    _spine-order(
+      (("r1", "r"), ("marrow-note", none)),
+      ("z1", "z2", "m1", "stray"),
+      (z: ("z1", "z2"), m: ("m1",), elsewhere: ("stray",)),
+      ("m", "r", "z"),
+    ),
+    ("m1", "r1", "z1", "z2", "marrow-note", "stray"),
+    message: "merged ids must follow the spine, not the feed's page order",
   )
   let merged = _reg-merge(ligaments)
   assert(
