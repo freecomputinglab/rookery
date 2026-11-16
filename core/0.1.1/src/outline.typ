@@ -125,7 +125,7 @@
 // `demo/pure/ligaments.typ`'s read-side tests alone, same reason `_lig-get`
 // and friends take one (`_reg-final` itself stays zero-argument — see its
 // own comment — so this goes through `_reg-merge` directly instead).
-#let _page-links(ligaments: auto) = {
+#let _page-links-live(ligaments: auto) = {
   let out = (:)
   // Resolved once for the whole pass, not per marker: the tag-selection walk
   // below reads it for every window carrying a `tagged:` selector, and
@@ -203,34 +203,29 @@
     out.insert(handle, seen)
   }
 
-  // LIGAMENTS: both loops above are `query()`-only, so on a narrowed compile
-  // they see ONLY the vertebra (or vertebrae) that actually ran this pass —
-  // a page-level link from any other vertebra is invisible to them, and
-  // `.marrow.typ`'s PAGE BACKLINKS section (built off this function's
-  // return) would silently go stale for it. `backlinks:<x>` (the reverse-edge
-  // vocabulary `_idea-ligaments`, state.typ, attaches on the LINKING note's
-  // own owning page) reconstructs those missing edges instead: for every id this
-  // compile knows about (`reg`, already `_reg-final()`-merged above), fold
-  // in every `(page, _)` ligament hit as one more entry in that page's
-  // target list. Entries the live loops already found are left as-is — the
-  // `seen` dedupe below is the same one those loops use, so a live edge is
-  // never duplicated by a ligament entry describing the same thing.
-  if _lig-get(_LIG-IDEAS, override: ligaments) != none {
+  out
+}
+
+// `_page-links-live()` plus the `page-links` ligament feed. Both live loops
+// are `query()`-only, so on a narrowed compile they see ONLY the vertebra (or
+// vertebrae) that actually ran this pass; every other vertebra's page-level
+// links come from its own `page-links` attach (`.marrow.typ` attaches
+// `_page-links-live()`'s answer per compiled vertebra). That is the same
+// page-level data the live loops compute, so a narrowed build lists the same
+// page backlinks as a full one. NOT `backlinks:<x>`: those are note-level
+// edges (attached by the linking note's owning page), and counting them here
+// would list a page whose only links sit inside its notes.
+#let _page-links(ligaments: auto) = {
+  let out = _page-links-live(ligaments: ligaments)
+  let fed = _lig-get(_LIG-PAGE-LINKS, override: ligaments)
+  if fed != none {
     // The feed carries every page's entries, the ones compiled in this pass
-    // included, and its backlinks count a page by its notes' links where the
-    // live beacons above count its outbound links. A page that compiled
-    // answers live only, as in a full build.
+    // included. A page that compiled answers live only, as in a full build.
     let live = query(<rookery-page-links>).map(el => el.value.at("handle", default: none))
-    for id in reg.keys() {
-      let hits = _lig-get(_LIG-BACKLINKS + id, override: ligaments)
-      if hits == none { continue }
-      for e in hits {
-        let handle = e.at("page", default: none)
-        if type(handle) != str or handle in live { continue }
-        let seen = out.at(handle, default: ())
-        if id not in seen { seen.push(id) }
-        out.insert(handle, seen)
-      }
+    for e in fed {
+      let handle = e.at("page", default: none)
+      if type(handle) != str or handle in live { continue }
+      out.insert(handle, e.value)
     }
   }
   out

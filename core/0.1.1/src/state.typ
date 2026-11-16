@@ -553,11 +553,13 @@
 // — its only purpose is letting a reader enumerate every note id that
 // exists anywhere in the corpus, since ligaments have no prefix/wildcard
 // lookup.
+// `page-links` one vertebra's own page-level link targets, attached on that vertebra.
 #let _LIG-IDEA = "idea:"
 #let _LIG-IDEA-BODY = "idea-body:"
 #let _LIG-TAG = "tag:"
 #let _LIG-BACKLINKS = "backlinks:"
 #let _LIG-IDEAS = "ideas"
+#let _LIG-PAGE-LINKS = "page-links"
 
 // Raw ligament emission. Package code cannot reach rheo's own
 // `rheo-ligament-attach`/`rheo-ligament-bind` (crates/core/src/typ/rheo.typ

@@ -89,7 +89,7 @@
 // any package) sourcing `ideas(tags:, match:)` straight into feeds's
 // `items()` is the primary one; this exists for what that route cannot
 // reach, e.g. a hand-authored page syndicating itself.
-#import "@rookery/core:0.1.1": _registry-final, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-parents, _display-children, _display-title, _show-parent-tag, _show-child-tag, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _ref-text-live, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _norm-tags, _excluded-ids, _fn-block
+#import "@rookery/core:0.1.1": _registry-final, _reg-final, _note-page, _pfx, _dir, _c, _index-page, ideas, _head, _permalink, _permalink-tab, _themed, _tags-color-rules, _handle-title, _page-links, _page-tag-selectors, _page-href, _body-at, _footnoted, _refs-block, _own-cited-keys, _window-depth, _idea-page-template, _syndicate, _display-context, _display-backlinks, _display-parents, _display-children, _display-title, _show-parent-tag, _show-child-tag, _display-final, _page-titles, _plain, _visible-tags, _tags-attr, window, hyperlink, _ref-text, _ref-text-live, _rec-label, _assert-unique-names, _dup-warning-content, _tag-pred, _footnote-mode, _citation-mode, _margin-cite, _bind, _idea-ligaments, _LIG-IDEA, _LIG-IDEA-BODY, _LIG-TAG, _LIG-IDEAS, _LIG-PAGE-LINKS, _attach, _page-links-live, _norm-tags, _excluded-ids, _fn-block
 
 #context {
   // Two notes sharing a name, checked once here at bundle root rather than
@@ -255,6 +255,20 @@
   // times it links to it, and a page whose only links are inside its notes
   // does not appear at all — those links already belong to the notes, and
   // listing both would be counting the same link twice.
+  //
+  // LIGAMENTS: attach this pass's own page-level links per compiled vertebra
+  // (`page-links`), so a narrowed compile that does not run this vertebra
+  // reads them back through `_page-links()`'s fallback instead of guessing
+  // from its notes' links. Attached even when empty, so a page that dropped
+  // its last link overwrites its old entry.
+  let live-links = _page-links-live()
+  for el in query(<rookery-page-links>) {
+    let v = el.value
+    if type(v) != dictionary { continue }
+    let h = v.at("handle", default: none)
+    if type(h) != str { continue }
+    _attach(_LIG-PAGE-LINKS, live-links.at(h, default: ()), page: h)
+  }
   let page-backlinks = (:)
   for (handle, targets) in _page-links() {
     for target in targets {

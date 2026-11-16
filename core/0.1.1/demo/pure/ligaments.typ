@@ -450,25 +450,27 @@
 
   // `_page-links()`: on a narrowed compile the live beacon/mark
   // queries see only THIS pass's own vertebra, so a page-level outbound edge
-  // from any other vertebra has to come from `backlinks:<x>` ligament
-  // attaches instead. No live window/beacon exists in this plain-compile
-  // fixture at all, so every edge below is necessarily ligament-sourced —
-  // proving the branch runs, not that it coexists with a live edge (that
-  // coexistence is exercised end-to-end only by a real rheo watch session,
-  // same caveat this file's WRITE-side tests already carry for
-  // `.marrow.typ`'s own page-links bind loop).
+  // from any other vertebra has to come from that vertebra's own
+  // `page-links` attach instead. No live window/beacon exists in this
+  // plain-compile fixture at all, so every edge below is necessarily
+  // ligament-sourced — proving the branch runs, not that it coexists with a
+  // live edge (that coexistence is exercised end-to-end only by a real rheo
+  // watch session, same caveat this file's WRITE-side tests already carry
+  // for `.marrow.typ`'s own page-links attach/bind loop). A
+  // `backlinks:<x>` hit is a NOTE-level edge and must no longer count as a
+  // page link: `linking-vertebra-2` links `idea:a` only from inside a note.
   let backlink-ligaments = (
     attaches: (
       ideas: ((page: "other-vertebra", value: stale-a),),
+      "page-links": ((page: "linking-vertebra-1", value: ("idea:a",)),),
       "backlinks:idea:a": (
-        (page: "linking-vertebra-1", value: "idea:elsewhere"),
         (page: "linking-vertebra-2", value: "idea:elsewhere-too"),
       ),
     ),
   )
   let links = _page-links(ligaments: backlink-ligaments)
   assert("idea:a" in links.at("linking-vertebra-1", default: ()))
-  assert("idea:a" in links.at("linking-vertebra-2", default: ()))
+  assert("linking-vertebra-2" not in links)
 
   // `_label-exists` — the safe existence test hyperlink.typ's href
   // resolution is built on: `query(label(..))` for a label genuinely present
