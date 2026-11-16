@@ -762,7 +762,7 @@
 // full (every note's raw body included) to memoise the call — fine for
 // `_reg-merge`'s explicit-override path below, which runs at most once per
 // compile, but ruinous called once per note from a hot path with the real
-// `sys.inputs.rheo-ligaments`: `_LIG-RECS` inlines this same lookup instead.
+// `sys.inputs.rheo-ligaments`: `_lig-built` inlines this same lookup instead.
 #let _ligament-rec(entry, ligaments) = {
   let rec = entry.value
   let id = rec.id
@@ -771,11 +771,15 @@
   rec
 }
 
-// Every note this compile's ligaments can reconstruct, built ONCE: a
-// top-level `#let` evaluates once per compile, where `_reg-final()` below
-// runs from about thirty call sites across every page, each passing the
-// whole `rheo-ligaments` dictionary as an argument Typst would otherwise
-// hash to memoise the call. `none` when `sys.inputs` carries no
+// Every note this compile's ligaments can reconstruct. A zero-argument
+// function, not a top-level `#let`, so that a closure stored in a fed note
+// body, created in an earlier compile, still reads THIS compile's feed: a
+// module-level value is captured into such a closure as it stood in the
+// compile that made it, whereas this call resolves `_lig-get` (hence
+// `sys.inputs`) at call time. Typst memoises the call, so it still builds
+// once per compile for the about thirty `_reg-final()` call sites across
+// every page — none of which passes the whole `rheo-ligaments` dictionary
+// as an argument Typst would otherwise hash to memoise the call. `none` when `sys.inputs` carries no
 // `rheo-ligaments` at all, matching `_reg-merge`'s own "no ligaments"
 // branch below; otherwise a dictionary `id -> record`, built from the
 // `ideas` aggregate the same way `_reg-merge` walks it, duplicate ids
@@ -784,14 +788,14 @@
 // Only a TITLELESS note's record carries `raw` (its label is derived from
 // its body, so it genuinely depends on it). A titled note's body is fetched
 // per note through `_rec-raw` instead: a prose edit changes only that
-// note's `idea-body:<id>` attach, so `_LIG-RECS` — and every closure that
-// captures it through `_reg-final()` — must not change with it.
+// note's `idea-body:<id>` attach, so `_lig-built().recs` — and every
+// `_reg-final()` result built from it — must not change with it.
 //
 // The loop inlines `_ligament-rec`'s lookups instead of calling it, and reads
 // every key through `_lig-get` rather than holding the whole ligaments value,
 // so no call ever takes it as an argument: a call like that hashes every
 // note's raw body to memoise it, on every one of about 1,100 notes.
-#let _LIG-BUILT = {
+#let _lig-built() = {
   let hits = _lig-get(_LIG-IDEAS)
   if hits == none {
     (recs: none, page-ids: none)
@@ -814,10 +818,8 @@
     (recs: recs, page-ids: page-ids)
   }
 }
-#let _LIG-RECS = _LIG-BUILT.recs
-// Page handle -> ids fed under it, from each `ideas` entry's `page`, built in
-// the same pass as `_LIG-RECS`. `none` exactly when `_LIG-RECS` is.
-#let _LIG-PAGE-IDS = _LIG-BUILT.page-ids
+// `page-ids`: page handle -> ids fed under it, from each `ideas` entry's
+// `page`, built in the same pass as `recs`. `none` exactly when `recs` is.
 
 // Removes from `merged` every id fed under `handle` that `live` lacks: the
 // page being recompiled re-registers its notes, so a fed id it no longer
@@ -892,8 +894,9 @@
 // pages corrects it.
 #let _reg-final(handle: none) = {
   let live = _registry-final()
-  if _LIG-RECS == none { return live }
-  _drop-stale-page-ids((: ..live, .._LIG-RECS, ..live), _LIG-PAGE-IDS, handle, live)
+  let built = _lig-built()
+  if built.recs == none { return live }
+  _drop-stale-page-ids((: ..live, ..built.recs, ..live), built.page-ids, handle, live)
 }
 
 // `_sort-ids(ids, reg, sort)` with `reg` read from `_reg-final()` inside the

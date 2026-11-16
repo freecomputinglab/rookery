@@ -314,7 +314,7 @@
   // absent) ligaments value instead of `sys.inputs`' real absence.
   let reg-no-ligaments = _reg-final()
   // No `rheo-ligaments` input at all (as this fixture compiles) means
-  // `_LIG-RECS` (state.typ) is `none`, so `_reg-final()` must fall straight
+  // `_lig-built().recs` (state.typ) is `none`, so `_reg-final()` must fall straight
   // back to the live registry with nothing merged in.
   assert.eq(
     reg-no-ligaments, _registry-final(),

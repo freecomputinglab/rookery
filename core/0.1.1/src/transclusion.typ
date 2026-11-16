@@ -671,7 +671,7 @@
 // which is `_flatten(raw, depth: 1)` either way — same answer a live
 // record's cached `body` already holds, just computed here instead of at
 // registration. `id` is used again: a titled ligament-sourced `rec` carries
-// no `raw` (see `_LIG-RECS`, state.typ), so `_rec-raw` fetches it per note
+// no `raw` (see `_lig-built`, state.typ), so `_rec-raw` fetches it per note
 // from `idea-body:<id>`. `ligaments` stays unused, kept on the signature
 // for call-site stability (window.typ, `demo/pure/ligaments.typ`).
 #let _body-at(id, rec, depth: auto, ligaments: auto) = {
