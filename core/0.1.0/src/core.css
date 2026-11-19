@@ -1099,6 +1099,12 @@ h6[data-rookery="idea"] {
   list-style: none;
 }
 
+/* `list-style` inherits, so the summary's `none` would strip the numbers and
+   bullets off any list among the shown blocks. */
+[data-rookery="window-more-summary"] :is(ol, ul) {
+  list-style: revert;
+}
+
 [data-rookery="window-ellipsis"] {
   color: gray;
 }
