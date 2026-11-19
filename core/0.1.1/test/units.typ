@@ -743,6 +743,10 @@
 #assert(_no-content(([#context none], [ ])))
 #assert(_no-content((metadata(1), parbreak())))
 #assert(not _no-content(([#context none], text("word"))))
+// A user function's markers arrive as ONE sequence child, inert as a whole.
+#assert(_inert({ [#metadata(1) <x>]; context none }))
+#assert(not _inert([#metadata(1) word]))
+#assert(_no-content(({ [#metadata(1) <x>]; context none }, parbreak())))
 
 // `_level-of`: a markup heading carries `depth` and no `level`, while a
 // `separator:` spec written `heading(level: 2)[]` carries `level` and no

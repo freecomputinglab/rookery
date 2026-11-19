@@ -261,8 +261,12 @@
 //
 // `metadata` is here for the same reason and needs no trick, being an ordinary
 // function: `metadata(1).func() == metadata`.
+//
+// A sequence of nothing but these is inert too: it is what a user function
+// emitting only markers returns, such as a bodyless `#slide`.
 #let _inert(c) = {
   let f = c.func()
+  if f == [].func() { return c.children.all(k => _blank(k) or _inert(k)) }
   f == _ctx-fn or f == metadata
 }
 
