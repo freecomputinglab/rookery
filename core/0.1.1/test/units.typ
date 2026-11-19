@@ -615,6 +615,10 @@
 #assert.eq(_derived-title(none), none)
 // Under the limit: the body verbatim, no ellipsis.
 #assert.eq(_derived-title([Short body.]), "Short body.")
+// math operators carry content in their `text` field
+#assert.eq(_plain([Setting $lambda = log w$ works]), "Setting λ = log w works")
+#assert.eq(_body-plain([Setting $lambda = log w$ works.]), "Setting λ = log w works.")
+#assert.eq(_derived-title([Take $max x$ now.]), "Take max x now.")
 // EXACTLY at the limit is not over it — an off-by-one here appends `...` to a
 // title that was already complete.
 #assert.eq(_derived-title([#("a" * 60)]), "a" * 60)

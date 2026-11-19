@@ -323,7 +323,9 @@
 // MEASURED, a title like [The `#window` marker] flattened to "The  marker"
 // under the narrow test, because `raw` carries `.text` and has neither
 // children nor a body — silently making that note unfindable by the word in
-// its own title. A math equation still contributes nothing.
+// its own title. A `text` field is not always a string (`math.op`, i.e. `log`
+// inside math, carries content), so a content-valued one is walked like any
+// other content.
 //
 // A `ref` IS THE ONE LEAF A CALLER CAN DECIDE FOR ITSELF, through `resolve`.
 // It has no `.text`, no `.children` and no `.body`, so a title that names
@@ -336,7 +338,7 @@
   if c == none { "" } else if type(c) == str { c } else if type(c) != content {
     ""
   } else if c.func() == ref { resolve(c)
-  } else if c.has("text") { c.text
+  } else if c.has("text") { if type(c.text) == str { c.text } else { _plain-with(c.text, resolve) }
   } else if c.func() == smartquote {
     // `smartquote` is its own element with no `text`, `children` or `body`, so
     // it needs its own branch or every apostrophe and quotation mark in a
@@ -444,7 +446,7 @@
         _join(c.children.map(x => _body-text-with(x, resolve)))
       } else if c.has("body") { _body-text-with(c.body, resolve) } else { "" }
       " " + inner + " "
-    } else if c.has("text") { c.text } else if c.func() == smartquote {
+    } else if c.has("text") { if type(c.text) == str { c.text } else { _body-text-with(c.text, resolve) } } else if c.func() == smartquote {
       // The same branch `_plain` above carries, for the same reason and with the
       // same ASCII decision — read its banner. A quote inside a note's BODY has to
       // survive too, or the search index drops it exactly as the title did.
