@@ -690,3 +690,20 @@
     }
   }
 }
+
+/* `order: "deps"` INDENT. One step of 1.25em per level of stacking, capped at
+ * six by the table, with a thin rule down the left of anything stacked. */
+.todo-depth-1,
+.todo-depth-2,
+.todo-depth-3,
+.todo-depth-4,
+.todo-depth-5,
+.todo-depth-6 {
+  border-left: 1px solid var(--todo-muted-color, var(--idea-name-color, gray));
+}
+.todo-depth-1 { padding-left: 1.25em; }
+.todo-depth-2 { padding-left: 2.5em; }
+.todo-depth-3 { padding-left: 3.75em; }
+.todo-depth-4 { padding-left: 5em; }
+.todo-depth-5 { padding-left: 6.25em; }
+.todo-depth-6 { padding-left: 7.5em; }

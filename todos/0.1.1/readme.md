@@ -580,6 +580,18 @@ the band on priority.
 order — the earliest date first, or the latest — with in-progress rows still
 hoisted above either and undated rows still sorting last by priority.
 
+`order: "deps"` reads the list as a dependency tree. A todo is stacked under
+each of its deps that is itself in the listed rows (after `filter`, `tag-filter`,
+`overdue` and `bands`); a dep that is closed, filtered out or names no todo is
+ignored. Roots, and the todos stacked under any row, sort by the highest
+priority anywhere in their stack, then name, and a row is followed by its whole
+subtree before its next sibling. A todo with several blockers appears once,
+under the first parent visited, indented one level below it. A dependency
+cycle among the listed rows panics with `dependency cycle`. Each badge still
+shows the todo's own priority, and `hoist:` is ignored for ordering. Known
+limitation: the Filter box is not aware of stacking, so hiding a parent leaves
+its children indented with nothing above them.
+
 `"urgency"` needs `today:` to band by date at all, same as the countdown and
 overdue washes above: with none passed, every row's date-band is the coolest
 one and the order falls back to the priority bands alone, with dated rows

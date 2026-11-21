@@ -363,6 +363,40 @@
 // unprioritised last.
 #assert.eq(dfs-of(tied).order, (hi: 0, lo: 1, "none-pri": 2))
 
+// ---- _deps-order — `order: "deps"` -----------------------------------------
+
+#import "/src/table.typ": _deps-order
+#let drow(name, deps: (), priority: 0) = (
+  name: name, deps: deps, closed: false, tags-dict: (:), priority: priority,
+)
+#let names-of(rs) = rs.map(r => r.name)
+
+// Derived priority: a P0 blocker of a P4 todo outranks an unrelated P3 root.
+#let dp = _deps-order((
+  drow("blocker"), drow("urgent", deps: ("blocker",), priority: 4), drow("other", priority: 3),
+))
+#assert.eq(names-of(dp), ("blocker", "urgent", "other"))
+#assert.eq(dp.map(r => r.depth), (0, 1, 0))
+#assert.eq(dp.map(r => r.sort-key), ("00000", "00001", "00002"))
+
+// Two blockers: appears once, at depth 1 under the first visited.
+#let two = _deps-order((
+  drow("a"), drow("b"), drow("c", deps: ("a", "b")),
+))
+#assert.eq(names-of(two), ("a", "c", "b"))
+#assert.eq(two.map(r => r.depth), (0, 1, 0))
+
+// Three-deep chain: depths 0, 1, 2 in preorder.
+#let chain = _deps-order((
+  drow("z", deps: ("y",)), drow("y", deps: ("x",)), drow("x"),
+))
+#assert.eq(names-of(chain), ("x", "y", "z"))
+#assert.eq(chain.map(r => r.depth), (0, 1, 2))
+
+// A dep outside the row set leaves the row a root.
+#let outside = _deps-order((drow("a", deps: ("gone",)),))
+#assert.eq(outside.map(r => r.depth), (0,))
+
 // ---- todo-slip-keys — the @rookery/slipshow key functions -----------------
 //
 // Each of the four functions reads only `r.name` off the row `#slipshow`

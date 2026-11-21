@@ -164,6 +164,56 @@
 // is in the band on priority alone — then the date. An undated row keeps
 // `#panel`'s own `\u{ffff}` sentinel, and the priority pre-sort is what orders
 // those rows among themselves.
+// THE `order: "deps"` PREORDER. Takes the final row set and returns it in
+// preorder, each row carrying `sort-key` (zero-padded index) and `depth`.
+// A row is stacked under each of its deps that is itself in the set; roots have
+// none. `stack-priority` is the max priority over a row and everything stacked
+// under it. NOT `dfs-of`, which is not a preorder and records no depth.
+#let _deps-order(rows) = {
+  assert-acyclic(todo-graph(rows: rows))
+  let names = rows.map(r => r.name)
+  let by-name = rows.map(r => (r.name, r)).to-dict()
+  let in-set(r) = r.deps.filter(d => d in by-name)
+  let children = (:)
+  for r in rows {
+    for d in in-set(r) {
+      children.insert(d, children.at(d, default: ()) + (r.name,))
+    }
+  }
+  let prio(r) = {
+    let p = r.at("priority", default: 0)
+    if type(p) == int { p } else { 0 }
+  }
+  // Acyclic, so plain recursion terminates. Typst closures cannot mutate what
+  // they capture, so the stack priority is a pure recursion and the preorder
+  // threads its state (`order`, `depths`) through the calls.
+  let stack-priority(n) = {
+    let m = prio(by-name.at(n))
+    for c in children.at(n, default: ()) { m = calc.max(m, stack-priority(c)) }
+    m
+  }
+  let pri = names.map(n => (n, stack-priority(n))).to-dict()
+  let sorted(ns) = ns.sorted(key: n => (-pri.at(n), n))
+  let visit(st, n, depth) = {
+    if n in st.depths { return st }
+    let st = (order: st.order + (n,), depths: st.depths + ((n): depth))
+    for c in sorted(children.at(n, default: ())) { st = visit(st, c, depth + 1) }
+    st
+  }
+  let st = (order: (), depths: (:))
+  for n in sorted(names.filter(n => in-set(by-name.at(n)).len() == 0)) {
+    st = visit(st, n, 0)
+  }
+  st.order.enumerate().map(((i, n)) => {
+    let s = str(i)
+    (
+      ..by-name.at(n),
+      sort-key: "0" * calc.max(0, 5 - s.len()) + s,
+      depth: st.depths.at(n),
+    )
+  })
+}
+
 #let _sort-key(band, state, when, order) = {
   let newest = order == "newest"
   let flip(i, n) = if newest { str(n - 1 - i) } else { str(i) }
@@ -276,6 +326,13 @@
   // band by date at all; with none passed, every row's date-band is the
   // coolest one and the order falls back to priority bands with dated rows
   // first inside each — not an error, just a coarser order.
+  //
+  // A FOURTH, `"deps"`, reads the list as a dependency tree: each todo is
+  // followed by the todos waiting on it, indented by depth. Only edges between
+  // listed rows count. Roots and siblings sort by the highest priority in
+  // their stack, then name; a todo with several blockers appears once, under
+  // the first visited. A dependency cycle among the listed rows panics. `hoist`
+  // does not affect this order.
   order: "urgency",
   // HOW LONG YOU HAVE, as a WASH ON THE DATE CELL — the same three bands
   // @rookery/timeline draws on `#timeline-upcoming`, off the same `countdown()`, on the
@@ -374,10 +431,11 @@
   render: none,
 ) = context {
   assert(
-    order in ("urgency", "newest", "soonest"),
+    order in ("urgency", "newest", "soonest", "deps"),
     message: "@rookery/todos: #todo-table's `order` must be \"urgency\" (band by "
       + "countdown and priority, the default), \"newest\" (the most recent date "
-      + "first) or \"soonest\" (the earliest first) — got " + repr(order),
+      + "first), \"soonest\" (the earliest first) or \"deps\" (stacked under "
+      + "what they wait on, most urgent stack first) — got " + repr(order),
   )
   assert(
     bands == auto or type(bands) == array,
@@ -481,6 +539,7 @@
     })
     .filter(r => overdue or not _past(r.at("when-date", default: none), today))
     .filter(r => bands == auto or r.band in bands)
+  if order == "deps" { rows = _deps-order(rows) }
 
   let draw = if render != none { render } else {
     r => {
@@ -698,6 +757,7 @@
     // other rookery surface already themes a note by.
     row-class: r => (
       ("idea-row",) + r.at("tags-dict", default: (:)).keys().map(t => "idea-tag-" + t)
+        + if order == "deps" { ("todo-depth-" + str(calc.min(r.depth, 6)),) } else { () }
     ),
     visible: visible,
     placeholder: placeholder,

@@ -12,3 +12,4 @@ expect_panic() {   # $1 = file, $2 = substring the message must contain
 }
 
 expect_panic test/panic-layer-cycle.typ "dependency cycle"
+expect_panic test/panic-deps-order-cycle.typ "dependency cycle"
