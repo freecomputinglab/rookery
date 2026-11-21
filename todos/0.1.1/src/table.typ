@@ -153,17 +153,6 @@
   "scheduled"
 }
 
-// THE STRING `#panel` ORDERS THE LIST BY. It compares `sort:` ascending and
-// reverses the whole list under `descending:`, so every field ahead of the
-// date is complemented under `"newest"` — otherwise the reversal sinks
-// exactly the rows the ordering lifted. The date itself is not complemented:
-// reversing it is what `"newest"` means.
-//
-// FOUR FIELDS, widest first: the band, then in-progress, then whether the row
-// carries a date at all — a scheduled or deadlined todo reads above one that
-// is in the band on priority alone — then the date. An undated row keeps
-// `#panel`'s own `\u{ffff}` sentinel, and the priority pre-sort is what orders
-// those rows among themselves.
 // THE `order: "deps"` PREORDER. Takes the final row set and returns it in
 // preorder, each row carrying `sort-key` (zero-padded index) and `depth`.
 // A row is stacked under each of its deps that is itself in the set; roots have
@@ -180,9 +169,13 @@
       children.insert(d, children.at(d, default: ()) + (r.name,))
     }
   }
+  // `todo-table` calls this after its projection, which has already turned
+  // `priority` into a "p3"-style string (or none); raw records carry an int.
   let prio(r) = {
     let p = r.at("priority", default: 0)
-    if type(p) == int { p } else { 0 }
+    if type(p) == int { p } else if type(p) == str and p.starts-with("p") {
+      int(p.slice(1))
+    } else { 0 }
   }
   // Acyclic, so plain recursion terminates. Typst closures cannot mutate what
   // they capture, so the stack priority is a pure recursion and the preorder
@@ -214,6 +207,17 @@
   })
 }
 
+// THE STRING `#panel` ORDERS THE LIST BY. It compares `sort:` ascending and
+// reverses the whole list under `descending:`, so every field ahead of the
+// date is complemented under `"newest"` — otherwise the reversal sinks
+// exactly the rows the ordering lifted. The date itself is not complemented:
+// reversing it is what `"newest"` means.
+//
+// FOUR FIELDS, widest first: the band, then in-progress, then whether the row
+// carries a date at all — a scheduled or deadlined todo reads above one that
+// is in the band on priority alone — then the date. An undated row keeps
+// `#panel`'s own `\u{ffff}` sentinel, and the priority pre-sort is what orders
+// those rows among themselves.
 #let _sort-key(band, state, when, order) = {
   let newest = order == "newest"
   let flip(i, n) = if newest { str(n - 1 - i) } else { str(i) }

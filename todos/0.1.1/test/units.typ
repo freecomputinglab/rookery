@@ -393,6 +393,13 @@
 #assert.eq(names-of(chain), ("x", "y", "z"))
 #assert.eq(chain.map(r => r.depth), (0, 1, 2))
 
+// Projected rows: `todo-table` passes "p4"-style strings (or none), not ints.
+#let proj = _deps-order((
+  drow("blocker", priority: none), drow("urgent", deps: ("blocker",), priority: "p4"),
+  drow("aaa", priority: "p3"),
+))
+#assert.eq(names-of(proj), ("blocker", "urgent", "aaa"))
+
 // A dep outside the row set leaves the row a root.
 #let outside = _deps-order((drow("a", deps: ("gone",)),))
 #assert.eq(outside.map(r => r.depth), (0,))
