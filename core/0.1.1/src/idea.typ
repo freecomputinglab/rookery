@@ -304,12 +304,8 @@
     let occupant = (title: title, body: body, tags: tags, level: level, display: display)
     // `none` unless this note actually needs a body-derived id — a pure
     // function of `occupant`, so it reproduces identically at every replay.
-    // `_plain` returns `none`, not `""`, for genuinely empty content (an
-    // empty `[]` has no children to fall back on, unlike a lone space) —
-    // guarded here since `_name-slug` expects a string.
-    let plain-body = _plain(body)
     let body-slug = if not named and slug == none {
-      _name-slug(if plain-body == none { "" } else { plain-body })
+      _name-slug(_plain(body))
     } else { none }
     // `none` unless this note actually needs a slug suffix — same reason:
     // computed here as plain data, ahead of the write below, so the peek and

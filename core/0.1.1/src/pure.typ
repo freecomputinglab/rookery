@@ -17,7 +17,7 @@
 //
 // Order still matters WITHIN this file, for the same definition-time-capture
 // reason: `_INLINE-FUNCS` -> `_is-inline` -> `_blocks` -> `_truncate`,
-// `_join` -> `_body-text` -> `_body-plain` -> `_derived-title` -> `_rec-label`,
+// `_join` -> `_text-with` -> `_plain`/`_body-plain` -> `_derived-title` -> `_rec-label`,
 // and `IK`/`WK` above both footnote walkers.
 //
 // `_footnotes`'s and `_number-footnotes`'s `footnote` is TYPST'S BUILT-IN,
@@ -312,61 +312,105 @@
   build(entries, root: true)
 }
 
-// Plain text of a title, for `ideas()`. Typst has no built-in
-// content-to-string, so this walks the usual constructors: anything carrying
-// `.text` (a `text` element, and also `raw`), a space element standing for
-// " ", a sequence's `.children`, and anything else with a `.body` (strong,
-// emph, link, ...) recursed into. Unknown leaves contribute nothing rather
-// than erroring — a title is matched on, not rendered from, here.
+// `array.join()` on an EMPTY array returns `none`, not `""`: an idea with an
+// empty body (`#idea("x")[]`) is a `sequence` with zero children. Every array
+// join in the walker below goes through this.
+#let _join(arr) = if arr.len() == 0 { "" } else { arr.join() }
+
+// The one content-to-string walker: the words a reader sees, as a str. Typst
+// has no built-in for this, so it walks the usual constructors. Titles, ids,
+// derived titles, `<title>`, index rows and the search index all read through
+// it, via the collapsed aliases `_plain-with` and `_body-plain-with` below.
+// It ALWAYS returns a str, never `none`.
 //
-// The `.has("text")` branch is deliberately broader than `c.func() == text`:
-// MEASURED, a title like [The `#window` marker] flattened to "The  marker"
-// under the narrow test, because `raw` carries `.text` and has neither
-// children nor a body — silently making that note unfindable by the word in
-// its own title. A `text` field is not always a string (`math.op`, i.e. `log`
-// inside math, carries content), so a content-valued one is walked like any
-// other content.
+// - A `styled` scope (a `show`/`set` rule, or the wrapper `_flatten` puts on
+//   every registry body) is unwrapped to what it wraps.
+// - Not visible, so "": `metadata`, `footnote`, `hide`, and any unknown leaf.
+// - A space, `parbreak`, `linebreak`, `colbreak` or `h` is " ". `block` and a
+//   list `item` pad their content with a space each side, and `table`,
+//   `grid`, `stack`, `list`, `enum`, `terms`, `vec`, `cases` and `mat` space-
+//   join their cells, so neighbouring blocks never glue into one word.
+// - Anything with `.text` reads as that text, whether `text`, `raw` or a math
+//   `symbol`. The field is not always a string (`math.op`, i.e. `log` in
+//   math, carries content), so a content-valued one is walked like any other
+//   content. A narrower test than "has `.text`" once flattened
+//   [The `#window` marker] to "The  marker".
+// - Math reads as it is typeset: `attach` is base then each script with no
+//   separator (`x1`, `f′(x)`), `frac` is `a/b`, `root` leads with its index,
+//   `binom` is `n k`, `accent` is its base.
+// - `terms.item` is `term: description`, `figure` is body then caption, and
+//   `quote` is body then ` — attribution`.
+// - `upper`/`lower` and `show` replacements are opaque styles and are not
+//   applied; the text is present as written.
 //
-// A `ref` IS THE ONE LEAF A CALLER CAN DECIDE FOR ITSELF, through `resolve`.
-// It has no `.text`, no `.children` and no `.body`, so a title that names
-// another note — [Meeting with #ref(<idea:x>)] — has nothing here to walk
-// into: what a reference is worth in plain text is the NAME OF ITS TARGET,
-// and only a caller holding the registry knows that. `_plain` below passes
-// the pure answer, `_ => ""`, for a caller with no registry to resolve
-// against; `ideas()` passes one that reads the target's own label.
-#let _plain-with(c, resolve) = {
-  if c == none { "" } else if type(c) == str { c } else if type(c) != content {
-    ""
-  } else if c.func() == ref { resolve(c)
-  } else if c.has("text") { if type(c.text) == str { c.text } else { _plain-with(c.text, resolve) }
-  } else if c.func() == smartquote {
-    // `smartquote` is its own element with no `text`, `children` or `body`, so
-    // it needs its own branch or every apostrophe and quotation mark in a
-    // title vanishes from a note's plain text.
-    //
-    // ASCII, NOT THE CURLY GLYPH: `double: bool` is the element's only field,
-    // so which curly form it renders as (opening or closing, which depends on
-    // its position in the paragraph) is not knowable here. The straight form
-    // is one deterministic answer, it is what the author typed in the source,
-    // and it is what a reader searching for `Anil's` will type. A plain-text
-    // projection is not the place to reproduce typography.
+// A `ref` IS THE ONE LEAF A CALLER DECIDES FOR ITSELF, through `resolve`. It
+// has no text, children or body to walk into, and what a reference is worth in
+// plain text is the NAME OF ITS TARGET, which only a caller holding the
+// registry knows. `_plain`/`_body-text` pass `_ => ""`; `ideas()` passes one
+// that reads the target's own label. This matters most for a note with no
+// title, which names itself by its body (`_derived-title`): without a
+// resolver, "Write @idea:nz-man post" reads "Write  post".
+//
+// `smartquote` is its own element with no text, children or body, so it needs
+// its own branch or every apostrophe and quotation mark vanishes. It reads as
+// the ASCII form: `double: bool` is its only field, so which curly glyph it
+// renders as (opening or closing) depends on position and is not knowable
+// here. The straight form is what the author typed and what a reader searching
+// for `Anil's` will type.
+#let _text-with(c, resolve) = {
+  if c == none { return "" }
+  if type(c) == str { return c }
+  if type(c) != content { return "" }
+  let c = c
+  while repr(c.func()) == "styled" { c = c.child }
+  let rec = x => _text-with(x, resolve)
+  let spaced = arr => _join(arr.map(rec).intersperse(" "))
+  let f = repr(c.func())
+  let field = (k, d: none) => if c.has(k) { c.at(k) } else { d }
+  if c.func() == ref { resolve(c) }
+  else if f in ("metadata", "footnote", "hide") { "" }
+  else if c.func() == smartquote {
     if c.at("double", default: true) { "\"" } else { "'" }
-  } else if c.func() == [ ].func() {
-    " "
-  } else if c.has("children") {
-    c.children.map(x => _plain-with(x, resolve)).join()
-  } else if c.has("body") {
-    _plain-with(c.body, resolve)
-  } else if c.has("child") {
-    // A `styled` scope: the text is in what it wraps.
-    _plain-with(c.child, resolve)
-  } else { "" }
+  }
+  else if c.func() == [ ].func() or f in ("parbreak", "linebreak", "colbreak", "h") { " " }
+  else if c.has("text") { if type(c.text) == str { c.text } else { rec(c.text) } }
+  else if f == "attach" {
+    rec(c.base) + _join(("b", "t", "bl", "tl", "br", "tr").filter(k => c.has(k)).map(k => rec(c.at(k))))
+  }
+  else if f == "primes" { "′" * c.count }
+  else if f == "frac" { rec(c.num) + "/" + rec(c.denom) }
+  else if f == "root" { (if c.has("index") { rec(c.index) } else { "" }) + "√" + rec(c.radicand) }
+  else if f == "binom" { spaced((c.upper,) + (if type(c.lower) == array { c.lower } else { (c.lower,) })) }
+  else if f == "accent" { rec(c.base) }
+  else if f == "mat" { spaced(c.rows.flatten()) }
+  else if f == "item" and c.has("term") {
+    rec(c.term) + ": " + rec(field("description"))
+  }
+  else if f == "figure" {
+    rec(c.body) + (if c.has("caption") and c.caption != none { " " + rec(c.caption) } else { "" })
+  }
+  else if f == "quote" {
+    rec(c.body) + (if c.has("attribution") and c.attribution != none { " — " + rec(c.attribution) } else { "" })
+  }
+  else if f in ("table", "grid", "stack", "vec", "cases", "list", "enum", "terms") { spaced(c.children) }
+  else if f in ("block", "item") {
+    " " + (if c.has("children") { _join(c.children.map(rec)) } else if c.has("body") { rec(c.body) } else { "" }) + " "
+  }
+  else if c.has("children") { _join(c.children.map(rec)) }
+  else if c.has("body") { rec(c.body) }
+  else { "" }
 }
 
-// Plain text of a title with no registry to hand: a reference contributes
-// nothing, every other leaf reads as it does above. The projection to reach
-// for anywhere outside a `context` — `#idea` computes a note's `label` with
-// it at registration time, before there is anything to resolve against.
+// The walk collapsed to one search-ready string: runs of whitespace (including
+// the boundary spaces the walk inserts) become a single space and the ends are
+// trimmed. A resolved reference lands between two spaces, so the collapse also
+// closes the gap a dropped one leaves.
+#let _plain-with(c, resolve) = _text-with(c, resolve).replace(regex("\s+"), " ").trim()
+
+// Plain text with no registry to hand: a reference contributes nothing. The
+// projection to reach for anywhere outside a `context` — `#idea` computes a
+// note's `label` with it at registration time, before there is anything to
+// resolve against.
 #let _plain(c) = _plain-with(c, _ => "")
 
 // `_plain-with`'s resolver for a document that HAS its registry: what a `ref`
@@ -406,70 +450,12 @@
   }
 }
 
-// Plain text of a note's BODY, for `ideas()`. Every registry body has been
-// through `_flatten`, which wraps it in a `show`-rule scope that Typst
-// represents as a `styled` node hanging off `.child` — unwrap that first,
-// the same way `_blocks` above does. Otherwise follows `_plain`'s
-// branches (`.has("text")`, a space element, `.children`, `.body`), except a
-// `parbreak` or `item` emits a boundary space so blocks and list entries
-// don't glue together the way `_plain`'s title walker would let them
-// (MEASURED: without this, "raw code.A second paragraph" loses its
-// paragraph break). `metadata` and anything unrecognised contribute "".
-//
-// BUG FIX, MEASURED: `array.join()` on an EMPTY array returns `none`, not
-// `""` — an idea with an empty body (`#idea("x")[]`) has a `sequence` node
-// with zero children, and the naive `c.children.map(_body-text).join()`
-// therefore returned `none` and crashed the caller's `.replace(...)`. Both
-// join call sites below go through `_join`, which special-cases the empty
-// array.
-#let _join(arr) = if arr.len() == 0 { "" } else { arr.join() }
+// Plain text of a note's BODY, for `ideas()`: the same walk as `_plain`, under
+// the names the body callers use. Every registry body has been through
+// `_flatten`, which wraps it in a `styled` scope; the walk unwraps it.
+#let _body-text(c) = _text-with(c, _ => "")
 
-// A `ref` IS THE SAME LEAF `_plain-with` PARAMETERISES, through the same
-// `resolve` hook and for a sharper reason: a note with NO TITLE names itself by
-// its body (`_derived-title` below), so `#idea("draft")[Write @idea:nz-man
-// post]` is called "Write  post" on every worklist, index row and search hit
-// unless whoever holds the registry can say what that reference is worth.
-// MEASURED on exactly that note. `_body-text` below passes the pure answer,
-// `_ => ""`,
-// for a caller with no registry to resolve against; `_rec-label` and
-// `ideas()` pass `_ref-text(reg)`.
-#let _body-text-with(c, resolve) = {
-  if c == none { "" } else if type(c) == str { c } else if type(c) != content {
-    ""
-  } else {
-    let c = c
-    while repr(c.func()) == "styled" { c = c.child }
-    let f = repr(c.func())
-    if c == none { "" } else if c.func() == metadata { "" } else if c.func() == ref {
-      resolve(c)
-    } else if f == "parbreak" {
-      " "
-    } else if f == "item" {
-      let inner = if c.has("children") {
-        _join(c.children.map(x => _body-text-with(x, resolve)))
-      } else if c.has("body") { _body-text-with(c.body, resolve) } else { "" }
-      " " + inner + " "
-    } else if c.has("text") { if type(c.text) == str { c.text } else { _body-text-with(c.text, resolve) } } else if c.func() == smartquote {
-      // The same branch `_plain` above carries, for the same reason and with the
-      // same ASCII decision — read its banner. A quote inside a note's BODY has to
-      // survive too, or the search index drops it exactly as the title did.
-      if c.at("double", default: true) { "\"" } else { "'" }
-    } else if c.func() == [ ].func() { " " } else if c.has("children") {
-      _join(c.children.map(x => _body-text-with(x, resolve)))
-    } else if c.has("body") { _body-text-with(c.body, resolve) } else { "" }
-  }
-}
-
-// A body's plain text with no registry to hand: a reference contributes nothing,
-// every other leaf reads as it does above. `#idea` computes a titleless note's
-// registration-time `label` with it, before there is anything to resolve against.
-#let _body-text(c) = _body-text-with(c, _ => "")
-
-// Collapses `_body-text`'s raw walk into one search-ready string: runs of
-// whitespace (including the boundary spaces `_body-text` inserts) become a
-// single space, and the ends are trimmed. A resolved reference lands between two
-// space elements, so the collapse is also what closes the gap a dropped one left.
-#let _body-plain-with(c, resolve) = _body-text-with(c, resolve).replace(regex("\s+"), " ").trim()
+#let _body-plain-with(c, resolve) = _plain-with(c, resolve)
 
 #let _body-plain(c) = _body-plain-with(c, _ => "")
 

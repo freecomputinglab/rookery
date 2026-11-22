@@ -168,7 +168,7 @@
 // search hit and index row for the note dropped the name it was about.
 // `_plain` is still the pure answer; `ideas()` passes a resolver that reads the
 // target's own label.
-#assert.eq(_plain([Meeting with #ref(<idea:doshi-velez-finale>)]), "Meeting with ")
+#assert.eq(_plain([Meeting with #ref(<idea:doshi-velez-finale>)]), "Meeting with")
 #assert.eq(
   _plain-with([Meeting with #ref(<idea:doshi-velez-finale>)], it => "Finale Doshi-Velez"),
   "Meeting with Finale Doshi-Velez",
@@ -963,3 +963,29 @@ second
 third]
 #assert.eq(_blocks(_ruled).len(), 3)
 #assert(_blocks(_ruled).all(b => repr(b).contains("styled")))
+
+// ---- _plain — one walker for what a reader sees ---------------------------
+#assert.eq(_plain([]), "")
+#assert.eq(_plain([On #text(style: "italic")[Being] and Time]), "On Being and Time")
+#assert.eq(_plain([#set text(lang: "fr")
+  #upper[hello] world]), "hello world")
+#assert.eq(_plain([Title#footnote[source]]), "Title")
+#assert.eq(_plain([A #hide[secret] B]), "A B")
+#assert.eq(_plain([$x_1$]), "x1")
+#assert.eq(_plain([$f'(x)$]), "f′(x)")
+#assert.eq(_plain([$frac(a, b)$]), "a/b")
+#assert.eq(_plain([$sqrt(x)$]), "√x")
+#assert.eq(_plain([$root(3, x)$]), "3√x")
+#assert.eq(_plain([$hat(x)$]), "x")
+#assert.eq(_plain([$binom(n, k)$]), "n k")
+#assert.eq(_plain([$mat(1, 2; 3, 4)$]), "1 2 3 4")
+#assert.eq(_plain([$vec(1, 2)$]), "1 2")
+#assert.eq(_plain(table(columns: 2, [x], [y], [z], [w])), "x y z w")
+#assert.eq(_plain(grid([a], [b])), "a b")
+#assert.eq(_plain([#block[one]#block[two]]), "one two")
+#assert.eq(_plain([one#h(1em)two]), "one two")
+#assert.eq(_plain([/ Term: desc]), "Term: desc")
+#assert.eq(_plain(figure(rect(), caption: [Cap])), "Cap")
+#assert.eq(_plain(quote(attribution: [Who])[Said]), "Said — Who")
+#assert.eq(_plain([a  b\
+  c]), "a b c")
