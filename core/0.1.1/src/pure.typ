@@ -682,6 +682,47 @@
   (node.func())(..kids, ..fields)
 }
 
+// Rebuilds a `.body`-bearing node around `body`, keeping its other fields.
+// Some constructors take a second argument positionally (`link`'s `dest`,
+// `align`'s `alignment`, `rotate`'s `angle`, ...); passing it by name raises
+// "unexpected argument", so each such element is special-cased here.
+#let _rebody(node, body) = {
+  let f = node.func()
+  let fields = node.fields()
+  let _ = fields.remove("body", default: none)
+  let _ = fields.remove("label", default: none)
+  // Splits off the field a constructor takes positionally.
+  let split(k) = {
+    let rest = fields
+    let _ = rest.remove(k, default: none)
+    (fields.at(k, default: none), rest)
+  }
+  if f == link { return link(fields.dest, body) }
+  if f == enum.item {
+    return if "number" in fields { enum.item(fields.number, body) } else { enum.item(body) }
+  }
+  if f == html.elem {
+    return html.elem(fields.tag, attrs: fields.at("attrs", default: (:)), body)
+  }
+  if f == math.class { return math.class(fields.class, body) }
+  if f == align { return align(fields.alignment, body) }
+  if f == place {
+    let (a, rest) = split("alignment")
+    return if "alignment" in fields { place(a, body, ..rest) } else { place(body, ..rest) }
+  }
+  if f == rotate { let (a, rest) = split("angle"); return rotate(a, body, ..rest) }
+  if f == columns { let (a, rest) = split("count"); return columns(a, body, ..rest) }
+  let braces = (
+    math.underbrace, math.overbrace, math.underbracket, math.overbracket,
+    math.underparen, math.overparen, math.undershell, math.overshell,
+  )
+  if f in braces {
+    let (a, rest) = split("annotation")
+    return if "annotation" in fields { f(body, a, ..rest) } else { f(body, ..rest) }
+  }
+  f(body, ..fields)
+}
+
 // Reconstructs every intermediate node from `.fields()`, replacing only the
 // slot the recursion descended through — the same generic reconstruction
 // `_outbound` (links.typ) already relies on to walk through anything Typst

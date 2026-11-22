@@ -21,7 +21,7 @@
   _is-inline, _join, _merge-base-tags, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _derived-title-with, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
   _project, _split-tag-list, _tag-pred, _truncate, _truncate-split, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _id-slug, _name-slug, _h3, _b36, _ideate-tag-value, _ideate-name-value,
-  _resolve-display, _DISPLAY-KEYS, _rechild,
+  _resolve-display, _DISPLAY-KEYS, _rechild, _rebody, _strip-labelled,
   footnote, idea, idea-href, idea-path, ideas, slug,
   tag-index, window,
 )
@@ -220,6 +220,18 @@
 // is what keeps the last rung honest for a payload carrying no `raw` at all.
 #assert.eq(_rec-label(TODO-REC, _ => ""), "Write post")
 #assert.eq(_rec-label((title: none, label: "Write post"), _ref-text(REG)), "Write post")
+
+// ---- _rebody / _strip-labelled — positional constructors ----
+// Unchanged nodes come back as themselves; a changed one rebuilds through
+// `_rebody`, which passes positional arguments positionally.
+#for c in (
+  align(right)[a], place(top)[a], rotate(5deg)[a], columns(2)[a],
+  $underbrace(x, "n")$, link("https://a.b")[a],
+) { assert.eq(_strip-labelled(c), c) }
+#assert.eq(_rebody(rotate(5deg)[a], [b]), rotate(5deg)[b])
+#assert.eq(_rebody(align(right)[a], [b]), align(right)[b])
+#assert.eq(_rebody(columns(2)[a], [b]), columns(2)[b])
+#assert.eq(_rebody(math.underbrace[x][n], [y]), math.underbrace([y], [n]))
 
 // ---- _body-text / _body-plain — block boundaries, and the empty body -------
 // MEASURED defect: "raw code.A second paragraph" — a `parbreak` contributed

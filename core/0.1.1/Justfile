@@ -32,6 +32,7 @@ default:
 test:
     typst compile --features html --root . --format pdf test/units.typ /dev/null
     typst compile --features html --root . --format pdf --input rookery-exclude=c --input rookery-include=a test/inputs.typ /dev/null
+    typst compile --features html --root . --format html test/positional.typ /dev/null
     typst compile --features html --root . --format html demo/pure/ligaments.typ /dev/null
     typst compile --features html --root . --format html demo/pure/outline-merge.typ /dev/null
     # Guards a prose citation written OUTSIDE any `#idea`/`#window`: it must

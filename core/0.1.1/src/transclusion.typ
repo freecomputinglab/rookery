@@ -427,25 +427,13 @@
   if node.func() == figure and node.at("kind", default: none) in (IK, WK) { return node }
   if node.has("children") {
     let kids = node.children.map(_strip-labelled)
+    if kids == node.children { return node }
     return _rechild(node, kids)
   }
   if node.has("body") {
     let r = _strip-labelled(node.body)
-    let built = if node.func() == link {
-      link(node.dest, r)
-    } else if node.func() == enum.item {
-      if "number" in node.fields() { enum.item(node.number, r) } else { enum.item(r) }
-    } else if node.func() == html.elem {
-      html.elem(node.tag, attrs: node.at("attrs", default: (:)), r)
-    } else if node.func() == math.class {
-      math.class(node.class, r)
-    } else {
-      let fields = node.fields()
-      let _ = fields.remove("body")
-      let _ = fields.remove("label", default: none)
-      (node.func())(r, ..fields)
-    }
-    return _relabel(built, node)
+    if r == node.body { return node }
+    return _relabel(_rebody(node, r), node)
   }
   if node.has("child") {
     let r = _strip-labelled(node.child)
