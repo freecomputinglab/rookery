@@ -264,7 +264,10 @@
 // otherwise force, whose HTML-export link anchor never converges).
 //
 // Rebuilds `node` the same way `_number-footnotes` (pure.typ) does: the same
-// `children`/`body`/`child` cases, `_relabel` to reattach a label, and a stop
+// `children`/`body`/`child` cases plus the content-valued fields of a figure
+// (body, caption), a quote (body, attribution) and a term item (term,
+// description) via `_field-parts`, `_relabel` to reattach a label, a rebuild
+// of only what changed, and a stop
 // at a nested IK/WK marker — that note or window promotes its own citations
 // when ITS OWN `_footnoted` call runs, not here. Also does NOT descend into a
 // `metadata` node's VALUE, so an author's `#footnote[..]` payload is left
@@ -292,31 +295,28 @@
   if node.func() == ref and str(node.target) in keys {
     return mint(node.target, node.at("supplement", default: auto))
   }
-  if node.func() == cite and node.form == "normal" and str(node.key) in keys {
+  if node.func() == cite and node.at("form", default: "normal") == "normal" and str(node.key) in keys {
     return mint(node.key, node.at("supplement", default: auto))
+  }
+  let parts = _field-parts(node)
+  if parts.len() > 0 {
+    let changes = (:)
+    for (k, v) in parts {
+      let r = _promote-cites(v, keys)
+      if r != v { changes.insert(k, r) }
+    }
+    if changes.len() == 0 { return node }
+    return _refield(node, changes)
   }
   if node.has("children") {
     let kids = node.children.map(k => _promote-cites(k, keys))
-    let built = _rechild(node, kids)
-    return _relabel(built, node)
+    if kids == node.children { return node }
+    return _relabel(_rechild(node, kids), node)
   }
   if node.has("body") {
     let r = _promote-cites(node.body, keys)
-    let built = if node.func() == link {
-      link(node.dest, r)
-    } else if node.func() == enum.item {
-      if "number" in node.fields() { enum.item(node.number, r) } else { enum.item(r) }
-    } else if node.func() == html.elem {
-      html.elem(node.tag, attrs: node.at("attrs", default: (:)), r)
-    } else if node.func() == math.class {
-      math.class(node.class, r)
-    } else {
-      let fields = node.fields()
-      let _ = fields.remove("body")
-      let _ = fields.remove("label", default: none)
-      (node.func())(r, ..fields)
-    }
-    return _relabel(built, node)
+    if r == node.body { return node }
+    return _relabel(_rebody(node, r), node)
   }
   if node.has("child") {
     let r = _promote-cites(node.child, keys)
