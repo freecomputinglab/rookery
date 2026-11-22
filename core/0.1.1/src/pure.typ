@@ -592,10 +592,26 @@
 // likewise. Without this the parent would list its children's footnotes as
 // well as its own, and every one would appear twice on the page.
 //
-// Does NOT descend into a metadata VALUE, nor into a native footnote's own
-// body — only into content children — which is what keeps the raw bodies
+// Descends through content children, a body, a styled child, and the
+// content-valued fields of a figure (body, caption), a quote (body,
+// attribution) and a term item (term, description). Does NOT descend into a
+// metadata VALUE, nor into a native footnote's own body, which is what keeps the raw bodies
 // IK/WK markers carry as metadata payloads, and a citation or nested
 // footnote inside someone else's note, out of the walk.
+// The content-valued fields a walk descends through, in document order, as
+// (name, content) pairs: a figure's body and caption, a quote's body and
+// attribution, a term item's term and description. Empty for any other node.
+#let _field-parts(node) = {
+  let f = node.func()
+  let keep(names) = names
+    .filter(k => type(node.at(k, default: none)) == content)
+    .map(k => (k, node.at(k)))
+  if f == figure { keep(("body", "caption")) }
+  else if f == quote { keep(("body", "attribution")) }
+  else if f == terms.item { keep(("term", "description")) }
+  else { () }
+}
+
 #let _footnotes(node) = {
   let out = ()
   if type(node) != content { return out }
@@ -611,6 +627,8 @@
   // inside it is that note's problem, not this idea's.
   if node.func() == footnote { return (node.body,) }
   if node.func() == figure and node.at("kind", default: none) in (IK, WK) { return out }
+  for (_, v) in _field-parts(node) { out += _footnotes(v) }
+  if _field-parts(node).len() > 0 { return out }
   if node.has("children") { for k in node.children { out += _footnotes(k) } }
   else if node.has("body") { out += _footnotes(node.body) }
   // A styled node's rules (e.g. `_flatten`'s `show ref: hyperlink`) must ride
@@ -712,6 +730,20 @@
   f(body, ..fields)
 }
 
+// Rebuilds `node` with the fields named in `changes` replaced and every other
+// field kept. `terms.item` takes `term` and `description` positionally;
+// `figure` and `quote` take `body` positionally and the rest by name.
+#let _refield(node, changes) = {
+  let fields = node.fields()
+  let _ = fields.remove("label", default: none)
+  for (k, v) in changes { fields.insert(k, v) }
+  if node.func() == terms.item {
+    return _relabel(terms.item(fields.term, fields.description), node)
+  }
+  let body = fields.remove("body")
+  _relabel((node.func())(body, ..fields), node)
+}
+
 // Reconstructs every intermediate node from `.fields()`, replacing only the
 // slot the recursion descended through — the same generic reconstruction
 // `_outbound` (links.typ) already relies on to walk through anything Typst
@@ -735,6 +767,18 @@
   if node.func() == figure and node.at("kind", default: none) in (IK, WK) {
     return (node: node, next: next)
   }
+  let parts = _field-parts(node)
+  if parts.len() > 0 {
+    let cur = next
+    let changes = (:)
+    for (k, v) in parts {
+      let r = _number-footnotes(v, cur, mint)
+      if r.node != v { changes.insert(k, r.node) }
+      cur = r.next
+    }
+    if changes.len() == 0 { return (node: node, next: cur) }
+    return (node: _refield(node, changes), next: cur)
+  }
   if node.has("children") {
     let cur = next
     let kids = ()
@@ -743,33 +787,13 @@
       kids.push(r.node)
       cur = r.next
     }
-    let built = _rechild(node, kids)
-    return (node: _relabel(built, node), next: cur)
+    if kids == node.children { return (node: node, next: cur) }
+    return (node: _relabel(_rechild(node, kids), node), next: cur)
   }
   if node.has("body") {
     let r = _number-footnotes(node.body, next, mint)
-    let built = if node.func() == link {
-      // `link(dest, body)` — TWO positional arguments, `dest` first.
-      link(node.dest, r.node)
-    } else if node.func() == enum.item {
-      // `enum.item(body)`, or `enum.item(number, body)` when the author gave
-      // this item an explicit number — `number` is present in `.fields()`
-      // only then.
-      if "number" in node.fields() { enum.item(node.number, r.node) } else { enum.item(r.node) }
-    } else if node.func() == html.elem {
-      // `html.elem(tag, body)` — `tag` is positional too, and first.
-      html.elem(node.tag, attrs: node.at("attrs", default: (:)), r.node)
-    } else if node.func() == math.class {
-      // `math.class(class, body)` — `class` is positional, and first. `dif`
-      // expands to one.
-      math.class(node.class, r.node)
-    } else {
-      let fields = node.fields()
-      let _ = fields.remove("body")
-      let _ = fields.remove("label", default: none)
-      (node.func())(r.node, ..fields)
-    }
-    return (node: _relabel(built, node), next: r.next)
+    if r.node == node.body { return (node: node, next: r.next) }
+    return (node: _relabel(_rebody(node, r.node), node), next: r.next)
   }
   if node.has("child") {
     // The one type this reaches is `styled` — the wrapper a `show`/`set`

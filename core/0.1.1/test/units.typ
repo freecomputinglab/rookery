@@ -21,7 +21,7 @@
   _is-inline, _join, _merge-base-tags, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _derived-title-with, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
   _project, _split-tag-list, _tag-pred, _truncate, _truncate-split, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _id-slug, _name-slug, _h3, _b36, _ideate-tag-value, _ideate-name-value,
-  _resolve-display, _DISPLAY-KEYS, _rechild, _rebody, _strip-labelled, _spread,
+  _resolve-display, _DISPLAY-KEYS, _rechild, _rebody, _strip-labelled, _footnotes, _number-footnotes, _spread,
   footnote, idea, idea-href, idea-path, ideas, slug,
   tag-index, window,
 )
@@ -989,3 +989,11 @@ third]
 #assert.eq(_plain(quote(attribution: [Who])[Said]), "Said — Who")
 #assert.eq(_plain([a  b\
   c]), "a b c")
+
+// ---- _footnotes / _number-footnotes — content-valued fields ----------------
+#assert.eq(_footnotes(figure([img], caption: [c#footnote[x]])).len(), 1)
+#assert.eq(_footnotes(quote(attribution: [w#footnote[x]])[q]).len(), 1)
+#assert.eq(_footnotes(terms.item([t], [d#footnote[y]])).len(), 1)
+#let _plain-node = [a #rotate(5deg)[b]]
+#assert.eq(_number-footnotes(_plain-node, 1, n => [#n]).node, _plain-node)
+#assert.eq(_number-footnotes(_plain-node, 1, n => [#n]).next, 1)
