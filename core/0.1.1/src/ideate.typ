@@ -170,6 +170,7 @@
   if f == [ ].func() { return true }
   if f == parbreak { return true }
   if f == text { return c.at("text", default: "").trim() == "" }
+  if repr(f) == "styled" { return _blank(c.child) }
   false
 }
 
@@ -212,7 +213,7 @@
 #let _heading-only(group, want: none) = {
   let real = group.filter(c => not _blank(c))
   if real.len() != 1 { return false }
-  let only = real.first()
+  let only = _unstyled(real.first())
   if only.func() != heading { return false }
   want == none or _level-of(only) != want
 }
@@ -267,6 +268,7 @@
 #let _inert(c) = {
   let f = c.func()
   if f == [].func() { return c.children.all(k => _blank(k) or _inert(k)) }
+  if repr(f) == "styled" { return _blank(c.child) or _inert(c.child) }
   f == _ctx-fn or f == metadata
 }
 
@@ -441,8 +443,12 @@
     ..args,
   )
 
-  // Fact 4: one paragraph, no sequence, nothing to split.
-  if not body.has("children") { return mint(body) }
+  // Fact 4: one paragraph, no sequence, nothing to split. A `#set`/`#show`
+  // rule wraps everything after it in one `styled` node, so the children are
+  // read through `_spread` (pure.typ) — a heading inside that scope still
+  // separates, and every piece keeps the rule's styles.
+  let kids = _spread(body)
+  if kids.len() == 1 { return mint(body) }
 
   // Split into groups. In par mode (fact 1) the separator is `parbreak` and is
   // DISCARDED, the new group starting empty — unchanged from before `separator:`
@@ -464,12 +470,12 @@
   // rather than beside it, there being only one group and that group having
   // content. It renders nothing, and leaving it in place beats reordering an
   // author's children to hoist it out.
-  let groups = if none-mode { (body.children,) } else {
+  let groups = if none-mode { (kids,) } else {
     let groups = ()
     let current = ()
-    for child in body.children {
+    for child in kids {
       let is-separator = if heading-mode {
-        child.func() == heading and _level-of(child) == want
+        _unstyled(child).func() == heading and _level-of(_unstyled(child)) == want
       } else {
         child.func() == parbreak
       }
@@ -523,7 +529,7 @@
       // only in heading mode — par mode and `none` mode split on `parbreak`
       // (or not at all), so no group there has a separating heading to find.
       let lead-i = if heading-mode { group.position(c => not _blank(c)) } else { none }
-      let lead = if lead-i == none { none } else { group.at(lead-i) }
+      let lead = if lead-i == none { none } else { _unstyled(group.at(lead-i)) }
       let lead-heading = if lead != none and lead.func() == heading and _level-of(lead) == want { lead } else { none }
 
       // Computed HERE, ABOVE the titling branch below, because a `tags:`

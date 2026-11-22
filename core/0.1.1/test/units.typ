@@ -21,7 +21,7 @@
   _is-inline, _join, _merge-base-tags, _nest-outline, _norm, _norm-tags, _note-file, _outbound,
   _derived-title, _derived-title-with, _own-cited-keys, _plain, _plain-with, _rec-label, _ref-text, _resolve-excluded, _resolve-tags-color, _sort-ids,
   _project, _split-tag-list, _tag-pred, _truncate, _truncate-split, _blank, _heading-only, _level-of, _sel-level, _inert, _no-content, _slug, _id-slug, _name-slug, _h3, _b36, _ideate-tag-value, _ideate-name-value,
-  _resolve-display, _DISPLAY-KEYS, _rechild, _rebody, _strip-labelled,
+  _resolve-display, _DISPLAY-KEYS, _rechild, _rebody, _strip-labelled, _spread,
   footnote, idea, idea-href, idea-path, ideas, slug,
   tag-index, window,
 )
@@ -948,3 +948,18 @@
 // walked by `_promote-cites` or `_number-footnotes` came back one column wide.
 #let _t = table(columns: (1fr, auto), [a], [b])
 #assert.eq(_rechild(_t, _t.children).columns, (1fr, auto))
+
+// ---- _spread — a `styled` scope is spread over the children it wraps -------
+// A mid-body `#set` wraps everything after it in ONE `styled` child, which hid
+// every heading and paragraph inside it from `#ideate` and `limit:`.
+#assert(_spread([a #set text(red); b]).len() > 1)
+#assert.eq(_spread([plain]), ([plain],))
+// A body opening on a rule (after the leading space markup leaves) is one
+// `styled` child holding three paragraphs: three blocks, each keeping the rule.
+#let _ruled = [ #set text(red); first
+
+second
+
+third]
+#assert.eq(_blocks(_ruled).len(), 3)
+#assert(_blocks(_ruled).all(b => repr(b).contains("styled")))

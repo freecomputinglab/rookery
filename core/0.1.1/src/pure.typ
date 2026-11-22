@@ -357,6 +357,9 @@
     c.children.map(x => _plain-with(x, resolve)).join()
   } else if c.has("body") {
     _plain-with(c.body, resolve)
+  } else if c.has("child") {
+    // A `styled` scope: the text is in what it wraps.
+    _plain-with(c.child, resolve)
   } else { "" }
 }
 
@@ -883,10 +886,27 @@
   let kept = held.filter(h => inline or h.inert).map(h => h.node)
   kept.sum(default: [])
 }
+// The top-level children of `body`, with every `styled` scope spread over the
+// children it wraps, each re-wrapped in the same styles so a split keeps them.
+// Re-wrapping is exact for `#set`; a `#show` recipe applies to each piece
+// separately, which differs only for a regex rule matching across a boundary.
+#let _spread(body) = {
+  if repr(body.func()) == "styled" {
+    return _spread(body.child).map(k => (body.func())(k, body.styles))
+  }
+  if repr(body.func()) != "sequence" { return (body,) }
+  body.children.map(c => if repr(c.func()) == "styled" { _spread(c) } else { (c,) }).join(default: ())
+}
+
+// `c` with every `styled` wrapper around it removed.
+#let _unstyled(c) = {
+  while repr(c.func()) == "styled" { c = c.child }
+  c
+}
+
 #let _blocks(body) = {
-  let body = body
-  while repr(body.func()) == "styled" { body = body.child }
-  if not body.has("children") { return (body,) }
+  let kids = _spread(body)
+  if kids.len() <= 1 { return (body,) }
   let out = ()
   let prev-item = false
   let prev-inline = false
@@ -894,8 +914,8 @@
   // — `space` nodes and inert nodes — each tagged with which of the two it
   // is, held back until the next kept child says how to treat them.
   let held = ()
-  for c in body.children {
-    let f = repr(c.func())
+  for c in kids {
+    let f = repr(_unstyled(c).func())
     if f == "space" { held.push((node: c, inert: false)); continue }
     if f == "parbreak" {
       prev-item = false
@@ -914,7 +934,7 @@
       held = ()
       continue
     }
-    let inline = _is-inline(c)
+    let inline = _is-inline(_unstyled(c))
     if inline and prev-inline {
       out.at(-1) = out.at(-1) + _held-content(held, true) + c
     } else {
