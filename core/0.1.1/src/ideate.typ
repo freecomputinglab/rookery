@@ -275,7 +275,17 @@
 // Has this group anything an author wrote in it? THE ANSWER DECIDES EMIT VS
 // MINT, not emit vs drop — see the emit loop for why the group still has to be
 // rendered.
-#let _no-content(group) = group.all(c => _blank(c) or _inert(c))
+//
+// An `#ideate-name` beacon overrides the answer: naming a section is the author
+// asking for a note, and rheo's postamble never carries one. Without this, a
+// named body whose only authored child is a `context` (a page that branches on
+// `target()`, say) reads as postamble once a `#set`/`#show` scope around it is
+// spread, because `_inert` looks through `styled` — and the note, with the
+// label every `@idea:` reference to it needs, silently never exists.
+#let _no-content(group) = (
+  not group.any(c => _ideate-name-value(c) != none)
+    and group.all(c => _blank(c) or _inert(c))
+)
 
 
 // The same level, read off a SELECTOR instead — `heading.where(level: 2)`, which
