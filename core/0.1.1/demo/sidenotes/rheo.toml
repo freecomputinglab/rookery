@@ -1,0 +1,25 @@
+# @rookery/core's in-repo coverage for `footnotes: "horizontal"` — a small
+# rheo project so `.marrow.typ`'s minted pages get the same margin notes as
+# the vertebra that hatched them. `demo/rheo` next door keeps the vertical
+# default and stays untouched.
+version = "0.6.2"
+content_dir = "content"
+formats = ["html"]
+
+# `lib.typ` is a library, not a page: it holds the `demo` wrapper both
+# vertebrae apply. Without this it would compile to its own `lib.html`.
+[spine]
+exclude = ["lib.typ"]
+
+# Sets `--idea-gutter-top` to a non-zero height, standing in for a site's
+# sticky header, so the pinned gutter block in `content/blocks.typ` has an
+# actual strip above it for `geom.sh` to measure the cover against.
+[[html.assets]]
+css_stylesheet = "./content/demo.css"
+
+# Reads `@rookery/*` straight out of this repository's own tree rather than
+# the package cache — see `demo/rheo/rheo.toml`'s copy of this comment for
+# why. `path` is anchored to this file's own directory, four levels up from
+# `<name>/<version>/`.
+[packages.rookery]
+path = "../../../.."

@@ -1,0 +1,8 @@
+/* Sets `--idea-gutter-top` to a non-zero height, standing in for a site's
+   sticky header height plus gap, so `blocks.typ`'s pinned gutter block has an
+   actual strip above it for `[data-rookery="gutter"][data-rookery-sticky]::
+   before` (core.css) to cover. Nothing else here reads this variable, so
+   any value that survives a scroll would do. */
+:root {
+  --idea-gutter-top: 4rem;
+}

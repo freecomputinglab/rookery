@@ -1,0 +1,12 @@
+# A deck composed and ordered by `@rookery/search`'s query language. See
+# `examples/_template/rheo.toml` for what each line below means and why the
+# `[packages.rookery]` override exists — copied verbatim, not reinterpreted.
+version = "0.6.2"
+content_dir = "content"
+formats = ["html"]
+
+[spine]
+exclude = ["lib.typ"]
+
+[packages.rookery]
+path = "../../../.."
