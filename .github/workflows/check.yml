@@ -18,6 +18,27 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Each package's version under test is the newest `<pkg>/<version>/` holding
+      # a `typst.toml`, exported as `<PKG>_DIR` (e.g. `CORE_DIR=core/0.1.1`). A
+      # package this line does not carry exports nothing, and steps needing it are
+      # skipped by an `env.<PKG>_DIR` guard, so one file serves dev (every package)
+      # and a release line cut from main (only the version being released).
+      - name: Resolve the version of each package under test
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          # Version-sorted, so a package's last manifest is its newest version.
+          declare -A dirs=()
+          while IFS= read -r manifest; do
+            dir=${manifest#./}
+            dir=${dir%/typst.toml}
+            dirs[${dir%%/*}]=$dir
+          done < <(printf '%s\n' ./*/*/typst.toml | sort -V)
+          for pkg in "${!dirs[@]}"; do
+            key=${pkg^^}
+            echo "${key//-/_}_DIR=${dirs[$pkg]}" | tee -a "$GITHUB_ENV"
+          done
+
       - uses: pnpm/action-setup@v5
         with:
           version: latest
@@ -33,6 +54,7 @@ jobs:
       # carries no poppler, and the script's `2>/dev/null` on that call means an
       # absent binary would otherwise kill it silently under `set -e`.
       - name: Install poppler-utils
+        if: env.SLIPSHOW_DIR != ''
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends poppler-utils
@@ -116,7 +138,7 @@ jobs:
         run: just check-versions
 
       - name: core unit fixture
-        run: cd core/0.1.1 && just test
+        run: cd "$CORE_DIR" && just test
 
       # `@rookery` IS A CUSTOM NAMESPACE, NOT A TYPST-UNIVERSE ONE, so there is
       # no registry to download it from: it resolves only where the package
@@ -143,7 +165,7 @@ jobs:
           mkdir -p "$cache"
           ln -s "$PWD" "$cache/rookery"
           # Fail HERE with something legible rather than inside a typst error later.
-          test -f "$cache/rookery/search/0.1.1/typst.toml"
+          test -f "$cache/rookery/$CORE_DIR/typst.toml"
 
       # `search`, `todos`, `slipshow` and `pinboard` each import
       # `@rheo/rehydrate:0.1.0` from their entrypoint, for the `RheoRehydrate`
@@ -161,6 +183,7 @@ jobs:
       # accept). The archive unpacks as `typst.toml`, `src/` and `dist/` with no
       # wrapping directory, so it extracts straight into the version dir.
       - name: Install @rheo/rehydrate 0.1.0 into the package cache
+        if: env.SEARCH_DIR != '' || env.TODOS_DIR != '' || env.SLIPSHOW_DIR != '' || env.PINBOARD_DIR != ''
         run: |
           set -euo pipefail
           sha256="87ef8e8a673aee4f24d49cddb59275083293d2f2305c746e60de8b557a18aa38"
@@ -180,7 +203,8 @@ jobs:
       # `test/view.typ` + `test/check.sh` assert the markup `#timeline-view`
       # produces, which a paged compile cannot see.
       - name: timeline unit and view fixtures
-        run: cd timeline/0.1.1 && just test
+        if: env.TIMELINE_DIR != ''
+        run: cd "$TIMELINE_DIR" && just test
 
       # AFTER the namespace-symlink step, like every step that resolves a
       # package by coordinate: @rookery/meetings imports BOTH
@@ -194,7 +218,8 @@ jobs:
       # note's prose, which is document order and so invisible to the value
       # fixture.
       - name: meetings unit and view fixtures
-        run: cd meetings/0.1.1 && just test
+        if: env.MEETINGS_DIR != ''
+        run: cd "$MEETINGS_DIR" && just test
 
       # bibtex is buildless like meetings — pure Typst, no vite — and imports
       # `@rookery/core:0.1.1` for the notes its `#citation` constructor builds,
@@ -202,7 +227,8 @@ jobs:
       # two PDF fixtures and four HTML ones, echoing each one's stderr: the sweep
       # fixtures assert on the WARNINGS a sweep emits, so the output is the test.
       - name: bibtex unit and sweep fixtures
-        run: cd bibtex/0.1.1 && just test
+        if: env.BIBTEX_DIR != ''
+        run: cd "$BIBTEX_DIR" && just test
 
       # `just test` and `just parity` answer different questions: `just test`
       # is this package's own node suite (the panels, the island, the URL
@@ -213,7 +239,8 @@ jobs:
       # recipes import `src/`, but a build failure is worth catching here too,
       # since publish-packages.yml only builds on main.
       - name: search build, unit suite and parity
-        run: cd search/0.1.1 && just build && just test && just parity
+        if: env.SEARCH_DIR != ''
+        run: cd "$SEARCH_DIR" && just build && just test && just parity
 
       # This repo's definition of "lint" is that a package's demo compiles
       # (CLAUDE.md, "Build"). `demo/pure` is plain `typst compile`, so it runs
@@ -226,7 +253,7 @@ jobs:
       # `prefix:`/`theme:`, which is document-wide state and cannot share a
       # document with content that hardcodes the default.
       - name: core pure demo compiles and checks, HTML and PDF
-        run: cd core/0.1.1/demo/pure && just build
+        run: cd "$CORE_DIR/demo/pure" && just build
 
       # The rheo half of core's coverage, and the only thing that proves
       # package-`.marrow.typ` still mints: `check.sh` asserts on the OUTPUT —
@@ -236,17 +263,17 @@ jobs:
       # AFTER the namespace-symlink step above, not before: the demo's
       # `.marrow.typ` needs `@rookery/core:0.1.1` to resolve from the cache.
       - name: core rheo demo compiles and asserts, under the declared floor
-        run: cd core/0.1.1/demo/rheo && just check
+        run: cd "$CORE_DIR/demo/rheo" && just check
 
       # `footnotes: "horizontal"`'s own fixture — margin notes beside the
       # text instead of a Footnotes block, HTML only. A separate project from
       # `demo/rheo` above because that one pins the vertical default and
       # must stay unchanged.
       - name: core sidenotes demo compiles and asserts
-        run: cd core/0.1.1/demo/sidenotes && just check
+        run: cd "$CORE_DIR/demo/sidenotes" && just check
 
       - name: core notes demo compiles and asserts
-        run: cd core/0.1.1/demo/notes && just check
+        run: cd "$CORE_DIR/demo/notes" && just check
 
       # The same content compiled a SECOND way, plain `typst compile`, no
       # rheo — one document, one compile pass, no minted pages — and asserted
@@ -254,7 +281,7 @@ jobs:
       # step, for the same reason as the rheo build above: the content
       # imports `@rookery/core:0.1.1` by coordinate.
       - name: core rheo demo's rookery compiles and asserts without rheo too
-        run: cd core/0.1.1/demo/rheo && just check-typst
+        run: cd "$CORE_DIR/demo/rheo" && just check-typst
 
       # search's own rheo fixture. Its `check.sh` asserts what neither the
       # `node --test` suite nor the parity harness can see: that rheo copied
@@ -268,7 +295,8 @@ jobs:
       # `search build and parity` step above, because `dist/` is gitignored and
       # rheo cannot resolve the package until vite has written it.
       - name: search rheo demo compiles and asserts
-        run: cd search/0.1.1/demo/rheo && just check
+        if: env.SEARCH_DIR != ''
+        run: cd "$SEARCH_DIR/demo/rheo" && just check
 
       # @rookery/todos needs three things in this order, which is why it sits
       # here rather than beside the unit fixtures above:
@@ -279,7 +307,8 @@ jobs:
       #   - `just test-js` covers the graph layout, which is the half of this
       #     package the Typst fixture cannot reach.
       - name: todos build, unit fixture and graph tests
-        run: cd todos/0.1.1 && just build && just test && just test-js
+        if: env.TODOS_DIR != ''
+        run: cd "$TODOS_DIR" && just build && just test && just test-js
 
       # `just check` builds the demo and then asserts on its OUTPUT. The one
       # assertion it exists for is the `.todo-search-row[hidden]` CSS rule:
@@ -288,29 +317,34 @@ jobs:
       # removes nothing. That compiles clean, passes the unit and JS suites, and
       # looks correct in the markup — it is only wrong on screen.
       - name: todos rheo demo compiles and asserts
-        run: cd todos/0.1.1 && just check
+        if: env.TODOS_DIR != ''
+        run: cd "$TODOS_DIR" && just check
 
       # AFTER the namespace-symlink step, like every rheo demo above: this
       # package imports `@rookery/core:0.1.1` by coordinate. AFTER its own
       # `just build`, because `dist/` is gitignored and rheo cannot resolve
       # the package until vite has written it.
       - name: slipshow build, unit fixtures and rheo demo
-        run: cd slipshow/0.1.1 && just build && just test && just test-js && just check
+        if: env.SLIPSHOW_DIR != ''
+        run: cd "$SLIPSHOW_DIR" && just build && just test && just test-js && just check
 
       # AFTER the namespace-symlink step, like every rheo demo above: these
       # example projects import `@rookery/core:0.1.1` by coordinate. AFTER
       # slipshow's own `just build` above, because `dist/` is gitignored and
       # rheo cannot resolve the package until vite has written it.
       - name: slipshow examples compile
-        run: cd slipshow/0.1.1 && just examples
+        if: env.SLIPSHOW_DIR != ''
+        run: cd "$SLIPSHOW_DIR" && just examples
 
       # The ninth package, on the same footing as the four above: `just check`
       # builds `dist/` and then the demo whose built HTML `test/browser/board.mjs`
       # asserts against, so the browser step below has a fixture to serve.
       - name: pinboard build, unit suite and rheo demo
-        run: cd pinboard/0.1.1 && just build && just test-js && just check
+        if: env.PINBOARD_DIR != ''
+        run: cd "$PINBOARD_DIR" && just build && just test-js && just check
 
       - name: Cache Playwright browsers
+        if: hashFiles('*/*/test/browser/*.mjs') != ''
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
@@ -336,6 +370,7 @@ jobs:
       # neither is set. Installing nix on the runner to reproduce that would cost
       # minutes a run to buy nothing.
       - name: Browser suites across WebKit and Chromium
+        if: hashFiles('*/*/test/browser/*.mjs') != ''
         env:
           ROOKERY_BROWSER_ENGINES: webkit,chromium
         run: |

@@ -152,12 +152,9 @@ browser:
 # that `check-versions` can only catch AFTERWARDS. A version cut rewrites on
 # the order of 84 literal specs by hand, 42 of them doc comments in one file.
 #
-# `.github/workflows/check.yml` is rewritten too, and that is the whole reason
-# this recipe cannot be a one-line `sed`. `check-versions` walks `*/*/` only, so
-# the CI file is invisible to it while hardcoding the version PATHS it tests
-# (`cd <pkg>/<version> && just test`, the package-cache assertion, `demo/pure`).
-# A cut that misses it leaves CI exercising the PREVIOUS version and reporting
-# green for code nobody ran.
+# `.github/workflows/check.yml` is rewritten too: its steps find the version
+# under test themselves, but its comments name files by version path, so they
+# are rewritten to keep pointing at the current version.
 #
 # The OLD directory is never touched: every published version stays in the tree,
 # because a release tag is cut per manifest and an edit to an already-released
